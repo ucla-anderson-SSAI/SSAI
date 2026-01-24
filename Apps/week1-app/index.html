@@ -713,21 +713,111 @@
             const [isAnimating, setIsAnimating] = useState(false);
             const [data, setData] = useState([]);
             const [apiConnected, setApiConnected] = useState(false);
+            const [categories, setCategories] = useState([]);
+            const [selectedCategory, setSelectedCategory] = useState('');
+            const [apiResults, setApiResults] = useState(null);
+            const [apiError, setApiError] = useState(null);
 
             useEffect(() => {
-                setData(generateMockData(80));
-                fetch(`${API_BASE}/categories`).then(r => r.ok && setApiConnected(true)).catch(() => {});
+                // Try to connect to API and fetch categories
+                fetch(`${API_BASE}/categories`)
+                    .then(r => {
+                        if (r.ok) {
+                            setApiConnected(true);
+                            return r.json();
+                        }
+                        throw new Error('API not available');
+                    })
+                    .then(data => {
+                        setCategories(data.categories || []);
+                        if (data.categories && data.categories.length > 0) {
+                            setSelectedCategory(data.categories[0]);
+                        }
+                    })
+                    .catch(() => {
+                        // Fall back to mock data if API not available
+                        setData(generateMockData(80));
+                    });
             }, []);
 
-            const trainModel = useCallback(() => {
+            const trainModel = useCallback(async () => {
                 setIsAnimating(true);
-                setData(generateMockData(80));
-                setTimeout(() => setIsAnimating(false), 600);
-            }, []);
+                setApiError(null);
 
+                if (apiConnected && selectedCategory) {
+                    // Use real API
+                    try {
+                        const response = await fetch(`${API_BASE}/analyze`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                product: selectedCategory,
+                                model_type: modelType,
+                                features: selectedFeatures,
+                                alpha: runCV ? null : (modelType === 'lasso' || modelType === 'elasticnet' ? l1Ratio : l2Ratio),
+                                l1_ratio: modelType === 'elasticnet' ? 0.5 : undefined
+                            })
+                        });
+
+                        if (!response.ok) {
+                            const error = await response.json();
+                            throw new Error(error.detail || 'API request failed');
+                        }
+
+                        const result = await response.json();
+                        setApiResults(result);
+
+                        // Convert API results to chart-compatible format
+                        const chartData = result.predictions.map((pred, i) => ({
+                            id: i,
+                            price: 50 + Math.random() * 100, // API doesn't return raw features
+                            actual: result.actuals[i],
+                            predicted: pred,
+                            residual: result.residuals[i],
+                            actual_sales: result.actuals[i]
+                        }));
+                        setData(chartData);
+                    } catch (err) {
+                        setApiError(err.message);
+                        setData(generateMockData(80));
+                    }
+                } else {
+                    // Use mock data
+                    setData(generateMockData(80));
+                }
+
+                setTimeout(() => setIsAnimating(false), 600);
+            }, [apiConnected, selectedCategory, modelType, selectedFeatures, l1Ratio, l2Ratio, runCV]);
+
+            // Compute results - use API results if available, otherwise compute locally
             const { predictions, coefficients, metrics, cvResults } = useMemo(() => {
+                if (apiResults && apiConnected) {
+                    // Convert API results to local format
+                    const coeffs = {};
+                    apiResults.coefficients.forEach(c => {
+                        coeffs[c.feature] = c.coefficient;
+                    });
+
+                    return {
+                        predictions: data,
+                        coefficients: coeffs,
+                        metrics: {
+                            mae: apiResults.metrics.mae.toFixed(2),
+                            rmse: apiResults.metrics.rmse.toFixed(2),
+                            r2: apiResults.metrics.r2.toFixed(3),
+                            n_train: apiResults.n_train,
+                            n_test: apiResults.n_test
+                        },
+                        cvResults: apiResults.alpha_source === 'cv_selected' ? {
+                            folds: 5,
+                            bestL1: apiResults.alpha,
+                            bestL2: apiResults.alpha,
+                            scores: []
+                        } : null
+                    };
+                }
                 return computeRegression(data, selectedFeatures, modelType, l1Ratio, l2Ratio, runCV, cvFolds);
-            }, [data, selectedFeatures, modelType, l1Ratio, l2Ratio, runCV, cvFolds]);
+            }, [data, selectedFeatures, modelType, l1Ratio, l2Ratio, runCV, cvFolds, apiResults, apiConnected]);
 
             const toggleFeature = (feature) => {
                 setSelectedFeatures(prev => {
@@ -793,6 +883,61 @@
                                             textAlign: 'center'
                                         }}>
                                             Backend not connected — using simulated data
+                                        </div>
+                                    )}
+
+                                    {apiConnected && (
+                                        <div style={{
+                                            marginBottom: '20px',
+                                            background: 'rgba(39, 174, 96, 0.1)',
+                                            border: `1px solid rgba(39, 174, 96, 0.3)`,
+                                            borderRadius: '8px',
+                                            padding: '12px 16px',
+                                            fontSize: '0.8rem',
+                                            color: '#1a1a1a',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '12px'
+                                        }}>
+                                            <span style={{ color: '#27ae60' }}>✓</span>
+                                            Connected to H&M Sales API
+                                            <span style={{ margin: '0 8px', color: '#ccc' }}>|</span>
+                                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <span style={{ fontWeight: '500' }}>Product Category:</span>
+                                                <select
+                                                    value={selectedCategory}
+                                                    onChange={(e) => setSelectedCategory(e.target.value)}
+                                                    style={{
+                                                        padding: '6px 12px',
+                                                        borderRadius: '6px',
+                                                        border: '1px solid #ddd',
+                                                        background: 'white',
+                                                        fontSize: '0.85rem',
+                                                        fontWeight: '500',
+                                                        color: '#333'
+                                                    }}
+                                                >
+                                                    {categories.map(cat => (
+                                                        <option key={cat} value={cat}>{cat}</option>
+                                                    ))}
+                                                </select>
+                                            </label>
+                                        </div>
+                                    )}
+
+                                    {apiError && (
+                                        <div style={{
+                                            marginBottom: '20px',
+                                            background: 'rgba(231, 76, 60, 0.1)',
+                                            border: `1px solid rgba(231, 76, 60, 0.3)`,
+                                            borderRadius: '8px',
+                                            padding: '12px 16px',
+                                            fontSize: '0.8rem',
+                                            color: '#c0392b',
+                                            textAlign: 'center'
+                                        }}>
+                                            API Error: {apiError} — falling back to simulated data
                                         </div>
                                     )}
 

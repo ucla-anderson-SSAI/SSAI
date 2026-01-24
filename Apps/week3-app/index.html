@@ -715,6 +715,12 @@
             '#005587', '#8BB8E8', '#2774AE', '#2774AE', '#84cc16'
         ];
 
+        // Data source options
+        const DATA_SOURCES = {
+            synthetic: 'Synthetic Data',
+            netflix: 'Netflix Ratings'
+        };
+
         // Chart.js Components
         function LineChartComponent({ data, dataKey, xKey, title }) {
             const canvasRef = useRef(null);
@@ -1292,6 +1298,12 @@
             const [animationPhase, setAnimationPhase] = useState('idle');
             const [highlightedCluster, setHighlightedCluster] = useState(null);
 
+            // Data source state
+            const [dataSource, setDataSource] = useState('synthetic');
+            const [apiConnected, setApiConnected] = useState(false);
+            const [isLoadingData, setIsLoadingData] = useState(false);
+            const [netflixMovies, setNetflixMovies] = useState([]);
+
             const [metrics, setMetrics] = useState({
                 inertia: 0,
                 silhouette: 0,
@@ -1308,13 +1320,129 @@
 
             const speedMs = { slow: 1500, medium: 800, fast: 300 };
 
-            // Initialize data
+            // Check API connection on mount
             useEffect(() => {
+                fetch(`${API_BASE}/`)
+                    .then(r => r.ok && setApiConnected(true))
+                    .catch(() => setApiConnected(false));
+            }, []);
+
+            // Load data based on source
+            const loadData = useCallback(async (source) => {
+                setIsLoadingData(true);
+                setIsPlaying(false);
+                setIsConverged(false);
+                setIteration(0);
+
+                if (source === 'netflix' && apiConnected) {
+                    try {
+                        // Fetch Netflix data info from API
+                        const infoResponse = await fetch(`${API_BASE}/data_info`);
+                        const info = await infoResponse.json();
+                        setNetflixMovies(info.movie_columns || []);
+
+                        // Fetch elbow data from API
+                        const elbowResponse = await fetch(`${API_BASE}/elbow`);
+                        const elbowApiData = await elbowResponse.json();
+
+                        setElbowData(elbowApiData.k_values.map((kVal, i) => ({
+                            k: kVal,
+                            inertia: elbowApiData.inertia_values[i],
+                            silhouette: elbowApiData.silhouette_scores[i]
+                        })));
+                        setSilhouetteData(elbowApiData.k_values.map((kVal, i) => ({
+                            k: kVal,
+                            score: elbowApiData.silhouette_scores[i]
+                        })));
+
+                        // Generate 2D visualization data for Netflix users
+                        // We'll use the cluster endpoint to get assignments
+                        const clusterResponse = await fetch(`${API_BASE}/cluster`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ algorithm: 'kmeans', n_clusters: k })
+                        });
+                        const clusterResult = await clusterResponse.json();
+
+                        // Create visualization data points
+                        // Since Netflix data is high-dimensional, we simulate 2D projection
+                        const numUsers = clusterResult.cluster_assignments.length;
+                        const netflixData = clusterResult.cluster_assignments.map((cluster, i) => {
+                            // Create pseudo-2D positions based on cluster
+                            const clusterCenters = [
+                                { x: 0.2, y: 0.8 }, { x: 0.8, y: 0.7 }, { x: 0.5, y: 0.2 },
+                                { x: 0.3, y: 0.5 }, { x: 0.7, y: 0.4 }, { x: 0.5, y: 0.7 },
+                                { x: 0.2, y: 0.3 }, { x: 0.8, y: 0.2 }
+                            ];
+                            const center = clusterCenters[cluster % clusterCenters.length] || { x: 0.5, y: 0.5 };
+
+                            return {
+                                id: i,
+                                x: center.x + (Math.random() - 0.5) * 0.25,
+                                y: center.y + (Math.random() - 0.5) * 0.25,
+                                cluster: cluster,
+                                userId: `User_${i + 1}`,
+                                ratings: {} // Will be populated with movie preferences
+                            };
+                        });
+
+                        setRawData(netflixData);
+                        setData(netflixData);
+
+                        // Update metrics from API
+                        setMetrics({
+                            inertia: clusterResult.inertia ? clusterResult.inertia.toFixed(2) : 'N/A',
+                            silhouette: clusterResult.silhouette_score ? clusterResult.silhouette_score.toFixed(3) : 'N/A',
+                            numClusters: clusterResult.n_clusters_found,
+                            iterations: 1
+                        });
+
+                        // Get cluster profiles from API
+                        const profileResponse = await fetch(`${API_BASE}/cluster_profiles/${k}`);
+                        const profileData = await profileResponse.json();
+
+                        // Convert API profiles to visualization format
+                        const profiles = [];
+                        const sizes = [];
+                        Object.keys(profileData.cluster_sizes).forEach((clusterKey, idx) => {
+                            const clusterNum = parseInt(clusterKey.replace('cluster_', ''));
+                            sizes.push({
+                                name: `Cluster ${clusterNum + 1}`,
+                                value: profileData.cluster_sizes[clusterKey],
+                                color: CLUSTER_COLORS[clusterNum % CLUSTER_COLORS.length]
+                            });
+
+                            const profile = { cluster: `Cluster ${clusterNum + 1}` };
+                            const clusterProfile = profileData.cluster_profiles[clusterKey] || {};
+                            Object.keys(clusterProfile).slice(0, 4).forEach(movie => {
+                                profile[movie] = clusterProfile[movie];
+                            });
+                            profiles.push(profile);
+                        });
+
+                        setClusterProfiles(profiles);
+                        setClusterSizes(sizes);
+
+                    } catch (err) {
+                        console.error('Failed to load Netflix data:', err);
+                        // Fall back to synthetic
+                        loadSyntheticData();
+                    }
+                } else {
+                    loadSyntheticData();
+                }
+
+                setIsLoadingData(false);
+            }, [apiConnected, k]);
+
+            // Load synthetic data
+            const loadSyntheticData = useCallback(() => {
                 const mockData = generateMockData(150);
                 setRawData(mockData);
                 setData(mockData);
+                setNetflixMovies([]);
 
-                // Calculate elbow data
+                // Calculate elbow data for synthetic
                 const elbowResults = [];
                 for (let testK = 1; testK <= 10; testK++) {
                     const testCentroids = initializeCentroids(mockData, testK);
@@ -1332,7 +1460,21 @@
                 }
                 setElbowData(elbowResults);
                 setSilhouetteData(elbowResults.map(d => ({ k: d.k, score: d.silhouette })));
+
+                setMetrics({ inertia: 0, silhouette: 0, numClusters: 0, iterations: 0 });
+                setClusterProfiles([]);
+                setClusterSizes([]);
             }, []);
+
+            // Initialize with synthetic data
+            useEffect(() => {
+                loadData(dataSource);
+            }, []);
+
+            // Handle data source change
+            useEffect(() => {
+                loadData(dataSource);
+            }, [dataSource]);
 
             // Reset algorithm
             const handleReset = useCallback(() => {
@@ -1532,6 +1674,77 @@
 
                     {/* Controls Section */}
                     <div className="controls-section">
+                        {/* Data Source Toggle */}
+                        <div style={{
+                            marginBottom: '20px',
+                            background: apiConnected && dataSource === 'netflix'
+                                ? 'rgba(39, 174, 96, 0.1)'
+                                : 'rgba(39, 116, 174, 0.1)',
+                            border: `1px solid ${apiConnected && dataSource === 'netflix' ? 'rgba(39, 174, 96, 0.3)' : 'rgba(39, 116, 174, 0.3)'}`,
+                            borderRadius: '8px',
+                            padding: '12px 20px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            flexWrap: 'wrap',
+                            gap: '12px'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <span style={{ fontWeight: '600', color: '#1a1a1a' }}>Data Source:</span>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <button
+                                        onClick={() => setDataSource('synthetic')}
+                                        disabled={isLoadingData}
+                                        style={{
+                                            padding: '8px 16px',
+                                            borderRadius: '6px',
+                                            border: dataSource === 'synthetic' ? '2px solid #2774AE' : '1px solid #ddd',
+                                            background: dataSource === 'synthetic' ? 'rgba(39, 116, 174, 0.15)' : 'white',
+                                            color: dataSource === 'synthetic' ? '#2774AE' : '#666',
+                                            fontWeight: dataSource === 'synthetic' ? '600' : '400',
+                                            cursor: isLoadingData ? 'not-allowed' : 'pointer',
+                                            fontSize: '0.85rem'
+                                        }}
+                                    >
+                                        Synthetic Data
+                                    </button>
+                                    <button
+                                        onClick={() => setDataSource('netflix')}
+                                        disabled={isLoadingData || !apiConnected}
+                                        style={{
+                                            padding: '8px 16px',
+                                            borderRadius: '6px',
+                                            border: dataSource === 'netflix' ? '2px solid #27ae60' : '1px solid #ddd',
+                                            background: dataSource === 'netflix' ? 'rgba(39, 174, 96, 0.15)' : 'white',
+                                            color: dataSource === 'netflix' ? '#27ae60' : '#666',
+                                            fontWeight: dataSource === 'netflix' ? '600' : '400',
+                                            cursor: (isLoadingData || !apiConnected) ? 'not-allowed' : 'pointer',
+                                            opacity: apiConnected ? 1 : 0.5,
+                                            fontSize: '0.85rem'
+                                        }}
+                                    >
+                                        Netflix Ratings
+                                    </button>
+                                </div>
+                            </div>
+                            <div style={{ fontSize: '0.8rem', color: '#666' }}>
+                                {isLoadingData ? (
+                                    <span>Loading data...</span>
+                                ) : dataSource === 'netflix' ? (
+                                    <span style={{ color: '#27ae60' }}>
+                                        ✓ {netflixMovies.length} movies, {rawData.length} users
+                                    </span>
+                                ) : (
+                                    <span>150 synthetic user profiles</span>
+                                )}
+                                {!apiConnected && (
+                                    <span style={{ marginLeft: '8px', color: '#999' }}>
+                                        (API offline - Netflix unavailable)
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+
                         <div className="control-panel">
                                 <h3>
                                     <span style={{color: 'var(--primary)'}}>&#9881;</span>
@@ -1747,11 +1960,13 @@
                                     {/* Cluster Profiles */}
                                     <div className="chart-card">
                                         <h3>
-                                            Cluster Genre Profiles
+                                            {dataSource === 'netflix' ? 'Cluster Movie Preferences' : 'Cluster Genre Profiles'}
                                         </h3>
                                         <HorizontalBarChartComponent
                                             data={clusterProfiles}
-                                            genres={['Action', 'Comedy', 'Drama', 'Horror']}
+                                            genres={dataSource === 'netflix' && clusterProfiles.length > 0
+                                                ? Object.keys(clusterProfiles[0] || {}).filter(k => k !== 'cluster').slice(0, 4)
+                                                : ['Action', 'Comedy', 'Drama', 'Horror']}
                                         />
                                     </div>
                                 </div>
