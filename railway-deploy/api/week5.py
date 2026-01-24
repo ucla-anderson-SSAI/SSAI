@@ -24,6 +24,47 @@ tf.get_logger().setLevel('ERROR')
 router = APIRouter()
 
 # CORS middleware
+# CORS handled by main app
+
+# Class names for Fashion-MNIST
+CLASS_NAMES = [
+    "T-shirt/top", "Trouser", "Pullover", "Dress", "Coat",
+    "Sandal", "Shirt", "Sneaker", "Bag", "Ankle boot"
+]
+
+# Global cache for dataset
+_dataset_cache = None
+
+
+def load_fashion_mnist():
+    """Load and preprocess Fashion-MNIST dataset with caching."""
+    global _dataset_cache
+
+    if _dataset_cache is not None:
+        return _dataset_cache
+
+    # Load dataset (auto-downloads if not present)
+    (x_train, y_train), (x_test, y_test) = keras.datasets.fashion_mnist.load_data()
+
+    # Normalize pixel values to [0, 1]
+    x_train = x_train.astype("float32") / 255.0
+    x_test = x_test.astype("float32") / 255.0
+
+    # Reshape for neural network (flatten) - will be reshaped as needed
+    x_train_flat = x_train.reshape(-1, 784)
+    x_test_flat = x_test.reshape(-1, 784)
+
+    _dataset_cache = {
+        "x_train": x_train,
+        "y_train": y_train,
+        "x_test": x_test,
+        "y_test": y_test,
+        "x_train_flat": x_train_flat,
+        "x_test_flat": x_test_flat
+    }
+
+    return _dataset_cache
+
 
 # Pydantic models for request/response
 class TrainRequest(BaseModel):
@@ -34,6 +75,7 @@ class TrainRequest(BaseModel):
     learning_rate: float = Field(default=0.001, ge=0.0001, le=0.1, description="Learning rate")
     batch_size: int = Field(default=64, description="Batch size: 32, 64, 128, 256")
     epochs: int = Field(default=10, ge=5, le=50, description="Number of epochs")
+
 
 class TrainResponse(BaseModel):
     train_accuracy_history: List[float]
@@ -47,8 +89,10 @@ class TrainResponse(BaseModel):
     model_summary: str
     total_params: int
 
+
 class PredictRequest(BaseModel):
     image_base64: str = Field(description="Base64 encoded image")
+
 
 class PredictResponse(BaseModel):
     predicted_class: int
@@ -57,14 +101,17 @@ class PredictResponse(BaseModel):
     all_probabilities: List[float]
     class_names: List[str]
 
+
 class SampleImage(BaseModel):
     image_base64: str
     label: int
     label_name: str
 
+
 class SampleImagesResponse(BaseModel):
     images: List[SampleImage]
     class_names: List[str]
+
 
 class ModelComparison(BaseModel):
     model_name: str
@@ -72,9 +119,11 @@ class ModelComparison(BaseModel):
     training_time: float
     description: str
 
+
 class CompareResponse(BaseModel):
     comparisons: List[ModelComparison]
     best_model: str
+
 
 def build_model(
     hidden_layers: List[int],
@@ -111,11 +160,13 @@ def build_model(
 
     return model
 
+
 def get_model_summary(model: keras.Model) -> str:
     """Get model summary as string."""
     string_list = []
     model.summary(print_fn=lambda x: string_list.append(x))
     return "\n".join(string_list)
+
 
 def image_to_base64(img_array: np.ndarray) -> str:
     """Convert numpy array to base64 encoded PNG."""
@@ -127,6 +178,7 @@ def image_to_base64(img_array: np.ndarray) -> str:
     buffer = io.BytesIO()
     img.save(buffer, format="PNG")
     return base64.b64encode(buffer.getvalue()).decode("utf-8")
+
 
 def base64_to_image(base64_string: str) -> np.ndarray:
     """Convert base64 encoded image to numpy array."""
@@ -149,6 +201,7 @@ def base64_to_image(base64_string: str) -> np.ndarray:
 
     return img_array
 
+
 @router.get("/")
 async def health_check():
     """Health check endpoint."""
@@ -157,6 +210,7 @@ async def health_check():
         "service": "Week 5: Neural Networks - Fashion-MNIST Classification",
         "class_names": CLASS_NAMES
     }
+
 
 @router.get("/sample_images", response_model=SampleImagesResponse)
 async def get_sample_images():
@@ -183,6 +237,7 @@ async def get_sample_images():
         images=samples,
         class_names=CLASS_NAMES
     )
+
 
 @router.post("/train", response_model=TrainResponse)
 async def train_model(request: TrainRequest):
@@ -272,6 +327,7 @@ async def train_model(request: TrainRequest):
         model_summary=model_summary,
         total_params=total_params
     )
+
 
 @router.get("/compare", response_model=CompareResponse)
 async def compare_models():
@@ -381,6 +437,7 @@ async def compare_models():
         best_model=best_model.model_name
     )
 
+
 @router.post("/predict", response_model=PredictResponse)
 async def predict_image(request: PredictRequest):
     """Predict class for a given base64 encoded image."""
@@ -427,4 +484,3 @@ async def predict_image(request: PredictRequest):
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error processing image: {str(e)}")
-

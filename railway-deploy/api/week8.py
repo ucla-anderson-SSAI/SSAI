@@ -13,7 +13,46 @@ from enum import Enum
 router = APIRouter()
 
 # CORS middleware
+# CORS handled by main app
 
+# =============================================================================
+# Helper Data
+# =============================================================================
+
+# Sample vocabulary for demonstrations
+SAMPLE_VOCABULARY = [
+    "the", "a", "is", "are", "was", "were", "will", "can", "could",
+    "happy", "sad", "excited", "calm", "nervous",
+    "quickly", "slowly", "carefully", "loudly", "quietly",
+    "run", "walk", "jump", "think", "create", "build", "explore",
+    "sun", "moon", "star", "ocean", "mountain", "forest", "city"
+]
+
+# Sample prompts for different use cases
+SAMPLE_PROMPTS = {
+    "creative_writing": [
+        "Write a short story about a robot learning to paint",
+        "Describe a magical forest at sunset",
+        "Create a poem about the ocean"
+    ],
+    "code_generation": [
+        "Write a Python function to sort a list",
+        "Create a JavaScript class for a shopping cart",
+        "Implement a binary search algorithm"
+    ],
+    "question_answering": [
+        "What is machine learning?",
+        "Explain how neural networks work",
+        "What are the benefits of renewable energy?"
+    ],
+    "summarization": [
+        "Summarize the main points of climate change",
+        "Give a brief overview of the Industrial Revolution",
+        "Explain the key concepts of quantum computing"
+    ]
+}
+
+# Pre-defined responses for simulation (keyed by prompt type and temperature range)
 SIMULATED_RESPONSES = {
     "creative": {
         "low_temp": "The robot carefully studied the canvas, its sensors analyzing each brushstroke with precision.",

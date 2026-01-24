@@ -4,7 +4,6 @@ FastAPI Backend
 """
 
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import pandas as pd
 import numpy as np
@@ -18,24 +17,83 @@ warnings.filterwarnings('ignore')
 
 router = APIRouter()
 
+
+# Global variables to store data
+ratings_df = None
+user_movie_matrix = None
+movie_titles = None
+
+
+def load_data():
+    """Load and prepare Netflix ratings data"""
+    global ratings_df, user_movie_matrix, movie_titles
+
+    if ratings_df is not None:
+        return
+
+    print("Loading Netflix ratings data...")
+    # Load from local file (generated data for demonstration)
+    import os
+    local_path = os.path.join(os.path.dirname(__file__), "netflix_ratings.csv")
+    ratings_df = pd.read_csv(local_path)
+
+    print(f"Loaded {len(ratings_df)} ratings")
+    print(f"Columns: {ratings_df.columns.tolist()}")
+
+    # Create user-movie matrix
+    # Assuming columns are: userId, movieId, rating, title (or similar)
+    if 'title' in ratings_df.columns:
+        movie_col = 'title'
+    elif 'movieId' in ratings_df.columns:
+        movie_col = 'movieId'
+    else:
+        movie_col = ratings_df.columns[1]
+
+    if 'userId' in ratings_df.columns:
+        user_col = 'userId'
+    else:
+        user_col = ratings_df.columns[0]
+
+    if 'rating' in ratings_df.columns:
+        rating_col = 'rating'
+    else:
+        rating_col = ratings_df.columns[2]
+
+    # Create pivot table
+    user_movie_matrix = ratings_df.pivot_table(
+        index=user_col,
+        columns=movie_col,
+        values=rating_col,
+        aggfunc='mean'
+    ).fillna(0)
+
+    movie_titles = user_movie_matrix.columns.tolist()
+    print(f"User-movie matrix shape: {user_movie_matrix.shape}")
+
+
 class ClusteringRequest(BaseModel):
     k: int
 
+
 class CollaborativeFilteringRequest(BaseModel):
     n_neighbors: int
+
 
 @router.on_event("startup")
 async def startup_event():
     """Load data on startup"""
     load_data()
 
+
 @router.get("/")
 async def root():
     return FileResponse("index.html")
 
+
 @router.get("/health")
 async def health():
     return {"status": "healthy", "data_loaded": ratings_df is not None}
+
 
 @router.post("/clustering")
 async def run_clustering(request: ClusteringRequest):
@@ -88,6 +146,7 @@ async def run_clustering(request: ClusteringRequest):
         "cluster_profiles": cluster_profiles
     }
 
+
 @router.get("/elbow_analysis")
 async def elbow_analysis():
     """Run elbow analysis for k=2 to 10"""
@@ -110,6 +169,7 @@ async def elbow_analysis():
         )
 
     return results
+
 
 @router.post("/collaborative_filtering")
 async def run_collaborative_filtering(request: CollaborativeFilteringRequest):
@@ -199,6 +259,7 @@ async def run_collaborative_filtering(request: CollaborativeFilteringRequest):
         "scatter_data": scatter_data
     }
 
+
 @router.get("/cf_analysis")
 async def cf_analysis():
     """Run collaborative filtering analysis for all neighbor values"""
@@ -260,6 +321,7 @@ async def cf_analysis():
 
     return results
 
+
 # Serve static files
-# Static files handled in main.py, name="static")
+
 

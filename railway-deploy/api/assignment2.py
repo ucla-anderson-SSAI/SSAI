@@ -1,5 +1,4 @@
-from fastapi import APIRouter,  FastAPI
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 import pandas as pd
 import numpy as np
@@ -11,6 +10,72 @@ import os
 warnings.filterwarnings('ignore')
 
 router = APIRouter()
+
+
+# Global variables to store data
+df = None
+X = None
+y = None
+encoders = {}
+
+def generate_sample_data():
+    """Generate realistic Range Rover pricing data"""
+    np.random.seed(42)
+    n_samples = 500
+
+    # Years from 2015 to 2024
+    years = np.random.choice(range(2015, 2025), n_samples)
+
+    # Mileage (correlated with year - older cars have more miles)
+    base_mileage = (2024 - years) * 12000  # ~12k miles per year
+    mileage = base_mileage + np.random.normal(0, 5000, n_samples)
+    mileage = np.maximum(mileage, 1000).astype(int)
+
+    # Trims with different base prices
+    trims = np.random.choice(['Base', 'HSE', 'Autobiography', 'SVR', 'Sport'], n_samples,
+                             p=[0.2, 0.3, 0.15, 0.1, 0.25])
+    trim_price_effect = {'Base': 0, 'HSE': 8000, 'Autobiography': 25000, 'SVR': 35000, 'Sport': 5000}
+
+    # States
+    states = np.random.choice(['CA', 'TX', 'FL', 'NY', 'NJ', 'AZ', 'GA', 'WA', 'IL', 'PA'], n_samples)
+    state_price_effect = {'CA': 2000, 'TX': 0, 'FL': 1000, 'NY': 3000, 'NJ': 2500,
+                          'AZ': -500, 'GA': -1000, 'WA': 1500, 'IL': 500, 'PA': 0}
+
+    # Colors
+    colors = np.random.choice(['Black', 'White', 'Silver', 'Blue', 'Red', 'Gray', 'Green'], n_samples,
+                              p=[0.25, 0.25, 0.15, 0.1, 0.1, 0.1, 0.05])
+    color_price_effect = {'Black': 1000, 'White': 500, 'Silver': 0, 'Blue': 200,
+                          'Red': 500, 'Gray': 0, 'Green': -200}
+
+    # Calculate prices
+    base_price = 45000  # Base MSRP
+    prices = []
+    for i in range(n_samples):
+        price = base_price
+        # Year effect (newer = more expensive)
+        price += (years[i] - 2015) * 5000
+        # Mileage effect (more miles = cheaper)
+        price -= mileage[i] * 0.15
+        # Trim effect
+        price += trim_price_effect[trims[i]]
+        # State effect
+        price += state_price_effect[states[i]]
+        # Color effect
+        price += color_price_effect[colors[i]]
+        # Add some noise
+        price += np.random.normal(0, 3000)
+        prices.append(max(price, 20000))
+
+    data = pd.DataFrame({
+        'year': years,
+        'mileage': mileage,
+        'trim': trims,
+        'state': states,
+        'color': colors,
+        'price': np.array(prices).astype(int)
+    })
+
+    return data
 
 def load_and_prepare_data():
     global df, X, y, encoders
@@ -157,7 +222,6 @@ async def data_info():
     }
 
 # Serve static files
-# Static files handled in main.py, name="static")
 
 @router.get("/")
 async def root():

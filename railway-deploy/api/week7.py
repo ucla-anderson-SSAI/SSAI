@@ -27,6 +27,20 @@ from keras.preprocessing.sequence import pad_sequences
 router = APIRouter()
 
 # CORS middleware
+# CORS handled by main app
+
+# Global storage for embeddings and models
+glove_embeddings: Dict[str, np.ndarray] = {}
+embedding_dim = 50
+GLOVE_PATH = "/tmp/glove.6B.50d.txt"
+
+# ============================================================================
+# Pydantic Models
+# ============================================================================
+
+class SimilarityRequest(BaseModel):
+    word1: str = Field(..., description="First word")
+    word2: str = Field(..., description="Second word")
 
 class SimilarityResponse(BaseModel):
     word1: str
@@ -355,7 +369,6 @@ async def health_check():
         "tensorflow_version": tf.__version__
     }
 
-@router.on_event("startup")
 async def startup_event():
     """Load embeddings on startup."""
     load_glove_embeddings()
@@ -661,4 +674,3 @@ async def get_model_info():
         "dataset": "Reuters (46 categories)",
         "architecture": "Transformer with Multi-Head Attention"
     }
-

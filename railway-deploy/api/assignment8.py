@@ -4,7 +4,6 @@ FastAPI Backend - Simulated LLM Responses
 """
 
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from typing import List, Optional
 import random
@@ -13,6 +12,16 @@ import time
 import json
 
 router = APIRouter()
+
+# CORS handled by main app
+
+# Request/Response Models
+class GenerateRequest(BaseModel):
+    prompt: str
+    temperature: float = Field(default=1.0, ge=0.1, le=2.0)
+    top_k: int = Field(default=40, ge=1, le=50)
+    top_p: float = Field(default=0.9, ge=0.1, le=1.0)
+    num_outputs: int = Field(default=5, ge=1, le=10)
 
 class ReviewRequest(BaseModel):
     review: str
@@ -473,4 +482,3 @@ async def probability_demo():
 @router.get("/")
 async def root():
     return FileResponse("index.html")
-

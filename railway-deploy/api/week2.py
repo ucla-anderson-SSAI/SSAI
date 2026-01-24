@@ -17,7 +17,57 @@ import xgboost as xgb
 
 router = APIRouter()
 
-# Enable CORS
+# CORS handled by main app
+
+# Data URL
+DATA_URL = "https://raw.githubusercontent.com/ucla-anderson-SSAI/SSAI/refs/heads/main/range_rover.csv"
+
+# Global variables for data caching
+_df_cache = None
+_encoders = {}
+
+
+class TrainRequest(BaseModel):
+    """Request model for training endpoint."""
+    model_type: Literal["decision_tree", "random_forest", "xgboost"] = Field(
+        default="decision_tree",
+        description="Type of model to train"
+    )
+    max_depth: int = Field(
+        default=5,
+        ge=1,
+        le=20,
+        description="Maximum depth of the tree (1-20)"
+    )
+    n_estimators: int = Field(
+        default=100,
+        ge=10,
+        le=200,
+        description="Number of estimators for RF and XGBoost (10-200)"
+    )
+    learning_rate: float = Field(
+        default=0.1,
+        ge=0.01,
+        le=0.5,
+        description="Learning rate for XGBoost only (0.01-0.5)"
+    )
+    min_samples_split: int = Field(
+        default=2,
+        ge=2,
+        le=20,
+        description="Minimum samples to split for Decision Tree and RF (2-20)"
+    )
+    test_size: float = Field(
+        default=0.2,
+        ge=0.1,
+        le=0.4,
+        description="Test set proportion (0.1-0.4)"
+    )
+    random_state: int = Field(
+        default=42,
+        description="Random seed for reproducibility"
+    )
+
 
 class EstimatorsRequest(BaseModel):
     """Request model for trees_vs_estimators endpoint."""
@@ -46,6 +96,7 @@ class EstimatorsRequest(BaseModel):
         description="Random seed for reproducibility"
     )
 
+
 def load_and_prepare_data():
     """Load and prepare the Range Rover dataset."""
     global _df_cache, _encoders
@@ -69,6 +120,7 @@ def load_and_prepare_data():
     _df_cache = df
     return df.copy(), _encoders
 
+
 def get_features_and_target(df):
     """Extract features and target from dataframe."""
     feature_cols = ['year', 'mileage', 'trim_enc', 'state_enc', 'color_enc']
@@ -78,6 +130,7 @@ def get_features_and_target(df):
     y = df['price']
 
     return X, y, available_features
+
 
 def calculate_metrics(y_true, y_pred):
     """Calculate regression metrics."""
@@ -89,6 +142,7 @@ def calculate_metrics(y_true, y_pred):
         "rmse": round(rmse, 2),
         "r2": round(r2, 4)
     }
+
 
 def train_model(model_type, X_train, y_train, params):
     """Train a model based on type and parameters."""
@@ -120,6 +174,7 @@ def train_model(model_type, X_train, y_train, params):
     model.fit(X_train, y_train)
     return model
 
+
 @router.get("/")
 async def health_check():
     """Health check endpoint."""
@@ -133,6 +188,7 @@ async def health_check():
             "POST /trees_vs_estimators - Analyze n_estimators impact"
         ]
     }
+
 
 @router.get("/sample_data")
 async def get_sample_data(n_samples: int = 10):
@@ -172,6 +228,7 @@ async def get_sample_data(n_samples: int = 10):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.post("/train")
 async def train_model_endpoint(request: TrainRequest):
@@ -238,6 +295,7 @@ async def train_model_endpoint(request: TrainRequest):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/compare")
 async def compare_models(
@@ -318,6 +376,7 @@ async def compare_models(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.post("/trees_vs_estimators")
 async def trees_vs_estimators(request: EstimatorsRequest):
     """Show how error changes with number of estimators."""
@@ -382,4 +441,3 @@ async def trees_vs_estimators(request: EstimatorsRequest):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-

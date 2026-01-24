@@ -4,7 +4,6 @@ FastAPI backend with hyperparameter controls for linear regression models
 """
 
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 import os
 import pandas as pd
@@ -17,8 +16,10 @@ import math
 
 router = APIRouter()
 
-# Data paths
-DATA_DIR = "data"
+# CORS handled by main app
+
+# Constants
+DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 DATA_FILE = os.path.join(DATA_DIR, "HMData.csv")
 MONTH_COLS = ["January", "February", "March", "April", "May", "June",
               "July", "August", "September", "October", "November", "December"]
@@ -46,10 +47,12 @@ MODEL_TYPES = ["ols", "lasso", "ridge", "elasticnet"]
 df = None
 CATEGORIES = []
 
+
 # Pydantic Models
 class FeatureInfo(BaseModel):
     name: str
     description: str
+
 
 class AnalyzeRequest(BaseModel):
     product: str = Field(..., description="Product category to analyze")
@@ -59,15 +62,18 @@ class AnalyzeRequest(BaseModel):
     l1_ratio: Optional[float] = Field(default=0.5, description="ElasticNet mixing parameter (0=Ridge, 1=Lasso)")
     test_month: Optional[int] = Field(default=None, description="Month number to use as test set (1-12, default=last available)")
 
+
 class CoefficientInfo(BaseModel):
     feature: str
     coefficient: float
     abs_coefficient: float
 
+
 class ModelMetrics(BaseModel):
     mae: float
     rmse: float
     r2: float
+
 
 class AnalyzeResponse(BaseModel):
     product: str
@@ -85,6 +91,7 @@ class AnalyzeResponse(BaseModel):
     actuals: List[float]
     residuals: List[float]
 
+
 class CompareModelResult(BaseModel):
     model_name: str
     features: List[str]
@@ -93,6 +100,7 @@ class CompareModelResult(BaseModel):
     intercept: float
     predictions: List[float]
     actuals: List[float]
+
 
 class CompareResponse(BaseModel):
     product: str
@@ -104,19 +112,22 @@ class CompareResponse(BaseModel):
     improvement_ac: float
     sales_over_time: Dict[str, Any]
 
-@router.on_event("startup")
-async def load_data():
-    """Load dataset at startup."""
+
+def load_data():
+    """Load dataset."""
     global df, CATEGORIES
-    if os.path.exists(DATA_FILE):
-        df = pd.read_csv(DATA_FILE)
-        CATEGORIES = sorted(df["name"].unique().tolist())
-        print(f"[INFO] Loaded {len(df)} rows, {len(CATEGORIES)} categories from {DATA_FILE}")
-    else:
-        print(f"[WARNING] Data file not found at {DATA_FILE}")
-        print(f"[INFO] Please place HMData.csv in the data/ directory")
-        df = None
-        CATEGORIES = []
+    if df is None:
+        if os.path.exists(DATA_FILE):
+            df = pd.read_csv(DATA_FILE)
+            CATEGORIES = sorted(df["name"].unique().tolist())
+            print(f"[INFO] Loaded {len(df)} rows, {len(CATEGORIES)} categories from {DATA_FILE}")
+        else:
+            print(f"[WARNING] Data file not found at {DATA_FILE}")
+            print(f"[INFO] Please place HMData.csv in the data/ directory")
+
+# Load data on import
+load_data()
+
 
 def prepare_data(selected_product: str) -> pd.DataFrame:
     """Prepare dataset for a selected product category with all engineered features."""
@@ -155,6 +166,7 @@ def prepare_data(selected_product: str) -> pd.DataFrame:
 
     return df_sub
 
+
 def get_sales_over_time(df_sub: pd.DataFrame, n_samples: int = 10) -> Dict[str, Any]:
     """Get sales trajectories for sample products."""
     np.random.seed(42)
@@ -177,6 +189,7 @@ def get_sales_over_time(df_sub: pd.DataFrame, n_samples: int = 10) -> Dict[str, 
         "months": MONTH_COLS,
         "trajectories": trajectories
     }
+
 
 def train_model(
     X_train: np.ndarray,
@@ -231,6 +244,7 @@ def train_model(
     else:
         raise ValueError(f"Unknown model type: {model_type}")
 
+
 def calculate_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> ModelMetrics:
     """Calculate regression metrics."""
     mae = mean_absolute_error(y_true, y_pred)
@@ -241,6 +255,7 @@ def calculate_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> ModelMetrics:
         rmse=round(rmse, 4),
         r2=round(r2, 4)
     )
+
 
 def extract_coefficients(model, feature_names: List[str]) -> List[CoefficientInfo]:
     """Extract coefficients from a trained model."""
@@ -254,6 +269,7 @@ def extract_coefficients(model, feature_names: List[str]) -> List[CoefficientInf
         for name, coef in zip(feature_names, coefs)
     ]
 
+
 # API Endpoints
 
 @router.get("/")
@@ -265,6 +281,7 @@ async def root():
         "endpoints": ["/categories", "/features", "/analyze", "/compare/{product}"]
     }
 
+
 @router.get("/categories")
 async def get_categories():
     """List all available product categories."""
@@ -272,6 +289,7 @@ async def get_categories():
         "categories": CATEGORIES,
         "count": len(CATEGORIES)
     }
+
 
 @router.get("/features")
 async def get_features():
@@ -290,6 +308,7 @@ async def get_features():
             "elasticnet": "Combination of L1 and L2 regularization"
         }
     }
+
 
 @router.post("/analyze", response_model=AnalyzeResponse)
 async def analyze_custom(request: AnalyzeRequest):
@@ -401,6 +420,7 @@ async def analyze_custom(request: AnalyzeRequest):
         residuals=[round(float(r), 2) for r in residuals]
     )
 
+
 @router.get("/compare/{product}", response_model=CompareResponse)
 async def compare_models(product: str, test_month: Optional[int] = None):
     """
@@ -503,6 +523,7 @@ async def compare_models(product: str, test_month: Optional[int] = None):
         sales_over_time=sales_data
     )
 
+
 @router.get("/months/{product}")
 async def get_available_months(product: str):
     """Get available months for a product category."""
@@ -527,6 +548,7 @@ async def get_available_months(product: str):
         }
     }
 
+
 @router.get("/health")
 async def health_check():
     """Detailed health check."""
@@ -538,11 +560,5 @@ async def health_check():
         "model_types": MODEL_TYPES
     }
 
-# Serve frontend
-FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend")
 
-@router.get("/app")
-async def serve_frontend():
-    """Serve the frontend application."""
-    return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
 

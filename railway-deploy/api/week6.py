@@ -26,12 +26,36 @@ from tensorflow.keras.datasets import cifar10
 router = APIRouter()
 
 # Add CORS middleware
+# CORS handled by main app
+
+# CIFAR-10 class names
+CLASS_NAMES = ['airplane', 'automobile', 'bird', 'cat', 'deer',
+               'dog', 'frog', 'horse', 'ship', 'truck']
+
+# Global cache for dataset
+_dataset_cache = None
+
+
+def load_cifar10_data():
+    """Load and preprocess CIFAR-10 dataset with caching."""
+    global _dataset_cache
+    if _dataset_cache is None:
+        (x_train, y_train), (x_test, y_test) = cifar10.load_data()
+        # Normalize pixel values to [0, 1]
+        x_train = x_train.astype('float32') / 255.0
+        x_test = x_test.astype('float32') / 255.0
+        y_train = y_train.flatten()
+        y_test = y_test.flatten()
+        _dataset_cache = (x_train, y_train, x_test, y_test)
+    return _dataset_cache
+
 
 # Enums for model types
 class ModelType(str, Enum):
     mlp = "mlp"
     simple_cnn = "simple_cnn"
     advanced_cnn = "advanced_cnn"
+
 
 # Pydantic models for request/response
 class TrainRequest(BaseModel):
@@ -44,6 +68,7 @@ class TrainRequest(BaseModel):
     learning_rate: float = Field(default=0.001, ge=0.0001, le=0.01)
     batch_size: int = Field(default=64, ge=32, le=128)
     epochs: int = Field(default=10, ge=5, le=30)
+
 
 class TrainResponse(BaseModel):
     model_type: str
@@ -58,13 +83,16 @@ class TrainResponse(BaseModel):
     training_time: float
     class_names: List[str] = CLASS_NAMES
 
+
 class SampleImagesResponse(BaseModel):
     images: List[str]  # Base64 encoded images
     labels: List[str]
     label_indices: List[int]
 
+
 class CompareResponse(BaseModel):
     results: List[TrainResponse]
+
 
 class VisualizeFiltersRequest(BaseModel):
     model_type: ModelType = ModelType.simple_cnn
@@ -74,10 +102,12 @@ class VisualizeFiltersRequest(BaseModel):
     use_batch_norm: bool = True
     layer_index: int = Field(default=0, ge=0, description="Index of conv layer to visualize")
 
+
 class VisualizeFiltersResponse(BaseModel):
     filter_images: List[str]  # Base64 encoded filter visualizations
     layer_name: str
     num_filters: int
+
 
 def build_mlp_model(input_shape=(32, 32, 3), num_classes=10,
                     dropout_rate=0.25, learning_rate=0.001):
@@ -99,6 +129,7 @@ def build_mlp_model(input_shape=(32, 32, 3), num_classes=10,
         metrics=['accuracy']
     )
     return model
+
 
 def build_simple_cnn_model(input_shape=(32, 32, 3), num_classes=10,
                            num_conv_blocks=2, filters_per_block=32,
@@ -129,6 +160,7 @@ def build_simple_cnn_model(input_shape=(32, 32, 3), num_classes=10,
         metrics=['accuracy']
     )
     return model
+
 
 def build_advanced_cnn_model(input_shape=(32, 32, 3), num_classes=10,
                              num_conv_blocks=3, filters_per_block=32,
@@ -176,6 +208,7 @@ def build_advanced_cnn_model(input_shape=(32, 32, 3), num_classes=10,
     )
     return model
 
+
 def train_model(model, x_train, y_train, x_test, y_test,
                 epochs=10, batch_size=64):
     """Train the model and return metrics."""
@@ -217,6 +250,7 @@ def train_model(model, x_train, y_train, x_test, y_test,
         'training_time': float(training_time)
     }
 
+
 def image_to_base64(img_array):
     """Convert numpy image array to base64 string."""
     # Ensure values are in [0, 255] range
@@ -236,6 +270,7 @@ def image_to_base64(img_array):
 
     return base64.b64encode(buf.read()).decode('utf-8')
 
+
 @router.get("/", tags=["Health"])
 async def health_check():
     """Health check endpoint."""
@@ -245,6 +280,7 @@ async def health_check():
         "tensorflow_version": tf.__version__,
         "gpu_available": len(tf.config.list_physical_devices('GPU')) > 0
     }
+
 
 @router.get("/sample_images", response_model=SampleImagesResponse, tags=["Data"])
 async def get_sample_images(num_samples: int = 10):
@@ -272,6 +308,7 @@ async def get_sample_images(num_samples: int = 10):
         labels=labels,
         label_indices=label_indices
     )
+
 
 @router.post("/train", response_model=TrainResponse, tags=["Training"])
 async def train_custom_model(request: TrainRequest):
@@ -315,6 +352,7 @@ async def train_custom_model(request: TrainRequest):
         **results
     )
 
+
 @router.get("/compare", response_model=CompareResponse, tags=["Comparison"])
 async def compare_models(
     epochs: int = 5,
@@ -354,6 +392,7 @@ async def compare_models(
     results.append(TrainResponse(model_type="advanced_cnn", **advanced_cnn_results))
 
     return CompareResponse(results=results)
+
 
 @router.post("/visualize_filters", response_model=VisualizeFiltersResponse, tags=["Visualization"])
 async def visualize_filters(request: VisualizeFiltersRequest):
@@ -443,6 +482,7 @@ async def visualize_filters(request: VisualizeFiltersRequest):
         num_filters=num_filters
     )
 
+
 @router.get("/model_summary/{model_type}", tags=["Info"])
 async def get_model_summary(
     model_type: ModelType,
@@ -492,4 +532,3 @@ async def get_model_summary(
                                   for w in model.trainable_weights]),
         'layers': layer_info
     }
-

@@ -11,6 +11,13 @@ from enum import Enum
 
 router = APIRouter()
 
+# CORS handled by main app
+
+# ============== Constants ==============
+PRICES = [5, 10, 15, 20, 25]
+TRUE_CONVERSION_RATES = [0.50, 0.35, 0.22, 0.12, 0.05]
+NUM_ARMS = len(PRICES)
+
 # Q-Learning states
 INVENTORY_LEVELS = ["high", "low"]
 TIME_PERIODS = ["early", "late"]
@@ -19,11 +26,13 @@ STATE_TO_IDX = {state: idx for idx, state in enumerate(STATES)}
 NUM_STATES = len(STATES)
 NUM_ACTIONS = NUM_ARMS
 
+
 # ============== Request/Response Models ==============
 class BanditStrategy(str, Enum):
     random = "random"
     epsilon_greedy = "epsilon_greedy"
     ucb = "ucb"
+
 
 class BanditRunRequest(BaseModel):
     strategy: BanditStrategy
@@ -31,10 +40,12 @@ class BanditRunRequest(BaseModel):
     epsilon: float = Field(default=0.1, ge=0.0, le=0.5)
     confidence: float = Field(default=2.0, ge=0.5, le=5.0)
 
+
 class BanditCompareRequest(BaseModel):
     n_customers: int = Field(default=1000, ge=100, le=5000)
     epsilon: float = Field(default=0.1, ge=0.0, le=0.5)
     confidence: float = Field(default=2.0, ge=0.5, le=5.0)
+
 
 class BanditResult(BaseModel):
     strategy: str
@@ -46,10 +57,12 @@ class BanditResult(BaseModel):
     prices: List[int] = PRICES
     true_conversion_rates: List[float] = TRUE_CONVERSION_RATES
 
+
 class BanditCompareResult(BaseModel):
     results: Dict[str, BanditResult]
     prices: List[int] = PRICES
     true_conversion_rates: List[float] = TRUE_CONVERSION_RATES
+
 
 class QLearningTrainRequest(BaseModel):
     learning_rate: float = Field(default=0.1, ge=0.01, le=0.5)
@@ -57,12 +70,14 @@ class QLearningTrainRequest(BaseModel):
     episodes: int = Field(default=1000, ge=100, le=3000)
     epsilon: float = Field(default=0.1, ge=0.0, le=0.5)
 
+
 class QLearningCompareRequest(BaseModel):
     param_to_compare: Literal["learning_rate", "discount"]
     episodes: int = Field(default=1000, ge=100, le=3000)
     base_learning_rate: float = Field(default=0.1, ge=0.01, le=0.5)
     base_discount: float = Field(default=0.9, ge=0.0, le=0.99)
     epsilon: float = Field(default=0.1, ge=0.0, le=0.5)
+
 
 class QLearningResult(BaseModel):
     q_table: Dict[str, List[float]]
@@ -75,10 +90,12 @@ class QLearningResult(BaseModel):
     states: List[str]
     prices: List[int] = PRICES
 
+
 class QLearningCompareResult(BaseModel):
     param_name: str
     param_values: List[float]
     results: List[QLearningResult]
+
 
 # ============== Bandit Algorithms ==============
 class MultiArmedBandit:
@@ -99,13 +116,16 @@ class MultiArmedBandit:
         self.total_reward += reward
         self.cumulative_rewards.append(self.total_reward)
 
+
 def random_strategy(bandit: MultiArmedBandit) -> int:
     return np.random.randint(bandit.n_arms)
+
 
 def epsilon_greedy_strategy(bandit: MultiArmedBandit, epsilon: float) -> int:
     if np.random.random() < epsilon:
         return np.random.randint(bandit.n_arms)
     return int(np.argmax(bandit.values))
+
 
 def ucb_strategy(bandit: MultiArmedBandit, t: int, confidence: float) -> int:
     # Handle arms that haven't been pulled yet
@@ -116,6 +136,7 @@ def ucb_strategy(bandit: MultiArmedBandit, t: int, confidence: float) -> int:
     ucb_values = bandit.values + confidence * np.sqrt(np.log(t + 1) / bandit.counts)
     return int(np.argmax(ucb_values))
 
+
 def simulate_purchase(arm: int) -> tuple:
     """Simulate a customer purchase decision. Returns (converted, revenue)."""
     price = PRICES[arm]
@@ -123,6 +144,7 @@ def simulate_purchase(arm: int) -> tuple:
     converted = np.random.random() < conversion_rate
     revenue = price if converted else 0
     return converted, revenue
+
 
 def run_bandit_simulation(
     strategy: str,
@@ -161,6 +183,7 @@ def run_bandit_simulation(
         estimated_conversion_rates=estimated_rates,
         optimal_price=PRICES[optimal_idx]
     )
+
 
 # ============== Q-Learning Environment ==============
 class InventoryPricingEnv:
@@ -218,6 +241,7 @@ class InventoryPricingEnv:
         self.state_idx = next_state_idx
         return next_state_idx, reward, done
 
+
 class QLearningAgent:
     def __init__(
         self,
@@ -259,6 +283,7 @@ class QLearningAgent:
             state_name = f"{state[0]}_{state[1]}"
             q_dict[state_name] = [float(v) for v in self.q_table[state_idx]]
         return q_dict
+
 
 def train_qlearning(
     learning_rate: float = 0.1,
@@ -310,6 +335,7 @@ def train_qlearning(
         states=[f"{s[0]}_{s[1]}" for s in STATES]
     )
 
+
 # ============== API Endpoints ==============
 @router.get("/")
 def health_check():
@@ -324,6 +350,7 @@ def health_check():
         "true_conversion_rates": TRUE_CONVERSION_RATES
     }
 
+
 @router.post("/bandit/run", response_model=BanditResult)
 def run_bandit(request: BanditRunRequest):
     """Run a single bandit simulation with the specified strategy."""
@@ -337,6 +364,7 @@ def run_bandit(request: BanditRunRequest):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.post("/bandit/compare", response_model=BanditCompareResult)
 def compare_bandits(request: BanditCompareRequest):
@@ -356,6 +384,7 @@ def compare_bandits(request: BanditCompareRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.post("/qlearning/train", response_model=QLearningResult)
 def train_qlearning_endpoint(request: QLearningTrainRequest):
     """Train a Q-learning agent for inventory-based pricing."""
@@ -369,6 +398,7 @@ def train_qlearning_endpoint(request: QLearningTrainRequest):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.post("/qlearning/compare_params", response_model=QLearningCompareResult)
 def compare_qlearning_params(request: QLearningCompareRequest):
@@ -404,4 +434,3 @@ def compare_qlearning_params(request: QLearningCompareRequest):
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-

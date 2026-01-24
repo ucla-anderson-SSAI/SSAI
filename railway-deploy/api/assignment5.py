@@ -3,8 +3,7 @@ Assignment 5: Neural Network Architecture Tuning for Fashion Product Classificat
 FastAPI Backend - Port 8104
 """
 
-from fastapi import APIRouter,  FastAPI
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List
 import numpy as np
@@ -16,6 +15,39 @@ import gzip
 import urllib.request
 
 router = APIRouter()
+
+
+# Class names for Fashion-MNIST
+CLASS_NAMES = [
+    "T-shirt/top", "Trouser", "Pullover", "Dress", "Coat",
+    "Sandal", "Shirt", "Sneaker", "Bag", "Ankle boot"
+]
+
+# Global cache for data
+_cached_data = None
+
+def download_fashion_mnist():
+    """Download Fashion-MNIST data directly from GitHub mirror."""
+    base_url = "https://github.com/zalandoresearch/fashion-mnist/raw/master/data/fashion/"
+    files = {
+        'train_images': 'train-images-idx3-ubyte.gz',
+        'train_labels': 'train-labels-idx1-ubyte.gz',
+        'test_images': 't10k-images-idx3-ubyte.gz',
+        'test_labels': 't10k-labels-idx1-ubyte.gz'
+    }
+
+    data_dir = os.path.join(os.path.dirname(__file__), 'data')
+    os.makedirs(data_dir, exist_ok=True)
+
+    paths = {}
+    for key, filename in files.items():
+        filepath = os.path.join(data_dir, filename)
+        if not os.path.exists(filepath):
+            print(f"Downloading {filename}...")
+            urllib.request.urlretrieve(base_url + filename, filepath)
+        paths[key] = filepath
+
+    return paths
 
 def load_idx_images(filepath):
     """Load images from IDX format."""
@@ -299,10 +331,6 @@ async def train_custom(request: CustomModelRequest):
     }
 
 @router.get("/")
-async def serve_index():
-    return FileResponse("index.html")
-
-# Mount static files
-if os.path.exists("static"):
-    # Static files handled in main.py, name="static")
-
+async def health_check():
+    """Health check endpoint."""
+    return {"status": "healthy", "assignment": 5}

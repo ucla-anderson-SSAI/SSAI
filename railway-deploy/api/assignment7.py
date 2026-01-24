@@ -3,8 +3,7 @@ Assignment 7: Transformers and Attention for Text Classification
 FastAPI Backend - IMDb Sentiment Classification with Transformer Models
 """
 
-from fastapi import APIRouter,  FastAPI
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
 import numpy as np
@@ -15,6 +14,50 @@ import json
 import os
 
 router = APIRouter()
+
+
+# Constants
+VOCAB_SIZE = 10000
+MAX_LEN = 200
+EMBED_DIM = 32
+
+# Cache for data
+_data_cache = {}
+
+def get_imdb_data():
+    """Load and cache IMDb dataset (or generate synthetic data if download fails)"""
+    if 'data' not in _data_cache:
+        print("Loading IMDb dataset...")
+        try:
+            (x_train, y_train), (x_test, y_test) = keras.datasets.imdb.load_data(num_words=VOCAB_SIZE)
+            x_train = keras.preprocessing.sequence.pad_sequences(x_train, maxlen=MAX_LEN)
+            x_test = keras.preprocessing.sequence.pad_sequences(x_test, maxlen=MAX_LEN)
+
+            # Use subset for faster training
+            _data_cache['data'] = (
+                x_train[:5000], y_train[:5000],
+                x_test[:1000], y_test[:1000]
+            )
+        except Exception as e:
+            print(f"Could not download IMDb dataset: {e}")
+            print("Generating synthetic dataset for demonstration...")
+            # Generate synthetic data for demonstration
+            np.random.seed(42)
+            n_train, n_test = 5000, 1000
+
+            # Create sequences with patterns that can be learned
+            x_train = np.random.randint(1, VOCAB_SIZE, size=(n_train, MAX_LEN))
+            x_test = np.random.randint(1, VOCAB_SIZE, size=(n_test, MAX_LEN))
+
+            # Create labels with some learnable pattern based on token presence
+            # Positive sentiment: more high-value tokens in first half
+            y_train = (np.mean(x_train[:, :100], axis=1) > VOCAB_SIZE // 2).astype(np.int32)
+            y_test = (np.mean(x_test[:, :100], axis=1) > VOCAB_SIZE // 2).astype(np.int32)
+
+            _data_cache['data'] = (x_train, y_train, x_test, y_test)
+            _data_cache['synthetic'] = True
+    return _data_cache['data']
+
 
 class TokenAndPositionEmbedding(layers.Layer):
     """Token and Position Embedding Layer"""
@@ -41,6 +84,7 @@ class TokenAndPositionEmbedding(layers.Layer):
             "embed_dim": self.embed_dim,
         })
         return config
+
 
 class TransformerBlock(layers.Layer):
     """Transformer Block with Multi-Head Attention"""
@@ -90,6 +134,7 @@ class TransformerBlock(layers.Layer):
         })
         return config
 
+
 def build_transformer_model(vocab_size, maxlen, embed_dim, num_heads, ff_dim, num_blocks):
     """Build Transformer model for classification"""
     inputs = layers.Input(shape=(maxlen,))
@@ -112,6 +157,7 @@ def build_transformer_model(vocab_size, maxlen, embed_dim, num_heads, ff_dim, nu
     )
     return model
 
+
 def build_lstm_model(vocab_size, maxlen, embed_dim):
     """Build LSTM model for comparison"""
     inputs = layers.Input(shape=(maxlen,))
@@ -131,6 +177,7 @@ def build_lstm_model(vocab_size, maxlen, embed_dim):
     )
     return model
 
+
 # Pydantic models
 class HeadsRequest(BaseModel):
     num_heads_list: List[int] = [1, 2, 4, 8]
@@ -146,6 +193,7 @@ class CustomRequest(BaseModel):
     num_blocks: int = 2
     ff_dim: int = 32
     epochs: int = 3
+
 
 @router.post("/train_heads")
 async def train_heads(request: HeadsRequest):
@@ -180,6 +228,7 @@ async def train_heads(request: HeadsRequest):
 
     return {"results": results}
 
+
 @router.post("/train_depth")
 async def train_depth(request: DepthRequest):
     """Train models with different transformer depths"""
@@ -212,6 +261,7 @@ async def train_depth(request: DepthRequest):
         keras.backend.clear_session()
 
     return {"results": results}
+
 
 @router.post("/train_custom")
 async def train_custom(request: CustomRequest):
@@ -249,6 +299,7 @@ async def train_custom(request: CustomRequest):
 
     keras.backend.clear_session()
     return result
+
 
 @router.post("/compare_lstm")
 async def compare_lstm():
@@ -289,6 +340,7 @@ async def compare_lstm():
         }
     }
 
+
 @router.get("/attention_demo")
 async def attention_demo():
     """Generate sample attention weights for visualization"""
@@ -312,6 +364,7 @@ async def attention_demo():
         "attention_weights": attention_weights.tolist(),
         "explanation": "Each row shows how much attention a token pays to other tokens (columns). Higher values indicate stronger attention. Notice how 'great' attends strongly to 'movie', capturing the sentiment relationship."
     }
+
 
 @router.get("/temperature_demo")
 async def temperature_demo():
@@ -353,8 +406,10 @@ async def temperature_demo():
 
     return results
 
+
 # Serve static files
 @router.get("/")
 async def read_root():
     return FileResponse("index.html")
+
 

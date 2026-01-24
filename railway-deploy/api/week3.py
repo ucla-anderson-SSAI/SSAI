@@ -20,6 +20,39 @@ warnings.filterwarnings("ignore")
 router = APIRouter()
 
 # CORS middleware
+# CORS handled by main app
+
+# Data URL
+DATA_URL = "https://raw.githubusercontent.com/ucla-anderson-SSAI/SSAI/refs/heads/main/netflix_ratings.csv"
+
+# Global cache for data and models
+_cache: Dict[str, Any] = {}
+
+
+def load_data() -> pd.DataFrame:
+    """Load and cache the Netflix ratings data."""
+    if "data" not in _cache:
+        try:
+            df = pd.read_csv(DATA_URL)
+            _cache["data"] = df
+            _cache["movie_columns"] = [col for col in df.columns if col.lower() not in ["user_id", "userid", "id", "user"]]
+
+            # Identify user ID column
+            user_col_candidates = ["user_id", "userid", "id", "user", "User_Id", "UserId"]
+            _cache["user_col"] = None
+            for col in user_col_candidates:
+                if col in df.columns:
+                    _cache["user_col"] = col
+                    break
+            if _cache["user_col"] is None:
+                # Assume first column is user ID if not found
+                _cache["user_col"] = df.columns[0]
+                _cache["movie_columns"] = list(df.columns[1:])
+
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to load data: {str(e)}")
+    return _cache["data"]
+
 
 def get_features() -> np.ndarray:
     """Get feature matrix (movie ratings) for clustering."""
@@ -43,12 +76,14 @@ def get_features() -> np.ndarray:
 
     return _cache["features"]
 
+
 # Request/Response Models
 class ClusterRequest(BaseModel):
     algorithm: Literal["kmeans", "agglomerative", "dbscan"] = "kmeans"
     n_clusters: int = Field(default=5, ge=2, le=15)
     eps: float = Field(default=0.5, ge=0.1, le=2.0)
     min_samples: int = Field(default=5, ge=2, le=10)
+
 
 class ClusterResponse(BaseModel):
     cluster_assignments: List[int]
@@ -57,10 +92,12 @@ class ClusterResponse(BaseModel):
     n_clusters_found: int
     algorithm: str
 
+
 class RecommendRequest(BaseModel):
     user_id: int
     movie: str
     n_neighbors: int = Field(default=10, ge=5, le=100)
+
 
 class RecommendResponse(BaseModel):
     user_id: int
@@ -69,15 +106,18 @@ class RecommendResponse(BaseModel):
     similar_users: List[int]
     confidence: str
 
+
 class ElbowResponse(BaseModel):
     k_values: List[int]
     inertia_values: List[float]
     silhouette_scores: List[float]
 
+
 class ClusterProfileResponse(BaseModel):
     k: int
     cluster_profiles: Dict[str, Dict[str, float]]
     cluster_sizes: Dict[str, int]
+
 
 # Endpoints
 @router.get("/")
@@ -91,11 +131,13 @@ def health_check():
         "topic": "Clustering"
     }
 
+
 @router.get("/movies", response_model=List[str])
 def get_movies():
     """List all movie columns in the dataset."""
     load_data()
     return _cache["movie_columns"]
+
 
 @router.post("/cluster", response_model=ClusterResponse)
 def run_clustering(request: ClusterRequest):
@@ -160,6 +202,7 @@ def run_clustering(request: ClusterRequest):
         algorithm=request.algorithm
     )
 
+
 @router.get("/elbow", response_model=ElbowResponse)
 def get_elbow_data():
     """
@@ -189,6 +232,7 @@ def get_elbow_data():
         inertia_values=inertia_values,
         silhouette_scores=silhouette_scores
     )
+
 
 @router.post("/recommend", response_model=RecommendResponse)
 def recommend_rating(request: RecommendRequest):
@@ -275,6 +319,7 @@ def recommend_rating(request: RecommendRequest):
         confidence=confidence
     )
 
+
 @router.get("/cluster_profiles/{k}", response_model=ClusterProfileResponse)
 def get_cluster_profiles(k: int):
     """
@@ -325,6 +370,7 @@ def get_cluster_profiles(k: int):
         cluster_sizes=cluster_sizes
     )
 
+
 @router.get("/users")
 def get_users():
     """Get list of user IDs in the dataset."""
@@ -335,6 +381,7 @@ def get_users():
         "user_ids": df[user_col].tolist(),
         "total_users": len(df)
     }
+
 
 @router.get("/data_info")
 def get_data_info():
@@ -351,4 +398,3 @@ def get_data_info():
         "sample_users": df[user_col].head(5).tolist(),
         "data_shape": list(df.shape)
     }
-

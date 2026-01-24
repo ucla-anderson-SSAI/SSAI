@@ -5,7 +5,6 @@ Using Airbnb listings data to predict reviews_per_month
 """
 
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 import pandas as pd
 import numpy as np
@@ -17,8 +16,20 @@ import os
 
 router = APIRouter()
 
-# Enable CORS for frontend
+# CORS handled by main app
 
+# Global data
+df = None
+NEIGHBORHOODS = []
+
+# Feature groups for three models
+# Model A: Basic property features
+MODEL_A_FEATURES = ["accommodates"]
+
+# Model B: Property + availability features
+MODEL_B_FEATURES = ["accommodates", "availability_365"]
+
+# Model C: All features (property, availability, host, ratings)
 MODEL_C_FEATURES = [
     "accommodates",
     "bedrooms",
@@ -34,10 +45,12 @@ MODEL_C_FEATURES = [
     "is_entire_home"
 ]
 
+
 class CoefficientInfo(BaseModel):
     feature: str
     coefficient: float
     abs_coefficient: float
+
 
 class ModelResult(BaseModel):
     model_name: str
@@ -46,6 +59,7 @@ class ModelResult(BaseModel):
     coefficients: List[CoefficientInfo]
     predictions: List[float]
     actuals: List[float]
+
 
 class AnalyzeResponse(BaseModel):
     neighborhood: str
@@ -58,7 +72,7 @@ class AnalyzeResponse(BaseModel):
     improvement_ac: float
     sample_data: List[dict]
 
-@router.on_event("startup")
+
 async def load_data():
     """Load and preprocess Airbnb dataset at startup."""
     global df, NEIGHBORHOODS
@@ -91,6 +105,7 @@ async def load_data():
 
     print(f"[INFO] Loaded {len(df)} listings, {len(NEIGHBORHOODS)} neighborhoods")
 
+
 def train_model(X_train, y_train, X_test, feature_names):
     """Train a LassoCV model and return predictions and coefficients."""
     scaler = StandardScaler()
@@ -114,10 +129,12 @@ def train_model(X_train, y_train, X_test, feature_names):
 
     return predictions, coefficients
 
+
 @router.get("/")
 async def root():
     """Serve the main HTML page."""
     return FileResponse(os.path.join(os.path.dirname(__file__), "index.html"))
+
 
 @router.get("/api/neighborhoods")
 async def get_neighborhoods():
@@ -126,6 +143,7 @@ async def get_neighborhoods():
         "neighborhoods": NEIGHBORHOODS,
         "count": len(NEIGHBORHOODS)
     }
+
 
 @router.get("/api/analyze/{neighborhood}")
 async def analyze(neighborhood: str):
@@ -236,6 +254,7 @@ async def analyze(neighborhood: str):
         sample_data=sample_data
     )
 
+
 @router.get("/api/health")
 async def health_check():
     """Detailed health check."""
@@ -245,4 +264,3 @@ async def health_check():
         "neighborhoods_count": len(NEIGHBORHOODS),
         "total_listings": len(df) if df is not None else 0
     }
-
