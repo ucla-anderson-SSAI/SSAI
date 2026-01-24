@@ -1,0 +1,2171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Week 6: LLMs - Large Language Models | UCLA Anderson</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #ffffff;
+            min-height: 100vh;
+            color: #1a1a1a;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #e5e5e5;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #2774AE;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3a8ac4;
+        }
+
+        /* Header */
+        .header {
+            background: #ffffff;
+            padding: 20px 24px;
+            border-bottom: 2px solid #FFD100;
+        }
+
+        .header-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .course-info {
+            font-size: 0.65rem;
+            color: #FFD100;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        .header-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #005587;
+            letter-spacing: -0.01em;
+        }
+
+        .header-subtitle {
+            font-size: 0.85rem;
+            color: #666666;
+            margin-top: 4px;
+        }
+
+        .header-right {
+            text-align: right;
+        }
+
+        .ucla-label {
+            font-size: 0.65rem;
+            color: #666666;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+
+        .anderson-label {
+            font-size: 0.9rem;
+            color: #2774AE;
+            font-weight: 500;
+        }
+
+        /* Controls Section - Light */
+        .controls-section {
+            background: #ffffff;
+        }
+
+        .controls-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px 24px;
+        }
+
+        /* Tabs */
+        .tab-container {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 10px 24px;
+            border-radius: 8px;
+            border: 1px solid rgba(0,0,0,0.08);
+            background: #ffffff;
+            color: #666;
+            font-size: 0.85rem;
+            font-weight: 400;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+            text-transform: capitalize;
+        }
+
+        .tab:hover {
+            background: rgba(39, 116, 174, 0.1);
+            color: #2774AE;
+            border-color: rgba(39, 116, 174, 0.3);
+        }
+
+        .tab.active {
+            background: #2774AE;
+            color: white;
+            border-color: #2774AE;
+            font-weight: 600;
+        }
+
+        /* Light Cards (used in controls and elsewhere) */
+        .dark-card {
+            background: #ffffff;
+            border: 1px solid rgba(0,0,0,0.08);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .dark-card-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #2774AE;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .dark-card-title svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Light Results Section */
+        .results-section {
+            background: #f8f9fa;
+        }
+
+        .results-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* Light Cards */
+        .light-card {
+            background: #ffffff;
+            border: 1px solid rgba(0,0,0,0.08);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .light-card-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .light-card-title svg {
+            width: 20px;
+            height: 20px;
+            color: #2774AE;
+        }
+
+        /* Grid Layouts */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 340px 1fr;
+            gap: 24px;
+        }
+
+        .viz-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        /* Controls */
+        .control-group {
+            margin-bottom: 16px;
+        }
+
+        .control-label {
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: #666;
+            margin-bottom: 8px;
+            display: block;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        select, input[type="number"] {
+            background: #ffffff;
+            border: 1px solid rgba(0,0,0,0.12);
+            border-radius: 8px;
+            padding: 12px 14px;
+            color: #1a1a1a;
+            font-size: 0.9rem;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+            font-weight: 500;
+        }
+
+        select:hover, input[type="number"]:hover {
+            border-color: #2774AE;
+        }
+
+        select:focus, input[type="number"]:focus {
+            outline: none;
+            border-color: #2774AE;
+            box-shadow: 0 0 0 3px rgba(39, 116, 174, 0.2);
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 4px;
+            border-radius: 2px;
+            background: #ddd;
+            -webkit-appearance: none;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #2774AE;
+            cursor: pointer;
+            border: 2px solid #ffffff;
+            box-shadow: 0 2px 6px rgba(39, 116, 174, 0.4);
+        }
+
+        .slider-value {
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: #2774AE;
+            margin-top: 6px;
+        }
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .toggle {
+            width: 48px;
+            height: 26px;
+            background: #ccc;
+            border-radius: 13px;
+            cursor: pointer;
+            position: relative;
+            border: 1px solid rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+        }
+
+        .toggle.active {
+            background: #2774AE;
+            border-color: #2774AE;
+        }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #ffffff;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle.active::after {
+            left: 24px;
+        }
+
+        .toggle-label {
+            font-size: 14px;
+            color: #666;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 14px 28px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #2774AE 0%, #005587 100%);
+            color: white;
+            box-shadow: 0 4px 16px rgba(39, 116, 174, 0.3);
+            width: 100%;
+            justify-content: center;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(39, 116, 174, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            background: #999;
+            box-shadow: none;
+        }
+
+        /* Preset Buttons */
+        .preset-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .preset-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(0,0,0,0.1);
+            background: #ffffff;
+            color: #666;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .preset-btn:hover {
+            border-color: #2774AE;
+            color: #2774AE;
+            background: rgba(39, 116, 174, 0.08);
+        }
+
+        .preset-btn.active {
+            background: #2774AE;
+            color: white;
+            border-color: #2774AE;
+        }
+
+        /* Architecture Visualization */
+        .arch-container {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 30px;
+            min-height: 400px;
+            overflow-x: auto;
+        }
+
+        .arch-flow {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            min-width: max-content;
+            padding: 20px 0;
+        }
+
+        .arch-block {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .arch-layer {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .feature-map-stack {
+            position: relative;
+            perspective: 800px;
+        }
+
+        .feature-map {
+            border-radius: 4px;
+            position: absolute;
+            transform-style: preserve-3d;
+        }
+
+        .layer-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #666;
+            text-align: center;
+            margin-top: 8px;
+            max-width: 80px;
+        }
+
+        .layer-dims {
+            font-size: 10px;
+            color: #999;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .arch-arrow {
+            color: #2774AE;
+            font-size: 24px;
+            opacity: 0.6;
+        }
+
+        /* Input Image Grid */
+        .input-image-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 1px;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            width: 64px;
+            height: 64px;
+        }
+
+        .pixel {
+            aspect-ratio: 1;
+        }
+
+        /* Filter Visualization */
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        .filter-item {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .filter-name {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .filter-visual {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2px;
+            width: 60px;
+            margin: 0 auto;
+        }
+
+        .filter-cell {
+            aspect-ratio: 1;
+            border-radius: 2px;
+            font-size: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Metrics Display */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .metric-card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            border: 1px solid rgba(0,0,0,0.06);
+        }
+
+        .metric-value {
+            font-size: 28px;
+            font-weight: 800;
+            color: #2774AE;
+        }
+
+        .metric-label {
+            font-size: 11px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 4px;
+        }
+
+        /* Light Section Metrics */
+        .light-metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+
+        .light-metric-card {
+            background: #ffffff;
+            border: 1px solid rgba(0,0,0,0.08);
+            border-radius: 12px;
+            padding: 18px 14px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .light-metric-label {
+            font-size: 0.65rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-weight: 600;
+        }
+
+        .light-metric-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-top: 6px;
+        }
+
+        /* Confusion Matrix */
+        .confusion-matrix {
+            display: grid;
+            gap: 2px;
+            font-size: 10px;
+        }
+
+        .cm-cell {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 3px;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+            min-width: 28px;
+            min-height: 28px;
+        }
+
+        .cm-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            color: #666;
+            font-weight: 600;
+        }
+
+        /* Predictions Grid */
+        .predictions-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+        }
+
+        .prediction-item {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .prediction-image {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 8px;
+            border-radius: 8px;
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 0;
+            overflow: hidden;
+        }
+
+        .pred-label {
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .pred-correct {
+            color: #22c55e;
+        }
+
+        .pred-wrong {
+            color: #ef4444;
+        }
+
+        .pred-conf {
+            font-size: 10px;
+            color: #999;
+            margin-top: 2px;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            margin: 16px 0;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #2774AE, #8BB8E8);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 6px;
+            text-align: center;
+        }
+
+        /* Instructions */
+        .instructions-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid rgba(0,0,0,0.08);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .instruction-section {
+            margin-bottom: 32px;
+        }
+
+        .instruction-title {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2774AE;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .instruction-text {
+            color: #666;
+            line-height: 1.8;
+            font-size: 0.9rem;
+        }
+
+        .instruction-text p {
+            margin-bottom: 12px;
+        }
+
+        .instruction-text strong {
+            color: #1a1a1a;
+        }
+
+        .concept-box {
+            background: rgba(39, 116, 174, 0.08);
+            border-left: 4px solid #2774AE;
+            border-radius: 0 8px 8px 0;
+            padding: 16px 20px;
+            margin: 16px 0;
+        }
+
+        .concept-title {
+            font-weight: 600;
+            color: #2774AE;
+            margin-bottom: 8px;
+        }
+
+        .conv-demo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 30px;
+            padding: 30px;
+            background: #ffffff;
+            border-radius: 12px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            border: 1px solid rgba(0,0,0,0.06);
+        }
+
+        .demo-matrix {
+            display: grid;
+            gap: 3px;
+        }
+
+        .demo-cell {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .demo-label {
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+            margin-top: 8px;
+        }
+
+        .demo-arrow {
+            font-size: 32px;
+            color: #2774AE;
+        }
+
+        .highlight-box {
+            border: 2px solid #FFD100;
+            box-shadow: 0 0 20px rgba(255, 209, 0, 0.3);
+        }
+
+        /* Comparison Chart */
+        .comparison-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .comparison-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .comparison-label {
+            width: 80px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #666;
+        }
+
+        .comparison-bar-container {
+            flex: 1;
+            height: 32px;
+            background: #f0f0f0;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .comparison-bar {
+            height: 100%;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 12px;
+            font-weight: 700;
+            font-size: 13px;
+            color: white;
+            transition: width 0.5s ease;
+        }
+
+        .mlp-bar {
+            background: linear-gradient(90deg, #ef4444, #f97316);
+        }
+
+        .cnn-bar {
+            background: linear-gradient(90deg, #2774AE, #8BB8E8);
+        }
+
+        /* Loading Animation */
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(39, 116, 174, 0.2);
+            border-top-color: #2774AE;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Status Badge */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-ready {
+            background: rgba(34, 197, 94, 0.15);
+            color: #16a34a;
+        }
+
+        .status-training {
+            background: rgba(39, 116, 174, 0.15);
+            color: #2774AE;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .status-training .status-dot {
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .viz-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Dense Layer Visualization */
+        .dense-layer {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .neuron {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #2774AE, #8BB8E8);
+            box-shadow: 0 0 8px rgba(39, 116, 174, 0.5);
+        }
+
+        .neuron-small {
+            width: 8px;
+            height: 8px;
+        }
+
+        /* Class Probabilities */
+        .prob-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .prob-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .prob-label {
+            width: 60px;
+            font-size: 10px;
+            color: #666;
+            text-align: right;
+        }
+
+        .prob-bar-bg {
+            flex: 1;
+            height: 16px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .prob-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .prob-value {
+            width: 40px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #2774AE;
+            font-family: 'JetBrains Mono', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback } = React;
+
+        // UCLA Theme Colors
+        const colors = {
+            primary: '#2774AE',
+            accent: '#FFD100',
+            darkBlue: '#005587',
+            lightBlue: '#8BB8E8',
+            positive: '#22c55e',
+            negative: '#ef4444',
+            darkBg: '#005587',
+            darkCard: '#1a1d24',
+            darkText: '#e5e5e5',
+            darkMuted: '#888',
+            lightBg: '#f8f9fa',
+            lightCard: '#ffffff',
+        };
+
+        // Chart.js LineChart Component
+        function LineChartComponent({ data, lines, height = 250 }) {
+            const canvasRef = useRef(null);
+            const chartRef = useRef(null);
+
+            useEffect(() => {
+                if (!canvasRef.current || !data.length) return;
+                if (chartRef.current) chartRef.current.destroy();
+
+                const ctx = canvasRef.current.getContext('2d');
+                chartRef.current = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.map(d => d.epoch),
+                        datasets: lines.map(line => ({
+                            label: line.name,
+                            data: data.map(d => d[line.dataKey]),
+                            borderColor: line.stroke,
+                            fill: false,
+                            tension: 0.3,
+                            pointRadius: 0
+                        }))
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: true, labels: { color: '#666' } },
+                            tooltip: {
+                                backgroundColor: 'rgba(255,255,255,0.95)',
+                                titleColor: '#1a1a1a',
+                                bodyColor: '#666',
+                                borderColor: 'rgba(0,0,0,0.1)',
+                                borderWidth: 1
+                            }
+                        },
+                        scales: {
+                            x: { ticks: { color: '#666' }, grid: { color: 'rgba(0,0,0,0.06)' } },
+                            y: { ticks: { color: '#666' }, grid: { color: 'rgba(0,0,0,0.06)' } }
+                        }
+                    }
+                });
+                return () => { if (chartRef.current) chartRef.current.destroy(); };
+            }, [data, lines]);
+
+            return <div style={{height: height + 'px'}}><canvas ref={canvasRef} /></div>;
+        }
+
+        // CIFAR-10 Classes
+        const CIFAR_CLASSES = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck'];
+
+        // Sample Filter Patterns
+        const FILTER_PATTERNS = [
+            { name: 'Horizontal Edge', values: [[-1,-1,-1],[0,0,0],[1,1,1]] },
+            { name: 'Vertical Edge', values: [[-1,0,1],[-1,0,1],[-1,0,1]] },
+            { name: 'Diagonal', values: [[1,0,-1],[0,0,0],[-1,0,1]] },
+            { name: 'Sharpen', values: [[0,-1,0],[-1,5,-1],[0,-1,0]] },
+            { name: 'Blur', values: [[1,1,1],[1,1,1],[1,1,1]] },
+            { name: 'Emboss', values: [[-2,-1,0],[-1,1,1],[0,1,2]] },
+            { name: 'Sobel X', values: [[-1,0,1],[-2,0,2],[-1,0,1]] },
+            { name: 'Laplacian', values: [[0,1,0],[1,-4,1],[0,1,0]] }
+        ];
+
+        // Generate mock CIFAR-like image
+        const generateMockImage = (classIdx) => {
+            const colors = [
+                ['#87CEEB', '#4682B4'], // airplane - sky
+                ['#DC143C', '#8B0000'], // automobile - red
+                ['#90EE90', '#228B22'], // bird - green
+                ['#FFA500', '#8B4513'], // cat - orange
+                ['#D2691E', '#8B4513'], // deer - brown
+                ['#DEB887', '#8B4513'], // dog - tan
+                ['#32CD32', '#006400'], // frog - green
+                ['#8B4513', '#654321'], // horse - brown
+                ['#4169E1', '#000080'], // ship - blue
+                ['#A9A9A9', '#696969']  // truck - gray
+            ];
+            const [c1, c2] = colors[classIdx];
+            const pixels = [];
+            for (let i = 0; i < 64; i++) {
+                const noise = Math.random() > 0.5 ? c1 : c2;
+                pixels.push(noise);
+            }
+            return pixels;
+        };
+
+        // Mock training data generator
+        const generateTrainingHistory = (epochs, finalAcc = 0.85) => {
+            const history = [];
+            for (let i = 1; i <= epochs; i++) {
+                const progress = i / epochs;
+                const noise = (Math.random() - 0.5) * 0.05;
+                history.push({
+                    epoch: i,
+                    loss: 2.5 * Math.exp(-3 * progress) + 0.3 + noise * 0.5,
+                    val_loss: 2.5 * Math.exp(-2.5 * progress) + 0.4 + noise * 0.7,
+                    accuracy: finalAcc * (1 - Math.exp(-4 * progress)) + noise,
+                    val_accuracy: (finalAcc - 0.05) * (1 - Math.exp(-3.5 * progress)) + noise
+                });
+            }
+            return history;
+        };
+
+        // Generate confusion matrix
+        const generateConfusionMatrix = (accuracy) => {
+            const matrix = [];
+            for (let i = 0; i < 10; i++) {
+                const row = [];
+                let remaining = 100;
+                const correct = Math.floor(accuracy * 100 + (Math.random() - 0.5) * 20);
+                row[i] = Math.min(correct, remaining);
+                remaining -= row[i];
+
+                for (let j = 0; j < 10; j++) {
+                    if (i !== j) {
+                        const val = Math.floor(Math.random() * remaining / (10 - j));
+                        row[j] = val;
+                        remaining -= val;
+                    }
+                }
+                matrix.push(row);
+            }
+            return matrix;
+        };
+
+        // CNN Architecture Visualization Component
+        const CNNArchitecture = ({ config }) => {
+            const { convBlocks, filters, kernelSize, pooling, batchNorm, dropout } = config;
+
+            const layers = [];
+            let currentSize = 32;
+            let currentChannels = 3;
+
+            // Input layer
+            layers.push({
+                type: 'input',
+                size: currentSize,
+                channels: currentChannels,
+                label: 'Input',
+                dims: `${currentSize}x${currentSize}x${currentChannels}`
+            });
+
+            // Conv blocks
+            const filterCounts = [filters, filters * 2, filters * 4, filters * 8];
+            for (let i = 0; i < convBlocks; i++) {
+                const outFilters = filterCounts[Math.min(i, 3)];
+
+                // Conv layer
+                layers.push({
+                    type: 'conv',
+                    size: currentSize,
+                    channels: outFilters,
+                    label: `Conv${i + 1}`,
+                    dims: `${currentSize}x${currentSize}x${outFilters}`,
+                    kernelSize
+                });
+                currentChannels = outFilters;
+
+                // Batch norm
+                if (batchNorm) {
+                    layers.push({
+                        type: 'batchnorm',
+                        size: currentSize,
+                        channels: currentChannels,
+                        label: 'BatchNorm',
+                        dims: ''
+                    });
+                }
+
+                // Pooling
+                if (pooling !== 'none' && currentSize > 4) {
+                    currentSize = Math.floor(currentSize / 2);
+                    layers.push({
+                        type: 'pool',
+                        size: currentSize,
+                        channels: currentChannels,
+                        label: pooling === 'max' ? 'MaxPool' : 'AvgPool',
+                        dims: `${currentSize}x${currentSize}x${currentChannels}`
+                    });
+                }
+            }
+
+            // Flatten
+            const flattenSize = currentSize * currentSize * currentChannels;
+            layers.push({
+                type: 'flatten',
+                size: flattenSize,
+                label: 'Flatten',
+                dims: `${flattenSize}`
+            });
+
+            // Dense layers
+            layers.push({
+                type: 'dense',
+                size: 128,
+                label: 'Dense',
+                dims: '128'
+            });
+
+            if (dropout > 0) {
+                layers.push({
+                    type: 'dropout',
+                    size: 128,
+                    label: `Dropout(${dropout})`,
+                    dims: ''
+                });
+            }
+
+            // Output
+            layers.push({
+                type: 'output',
+                size: 10,
+                label: 'Output',
+                dims: '10 classes'
+            });
+
+            return (
+                <div className="arch-container">
+                    <div className="arch-flow">
+                        {layers.map((layer, idx) => (
+                            <React.Fragment key={idx}>
+                                <ArchLayer layer={layer} />
+                                {idx < layers.length - 1 && (
+                                    <div className="arch-arrow">&#8594;</div>
+                                )}
+                            </React.Fragment>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        const ArchLayer = ({ layer }) => {
+            const getLayerVisual = () => {
+                switch (layer.type) {
+                    case 'input':
+                        return <InputLayerVisual />;
+                    case 'conv':
+                        return <ConvLayerVisual channels={layer.channels} size={layer.size} />;
+                    case 'pool':
+                        return <PoolLayerVisual channels={layer.channels} size={layer.size} />;
+                    case 'flatten':
+                        return <FlattenVisual size={layer.size} />;
+                    case 'dense':
+                        return <DenseLayerVisual size={layer.size} />;
+                    case 'output':
+                        return <OutputLayerVisual />;
+                    case 'batchnorm':
+                        return <BatchNormVisual />;
+                    case 'dropout':
+                        return <DropoutVisual />;
+                    default:
+                        return null;
+                }
+            };
+
+            return (
+                <div className="arch-block">
+                    <div className="arch-layer">
+                        {getLayerVisual()}
+                    </div>
+                    <div className="layer-label">{layer.label}</div>
+                    <div className="layer-dims">{layer.dims}</div>
+                </div>
+            );
+        };
+
+        const InputLayerVisual = () => {
+            const pixels = [];
+            for (let i = 0; i < 64; i++) {
+                const r = Math.floor(Math.random() * 255);
+                const g = Math.floor(Math.random() * 255);
+                const b = Math.floor(Math.random() * 255);
+                pixels.push(`rgb(${r},${g},${b})`);
+            }
+
+            return (
+                <div className="input-image-grid">
+                    {pixels.map((color, i) => (
+                        <div key={i} className="pixel" style={{ background: color }} />
+                    ))}
+                </div>
+            );
+        };
+
+        const ConvLayerVisual = ({ channels, size }) => {
+            const numMaps = Math.min(channels, 8);
+            const mapSize = Math.max(20, 60 - channels / 4);
+
+            return (
+                <div className="feature-map-stack" style={{ width: mapSize + numMaps * 4, height: mapSize + numMaps * 4 }}>
+                    {Array.from({ length: numMaps }).map((_, i) => (
+                        <div
+                            key={i}
+                            className="feature-map"
+                            style={{
+                                width: mapSize,
+                                height: mapSize,
+                                background: `linear-gradient(135deg, rgba(39,116,174,${0.3 + i * 0.08}), rgba(139,184,232,${0.2 + i * 0.06}))`,
+                                border: '1px solid rgba(39,116,174,0.5)',
+                                left: i * 4,
+                                top: i * 4,
+                                zIndex: numMaps - i
+                            }}
+                        />
+                    ))}
+                </div>
+            );
+        };
+
+        const PoolLayerVisual = ({ channels, size }) => {
+            const numMaps = Math.min(channels, 6);
+            const mapSize = Math.max(16, 40 - channels / 6);
+
+            return (
+                <div className="feature-map-stack" style={{ width: mapSize + numMaps * 3, height: mapSize + numMaps * 3 }}>
+                    {Array.from({ length: numMaps }).map((_, i) => (
+                        <div
+                            key={i}
+                            className="feature-map"
+                            style={{
+                                width: mapSize,
+                                height: mapSize,
+                                background: `linear-gradient(135deg, rgba(0,85,135,${0.3 + i * 0.1}), rgba(39,116,174,${0.2 + i * 0.08}))`,
+                                border: '1px solid rgba(0,85,135,0.5)',
+                                left: i * 3,
+                                top: i * 3,
+                                zIndex: numMaps - i
+                            }}
+                        />
+                    ))}
+                </div>
+            );
+        };
+
+        const FlattenVisual = ({ size }) => {
+            return (
+                <div style={{
+                    width: 8,
+                    height: 80,
+                    background: 'linear-gradient(180deg, #2774AE, #8BB8E8)',
+                    borderRadius: 4,
+                    boxShadow: '0 0 15px rgba(39,116,174,0.5)'
+                }} />
+            );
+        };
+
+        const DenseLayerVisual = ({ size }) => {
+            const neurons = Math.min(size / 16, 8);
+            return (
+                <div className="dense-layer">
+                    {Array.from({ length: neurons }).map((_, i) => (
+                        <div key={i} className="neuron" />
+                    ))}
+                    <div style={{ color: '#999', fontSize: 10 }}>...</div>
+                    {Array.from({ length: 2 }).map((_, i) => (
+                        <div key={`b${i}`} className="neuron" />
+                    ))}
+                </div>
+            );
+        };
+
+        const OutputLayerVisual = () => {
+            return (
+                <div className="dense-layer">
+                    {Array.from({ length: 10 }).map((_, i) => (
+                        <div
+                            key={i}
+                            className="neuron neuron-small"
+                            style={{
+                                background: i === 3 ? 'linear-gradient(135deg, #22c55e, #16a34a)' :
+                                           'linear-gradient(135deg, rgba(39,116,174,0.5), rgba(139,184,232,0.3))',
+                                boxShadow: i === 3 ? '0 0 10px rgba(34,197,94,0.6)' : 'none'
+                            }}
+                        />
+                    ))}
+                </div>
+            );
+        };
+
+        const BatchNormVisual = () => (
+            <div style={{
+                width: 30,
+                height: 30,
+                background: 'rgba(168,85,247,0.3)',
+                border: '2px solid rgba(168,85,247,0.6)',
+                borderRadius: 6,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 10,
+                color: '#a855f7',
+                fontWeight: 700
+            }}>
+                BN
+            </div>
+        );
+
+        const DropoutVisual = () => (
+            <div style={{
+                width: 30,
+                height: 30,
+                background: 'rgba(239,68,68,0.2)',
+                border: '2px dashed rgba(239,68,68,0.5)',
+                borderRadius: 6,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 10,
+                color: '#ef4444',
+                fontWeight: 700
+            }}>
+                D
+            </div>
+        );
+
+        // Filter Visualization
+        const FilterVisualization = () => {
+            return (
+                <div className="filter-grid">
+                    {FILTER_PATTERNS.slice(0, 8).map((filter, idx) => (
+                        <div key={idx} className="filter-item">
+                            <div className="filter-name">{filter.name}</div>
+                            <div className="filter-visual">
+                                {filter.values.flat().map((val, i) => {
+                                    const normalized = (val + 5) / 10;
+                                    const color = val > 0 ?
+                                        `rgba(39,116,174,${Math.min(val / 5, 1)})` :
+                                        val < 0 ?
+                                        `rgba(239,68,68,${Math.min(Math.abs(val) / 5, 1)})` :
+                                        'rgba(200,200,200,0.3)';
+                                    return (
+                                        <div
+                                            key={i}
+                                            className="filter-cell"
+                                            style={{
+                                                background: color,
+                                                color: Math.abs(val) > 2 ? '#fff' : '#666'
+                                            }}
+                                        >
+                                            {val}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            );
+        };
+
+        // Confusion Matrix Component
+        const ConfusionMatrix = ({ matrix }) => {
+            const maxVal = Math.max(...matrix.flat());
+
+            return (
+                <div>
+                    <div className="confusion-matrix" style={{
+                        gridTemplateColumns: `40px repeat(10, 1fr)`,
+                        gridTemplateRows: `30px repeat(10, 1fr)`
+                    }}>
+                        <div></div>
+                        {CIFAR_CLASSES.map((cls, i) => (
+                            <div key={`h${i}`} className="cm-label" style={{ transform: 'rotate(-45deg)', fontSize: 8 }}>
+                                {cls.slice(0, 4)}
+                            </div>
+                        ))}
+                        {matrix.map((row, i) => (
+                            <React.Fragment key={i}>
+                                <div className="cm-label">{CIFAR_CLASSES[i].slice(0, 4)}</div>
+                                {row.map((val, j) => {
+                                    const intensity = val / maxVal;
+                                    const isDiag = i === j;
+                                    return (
+                                        <div
+                                            key={j}
+                                            className="cm-cell"
+                                            style={{
+                                                background: isDiag ?
+                                                    `rgba(34,197,94,${0.2 + intensity * 0.8})` :
+                                                    `rgba(239,68,68,${intensity * 0.6})`,
+                                                color: intensity > 0.5 ? '#fff' : '#666'
+                                            }}
+                                        >
+                                            {val}
+                                        </div>
+                                    );
+                                })}
+                            </React.Fragment>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        // Predictions Grid
+        const PredictionsGrid = ({ predictions }) => {
+            return (
+                <div className="predictions-grid">
+                    {predictions.map((pred, idx) => (
+                        <div key={idx} className="prediction-item">
+                            <div className="prediction-image">
+                                {pred.pixels.map((color, i) => (
+                                    <div key={i} style={{ background: color, aspectRatio: 1 }} />
+                                ))}
+                            </div>
+                            <div className={`pred-label ${pred.correct ? 'pred-correct' : 'pred-wrong'}`}>
+                                {pred.predicted}
+                            </div>
+                            <div className="pred-conf">{(pred.confidence * 100).toFixed(0)}%</div>
+                        </div>
+                    ))}
+                </div>
+            );
+        };
+
+        // MLP vs CNN Comparison
+        const ComparisonChart = ({ mlpAcc, cnnAcc }) => {
+            return (
+                <div className="comparison-bars">
+                    <div className="comparison-row">
+                        <div className="comparison-label">MLP</div>
+                        <div className="comparison-bar-container">
+                            <div
+                                className="comparison-bar mlp-bar"
+                                style={{ width: `${mlpAcc * 100}%` }}
+                            >
+                                {(mlpAcc * 100).toFixed(1)}%
+                            </div>
+                        </div>
+                    </div>
+                    <div className="comparison-row">
+                        <div className="comparison-label">CNN</div>
+                        <div className="comparison-bar-container">
+                            <div
+                                className="comparison-bar cnn-bar"
+                                style={{ width: `${cnnAcc * 100}%` }}
+                            >
+                                {(cnnAcc * 100).toFixed(1)}%
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Class Probabilities
+        const ClassProbabilities = ({ probs }) => {
+            const sortedProbs = [...probs].map((p, i) => ({ prob: p, class: CIFAR_CLASSES[i], idx: i }))
+                .sort((a, b) => b.prob - a.prob);
+
+            return (
+                <div className="prob-bars">
+                    {sortedProbs.slice(0, 5).map((item, idx) => (
+                        <div key={idx} className="prob-row">
+                            <div className="prob-label">{item.class}</div>
+                            <div className="prob-bar-bg">
+                                <div
+                                    className="prob-bar-fill"
+                                    style={{
+                                        width: `${item.prob * 100}%`,
+                                        background: idx === 0 ?
+                                            'linear-gradient(90deg, #22c55e, #16a34a)' :
+                                            'linear-gradient(90deg, rgba(39,116,174,0.6), rgba(139,184,232,0.4))'
+                                    }}
+                                />
+                            </div>
+                            <div className="prob-value">{(item.prob * 100).toFixed(1)}%</div>
+                        </div>
+                    ))}
+                </div>
+            );
+        };
+
+        // Main App Component
+        const App = () => {
+            const [isTraining, setIsTraining] = useState(false);
+            const [trainingProgress, setTrainingProgress] = useState(0);
+            const [trainingHistory, setTrainingHistory] = useState([]);
+            const [confusionMatrix, setConfusionMatrix] = useState(generateConfusionMatrix(0.5));
+            const [predictions, setPredictions] = useState([]);
+            const [metrics, setMetrics] = useState({
+                accuracy: 0,
+                params: 0,
+                trainTime: 0,
+                perClassAcc: Array(10).fill(0)
+            });
+            const [sampleProbs, setSampleProbs] = useState(Array(10).fill(0.1));
+
+            // Model Configuration
+            const [config, setConfig] = useState({
+                preset: 'simple',
+                convBlocks: 2,
+                filters: 32,
+                kernelSize: 3,
+                pooling: 'max',
+                batchNorm: true,
+                dropout: 0.25,
+                learningRate: 0.001,
+                batchSize: 64,
+                epochs: 20
+            });
+
+            // Calculate parameter count
+            const calculateParams = useCallback(() => {
+                let params = 0;
+                let channels = 3;
+                let size = 32;
+                const filterCounts = [config.filters, config.filters * 2, config.filters * 4, config.filters * 8];
+
+                for (let i = 0; i < config.convBlocks; i++) {
+                    const outFilters = filterCounts[Math.min(i, 3)];
+                    params += channels * config.kernelSize * config.kernelSize * outFilters + outFilters;
+                    if (config.batchNorm) params += outFilters * 4;
+                    channels = outFilters;
+                    if (config.pooling !== 'none') size = Math.floor(size / 2);
+                }
+
+                const flattenSize = size * size * channels;
+                params += flattenSize * 128 + 128;
+                params += 128 * 10 + 10;
+
+                return params;
+            }, [config]);
+
+            // Apply preset
+            const applyPreset = (preset) => {
+                switch (preset) {
+                    case 'simple':
+                        setConfig(prev => ({
+                            ...prev,
+                            preset: 'simple',
+                            convBlocks: 2,
+                            filters: 32,
+                            kernelSize: 3,
+                            pooling: 'max',
+                            batchNorm: false,
+                            dropout: 0.25
+                        }));
+                        break;
+                    case 'vgg':
+                        setConfig(prev => ({
+                            ...prev,
+                            preset: 'vgg',
+                            convBlocks: 4,
+                            filters: 64,
+                            kernelSize: 3,
+                            pooling: 'max',
+                            batchNorm: true,
+                            dropout: 0.5
+                        }));
+                        break;
+                    case 'custom':
+                        setConfig(prev => ({ ...prev, preset: 'custom' }));
+                        break;
+                }
+            };
+
+            // Generate predictions
+            const generatePredictions = (accuracy) => {
+                const preds = [];
+                for (let i = 0; i < 10; i++) {
+                    const trueClass = i;
+                    const correct = Math.random() < accuracy;
+                    const predictedClass = correct ? trueClass : Math.floor(Math.random() * 10);
+                    preds.push({
+                        pixels: generateMockImage(trueClass),
+                        trueLabel: CIFAR_CLASSES[trueClass],
+                        predicted: CIFAR_CLASSES[predictedClass],
+                        correct,
+                        confidence: correct ? 0.7 + Math.random() * 0.25 : 0.3 + Math.random() * 0.4
+                    });
+                }
+                return preds;
+            };
+
+            // Training simulation
+            const startTraining = async () => {
+                setIsTraining(true);
+                setTrainingProgress(0);
+                setTrainingHistory([]);
+
+                const targetAccuracy = 0.65 + config.convBlocks * 0.05 +
+                    (config.batchNorm ? 0.03 : 0) +
+                    (config.filters / 128) * 0.05;
+
+                const history = generateTrainingHistory(config.epochs, Math.min(targetAccuracy, 0.92));
+
+                for (let i = 0; i < history.length; i++) {
+                    await new Promise(resolve => setTimeout(resolve, 150));
+                    setTrainingProgress((i + 1) / config.epochs * 100);
+                    setTrainingHistory(history.slice(0, i + 1));
+
+                    // Update sample probabilities during training
+                    const probs = Array(10).fill(0).map(() => Math.random());
+                    const sum = probs.reduce((a, b) => a + b, 0);
+                    setSampleProbs(probs.map(p => p / sum));
+                }
+
+                const finalAcc = history[history.length - 1].val_accuracy;
+                setConfusionMatrix(generateConfusionMatrix(finalAcc));
+                setPredictions(generatePredictions(finalAcc));
+                setMetrics({
+                    accuracy: finalAcc,
+                    params: calculateParams(),
+                    trainTime: config.epochs * 2.5 + Math.random() * 10,
+                    perClassAcc: CIFAR_CLASSES.map(() => finalAcc - 0.1 + Math.random() * 0.2)
+                });
+
+                // Set final probabilities with clear winner
+                const finalProbs = Array(10).fill(0).map(() => Math.random() * 0.1);
+                finalProbs[3] = 0.85 + Math.random() * 0.1; // Cat as example
+                const finalSum = finalProbs.reduce((a, b) => a + b, 0);
+                setSampleProbs(finalProbs.map(p => p / finalSum));
+
+                setIsTraining(false);
+            };
+
+            // Initialize predictions
+            useEffect(() => {
+                setPredictions(generatePredictions(0.5));
+                setMetrics(prev => ({ ...prev, params: calculateParams() }));
+            }, []);
+
+            // Update params when config changes
+            useEffect(() => {
+                setMetrics(prev => ({ ...prev, params: calculateParams() }));
+            }, [config, calculateParams]);
+
+            return (
+                <div style={{ minHeight: '100vh' }}>
+                    {/* DARK HEADER */}
+                    <header style={{
+                        background: '#2774AE',
+                        borderBottom: '2px solid #FFD100',
+                        padding: '1rem 2rem',
+                        position: 'sticky',
+                        top: 0,
+                        zIndex: 100
+                    }}>
+                        <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <p style={{ fontSize: '0.65rem', color: '#FFD100', fontWeight: 400, marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
+                                    MGMT298D: Science and Strategy of AI
+                                </p>
+                                <h1 style={{ fontSize: '1.4rem', fontWeight: 600, color: '#f5f5f5', letterSpacing: '0' }}>
+                                    Week 6: LLMs
+                                </h1>
+                                <p style={{ fontSize: '0.85rem', color: '#b0b0b0', marginTop: '0.25rem' }}>
+                                    Large Language Models and Neural Network Architectures
+                                </p>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                                <span style={{
+                                    fontSize: '1rem',
+                                    fontWeight: 500,
+                                    color: '#f5f5f5'
+                                }}>
+                                    UCLA Anderson
+                                </span>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* DARK CONTROLS SECTION */}
+                    <div className="controls-section">
+                        <div className="controls-inner">
+                                <div className="main-grid">
+                                    {/* Controls Panel */}
+                                    <div>
+                                        <div className="dark-card">
+                                            <div className="dark-card-title">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <circle cx="12" cy="12" r="3"/>
+                                                    <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+                                                </svg>
+                                                Model Configuration
+                                            </div>
+
+                                            <div className="control-group">
+                                                <label className="control-label">Architecture Preset</label>
+                                                <div className="preset-buttons">
+                                                    <button
+                                                        className={`preset-btn ${config.preset === 'simple' ? 'active' : ''}`}
+                                                        onClick={() => applyPreset('simple')}
+                                                    >
+                                                        Simple CNN
+                                                    </button>
+                                                    <button
+                                                        className={`preset-btn ${config.preset === 'vgg' ? 'active' : ''}`}
+                                                        onClick={() => applyPreset('vgg')}
+                                                    >
+                                                        VGG-style
+                                                    </button>
+                                                    <button
+                                                        className={`preset-btn ${config.preset === 'custom' ? 'active' : ''}`}
+                                                        onClick={() => applyPreset('custom')}
+                                                    >
+                                                        Custom
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div className="control-group">
+                                                <label className="control-label">Conv Blocks: <span style={{color: colors.primary}}>{config.convBlocks}</span></label>
+                                                <input
+                                                    type="range"
+                                                    min="1"
+                                                    max="4"
+                                                    value={config.convBlocks}
+                                                    onChange={(e) => setConfig(prev => ({
+                                                        ...prev,
+                                                        convBlocks: parseInt(e.target.value),
+                                                        preset: 'custom'
+                                                    }))}
+                                                />
+                                            </div>
+
+                                            <div className="control-group">
+                                                <label className="control-label">Filters (First Layer)</label>
+                                                <select
+                                                    value={config.filters}
+                                                    onChange={(e) => setConfig(prev => ({
+                                                        ...prev,
+                                                        filters: parseInt(e.target.value),
+                                                        preset: 'custom'
+                                                    }))}
+                                                >
+                                                    <option value="16">16</option>
+                                                    <option value="32">32</option>
+                                                    <option value="64">64</option>
+                                                    <option value="128">128</option>
+                                                </select>
+                                            </div>
+
+                                            <div className="control-group">
+                                                <label className="control-label">Kernel Size</label>
+                                                <select
+                                                    value={config.kernelSize}
+                                                    onChange={(e) => setConfig(prev => ({
+                                                        ...prev,
+                                                        kernelSize: parseInt(e.target.value),
+                                                        preset: 'custom'
+                                                    }))}
+                                                >
+                                                    <option value="3">3x3</option>
+                                                    <option value="5">5x5</option>
+                                                </select>
+                                            </div>
+
+                                            <div className="control-group">
+                                                <label className="control-label">Pooling</label>
+                                                <select
+                                                    value={config.pooling}
+                                                    onChange={(e) => setConfig(prev => ({
+                                                        ...prev,
+                                                        pooling: e.target.value,
+                                                        preset: 'custom'
+                                                    }))}
+                                                >
+                                                    <option value="max">Max Pooling</option>
+                                                    <option value="avg">Average Pooling</option>
+                                                    <option value="none">None</option>
+                                                </select>
+                                            </div>
+
+                                            <div className="control-group">
+                                                <div className="toggle-container">
+                                                    <div
+                                                        className={`toggle ${config.batchNorm ? 'active' : ''}`}
+                                                        onClick={() => setConfig(prev => ({
+                                                            ...prev,
+                                                            batchNorm: !prev.batchNorm,
+                                                            preset: 'custom'
+                                                        }))}
+                                                    />
+                                                    <span className="toggle-label">Batch Normalization</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="control-group">
+                                                <label className="control-label">Dropout: <span style={{color: colors.primary}}>{config.dropout.toFixed(2)}</span></label>
+                                                <input
+                                                    type="range"
+                                                    min="0"
+                                                    max="0.5"
+                                                    step="0.05"
+                                                    value={config.dropout}
+                                                    onChange={(e) => setConfig(prev => ({
+                                                        ...prev,
+                                                        dropout: parseFloat(e.target.value),
+                                                        preset: 'custom'
+                                                    }))}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="dark-card">
+                                            <div className="dark-card-title">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                                                </svg>
+                                                Training Parameters
+                                            </div>
+
+                                            <div className="control-group">
+                                                <label className="control-label">Learning Rate</label>
+                                                <select
+                                                    value={config.learningRate}
+                                                    onChange={(e) => setConfig(prev => ({
+                                                        ...prev,
+                                                        learningRate: parseFloat(e.target.value)
+                                                    }))}
+                                                >
+                                                    <option value="0.01">0.01</option>
+                                                    <option value="0.001">0.001</option>
+                                                    <option value="0.0001">0.0001</option>
+                                                </select>
+                                            </div>
+
+                                            <div className="control-group">
+                                                <label className="control-label">Batch Size</label>
+                                                <select
+                                                    value={config.batchSize}
+                                                    onChange={(e) => setConfig(prev => ({
+                                                        ...prev,
+                                                        batchSize: parseInt(e.target.value)
+                                                    }))}
+                                                >
+                                                    <option value="32">32</option>
+                                                    <option value="64">64</option>
+                                                    <option value="128">128</option>
+                                                    <option value="256">256</option>
+                                                </select>
+                                            </div>
+
+                                            <div className="control-group">
+                                                <label className="control-label">Epochs: <span style={{color: colors.primary}}>{config.epochs}</span></label>
+                                                <input
+                                                    type="range"
+                                                    min="5"
+                                                    max="50"
+                                                    value={config.epochs}
+                                                    onChange={(e) => setConfig(prev => ({
+                                                        ...prev,
+                                                        epochs: parseInt(e.target.value)
+                                                    }))}
+                                                />
+                                            </div>
+
+                                            {isTraining && (
+                                                <div className="progress-container">
+                                                    <div className="progress-bar">
+                                                        <div
+                                                            className="progress-fill"
+                                                            style={{ width: `${trainingProgress}%` }}
+                                                        />
+                                                    </div>
+                                                    <div className="progress-text">
+                                                        Training... {trainingProgress.toFixed(0)}%
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            <button
+                                                className="btn btn-primary"
+                                                onClick={startTraining}
+                                                disabled={isTraining}
+                                            >
+                                                {isTraining ? (
+                                                    <>
+                                                        <div className="loading-spinner" style={{ width: 20, height: 20, margin: 0 }} />
+                                                        Training...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                            <polygon points="5 3 19 12 5 21 5 3"/>
+                                                        </svg>
+                                                        Train Model
+                                                    </>
+                                                )}
+                                            </button>
+                                        </div>
+
+                                        {/* Dark Metrics */}
+                                        <div className="dark-card">
+                                            <div className="dark-card-title">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <path d="M12 20V10M6 20V4M18 20v-6"/>
+                                                </svg>
+                                                Model Metrics
+                                            </div>
+                                            <div className="metrics-grid">
+                                                <div className="metric-card">
+                                                    <div className="metric-value">
+                                                        {(metrics.accuracy * 100).toFixed(1)}%
+                                                    </div>
+                                                    <div className="metric-label">Test Accuracy</div>
+                                                </div>
+                                                <div className="metric-card">
+                                                    <div className="metric-value">
+                                                        {(metrics.params / 1000).toFixed(0)}K
+                                                    </div>
+                                                    <div className="metric-label">Parameters</div>
+                                                </div>
+                                                <div className="metric-card">
+                                                    <div className="metric-value">
+                                                        {metrics.trainTime.toFixed(1)}s
+                                                    </div>
+                                                    <div className="metric-label">Train Time</div>
+                                                </div>
+                                                <div className="metric-card">
+                                                    <div className="metric-value">
+                                                        {config.convBlocks}
+                                                    </div>
+                                                    <div className="metric-label">Conv Layers</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Architecture Hero - Light Background */}
+                                    <div>
+                                        <div className="light-card">
+                                            <div className="light-card-title">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <rect x="3" y="3" width="7" height="7" rx="1"/>
+                                                    <rect x="14" y="3" width="7" height="7" rx="1"/>
+                                                    <rect x="3" y="14" width="7" height="7" rx="1"/>
+                                                    <rect x="14" y="14" width="7" height="7" rx="1"/>
+                                                </svg>
+                                                CNN Architecture Flow
+                                            </div>
+                                            <CNNArchitecture config={config} />
+                                        </div>
+                                    </div>
+                                </div>
+                        </div>
+                    </div>
+
+                    {/* LIGHT RESULTS SECTION */}
+                        <div className="results-section">
+                            <div className="results-inner">
+                                {/* Light Metrics */}
+                                <div className="light-metrics-grid">
+                                    <div className="light-metric-card">
+                                        <div className="light-metric-label">Test Accuracy</div>
+                                        <div className="light-metric-value" style={{color: colors.primary}}>{(metrics.accuracy * 100).toFixed(1)}%</div>
+                                    </div>
+                                    <div className="light-metric-card">
+                                        <div className="light-metric-label">Parameters</div>
+                                        <div className="light-metric-value" style={{color: colors.darkBlue}}>{(metrics.params / 1000).toFixed(0)}K</div>
+                                    </div>
+                                    <div className="light-metric-card">
+                                        <div className="light-metric-label">Train Time</div>
+                                        <div className="light-metric-value" style={{color: colors.positive}}>{metrics.trainTime.toFixed(1)}s</div>
+                                    </div>
+                                    <div className="light-metric-card">
+                                        <div className="light-metric-label">Conv Layers</div>
+                                        <div className="light-metric-value" style={{color: '#666'}}>{config.convBlocks}</div>
+                                    </div>
+                                </div>
+
+                                {/* Visualizations */}
+                                <div className="viz-grid">
+                                    {/* Filter Patterns */}
+                                    <div className="light-card">
+                                        <div className="light-card-title">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                                <line x1="9" y1="3" x2="9" y2="21"/>
+                                                <line x1="15" y1="3" x2="15" y2="21"/>
+                                                <line x1="3" y1="9" x2="21" y2="9"/>
+                                                <line x1="3" y1="15" x2="21" y2="15"/>
+                                            </svg>
+                                            Sample Filter Patterns
+                                        </div>
+                                        <FilterVisualization />
+                                    </div>
+
+                                    {/* Class Probabilities */}
+                                    <div className="light-card">
+                                        <div className="light-card-title">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M18 20V10M12 20V4M6 20v-6"/>
+                                            </svg>
+                                            Sample Prediction Probabilities
+                                        </div>
+                                        <ClassProbabilities probs={sampleProbs} />
+                                    </div>
+
+                                    {/* Training Curves */}
+                                    <div className="light-card">
+                                        <div className="light-card-title">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                                            </svg>
+                                            Training Curves
+                                        </div>
+                                        <LineChartComponent
+                                            data={trainingHistory}
+                                            lines={[
+                                                { dataKey: 'accuracy', stroke: colors.primary, name: 'Train Acc' },
+                                                { dataKey: 'val_accuracy', stroke: colors.positive, name: 'Val Acc' }
+                                            ]}
+                                            height={250}
+                                        />
+                                    </div>
+
+                                    {/* Loss Curves */}
+                                    <div className="light-card">
+                                        <div className="light-card-title">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                                            </svg>
+                                            Loss Curves
+                                        </div>
+                                        <LineChartComponent
+                                            data={trainingHistory}
+                                            lines={[
+                                                { dataKey: 'loss', stroke: colors.negative, name: 'Train Loss' },
+                                                { dataKey: 'val_loss', stroke: '#f59e0b', name: 'Val Loss' }
+                                            ]}
+                                            height={250}
+                                        />
+                                    </div>
+
+                                    {/* Confusion Matrix */}
+                                    <div className="light-card">
+                                        <div className="light-card-title">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                                <path d="M3 9h18M3 15h18M9 3v18M15 3v18"/>
+                                            </svg>
+                                            Confusion Matrix
+                                        </div>
+                                        <ConfusionMatrix matrix={confusionMatrix} />
+                                    </div>
+
+                                    {/* MLP vs CNN Comparison */}
+                                    <div className="light-card">
+                                        <div className="light-card-title">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <line x1="18" y1="20" x2="18" y2="10"/>
+                                                <line x1="12" y1="20" x2="12" y2="4"/>
+                                                <line x1="6" y1="20" x2="6" y2="14"/>
+                                            </svg>
+                                            MLP vs CNN Comparison
+                                        </div>
+                                        <ComparisonChart
+                                            mlpAcc={0.55}
+                                            cnnAcc={metrics.accuracy || 0.5}
+                                        />
+                                        <div style={{ marginTop: 16, fontSize: 12, color: '#666', textAlign: 'center' }}>
+                                            CNNs consistently outperform MLPs on image tasks due to spatial feature learning
+                                        </div>
+                                    </div>
+
+                                    {/* Sample Predictions */}
+                                    <div className="light-card full-width">
+                                        <div className="light-card-title">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                                <circle cx="8.5" cy="8.5" r="1.5"/>
+                                                <polyline points="21 15 16 10 5 21"/>
+                                            </svg>
+                                            Sample Predictions
+                                        </div>
+                                        <PredictionsGrid predictions={predictions} />
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                </div>
+
+                {/* Footer */}
+                <p style={{ color: '#888', fontSize: '0.75rem', marginTop: '20px', textAlign: 'center' }}>
+                    MGMT298D: Science and Strategy of AI | UCLA Anderson School of Management
+                </p>
+            );
+        };
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>

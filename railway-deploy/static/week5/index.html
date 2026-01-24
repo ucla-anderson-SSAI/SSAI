@@ -1,0 +1,1838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Week 5: Neural Networks - Fashion-MNIST Classification | UCLA Anderson</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #ffffff;
+            min-height: 100vh;
+            color: #1a1a1a;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #e5e5e5;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #2774AE;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3a8ac4;
+        }
+
+        /* Header */
+        .header {
+            background: #ffffff;
+            border-bottom: 2px solid #FFD100;
+            padding: 20px 24px;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header-title .course-label {
+            font-size: 0.65rem;
+            color: #FFD100;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        .header-title h1 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #005587;
+            letter-spacing: -0.01em;
+        }
+
+        .header-title p {
+            font-size: 0.85rem;
+            color: #666666;
+            margin-top: 4px;
+        }
+
+        .header-right {
+            text-align: right;
+        }
+
+        .header-right .ucla-label {
+            font-size: 0.65rem;
+            color: #666666;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+
+        .header-right .anderson-label {
+            font-size: 0.9rem;
+            color: #2774AE;
+            font-weight: 500;
+        }
+
+        /* Controls Section - Light */
+        .controls-section {
+            background: #ffffff;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        }
+
+        .controls-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px 24px;
+        }
+
+        .tab-navigation {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            padding: 10px 24px;
+            background: transparent;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 8px;
+            color: #666;
+            cursor: pointer;
+            font-weight: 400;
+            transition: all 0.2s ease;
+            font-family: inherit;
+            font-size: 0.85rem;
+            text-transform: capitalize;
+        }
+
+        .tab-btn:hover {
+            border-color: rgba(39, 116, 174, 0.5);
+            color: #1a1a1a;
+        }
+
+        .tab-btn.active {
+            background: #2774AE;
+            border-color: #2774AE;
+            color: white;
+            font-weight: 600;
+        }
+
+        .simulator-layout {
+            display: grid;
+            grid-template-columns: 340px 1fr;
+            gap: 24px;
+        }
+
+        .control-panel {
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        .panel-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: #1a1a1a;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .panel-title::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: #2774AE;
+            border-radius: 2px;
+        }
+
+        .control-section {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        }
+
+        .control-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .section-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #2774AE;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 1rem;
+        }
+
+        .control-group {
+            margin-bottom: 1rem;
+        }
+
+        .control-label {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .control-value {
+            font-family: 'JetBrains Mono', monospace;
+            color: #2774AE;
+            font-size: 0.8rem;
+        }
+
+        .slider-container {
+            position: relative;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #2774AE;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 8px rgba(39, 116, 174, 0.5);
+            transition: transform 0.2s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        select {
+            width: 100%;
+            padding: 12px 14px;
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 8px;
+            color: #1a1a1a;
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.2s ease;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23666' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 36px;
+        }
+
+        select:hover, select:focus {
+            border-color: #2774AE;
+        }
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .toggle {
+            position: relative;
+            width: 48px;
+            height: 26px;
+            background: #d0d0d0;
+            border-radius: 13px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+        }
+
+        .toggle.active {
+            background: #2774AE;
+        }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 18px;
+            height: 18px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle.active::after {
+            transform: translateX(22px);
+        }
+
+        .layer-builder {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .layer-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+            padding: 0.5rem;
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+        }
+
+        .layer-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .layer-number {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: #2774AE;
+            min-width: 50px;
+        }
+
+        .layer-nodes-select {
+            flex: 1;
+            padding: 0.4rem 0.6rem;
+            font-size: 0.8rem;
+        }
+
+        .layer-remove-btn {
+            width: 28px;
+            height: 28px;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 6px;
+            color: #ef4444;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .layer-remove-btn:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        .add-layer-btn {
+            width: 100%;
+            padding: 0.6rem;
+            background: rgba(39, 116, 174, 0.08);
+            border: 1px dashed rgba(39, 116, 174, 0.4);
+            border-radius: 8px;
+            color: #2774AE;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .add-layer-btn:hover {
+            background: rgba(39, 116, 174, 0.15);
+            border-color: #2774AE;
+        }
+
+        .train-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #2774AE 0%, #005587 100%);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(39, 116, 174, 0.4);
+        }
+
+        .train-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(39, 116, 174, 0.5);
+        }
+
+        .train-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .train-btn.training {
+            background: linear-gradient(135deg, #8BB8E8 0%, #2774AE 100%);
+        }
+
+        /* Light Results Section */
+        .results-section {
+            background: #f8f9fa;
+            min-height: 100vh;
+        }
+
+        .results-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .network-viz-card {
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .card-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #1a1a1a;
+        }
+
+        .card-title .icon {
+            font-size: 1.2rem;
+        }
+
+        .param-count {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: #2774AE;
+            background: rgba(39, 116, 174, 0.1);
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+        }
+
+        .network-svg-container {
+            width: 100%;
+            height: 400px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .network-legend {
+            display: flex;
+            gap: 1.5rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .legend-bar {
+            width: 20px;
+            height: 4px;
+            border-radius: 2px;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .chart-card {
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        .chart-container {
+            height: 250px;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+
+        .metric-card {
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 12px;
+            padding: 18px 14px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2774AE;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .metric-value.positive {
+            color: #22c55e;
+        }
+
+        .metric-value.neutral {
+            color: #005587;
+        }
+
+        .metric-label {
+            font-size: 0.65rem;
+            color: #666;
+            margin-top: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-weight: 600;
+        }
+
+        .confusion-matrix {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 1rem;
+            overflow-x: auto;
+        }
+
+        .matrix-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+        }
+
+        .matrix-table th {
+            padding: 0.5rem 0.25rem;
+            color: #666;
+            font-weight: 500;
+            font-size: 0.65rem;
+        }
+
+        .matrix-table td {
+            padding: 0.4rem;
+            text-align: center;
+            border-radius: 4px;
+        }
+
+        .predictions-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.75rem;
+        }
+
+        .prediction-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 0.75rem;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .prediction-item.correct {
+            border-color: rgba(34, 197, 94, 0.4);
+        }
+
+        .prediction-item.incorrect {
+            border-color: rgba(239, 68, 68, 0.4);
+        }
+
+        .prediction-image {
+            width: 56px;
+            height: 56px;
+            margin: 0 auto 0.5rem;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            image-rendering: pixelated;
+        }
+
+        .prediction-label {
+            font-size: 0.7rem;
+            color: #666;
+        }
+
+        .prediction-result {
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-top: 0.25rem;
+        }
+
+        .prediction-result.correct {
+            color: #22c55e;
+        }
+
+        .prediction-result.incorrect {
+            color: #ef4444;
+        }
+
+        .gradient-flow-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .gradient-bar {
+            width: 40px;
+            height: 100px;
+            border-radius: 4px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+
+        .gradient-fill {
+            border-radius: 4px;
+            transition: height 0.5s ease;
+        }
+
+        .gradient-label {
+            font-size: 0.65rem;
+            color: #666;
+            text-align: center;
+            margin-top: 0.5rem;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        @keyframes flowRight {
+            0% { stroke-dashoffset: 20; }
+            100% { stroke-dashoffset: 0; }
+        }
+
+        @keyframes nodeFire {
+            0% { filter: brightness(1); }
+            50% { filter: brightness(1.5); }
+            100% { filter: brightness(1); }
+        }
+
+        .training-progress {
+            margin-top: 1rem;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #2774AE, #8BB8E8, #FFD100);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 0.5rem;
+            text-align: center;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 1200px) {
+            .simulator-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .control-panel {
+                position: static;
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .activation-cards {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo, useCallback } = React;
+
+        // UCLA Theme colors
+        const colors = {
+            primary: '#2774AE',
+            accent: '#FFD100',
+            darkBlue: '#005587',
+            lightBlue: '#8BB8E8',
+            positive: '#22c55e',
+            negative: '#ef4444',
+            darkBg: '#005587',
+            darkCard: '#1a1d24',
+            darkText: '#e5e5e5',
+            darkMuted: '#888',
+            lightBg: '#f8f9fa',
+            lightCard: '#ffffff',
+            lightText: '#1a1a1a',
+            lightMuted: '#666',
+        };
+
+        // Fashion-MNIST class labels
+        const FASHION_CLASSES = [
+            'T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat',
+            'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot'
+        ];
+
+        // Activation function colors - using UCLA theme
+        const ACTIVATION_COLORS = {
+            relu: colors.primary,
+            sigmoid: colors.darkBlue,
+            tanh: colors.lightBlue
+        };
+
+        // Generate mock Fashion-MNIST image data (28x28 grayscale patterns)
+        const generateMockImage = (classIdx) => {
+            const patterns = [];
+            const size = 28;
+            for (let i = 0; i < size; i++) {
+                const row = [];
+                for (let j = 0; j < size; j++) {
+                    // Create class-specific patterns
+                    let value = 0;
+                    const centerX = size / 2;
+                    const centerY = size / 2;
+                    const dist = Math.sqrt((i - centerY) ** 2 + (j - centerX) ** 2);
+
+                    switch (classIdx) {
+                        case 0: // T-shirt - rectangle with arms
+                            if ((i > 5 && i < 22 && j > 8 && j < 20) ||
+                                (i > 8 && i < 14 && (j < 8 || j > 20))) value = 200 + Math.random() * 55;
+                            break;
+                        case 1: // Trouser - two vertical rectangles
+                            if (i > 4 && i < 24 && ((j > 6 && j < 13) || (j > 15 && j < 22)))
+                                value = 180 + Math.random() * 75;
+                            break;
+                        case 2: // Pullover - like t-shirt but fuller
+                            if ((i > 4 && i < 24 && j > 6 && j < 22) ||
+                                (i > 6 && i < 12 && (j < 6 || j > 22))) value = 150 + Math.random() * 105;
+                            break;
+                        case 3: // Dress - trapezoid shape
+                            const dressWidth = 6 + (i / 28) * 10;
+                            if (i > 3 && i < 25 && Math.abs(j - centerX) < dressWidth)
+                                value = 190 + Math.random() * 65;
+                            break;
+                        case 4: // Coat - wider rectangle
+                            if (i > 3 && i < 25 && j > 4 && j < 24) value = 160 + Math.random() * 95;
+                            break;
+                        case 5: // Sandal - foot shape
+                            if (dist < 10 && i > 10) value = 200 + Math.random() * 55;
+                            break;
+                        case 6: // Shirt - detailed t-shirt
+                            if ((i > 5 && i < 23 && j > 7 && j < 21) ||
+                                (i > 7 && i < 13 && (j < 7 || j > 21))) {
+                                value = 170 + Math.random() * 85;
+                                if (j > 12 && j < 16 && i < 12) value = 100; // collar
+                            }
+                            break;
+                        case 7: // Sneaker - shoe shape
+                            if ((i > 12 && i < 22 && j > 4 && j < 24) ||
+                                (i > 8 && i < 16 && j > 14 && j < 22)) value = 180 + Math.random() * 75;
+                            break;
+                        case 8: // Bag - rectangle with handle
+                            if ((i > 6 && i < 24 && j > 6 && j < 22) ||
+                                (i > 2 && i < 8 && j > 10 && j < 18)) value = 200 + Math.random() * 55;
+                            break;
+                        case 9: // Ankle boot - boot shape
+                            if ((i > 10 && i < 24 && j > 6 && j < 22) ||
+                                (i > 4 && i < 14 && j > 12 && j < 20)) value = 160 + Math.random() * 95;
+                            break;
+                    }
+                    row.push(Math.min(255, Math.max(0, value)));
+                }
+                patterns.push(row);
+            }
+            return patterns;
+        };
+
+        // Chart.js-based Training Curve Chart Component
+        function TrainingCurveChart({ data, lines }) {
+            const canvasRef = useRef(null);
+            const chartRef = useRef(null);
+
+            useEffect(() => {
+                if (!canvasRef.current || !data.length) return;
+                if (chartRef.current) chartRef.current.destroy();
+
+                const ctx = canvasRef.current.getContext('2d');
+                chartRef.current = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.map(d => d.epoch),
+                        datasets: lines.map(line => ({
+                            label: line.label,
+                            data: data.map(d => d[line.key]),
+                            borderColor: line.color,
+                            backgroundColor: line.color,
+                            fill: false,
+                            tension: 0.4,
+                            pointRadius: 0,
+                            borderWidth: 2
+                        }))
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                                labels: {
+                                    color: colors.lightMuted,
+                                    font: { size: 12 },
+                                    usePointStyle: true,
+                                    pointStyle: 'circle'
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: colors.darkCard,
+                                titleColor: colors.darkText,
+                                bodyColor: colors.darkMuted,
+                                borderColor: 'rgba(39, 116, 174, 0.3)',
+                                borderWidth: 1,
+                                cornerRadius: 8,
+                                padding: 10,
+                                callbacks: {
+                                    title: (items) => `Epoch ${items[0].label}`,
+                                    label: (context) => `${context.dataset.label}: ${context.parsed.y.toFixed(4)}`
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.06)',
+                                    drawBorder: false
+                                },
+                                ticks: {
+                                    color: colors.lightMuted,
+                                    font: { size: 11 }
+                                },
+                                title: {
+                                    display: false
+                                }
+                            },
+                            y: {
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.06)',
+                                    drawBorder: false
+                                },
+                                ticks: {
+                                    color: colors.lightMuted,
+                                    font: { size: 11 }
+                                },
+                                title: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
+                return () => { if (chartRef.current) chartRef.current.destroy(); };
+            }, [data, lines]);
+
+            return <div style={{height: '250px'}}><canvas ref={canvasRef} /></div>;
+        }
+
+        // Neural Network Visualization Component
+        const NeuralNetworkViz = ({ layers, activation, dropout, batchNorm, isTraining, currentEpoch }) => {
+            const svgRef = useRef(null);
+            const [animationPhase, setAnimationPhase] = useState(0);
+
+            // Animation loop during training
+            useEffect(() => {
+                if (isTraining) {
+                    const interval = setInterval(() => {
+                        setAnimationPhase(prev => (prev + 1) % 100);
+                    }, 50);
+                    return () => clearInterval(interval);
+                }
+            }, [isTraining]);
+
+            const networkLayout = useMemo(() => {
+                const allLayers = [
+                    { type: 'input', nodes: 784, display: 28, label: 'Input (28x28)' },
+                    ...layers.map((nodes, i) => ({
+                        type: 'hidden',
+                        nodes,
+                        display: Math.min(nodes, 12),
+                        label: `Hidden ${i + 1} (${nodes})`
+                    })),
+                    { type: 'output', nodes: 10, display: 10, label: 'Output (10)' }
+                ];
+                return allLayers;
+            }, [layers]);
+
+            const svgWidth = 800;
+            const svgHeight = 380;
+            const padding = { top: 40, bottom: 60, left: 50, right: 50 };
+
+            const layerSpacing = (svgWidth - padding.left - padding.right) / (networkLayout.length - 1);
+
+            // Calculate positions for all nodes
+            const nodePositions = useMemo(() => {
+                const positions = [];
+
+                networkLayout.forEach((layer, layerIdx) => {
+                    const x = padding.left + layerIdx * layerSpacing;
+                    const layerPositions = [];
+                    const nodeCount = layer.display;
+                    const nodeSpacing = Math.min(28, (svgHeight - padding.top - padding.bottom) / (nodeCount + 1));
+                    const startY = (svgHeight - (nodeCount - 1) * nodeSpacing) / 2;
+
+                    for (let i = 0; i < nodeCount; i++) {
+                        layerPositions.push({
+                            x,
+                            y: startY + i * nodeSpacing,
+                            isDropout: dropout > 0 && layer.type === 'hidden' && Math.random() < dropout,
+                            layerType: layer.type,
+                            nodeIdx: i,
+                            totalNodes: layer.nodes
+                        });
+                    }
+                    positions.push(layerPositions);
+                });
+
+                return positions;
+            }, [networkLayout, dropout, svgHeight, layerSpacing]);
+
+            // Get node color based on layer type and activation
+            const getNodeColor = (layerType, nodeIdx) => {
+                if (layerType === 'input') return '#6b7280';
+                if (layerType === 'output') return colors.positive;
+                return ACTIVATION_COLORS[activation] || colors.primary;
+            };
+
+            // Calculate which nodes are "firing" during animation
+            const getFiringIntensity = (layerIdx, nodeIdx) => {
+                if (!isTraining) return 0;
+                const phase = (animationPhase + layerIdx * 15 - nodeIdx * 5) % 100;
+                if (phase < 30) return phase / 30;
+                if (phase < 60) return 1 - (phase - 30) / 30;
+                return 0;
+            };
+
+            return (
+                <svg
+                    ref={svgRef}
+                    width="100%"
+                    height="100%"
+                    viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+                    style={{ background: 'transparent' }}
+                >
+                    <defs>
+                        <linearGradient id="connectionGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stopColor="#6b7280" stopOpacity="0.3" />
+                            <stop offset="50%" stopColor={colors.primary} stopOpacity="0.5" />
+                            <stop offset="100%" stopColor={colors.positive} stopOpacity="0.3" />
+                        </linearGradient>
+                        <filter id="glow">
+                            <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                            <feMerge>
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                        </filter>
+                        <filter id="strongGlow">
+                            <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+                            <feMerge>
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                        </filter>
+                    </defs>
+
+                    {/* Draw connections */}
+                    {nodePositions.slice(0, -1).map((layerNodes, layerIdx) =>
+                        layerNodes.map((node, nodeIdx) =>
+                            nodePositions[layerIdx + 1].map((nextNode, nextIdx) => {
+                                const opacity = isTraining
+                                    ? 0.1 + getFiringIntensity(layerIdx, nodeIdx) * 0.4
+                                    : 0.15;
+                                return (
+                                    <line
+                                        key={`conn-${layerIdx}-${nodeIdx}-${nextIdx}`}
+                                        x1={node.x}
+                                        y1={node.y}
+                                        x2={nextNode.x}
+                                        y2={nextNode.y}
+                                        stroke={isTraining ? ACTIVATION_COLORS[activation] : '#9ca3af'}
+                                        strokeWidth={isTraining ? 1 + getFiringIntensity(layerIdx, nodeIdx) : 0.5}
+                                        opacity={opacity}
+                                        style={isTraining ? {
+                                            animation: `flowRight ${0.5 + Math.random() * 0.5}s linear infinite`
+                                        } : {}}
+                                    />
+                                );
+                            })
+                        )
+                    )}
+
+                    {/* Draw batch normalization layers */}
+                    {batchNorm && networkLayout.slice(1, -1).map((layer, idx) => {
+                        const x = padding.left + (idx + 1) * layerSpacing - layerSpacing / 2;
+                        return (
+                            <g key={`bn-${idx}`}>
+                                <rect
+                                    x={x - 15}
+                                    y={svgHeight / 2 - 40}
+                                    width={30}
+                                    height={80}
+                                    rx={4}
+                                    fill="rgba(139, 184, 232, 0.2)"
+                                    stroke={colors.lightBlue}
+                                    strokeWidth={1}
+                                    strokeDasharray="4,2"
+                                />
+                                <text
+                                    x={x}
+                                    y={svgHeight / 2}
+                                    textAnchor="middle"
+                                    fill={colors.lightBlue}
+                                    fontSize="8"
+                                    fontWeight="500"
+                                >
+                                    BN
+                                </text>
+                            </g>
+                        );
+                    })}
+
+                    {/* Draw nodes */}
+                    {nodePositions.map((layerNodes, layerIdx) =>
+                        layerNodes.map((node, nodeIdx) => {
+                            const color = getNodeColor(node.layerType, nodeIdx);
+                            const firingIntensity = getFiringIntensity(layerIdx, nodeIdx);
+                            const radius = node.layerType === 'input' ? 4 : (node.layerType === 'output' ? 10 : 8);
+
+                            return (
+                                <g key={`node-${layerIdx}-${nodeIdx}`}>
+                                    <circle
+                                        cx={node.x}
+                                        cy={node.y}
+                                        r={radius + firingIntensity * 4}
+                                        fill={color}
+                                        opacity={node.isDropout ? 0.3 : 0.8 + firingIntensity * 0.2}
+                                        filter={firingIntensity > 0.5 ? 'url(#strongGlow)' : (firingIntensity > 0 ? 'url(#glow)' : 'none')}
+                                        strokeDasharray={node.isDropout ? '3,2' : 'none'}
+                                        stroke={node.isDropout ? color : 'none'}
+                                        strokeWidth={node.isDropout ? 1.5 : 0}
+                                    />
+                                    {node.layerType === 'output' && (
+                                        <text
+                                            x={node.x}
+                                            y={node.y + 3}
+                                            textAnchor="middle"
+                                            fill="white"
+                                            fontSize="7"
+                                            fontWeight="600"
+                                        >
+                                            {nodeIdx}
+                                        </text>
+                                    )}
+                                </g>
+                            );
+                        })
+                    )}
+
+                    {/* Draw input grid representation */}
+                    <g transform={`translate(${padding.left - 30}, ${svgHeight / 2 - 30})`}>
+                        <rect
+                            width={24}
+                            height={24}
+                            fill="none"
+                            stroke="#6b7280"
+                            strokeWidth={1}
+                            opacity={0.5}
+                        />
+                        {[0, 1, 2].map(row =>
+                            [0, 1, 2].map(col => (
+                                <rect
+                                    key={`grid-${row}-${col}`}
+                                    x={col * 8}
+                                    y={row * 8}
+                                    width={8}
+                                    height={8}
+                                    fill={`rgba(107, 114, 128, ${0.3 + Math.random() * 0.5})`}
+                                />
+                            ))
+                        )}
+                        <text
+                            x={12}
+                            y={38}
+                            textAnchor="middle"
+                            fill="#6b7280"
+                            fontSize="8"
+                        >
+                            28x28
+                        </text>
+                    </g>
+
+                    {/* Layer labels */}
+                    {networkLayout.map((layer, idx) => (
+                        <text
+                            key={`label-${idx}`}
+                            x={padding.left + idx * layerSpacing}
+                            y={svgHeight - 15}
+                            textAnchor="middle"
+                            fill={colors.lightMuted}
+                            fontSize="10"
+                            fontWeight="500"
+                        >
+                            {layer.label}
+                        </text>
+                    ))}
+
+                    {/* Training indicator */}
+                    {isTraining && (
+                        <g>
+                            <text
+                                x={svgWidth / 2}
+                                y={25}
+                                textAnchor="middle"
+                                fill={colors.primary}
+                                fontSize="12"
+                                fontWeight="600"
+                            >
+                                Training... Epoch {currentEpoch}
+                            </text>
+                            <circle
+                                cx={svgWidth / 2 - 80}
+                                cy={22}
+                                r={4}
+                                fill={colors.primary}
+                                opacity={0.5 + Math.sin(animationPhase / 10) * 0.5}
+                            />
+                        </g>
+                    )}
+                </svg>
+            );
+        };
+
+        // Confusion Matrix Component
+        const ConfusionMatrix = ({ matrix }) => {
+            const maxVal = Math.max(...matrix.flat());
+
+            const getColor = (value) => {
+                const intensity = value / maxVal;
+                if (intensity > 0.8) return `rgba(39, 116, 174, ${intensity})`;
+                if (intensity > 0.5) return `rgba(0, 85, 135, ${intensity})`;
+                if (intensity > 0.2) return `rgba(139, 184, 232, ${intensity})`;
+                return `rgba(150, 150, 170, ${intensity * 0.5})`;
+            };
+
+            return (
+                <div className="confusion-matrix">
+                    <table className="matrix-table">
+                        <thead>
+                            <tr>
+                                <th></th>
+                                {FASHION_CLASSES.map((cls, i) => (
+                                    <th key={i} title={cls}>{i}</th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {matrix.map((row, i) => (
+                                <tr key={i}>
+                                    <th title={FASHION_CLASSES[i]}>{i}</th>
+                                    {row.map((val, j) => (
+                                        <td
+                                            key={j}
+                                            style={{
+                                                backgroundColor: getColor(val),
+                                                color: val / maxVal > 0.5 ? 'white' : colors.lightMuted
+                                            }}
+                                            title={`True: ${FASHION_CLASSES[i]}, Pred: ${FASHION_CLASSES[j]}`}
+                                        >
+                                            {val}
+                                        </td>
+                                    ))}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            );
+        };
+
+        // Sample Predictions Component
+        const SamplePredictions = ({ predictions }) => {
+            return (
+                <div className="predictions-grid">
+                    {predictions.map((pred, idx) => (
+                        <div
+                            key={idx}
+                            className={`prediction-item ${pred.correct ? 'correct' : 'incorrect'}`}
+                        >
+                            <div className="prediction-image">
+                                <canvas
+                                    ref={el => {
+                                        if (el) {
+                                            const ctx = el.getContext('2d');
+                                            el.width = 28;
+                                            el.height = 28;
+                                            const imageData = ctx.createImageData(28, 28);
+                                            for (let i = 0; i < 28; i++) {
+                                                for (let j = 0; j < 28; j++) {
+                                                    const idx = (i * 28 + j) * 4;
+                                                    const val = pred.image[i][j];
+                                                    imageData.data[idx] = val;
+                                                    imageData.data[idx + 1] = val;
+                                                    imageData.data[idx + 2] = val;
+                                                    imageData.data[idx + 3] = 255;
+                                                }
+                                            }
+                                            ctx.putImageData(imageData, 0, 0);
+                                        }
+                                    }}
+                                    style={{ width: '56px', height: '56px' }}
+                                />
+                            </div>
+                            <div className="prediction-label">
+                                True: {FASHION_CLASSES[pred.true]}
+                            </div>
+                            <div className={`prediction-result ${pred.correct ? 'correct' : 'incorrect'}`}>
+                                Pred: {FASHION_CLASSES[pred.predicted]}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            );
+        };
+
+        // Gradient Flow Visualization
+        const GradientFlowViz = ({ layers, gradients }) => {
+            return (
+                <div className="gradient-flow-container">
+                    {['Input', ...layers.map((_, i) => `H${i + 1}`), 'Output'].map((label, idx) => (
+                        <div key={idx} style={{ textAlign: 'center' }}>
+                            <div
+                                className="gradient-bar"
+                                style={{ background: 'rgba(0, 0, 0, 0.1)' }}
+                            >
+                                <div
+                                    className="gradient-fill"
+                                    style={{
+                                        height: `${gradients[idx] * 100}%`,
+                                        background: `linear-gradient(180deg,
+                                            ${gradients[idx] > 0.7 ? colors.positive :
+                                              gradients[idx] > 0.3 ? colors.primary : colors.negative},
+                                            transparent)`
+                                    }}
+                                />
+                            </div>
+                            <div className="gradient-label">{label}</div>
+                        </div>
+                    ))}
+                </div>
+            );
+        };
+
+        // Main App Component
+        const App = () => {
+            const [isTraining, setIsTraining] = useState(false);
+            const [currentEpoch, setCurrentEpoch] = useState(0);
+
+            // Network configuration
+            const [hiddenLayers, setHiddenLayers] = useState([128, 64]);
+            const [activation, setActivation] = useState('relu');
+            const [dropout, setDropout] = useState(0.2);
+            const [batchNorm, setBatchNorm] = useState(true);
+            const [learningRate, setLearningRate] = useState(0.001);
+            const [batchSize, setBatchSize] = useState(64);
+            const [epochs, setEpochs] = useState(20);
+
+            // Training results
+            const [trainingHistory, setTrainingHistory] = useState([]);
+            const [confusionMatrix, setConfusionMatrix] = useState(
+                Array(10).fill(null).map(() => Array(10).fill(0))
+            );
+            const [samplePredictions, setSamplePredictions] = useState([]);
+            const [gradientFlow, setGradientFlow] = useState([]);
+            const [metrics, setMetrics] = useState({
+                trainAcc: 0,
+                valAcc: 0,
+                trainLoss: 0,
+                valLoss: 0,
+                params: 0,
+                trainTime: 0
+            });
+
+            // Calculate parameter count
+            const paramCount = useMemo(() => {
+                let params = 0;
+                let prevSize = 784;
+                hiddenLayers.forEach(size => {
+                    params += prevSize * size + size; // weights + biases
+                    if (batchNorm) params += size * 4; // gamma, beta, running mean, var
+                    prevSize = size;
+                });
+                params += prevSize * 10 + 10; // output layer
+                return params;
+            }, [hiddenLayers, batchNorm]);
+
+            // Add hidden layer
+            const addLayer = () => {
+                if (hiddenLayers.length < 5) {
+                    setHiddenLayers([...hiddenLayers, 64]);
+                }
+            };
+
+            // Remove hidden layer
+            const removeLayer = (idx) => {
+                if (hiddenLayers.length > 1) {
+                    setHiddenLayers(hiddenLayers.filter((_, i) => i !== idx));
+                }
+            };
+
+            // Update layer size
+            const updateLayerSize = (idx, size) => {
+                const newLayers = [...hiddenLayers];
+                newLayers[idx] = parseInt(size);
+                setHiddenLayers(newLayers);
+            };
+
+            // Simulate training
+            const startTraining = async () => {
+                setIsTraining(true);
+                setTrainingHistory([]);
+                setCurrentEpoch(0);
+
+                const history = [];
+                const startTime = Date.now();
+
+                for (let epoch = 1; epoch <= epochs; epoch++) {
+                    await new Promise(resolve => setTimeout(resolve, 200));
+
+                    setCurrentEpoch(epoch);
+
+                    // Simulate training metrics with realistic curves
+                    const progress = epoch / epochs;
+                    const noise = () => (Math.random() - 0.5) * 0.02;
+
+                    const trainLoss = 2.3 * Math.exp(-3 * progress) + 0.1 + noise();
+                    const valLoss = 2.3 * Math.exp(-2.5 * progress) + 0.15 + noise();
+                    const trainAcc = 0.1 + 0.85 * (1 - Math.exp(-4 * progress)) + noise();
+                    const valAcc = 0.1 + 0.80 * (1 - Math.exp(-3.5 * progress)) + noise();
+
+                    const epochData = {
+                        epoch,
+                        trainLoss: Math.max(0.05, trainLoss),
+                        valLoss: Math.max(0.1, valLoss),
+                        trainAcc: Math.min(0.99, Math.max(0, trainAcc)),
+                        valAcc: Math.min(0.95, Math.max(0, valAcc))
+                    };
+
+                    history.push(epochData);
+                    setTrainingHistory([...history]);
+
+                    // Update gradient flow
+                    setGradientFlow([
+                        0.9 - epoch * 0.02 + Math.random() * 0.1,
+                        ...hiddenLayers.map((_, i) =>
+                            0.8 - i * 0.1 - epoch * 0.01 + Math.random() * 0.15
+                        ),
+                        0.7 + Math.random() * 0.2
+                    ]);
+                }
+
+                // Generate final confusion matrix
+                const finalMatrix = Array(10).fill(null).map((_, i) =>
+                    Array(10).fill(null).map((_, j) => {
+                        if (i === j) return Math.floor(80 + Math.random() * 20);
+                        return Math.floor(Math.random() * 10);
+                    })
+                );
+                setConfusionMatrix(finalMatrix);
+
+                // Generate sample predictions
+                const predictions = Array(10).fill(null).map((_, idx) => {
+                    const trueClass = idx;
+                    const correct = Math.random() > 0.15;
+                    return {
+                        image: generateMockImage(trueClass),
+                        true: trueClass,
+                        predicted: correct ? trueClass : (trueClass + Math.floor(Math.random() * 9) + 1) % 10,
+                        correct
+                    };
+                });
+                setSamplePredictions(predictions);
+
+                // Update final metrics
+                const lastEpoch = history[history.length - 1];
+                setMetrics({
+                    trainAcc: lastEpoch.trainAcc,
+                    valAcc: lastEpoch.valAcc,
+                    trainLoss: lastEpoch.trainLoss,
+                    valLoss: lastEpoch.valLoss,
+                    params: paramCount,
+                    trainTime: (Date.now() - startTime) / 1000
+                });
+
+                setIsTraining(false);
+            };
+
+            return (
+                <div>
+                    {/* DARK HEADER */}
+                    <header style={{
+                        background: '#2774AE',
+                        borderBottom: '2px solid #FFD100',
+                        padding: '1rem 2rem',
+                        position: 'sticky',
+                        top: 0,
+                        zIndex: 100
+                    }}>
+                        <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <p style={{ fontSize: '0.65rem', color: '#FFD100', fontWeight: 400, marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
+                                    MGMT298D: Science and Strategy of AI
+                                </p>
+                                <h1 style={{ fontSize: '1.4rem', fontWeight: 600, color: '#f5f5f5', letterSpacing: '0' }}>
+                                    Week 5: Neural Networks
+                                </h1>
+                                <p style={{ fontSize: '0.85rem', color: '#b0b0b0', marginTop: '0.25rem' }}>
+                                    Fashion-MNIST Deep Learning Classification
+                                </p>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                                <span style={{
+                                    fontSize: '1rem',
+                                    fontWeight: 500,
+                                    color: '#f5f5f5'
+                                }}>
+                                    UCLA Anderson
+                                </span>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* DARK CONTROLS SECTION */}
+                    <div className="controls-section">
+                        <div className="controls-content">
+                                <div className="simulator-layout">
+                                    <aside className="control-panel">
+                                        <h2 className="panel-title">Network Configuration</h2>
+
+                                        <div className="control-section">
+                                            <div className="section-label">Architecture</div>
+
+                                            <div className="layer-builder">
+                                                {hiddenLayers.map((nodes, idx) => (
+                                                    <div key={idx} className="layer-row">
+                                                        <span className="layer-number">Layer {idx + 1}</span>
+                                                        <select
+                                                            className="layer-nodes-select"
+                                                            value={nodes}
+                                                            onChange={(e) => updateLayerSize(idx, e.target.value)}
+                                                        >
+                                                            <option value={16}>16 nodes</option>
+                                                            <option value={32}>32 nodes</option>
+                                                            <option value={64}>64 nodes</option>
+                                                            <option value={128}>128 nodes</option>
+                                                            <option value={256}>256 nodes</option>
+                                                            <option value={512}>512 nodes</option>
+                                                        </select>
+                                                        {hiddenLayers.length > 1 && (
+                                                            <button
+                                                                className="layer-remove-btn"
+                                                                onClick={() => removeLayer(idx)}
+                                                            >
+                                                                x
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                                {hiddenLayers.length < 5 && (
+                                                    <button className="add-layer-btn" onClick={addLayer}>
+                                                        + Add Hidden Layer
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            <div className="control-group">
+                                                <label className="control-label">Activation Function</label>
+                                                <select
+                                                    value={activation}
+                                                    onChange={(e) => setActivation(e.target.value)}
+                                                >
+                                                    <option value="relu">ReLU</option>
+                                                    <option value="sigmoid">Sigmoid</option>
+                                                    <option value="tanh">Tanh</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div className="control-section">
+                                            <div className="section-label">Regularization</div>
+
+                                            <div className="control-group">
+                                                <label className="control-label">
+                                                    Dropout Rate
+                                                    <span className="control-value">{dropout.toFixed(2)}</span>
+                                                </label>
+                                                <input
+                                                    type="range"
+                                                    min="0"
+                                                    max="0.5"
+                                                    step="0.05"
+                                                    value={dropout}
+                                                    onChange={(e) => setDropout(parseFloat(e.target.value))}
+                                                />
+                                            </div>
+
+                                            <div className="control-group">
+                                                <div className="toggle-container">
+                                                    <div
+                                                        className={`toggle ${batchNorm ? 'active' : ''}`}
+                                                        onClick={() => setBatchNorm(!batchNorm)}
+                                                    />
+                                                    <span className="control-label" style={{ marginBottom: 0 }}>
+                                                        Batch Normalization
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="control-section">
+                                            <div className="section-label">Training Parameters</div>
+
+                                            <div className="control-group">
+                                                <label className="control-label">
+                                                    Learning Rate
+                                                    <span className="control-value">{learningRate.toFixed(4)}</span>
+                                                </label>
+                                                <input
+                                                    type="range"
+                                                    min="-4"
+                                                    max="-1"
+                                                    step="0.1"
+                                                    value={Math.log10(learningRate)}
+                                                    onChange={(e) => setLearningRate(Math.pow(10, parseFloat(e.target.value)))}
+                                                />
+                                            </div>
+
+                                            <div className="control-group">
+                                                <label className="control-label">Batch Size</label>
+                                                <select
+                                                    value={batchSize}
+                                                    onChange={(e) => setBatchSize(parseInt(e.target.value))}
+                                                >
+                                                    <option value={32}>32</option>
+                                                    <option value={64}>64</option>
+                                                    <option value={128}>128</option>
+                                                    <option value={256}>256</option>
+                                                </select>
+                                            </div>
+
+                                            <div className="control-group">
+                                                <label className="control-label">
+                                                    Epochs
+                                                    <span className="control-value">{epochs}</span>
+                                                </label>
+                                                <input
+                                                    type="range"
+                                                    min="5"
+                                                    max="50"
+                                                    step="5"
+                                                    value={epochs}
+                                                    onChange={(e) => setEpochs(parseInt(e.target.value))}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            className={`train-btn ${isTraining ? 'training' : ''}`}
+                                            onClick={startTraining}
+                                            disabled={isTraining}
+                                        >
+                                            {isTraining ? `Training... Epoch ${currentEpoch}/${epochs}` : 'Train Model'}
+                                        </button>
+
+                                        {isTraining && (
+                                            <div className="training-progress">
+                                                <div className="progress-bar">
+                                                    <div
+                                                        className="progress-fill"
+                                                        style={{ width: `${(currentEpoch / epochs) * 100}%` }}
+                                                    />
+                                                </div>
+                                                <div className="progress-text">
+                                                    {Math.round((currentEpoch / epochs) * 100)}% complete
+                                                </div>
+                                            </div>
+                                        )}
+                                    </aside>
+                                </div>
+                        </div>
+                    </div>
+
+                    {/* LIGHT RESULTS SECTION */}
+                        <div className="results-section">
+                            <div className="results-content">
+                                {/* Neural Network Visualization */}
+                                <div className="network-viz-card">
+                                    <div className="card-header">
+                                        <h3 className="card-title">
+                                            <span className="icon">&#129504;</span>
+                                            Network Architecture
+                                        </h3>
+                                        <span className="param-count">
+                                            {paramCount.toLocaleString()} parameters
+                                        </span>
+                                    </div>
+                                    <div className="network-svg-container">
+                                        <NeuralNetworkViz
+                                            layers={hiddenLayers}
+                                            activation={activation}
+                                            dropout={dropout}
+                                            batchNorm={batchNorm}
+                                            isTraining={isTraining}
+                                            currentEpoch={currentEpoch}
+                                        />
+                                    </div>
+                                    <div className="network-legend">
+                                        <div className="legend-item">
+                                            <div className="legend-dot" style={{ background: '#6b7280' }}></div>
+                                            Input Layer
+                                        </div>
+                                        <div className="legend-item">
+                                            <div className="legend-dot" style={{ background: ACTIVATION_COLORS[activation] }}></div>
+                                            Hidden ({activation.toUpperCase()})
+                                        </div>
+                                        <div className="legend-item">
+                                            <div className="legend-dot" style={{ background: colors.positive }}></div>
+                                            Output Layer
+                                        </div>
+                                        {dropout > 0 && (
+                                            <div className="legend-item">
+                                                <div className="legend-dot" style={{
+                                                    background: 'transparent',
+                                                    border: `2px dashed ${colors.primary}`
+                                                }}></div>
+                                                Dropout Nodes
+                                            </div>
+                                        )}
+                                        {batchNorm && (
+                                            <div className="legend-item">
+                                                <div className="legend-bar" style={{ background: colors.lightBlue }}></div>
+                                                Batch Norm
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Metrics */}
+                                <div className="metrics-grid">
+                                    <div className="metric-card">
+                                        <div className="metric-value">
+                                            {(metrics.trainAcc * 100).toFixed(1)}%
+                                        </div>
+                                        <div className="metric-label">Train Accuracy</div>
+                                    </div>
+                                    <div className="metric-card">
+                                        <div className="metric-value positive">
+                                            {(metrics.valAcc * 100).toFixed(1)}%
+                                        </div>
+                                        <div className="metric-label">Val Accuracy</div>
+                                    </div>
+                                    <div className="metric-card">
+                                        <div className="metric-value neutral">
+                                            {metrics.valLoss.toFixed(3)}
+                                        </div>
+                                        <div className="metric-label">Val Loss</div>
+                                    </div>
+                                    <div className="metric-card">
+                                        <div className="metric-value" style={{ color: colors.accent }}>
+                                            {metrics.trainTime.toFixed(1)}s
+                                        </div>
+                                        <div className="metric-label">Training Time</div>
+                                    </div>
+                                </div>
+
+                                {/* Training Charts */}
+                                <div className="charts-grid">
+                                    <div className="chart-card">
+                                        <h3 className="card-title">Loss Over Epochs</h3>
+                                        <div className="chart-container">
+                                            <TrainingCurveChart
+                                                data={trainingHistory}
+                                                lines={[
+                                                    { key: 'trainLoss', label: 'Train Loss', color: colors.primary },
+                                                    { key: 'valLoss', label: 'Val Loss', color: colors.lightBlue }
+                                                ]}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="chart-card">
+                                        <h3 className="card-title">Accuracy Over Epochs</h3>
+                                        <div className="chart-container">
+                                            <TrainingCurveChart
+                                                data={trainingHistory}
+                                                lines={[
+                                                    { key: 'trainAcc', label: 'Train Acc', color: colors.primary },
+                                                    { key: 'valAcc', label: 'Val Acc', color: colors.positive }
+                                                ]}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Confusion Matrix and Predictions */}
+                                {trainingHistory.length > 0 && (
+                                    <div className="charts-grid">
+                                        <div className="chart-card">
+                                            <h3 className="card-title">
+                                                <span className="icon">&#128202;</span>
+                                                Confusion Matrix
+                                            </h3>
+                                            <ConfusionMatrix matrix={confusionMatrix} />
+                                        </div>
+
+                                        <div className="chart-card">
+                                            <h3 className="card-title">
+                                                <span className="icon">&#128300;</span>
+                                                Gradient Flow
+                                            </h3>
+                                            <GradientFlowViz
+                                                layers={hiddenLayers}
+                                                gradients={gradientFlow.length > 0 ? gradientFlow :
+                                                    [0.5, ...hiddenLayers.map(() => 0.5), 0.5]}
+                                            />
+                                            <div style={{
+                                                marginTop: '1rem',
+                                                fontSize: '0.8rem',
+                                                color: colors.lightMuted,
+                                                textAlign: 'center'
+                                            }}>
+                                                Green = healthy gradients, Red = vanishing gradients
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Sample Predictions */}
+                                {samplePredictions.length > 0 && (
+                                    <div className="chart-card">
+                                        <h3 className="card-title">
+                                            <span className="icon">&#128065;</span>
+                                            Sample Predictions
+                                        </h3>
+                                        <SamplePredictions predictions={samplePredictions} />
+                                    </div>
+                                )}
+
+                            </div>
+                        </div>
+
+                    {/* Footer */}
+                    <p style={{ color: '#888', fontSize: '0.75rem', marginTop: '20px', textAlign: 'center' }}>
+                        MGMT298D: Science and Strategy of AI | UCLA Anderson School of Management
+                    </p>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assignment 3: Clustering & Collaborative Filtering | UCLA Anderson</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #ffffff;
+            min-height: 100vh;
+            color: #1a1a1a;
+        }
+        .glass-card { background: #ffffff; border: 1px solid rgba(0, 0, 0, 0.1); }
+        .glass-card-solid { background: #ffffff; border: 1px solid rgba(0, 0, 0, 0.1); }
+        .slider-blue::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, #2774AE, #FFD100);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(39, 116, 174, 0.5);
+        }
+        .slider-blue::-webkit-slider-runnable-track {
+            background: rgba(39, 116, 174, 0.3);
+            height: 6px;
+            border-radius: 3px;
+        }
+        .netflix-red { color: #e50914; }
+        .pulse-glow {
+            animation: pulseGlow 2s ease-in-out infinite;
+        }
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 20px rgba(39, 116, 174, 0.3); }
+            50% { box-shadow: 0 0 40px rgba(255, 209, 0, 0.4); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        @keyframes centroidPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+        }
+        .centroid-animate { animation: centroidPulse 0.5s ease-in-out; }
+        .heatmap-cell { transition: all 0.3s ease; }
+        .heatmap-cell:hover { transform: scale(1.1); z-index: 10; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f0f0f0; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: rgba(39, 116, 174, 0.4); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(39, 116, 174, 0.6); }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback } = React;
+
+        // Chart.js is available as window.Chart
+
+        const API_BASE = "/api/assignment3";
+
+        // UCLA Color Palette
+        const COLORS = {
+            primary: '#2774AE',
+            accent: '#FFD100',
+            darkBlue: '#005587',
+            lightBlue: '#8BB8E8',
+            positive: '#22c55e',
+            negative: '#ef4444',
+            background: '#2774AE',
+            cardBg: '#ffffff',
+            cardBorder: 'rgba(0, 0, 0, 0.1)',
+            text: '#1a1a1a',
+            textMuted: '#666666'
+        };
+
+        // Color palettes
+        const CLUSTER_COLORS = ['#2774AE', '#FFD100', '#005587', '#8BB8E8', '#22c55e', '#ef4444', '#ec4899', '#6366f1', '#14b8a6', '#f97316'];
+        const UCLA_BLUE = '#2774AE';
+        const UCLA_GOLD = '#FFD100';
+        const DARK_BLUE = '#005587';
+
+        // Netflix movie emoji mapping
+        const GENRE_ICONS = {
+            'Action': '💥', 'Comedy': '😂', 'Drama': '🎭', 'Horror': '👻',
+            'Romance': '💕', 'Sci-Fi': '🚀', 'Thriller': '🔪', 'Animation': '🎨',
+            'Documentary': '📽️', 'Adventure': '🗺️'
+        };
+
+        // Header Component
+        const Header = () => (
+            <header style={{
+                background: '#2774AE',
+                borderBottom: '2px solid #FFD100',
+                padding: '1rem 2rem',
+                position: 'sticky',
+                top: 0,
+                zIndex: 100
+            }}>
+                <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                        <p style={{ fontSize: '0.65rem', color: '#FFD100', fontWeight: 400, marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
+                            MGMT298D: Science and Strategy of AI
+                        </p>
+                        <h1 style={{ fontSize: '1.4rem', fontWeight: 600, color: '#f5f5f5', letterSpacing: '0' }}>
+                            Assignment 3: Clustering & Collaborative Filtering
+                        </h1>
+                        <p style={{ fontSize: '0.85rem', color: '#b0b0b0', marginTop: '0.25rem' }}>
+                            Netflix Movie Recommendations with ML
+                        </p>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                        <span style={{
+                            fontSize: '1rem',
+                            fontWeight: 500,
+                            color: '#f5f5f5'
+                        }}>
+                            UCLA Anderson
+                        </span>
+                    </div>
+                </div>
+            </header>
+        );
+
+
+        // Animated K-Means Visualization
+        const AnimatedKMeans = ({ k, onComplete }) => {
+            const [animationState, setAnimationState] = useState('idle');
+            const [iteration, setIteration] = useState(0);
+            const [points, setPoints] = useState([]);
+            const [centroids, setCentroids] = useState([]);
+            const [history, setHistory] = useState([]);
+            const animationRef = useRef(null);
+            const chartRef = useRef(null);
+            const chartInstance = useRef(null);
+
+            // Generate sample data for animation
+            const generateData = useCallback(() => {
+                const newPoints = [];
+                const clusters = k;
+                const pointsPerCluster = 30;
+
+                for (let c = 0; c < clusters; c++) {
+                    const cx = 20 + Math.random() * 60;
+                    const cy = 20 + Math.random() * 60;
+                    for (let i = 0; i < pointsPerCluster; i++) {
+                        newPoints.push({
+                            x: cx + (Math.random() - 0.5) * 25,
+                            y: cy + (Math.random() - 0.5) * 25,
+                            cluster: -1,
+                            id: c * pointsPerCluster + i
+                        });
+                    }
+                }
+                return newPoints;
+            }, [k]);
+
+            // Initialize random centroids
+            const initCentroids = useCallback((pts) => {
+                const newCentroids = [];
+                for (let i = 0; i < k; i++) {
+                    newCentroids.push({
+                        x: 10 + Math.random() * 80,
+                        y: 10 + Math.random() * 80,
+                        id: i
+                    });
+                }
+                return newCentroids;
+            }, [k]);
+
+            // Assign points to nearest centroid
+            const assignPoints = (pts, cents) => {
+                return pts.map(p => {
+                    let minDist = Infinity;
+                    let nearest = 0;
+                    cents.forEach((c, idx) => {
+                        const dist = Math.sqrt((p.x - c.x) ** 2 + (p.y - c.y) ** 2);
+                        if (dist < minDist) {
+                            minDist = dist;
+                            nearest = idx;
+                        }
+                    });
+                    return { ...p, cluster: nearest };
+                });
+            };
+
+            // Update centroids based on assigned points
+            const updateCentroids = (pts, cents) => {
+                return cents.map((c, idx) => {
+                    const assigned = pts.filter(p => p.cluster === idx);
+                    if (assigned.length === 0) return c;
+                    const newX = assigned.reduce((sum, p) => sum + p.x, 0) / assigned.length;
+                    const newY = assigned.reduce((sum, p) => sum + p.y, 0) / assigned.length;
+                    return { ...c, x: newX, y: newY };
+                });
+            };
+
+            const startAnimation = () => {
+                const initialPoints = generateData();
+                const initialCentroids = initCentroids(initialPoints);
+
+                setPoints(initialPoints);
+                setCentroids(initialCentroids);
+                setHistory([initialCentroids]);
+                setIteration(0);
+                setAnimationState('running');
+            };
+
+            useEffect(() => {
+                if (animationState !== 'running') return;
+
+                const runIteration = () => {
+                    setPoints(prev => {
+                        const assigned = assignPoints(prev, centroids);
+                        setCentroids(c => {
+                            const updated = updateCentroids(assigned, c);
+                            setHistory(h => [...h, updated]);
+
+                            // Check convergence
+                            const moved = c.some((old, i) =>
+                                Math.abs(old.x - updated[i].x) > 0.5 ||
+                                Math.abs(old.y - updated[i].y) > 0.5
+                            );
+
+                            if (!moved || iteration >= 15) {
+                                setAnimationState('complete');
+                                if (onComplete) onComplete();
+                            }
+
+                            return updated;
+                        });
+                        return assigned;
+                    });
+                    setIteration(i => i + 1);
+                };
+
+                animationRef.current = setTimeout(runIteration, 800);
+                return () => clearTimeout(animationRef.current);
+            }, [animationState, iteration, centroids]);
+
+            const resetAnimation = () => {
+                setAnimationState('idle');
+                setPoints([]);
+                setCentroids([]);
+                setHistory([]);
+                setIteration(0);
+            };
+
+            // Chart.js rendering
+            useEffect(() => {
+                if (!chartRef.current) return;
+
+                if (chartInstance.current) {
+                    chartInstance.current.destroy();
+                }
+
+                const ctx = chartRef.current.getContext('2d');
+
+                // Group points by cluster
+                const datasets = [];
+
+                // Add point datasets grouped by cluster
+                if (points.length > 0) {
+                    const clusterGroups = {};
+                    points.forEach(p => {
+                        const clusterIdx = p.cluster >= 0 ? p.cluster : -1;
+                        if (!clusterGroups[clusterIdx]) clusterGroups[clusterIdx] = [];
+                        clusterGroups[clusterIdx].push({ x: p.x, y: p.y });
+                    });
+
+                    Object.keys(clusterGroups).forEach(clusterIdx => {
+                        const idx = parseInt(clusterIdx);
+                        datasets.push({
+                            label: idx >= 0 ? `Cluster ${idx + 1}` : 'Unassigned',
+                            data: clusterGroups[clusterIdx],
+                            backgroundColor: idx >= 0 ? CLUSTER_COLORS[idx % CLUSTER_COLORS.length] + 'B3' : '#6b7280B3',
+                            borderColor: idx >= 0 ? CLUSTER_COLORS[idx % CLUSTER_COLORS.length] : '#6b7280',
+                            pointRadius: 6,
+                            pointHoverRadius: 8,
+                        });
+                    });
+                }
+
+                // Add centroids dataset
+                if (centroids.length > 0) {
+                    datasets.push({
+                        label: 'Centroids',
+                        data: centroids.map(c => ({ x: c.x, y: c.y })),
+                        backgroundColor: centroids.map((_, i) => CLUSTER_COLORS[i % CLUSTER_COLORS.length]),
+                        borderColor: '#ffffff',
+                        borderWidth: 3,
+                        pointRadius: 12,
+                        pointHoverRadius: 14,
+                        pointStyle: 'star',
+                    });
+                }
+
+                chartInstance.current = new Chart(ctx, {
+                    type: 'scatter',
+                    data: { datasets },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                min: 0,
+                                max: 100,
+                                title: { display: true, text: 'PCA Component 1', color: '#666666' },
+                                ticks: { color: '#666666' },
+                                grid: { color: 'rgba(0, 0, 0, 0.06)' }
+                            },
+                            y: {
+                                min: 0,
+                                max: 100,
+                                title: { display: true, text: 'PCA Component 2', color: '#666666' },
+                                ticks: { color: '#666666' },
+                                grid: { color: 'rgba(0, 0, 0, 0.06)' }
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(10, 10, 10, 0.95)',
+                                borderColor: COLORS.cardBorder,
+                                borderWidth: 1,
+                                callbacks: {
+                                    label: (ctx) => `(${ctx.parsed.x.toFixed(2)}, ${ctx.parsed.y.toFixed(2)})`
+                                }
+                            }
+                        }
+                    }
+                });
+
+                return () => {
+                    if (chartInstance.current) {
+                        chartInstance.current.destroy();
+                    }
+                };
+            }, [points, centroids]);
+
+            return (
+                <div className="glass-card-solid rounded-2xl p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: COLORS.lightBlue }}>
+                            <span className="text-2xl">🎬</span> Animated K-Means Clustering
+                        </h3>
+                        <div className="flex items-center gap-3">
+                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                                animationState === 'running' ? 'text-yellow-300' :
+                                animationState === 'complete' ? 'text-green-300' :
+                                ''
+                            }`} style={{
+                                backgroundColor: animationState === 'running' ? 'rgba(255, 209, 0, 0.2)' :
+                                                animationState === 'complete' ? 'rgba(34, 197, 94, 0.2)' :
+                                                'rgba(39, 116, 174, 0.2)',
+                                color: animationState === 'running' ? COLORS.accent :
+                                       animationState === 'complete' ? COLORS.positive :
+                                       COLORS.lightBlue
+                            }}>
+                                {animationState === 'running' ? `Iteration ${iteration}` :
+                                 animationState === 'complete' ? 'Converged!' : 'Ready'}
+                            </span>
+                            {animationState === 'idle' ? (
+                                <button
+                                    onClick={startAnimation}
+                                    className="px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition-all pulse-glow"
+                                    style={{ background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.darkBlue})` }}
+                                >
+                                    ▶ Start Animation
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={resetAnimation}
+                                    className="px-4 py-2 rounded-lg font-semibold hover:opacity-80 transition-all"
+                                    style={{ backgroundColor: 'rgba(39, 116, 174, 0.3)' }}
+                                >
+                                    ↺ Reset
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="h-80">
+                        <canvas ref={chartRef}></canvas>
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-center gap-6">
+                        {centroids.map((_, idx) => (
+                            <div key={idx} className="flex items-center gap-2">
+                                <div
+                                    className="w-4 h-4 rounded-full"
+                                    style={{ backgroundColor: CLUSTER_COLORS[idx % CLUSTER_COLORS.length] }}
+                                />
+                                <span className="text-sm" style={{ color: COLORS.lightBlue }}>Cluster {idx + 1}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        // Elbow Plot
+        const ElbowPlot = ({ data, optimalK }) => {
+            const chartRef = useRef(null);
+            const chartInstance = useRef(null);
+
+            const chartData = data || [
+                { k: 2, inertia: 15000 },
+                { k: 3, inertia: 9500 },
+                { k: 4, inertia: 6200 },
+                { k: 5, inertia: 4800 },
+                { k: 6, inertia: 4200 },
+                { k: 7, inertia: 3900 },
+                { k: 8, inertia: 3700 },
+                { k: 9, inertia: 3550 },
+                { k: 10, inertia: 3450 }
+            ];
+
+            const optimal = optimalK || 5;
+
+            useEffect(() => {
+                if (!chartRef.current) return;
+
+                if (chartInstance.current) {
+                    chartInstance.current.destroy();
+                }
+
+                const ctx = chartRef.current.getContext('2d');
+
+                // Create vertical line plugin for optimal k
+                const verticalLinePlugin = {
+                    id: 'verticalLine',
+                    afterDraw: (chart) => {
+                        const ctx = chart.ctx;
+                        const xAxis = chart.scales.x;
+                        const yAxis = chart.scales.y;
+                        const x = xAxis.getPixelForValue(optimal);
+
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.setLineDash([5, 5]);
+                        ctx.strokeStyle = UCLA_GOLD;
+                        ctx.lineWidth = 2;
+                        ctx.moveTo(x, yAxis.top);
+                        ctx.lineTo(x, yAxis.bottom);
+                        ctx.stroke();
+
+                        ctx.fillStyle = UCLA_GOLD;
+                        ctx.font = '12px Inter';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(`Optimal k=${optimal}`, x, yAxis.top - 10);
+                        ctx.restore();
+                    }
+                };
+
+                chartInstance.current = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: chartData.map(d => d.k),
+                        datasets: [{
+                            label: 'Inertia',
+                            data: chartData.map(d => d.inertia),
+                            borderColor: UCLA_BLUE,
+                            backgroundColor: 'rgba(39, 116, 174, 0.2)',
+                            borderWidth: 3,
+                            pointBackgroundColor: UCLA_BLUE,
+                            pointBorderColor: UCLA_BLUE,
+                            pointRadius: 5,
+                            pointHoverRadius: 8,
+                            pointHoverBackgroundColor: UCLA_GOLD,
+                            fill: true,
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                title: { display: true, text: 'Number of Clusters (k)', color: '#666666' },
+                                ticks: { color: '#666666' },
+                                grid: { color: 'rgba(0, 0, 0, 0.06)' }
+                            },
+                            y: {
+                                title: { display: true, text: 'Inertia (Within-cluster SS)', color: '#666666' },
+                                ticks: { color: '#666666' },
+                                grid: { color: 'rgba(0, 0, 0, 0.06)' }
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(10, 10, 10, 0.95)',
+                                borderColor: COLORS.cardBorder,
+                                borderWidth: 1
+                            }
+                        }
+                    },
+                    plugins: [verticalLinePlugin]
+                });
+
+                return () => {
+                    if (chartInstance.current) {
+                        chartInstance.current.destroy();
+                    }
+                };
+            }, [chartData, optimal]);
+
+            return (
+                <div className="glass-card-solid rounded-2xl p-6">
+                    <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: COLORS.lightBlue }}>
+                        <span className="text-xl">📐</span> Elbow Method Analysis
+                    </h3>
+                    <div className="h-64">
+                        <canvas ref={chartRef}></canvas>
+                    </div>
+                    <div className="mt-3 text-center">
+                        <span className="px-4 py-2 rounded-full text-sm" style={{ backgroundColor: 'rgba(255, 209, 0, 0.2)', color: COLORS.accent }}>
+                            Optimal k = {optimal} (elbow point)
+                        </span>
+                    </div>
+                </div>
+            );
+        };
+
+        // Silhouette Plot
+        const SilhouettePlot = ({ data }) => {
+            const chartRef = useRef(null);
+            const chartInstance = useRef(null);
+
+            const chartData = data || [
+                { k: 2, score: 0.42 },
+                { k: 3, score: 0.48 },
+                { k: 4, score: 0.52 },
+                { k: 5, score: 0.58 },
+                { k: 6, score: 0.55 },
+                { k: 7, score: 0.51 },
+                { k: 8, score: 0.47 },
+                { k: 9, score: 0.44 },
+                { k: 10, score: 0.41 }
+            ];
+
+            const maxScore = Math.max(...chartData.map(d => d.score));
+
+            useEffect(() => {
+                if (!chartRef.current) return;
+
+                if (chartInstance.current) {
+                    chartInstance.current.destroy();
+                }
+
+                const ctx = chartRef.current.getContext('2d');
+
+                chartInstance.current = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: chartData.map(d => d.k),
+                        datasets: [{
+                            label: 'Silhouette Score',
+                            data: chartData.map(d => d.score),
+                            backgroundColor: chartData.map(d => d.score === maxScore ? UCLA_GOLD : UCLA_BLUE + '99'),
+                            borderColor: chartData.map(d => d.score === maxScore ? UCLA_GOLD : UCLA_BLUE),
+                            borderWidth: 1,
+                            borderRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                title: { display: true, text: 'Number of Clusters (k)', color: '#666666' },
+                                ticks: { color: '#666666' },
+                                grid: { color: 'rgba(0, 0, 0, 0.06)' }
+                            },
+                            y: {
+                                min: 0,
+                                max: 1,
+                                title: { display: true, text: 'Silhouette Score', color: '#666666' },
+                                ticks: { color: '#666666' },
+                                grid: { color: 'rgba(0, 0, 0, 0.06)' }
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(10, 10, 10, 0.95)',
+                                borderColor: COLORS.cardBorder,
+                                borderWidth: 1,
+                                callbacks: {
+                                    label: (ctx) => `Score: ${ctx.parsed.y.toFixed(3)}`
+                                }
+                            }
+                        }
+                    }
+                });
+
+                return () => {
+                    if (chartInstance.current) {
+                        chartInstance.current.destroy();
+                    }
+                };
+            }, [chartData]);
+
+            return (
+                <div className="glass-card-solid rounded-2xl p-6">
+                    <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: COLORS.lightBlue }}>
+                        <span className="text-xl">📊</span> Silhouette Score Analysis
+                    </h3>
+                    <div className="h-64">
+                        <canvas ref={chartRef}></canvas>
+                    </div>
+                    <div className="mt-3 text-center">
+                        <span className="px-4 py-2 rounded-full text-sm" style={{ backgroundColor: 'rgba(39, 116, 174, 0.2)', color: COLORS.lightBlue }}>
+                            Higher score = Better cluster separation
+                        </span>
+                    </div>
+                </div>
+            );
+        };
+
+        // Cluster Profiles Radar Chart
+        const ClusterProfiles = ({ k }) => {
+            const chartRef = useRef(null);
+            const chartInstance = useRef(null);
+            const genres = ['Action', 'Comedy', 'Drama', 'Horror', 'Romance', 'Sci-Fi'];
+
+            const generateClusterData = () => {
+                const data = genres.map(genre => {
+                    const point = { genre };
+                    for (let i = 0; i < k; i++) {
+                        point[`cluster${i}`] = (2 + Math.random() * 3).toFixed(2);
+                    }
+                    return point;
+                });
+                return data;
+            };
+
+            const [data] = useState(generateClusterData);
+
+            useEffect(() => {
+                if (!chartRef.current) return;
+
+                if (chartInstance.current) {
+                    chartInstance.current.destroy();
+                }
+
+                const ctx = chartRef.current.getContext('2d');
+
+                const datasets = Array.from({ length: k }, (_, i) => ({
+                    label: `Cluster ${i + 1}`,
+                    data: data.map(d => parseFloat(d[`cluster${i}`])),
+                    backgroundColor: CLUSTER_COLORS[i] + '33',
+                    borderColor: CLUSTER_COLORS[i],
+                    borderWidth: 2,
+                    pointBackgroundColor: CLUSTER_COLORS[i],
+                    pointBorderColor: '#fff',
+                    pointRadius: 4
+                }));
+
+                chartInstance.current = new Chart(ctx, {
+                    type: 'radar',
+                    data: {
+                        labels: genres,
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            r: {
+                                min: 0,
+                                max: 5,
+                                ticks: {
+                                    stepSize: 1,
+                                    color: COLORS.lightBlue,
+                                    backdropColor: 'transparent'
+                                },
+                                grid: { color: 'rgba(0, 0, 0, 0.06)' },
+                                angleLines: { color: 'rgba(39, 116, 174, 0.3)' },
+                                pointLabels: { color: COLORS.lightBlue, font: { size: 11 } }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'bottom',
+                                labels: { color: COLORS.lightBlue }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(10, 10, 10, 0.95)',
+                                borderColor: COLORS.cardBorder,
+                                borderWidth: 1
+                            }
+                        }
+                    }
+                });
+
+                return () => {
+                    if (chartInstance.current) {
+                        chartInstance.current.destroy();
+                    }
+                };
+            }, [data, k]);
+
+            return (
+                <div className="glass-card-solid rounded-2xl p-6">
+                    <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: COLORS.lightBlue }}>
+                        <span className="text-xl">🎭</span> Cluster Viewing Profiles
+                    </h3>
+                    <div className="h-72">
+                        <canvas ref={chartRef}></canvas>
+                    </div>
+                    <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
+                        {genres.map(genre => (
+                            <div key={genre} className="flex items-center gap-2" style={{ color: COLORS.textMuted }}>
+                                <span>{GENRE_ICONS[genre]}</span>
+                                <span>{genre}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        // User Similarity Heatmap
+        const SimilarityHeatmap = ({ metric }) => {
+            const users = ['U1', 'U2', 'U3', 'U4', 'U5', 'U6', 'U7', 'U8'];
+            const [heatmapData, setHeatmapData] = useState([]);
+
+            useEffect(() => {
+                const data = [];
+                users.forEach((u1, i) => {
+                    users.forEach((u2, j) => {
+                        const similarity = i === j ? 1 : (0.3 + Math.random() * 0.6);
+                        data.push({
+                            x: i,
+                            y: j,
+                            user1: u1,
+                            user2: u2,
+                            value: similarity
+                        });
+                    });
+                });
+                setHeatmapData(data);
+            }, [metric]);
+
+            const getColor = (value) => {
+                // Interpolate between dark blue and gold based on value
+                const r = Math.floor(39 + (255 - 39) * value);
+                const g = Math.floor(116 + (209 - 116) * value);
+                const b = Math.floor(174 + (0 - 174) * value);
+                return `rgb(${r}, ${g}, ${b})`;
+            };
+
+            return (
+                <div className="glass-card-solid rounded-2xl p-6">
+                    <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: COLORS.lightBlue }}>
+                        <span className="text-xl">🔥</span> User Similarity Matrix ({metric})
+                    </h3>
+                    <div className="flex justify-center">
+                        <div className="relative">
+                            <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${users.length}, 40px)` }}>
+                                {heatmapData.map((cell, idx) => (
+                                    <div
+                                        key={idx}
+                                        className="heatmap-cell w-10 h-10 rounded flex items-center justify-center text-xs font-medium cursor-pointer"
+                                        style={{
+                                            backgroundColor: getColor(cell.value),
+                                            opacity: 0.3 + cell.value * 0.7
+                                        }}
+                                        title={`${cell.user1}-${cell.user2}: ${cell.value.toFixed(3)}`}
+                                    >
+                                        {cell.value.toFixed(1)}
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="flex justify-between mt-2 text-xs" style={{ color: COLORS.textMuted }}>
+                                {users.map(u => (
+                                    <span key={u} className="w-10 text-center">{u}</span>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                    <div className="mt-4 flex justify-center items-center gap-4">
+                        <span className="text-sm" style={{ color: COLORS.textMuted }}>Low</span>
+                        <div className="w-32 h-3 rounded-full" style={{ background: `linear-gradient(to right, ${COLORS.darkBlue}, ${COLORS.primary}, ${COLORS.accent})` }} />
+                        <span className="text-sm" style={{ color: COLORS.textMuted }}>High</span>
+                    </div>
+                </div>
+            );
+        };
+
+        // MAE vs Neighbors Chart
+        const MAEChart = ({ neighbors }) => {
+            const chartRef = useRef(null);
+            const chartInstance = useRef(null);
+
+            const data = [
+                { n: 5, mae: 0.95 },
+                { n: 10, mae: 0.85 },
+                { n: 20, mae: 0.78 },
+                { n: 30, mae: 0.74 },
+                { n: 40, mae: 0.72 },
+                { n: 50, mae: 0.71 },
+                { n: 60, mae: 0.70 },
+                { n: 70, mae: 0.70 },
+                { n: 80, mae: 0.71 },
+                { n: 90, mae: 0.72 },
+                { n: 100, mae: 0.74 }
+            ];
+
+            useEffect(() => {
+                if (!chartRef.current) return;
+
+                if (chartInstance.current) {
+                    chartInstance.current.destroy();
+                }
+
+                const ctx = chartRef.current.getContext('2d');
+
+                // Plugin for vertical reference line
+                const verticalLinePlugin = {
+                    id: 'verticalLine',
+                    afterDraw: (chart) => {
+                        const ctx = chart.ctx;
+                        const xAxis = chart.scales.x;
+                        const yAxis = chart.scales.y;
+                        const x = xAxis.getPixelForValue(neighbors);
+
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.setLineDash([5, 5]);
+                        ctx.strokeStyle = UCLA_BLUE;
+                        ctx.lineWidth = 2;
+                        ctx.moveTo(x, yAxis.top);
+                        ctx.lineTo(x, yAxis.bottom);
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+                };
+
+                chartInstance.current = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.map(d => d.n),
+                        datasets: [{
+                            label: 'MAE',
+                            data: data.map(d => d.mae),
+                            borderColor: UCLA_GOLD,
+                            backgroundColor: 'rgba(255, 209, 0, 0.2)',
+                            borderWidth: 3,
+                            pointBackgroundColor: UCLA_BLUE,
+                            pointBorderColor: UCLA_BLUE,
+                            pointRadius: 4,
+                            pointHoverRadius: 7,
+                            pointHoverBackgroundColor: UCLA_GOLD,
+                            fill: true,
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                title: { display: true, text: 'Number of Neighbors', color: '#666666' },
+                                ticks: { color: '#666666' },
+                                grid: { color: 'rgba(0, 0, 0, 0.06)' }
+                            },
+                            y: {
+                                min: 0.6,
+                                max: 1,
+                                title: { display: true, text: 'Mean Absolute Error', color: '#666666' },
+                                ticks: { color: '#666666' },
+                                grid: { color: 'rgba(0, 0, 0, 0.06)' }
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(10, 10, 10, 0.95)',
+                                borderColor: COLORS.cardBorder,
+                                borderWidth: 1
+                            }
+                        }
+                    },
+                    plugins: [verticalLinePlugin]
+                });
+
+                return () => {
+                    if (chartInstance.current) {
+                        chartInstance.current.destroy();
+                    }
+                };
+            }, [neighbors]);
+
+            return (
+                <div className="glass-card-solid rounded-2xl p-6">
+                    <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: COLORS.lightBlue }}>
+                        <span className="text-xl">📉</span> MAE vs Number of Neighbors
+                    </h3>
+                    <div className="h-64">
+                        <canvas ref={chartRef}></canvas>
+                    </div>
+                    <div className="mt-3 text-center">
+                        <span className="px-4 py-2 rounded-full text-sm" style={{ backgroundColor: 'rgba(39, 116, 174, 0.2)', color: COLORS.lightBlue }}>
+                            Current: {neighbors} neighbors | Optimal: ~60 neighbors
+                        </span>
+                    </div>
+                </div>
+            );
+        };
+
+        // Actual vs Predicted Scatter
+        const PredictionScatter = () => {
+            const chartRef = useRef(null);
+            const chartInstance = useRef(null);
+
+            const generatePredictions = () => {
+                const data = [];
+                for (let i = 0; i < 100; i++) {
+                    const actual = 1 + Math.random() * 4;
+                    const noise = (Math.random() - 0.5) * 1.2;
+                    data.push({
+                        x: actual,
+                        y: Math.max(1, Math.min(5, actual + noise)),
+                        id: i
+                    });
+                }
+                return data;
+            };
+
+            const [data] = useState(generatePredictions);
+
+            useEffect(() => {
+                if (!chartRef.current) return;
+
+                if (chartInstance.current) {
+                    chartInstance.current.destroy();
+                }
+
+                const ctx = chartRef.current.getContext('2d');
+
+                chartInstance.current = new Chart(ctx, {
+                    type: 'scatter',
+                    data: {
+                        datasets: [
+                            {
+                                label: 'Predictions',
+                                data: data,
+                                backgroundColor: UCLA_BLUE + '99',
+                                borderColor: UCLA_BLUE,
+                                pointRadius: 5,
+                                pointHoverRadius: 7
+                            },
+                            {
+                                label: 'Perfect Fit',
+                                data: [{ x: 1, y: 1 }, { x: 5, y: 5 }],
+                                type: 'line',
+                                borderColor: UCLA_GOLD,
+                                borderWidth: 2,
+                                borderDash: [5, 5],
+                                pointRadius: 0,
+                                fill: false
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                min: 1,
+                                max: 5,
+                                title: { display: true, text: 'Actual Rating', color: '#666666' },
+                                ticks: { color: '#666666' },
+                                grid: { color: 'rgba(0, 0, 0, 0.06)' }
+                            },
+                            y: {
+                                min: 1,
+                                max: 5,
+                                title: { display: true, text: 'Predicted Rating', color: '#666666' },
+                                ticks: { color: '#666666' },
+                                grid: { color: 'rgba(0, 0, 0, 0.06)' }
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(10, 10, 10, 0.95)',
+                                borderColor: COLORS.cardBorder,
+                                borderWidth: 1,
+                                callbacks: {
+                                    label: (ctx) => `Actual: ${ctx.parsed.x.toFixed(2)}, Predicted: ${ctx.parsed.y.toFixed(2)}`
+                                }
+                            }
+                        }
+                    }
+                });
+
+                return () => {
+                    if (chartInstance.current) {
+                        chartInstance.current.destroy();
+                    }
+                };
+            }, [data]);
+
+            return (
+                <div className="glass-card-solid rounded-2xl p-6">
+                    <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: COLORS.lightBlue }}>
+                        <span className="text-xl">🎯</span> Actual vs Predicted Ratings
+                    </h3>
+                    <div className="h-72">
+                        <canvas ref={chartRef}></canvas>
+                    </div>
+                    <div className="mt-3 flex justify-center gap-6">
+                        <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded-full" style={{ backgroundColor: UCLA_BLUE }} />
+                            <span className="text-sm" style={{ color: COLORS.lightBlue }}>Predictions</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-8 h-0.5 border-t-2 border-dashed" style={{ borderColor: UCLA_GOLD }} />
+                            <span className="text-sm" style={{ color: COLORS.lightBlue }}>Perfect Fit</span>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Clustering Tab
+        const ClusteringTab = () => {
+            const [algorithm, setAlgorithm] = useState('kmeans');
+            const [k, setK] = useState(5);
+            const [eps, setEps] = useState(0.5);
+            const [minSamples, setMinSamples] = useState(5);
+
+            return (
+                <div className="space-y-6 animate-fade-in">
+                    {/* Controls */}
+                    <div className="glass-card-solid rounded-2xl p-6">
+                        <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: COLORS.lightBlue }}>
+                            <span className="text-xl">⚙️</span> Clustering Controls
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                            <div>
+                                <label className="block text-sm font-medium mb-2" style={{ color: COLORS.lightBlue }}>Algorithm</label>
+                                <select
+                                    value={algorithm}
+                                    onChange={(e) => setAlgorithm(e.target.value)}
+                                    className="w-full px-4 py-2 rounded-lg text-white focus:outline-none"
+                                    style={{ backgroundColor: 'rgba(39, 116, 174, 0.2)', border: `1px solid ${COLORS.cardBorder}` }}
+                                >
+                                    <option value="kmeans">K-Means</option>
+                                    <option value="hierarchical">Hierarchical</option>
+                                    <option value="dbscan">DBSCAN</option>
+                                </select>
+                            </div>
+
+                            {algorithm === 'kmeans' && (
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium mb-2" style={{ color: COLORS.lightBlue }}>
+                                        Number of Clusters (k): {k}
+                                    </label>
+                                    <input
+                                        type="range"
+                                        min="2"
+                                        max="10"
+                                        value={k}
+                                        onChange={(e) => setK(parseInt(e.target.value))}
+                                        className="w-full slider-blue"
+                                    />
+                                    <div className="flex justify-between text-xs mt-1" style={{ color: COLORS.textMuted }}>
+                                        <span>2</span>
+                                        <span>10</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {algorithm === 'dbscan' && (
+                                <>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-2" style={{ color: COLORS.lightBlue }}>
+                                            Epsilon (eps): {eps.toFixed(2)}
+                                        </label>
+                                        <input
+                                            type="range"
+                                            min="0.1"
+                                            max="2"
+                                            step="0.1"
+                                            value={eps}
+                                            onChange={(e) => setEps(parseFloat(e.target.value))}
+                                            className="w-full slider-blue"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-2" style={{ color: COLORS.lightBlue }}>
+                                            Min Samples: {minSamples}
+                                        </label>
+                                        <input
+                                            type="range"
+                                            min="2"
+                                            max="20"
+                                            value={minSamples}
+                                            onChange={(e) => setMinSamples(parseInt(e.target.value))}
+                                            className="w-full slider-blue"
+                                        />
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Animated K-Means */}
+                    {algorithm === 'kmeans' && <AnimatedKMeans k={k} />}
+
+                    {/* Analysis Charts */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <ElbowPlot optimalK={k} />
+                        <SilhouettePlot />
+                    </div>
+
+                    {/* Cluster Profiles */}
+                    <ClusterProfiles k={k} />
+
+                    {/* Algorithm Info */}
+                    <div className="glass-card-solid rounded-2xl p-6">
+                        <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: COLORS.lightBlue }}>
+                            <span className="text-xl">📖</span> Algorithm Details: {algorithm === 'kmeans' ? 'K-Means' : algorithm === 'hierarchical' ? 'Hierarchical' : 'DBSCAN'}
+                        </h3>
+                        {algorithm === 'kmeans' && (
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="p-4 rounded-xl" style={{ backgroundColor: 'rgba(39, 116, 174, 0.1)' }}>
+                                    <h4 className="font-semibold mb-2" style={{ color: COLORS.primary }}>🎯 Objective</h4>
+                                    <p className="text-sm" style={{ color: COLORS.textMuted }}>Minimize within-cluster sum of squares (inertia)</p>
+                                </div>
+                                <div className="p-4 rounded-xl" style={{ backgroundColor: 'rgba(255, 209, 0, 0.1)' }}>
+                                    <h4 className="font-semibold mb-2" style={{ color: COLORS.accent }}>⚡ Complexity</h4>
+                                    <p className="text-sm" style={{ color: COLORS.textMuted }}>O(n * k * iterations * features)</p>
+                                </div>
+                                <div className="p-4 rounded-xl" style={{ backgroundColor: 'rgba(0, 85, 135, 0.1)' }}>
+                                    <h4 className="font-semibold mb-2" style={{ color: COLORS.lightBlue }}>Best For</h4>
+                                    <p className="text-sm" style={{ color: COLORS.textMuted }}>Spherical clusters, known k, large datasets</p>
+                                </div>
+                            </div>
+                        )}
+                        {algorithm === 'dbscan' && (
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="p-4 rounded-xl" style={{ backgroundColor: 'rgba(39, 116, 174, 0.1)' }}>
+                                    <h4 className="font-semibold mb-2" style={{ color: COLORS.primary }}>🎯 Objective</h4>
+                                    <p className="text-sm" style={{ color: COLORS.textMuted }}>Find dense regions separated by sparse areas</p>
+                                </div>
+                                <div className="p-4 rounded-xl" style={{ backgroundColor: 'rgba(255, 209, 0, 0.1)' }}>
+                                    <h4 className="font-semibold mb-2" style={{ color: COLORS.accent }}>⚡ Params</h4>
+                                    <p className="text-sm" style={{ color: COLORS.textMuted }}>eps={eps.toFixed(2)}, min_samples={minSamples}</p>
+                                </div>
+                                <div className="p-4 rounded-xl" style={{ backgroundColor: 'rgba(0, 85, 135, 0.1)' }}>
+                                    <h4 className="font-semibold mb-2" style={{ color: COLORS.lightBlue }}>Best For</h4>
+                                    <p className="text-sm" style={{ color: COLORS.textMuted }}>Arbitrary shapes, noise detection, unknown k</p>
+                                </div>
+                            </div>
+                        )}
+                        {algorithm === 'hierarchical' && (
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="p-4 rounded-xl" style={{ backgroundColor: 'rgba(39, 116, 174, 0.1)' }}>
+                                    <h4 className="font-semibold mb-2" style={{ color: COLORS.primary }}>🎯 Objective</h4>
+                                    <p className="text-sm" style={{ color: COLORS.textMuted }}>Build hierarchy of clusters via linkage</p>
+                                </div>
+                                <div className="p-4 rounded-xl" style={{ backgroundColor: 'rgba(255, 209, 0, 0.1)' }}>
+                                    <h4 className="font-semibold mb-2" style={{ color: COLORS.accent }}>⚡ Complexity</h4>
+                                    <p className="text-sm" style={{ color: COLORS.textMuted }}>O(n^2 log n) time, O(n^2) space</p>
+                                </div>
+                                <div className="p-4 rounded-xl" style={{ backgroundColor: 'rgba(0, 85, 135, 0.1)' }}>
+                                    <h4 className="font-semibold mb-2" style={{ color: COLORS.lightBlue }}>Best For</h4>
+                                    <p className="text-sm" style={{ color: COLORS.textMuted }}>Dendrogram analysis, smaller datasets</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // Collaborative Filtering Tab
+        const CollaborativeFilteringTab = () => {
+            const [neighbors, setNeighbors] = useState(50);
+            const [metric, setMetric] = useState('Cosine');
+
+            return (
+                <div className="space-y-6 animate-fade-in">
+                    {/* Controls */}
+                    <div className="glass-card-solid rounded-2xl p-6">
+                        <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: COLORS.lightBlue }}>
+                            <span className="text-xl">🤝</span> Collaborative Filtering Controls
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium mb-2" style={{ color: COLORS.lightBlue }}>
+                                    Number of Neighbors: {neighbors}
+                                </label>
+                                <input
+                                    type="range"
+                                    min="5"
+                                    max="100"
+                                    value={neighbors}
+                                    onChange={(e) => setNeighbors(parseInt(e.target.value))}
+                                    className="w-full slider-blue"
+                                />
+                                <div className="flex justify-between text-xs mt-1" style={{ color: COLORS.textMuted }}>
+                                    <span>5</span>
+                                    <span>100</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-2" style={{ color: COLORS.lightBlue }}>Similarity Metric</label>
+                                <select
+                                    value={metric}
+                                    onChange={(e) => setMetric(e.target.value)}
+                                    className="w-full px-4 py-2 rounded-lg text-white focus:outline-none"
+                                    style={{ backgroundColor: 'rgba(39, 116, 174, 0.2)', border: `1px solid ${COLORS.cardBorder}` }}
+                                >
+                                    <option value="Cosine">Cosine Similarity</option>
+                                    <option value="Pearson">Pearson Correlation</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Similarity Heatmap */}
+                    <SimilarityHeatmap metric={metric} />
+
+                    {/* MAE and Prediction Charts */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <MAEChart neighbors={neighbors} />
+                        <PredictionScatter />
+                    </div>
+
+                    {/* CF Explanation */}
+                    <div className="glass-card-solid rounded-2xl p-6">
+                        <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: COLORS.lightBlue }}>
+                            <span className="text-xl">💡</span> How Collaborative Filtering Works
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div className="p-4 rounded-xl text-center" style={{ backgroundColor: 'rgba(39, 116, 174, 0.1)' }}>
+                                <div className="text-3xl mb-2">👥</div>
+                                <h4 className="font-semibold mb-1" style={{ color: COLORS.primary }}>Find Similar Users</h4>
+                                <p className="text-xs" style={{ color: COLORS.textMuted }}>Calculate similarity between user rating vectors</p>
+                            </div>
+                            <div className="p-4 rounded-xl text-center" style={{ backgroundColor: 'rgba(255, 209, 0, 0.1)' }}>
+                                <div className="text-3xl mb-2">📊</div>
+                                <h4 className="font-semibold mb-1" style={{ color: COLORS.accent }}>Select Neighbors</h4>
+                                <p className="text-xs" style={{ color: COLORS.textMuted }}>Pick top-k most similar users</p>
+                            </div>
+                            <div className="p-4 rounded-xl text-center" style={{ backgroundColor: 'rgba(0, 85, 135, 0.1)' }}>
+                                <div className="text-3xl mb-2">⚖️</div>
+                                <h4 className="font-semibold mb-1" style={{ color: COLORS.lightBlue }}>Weight Ratings</h4>
+                                <p className="text-xs" style={{ color: COLORS.textMuted }}>More similar = higher weight</p>
+                            </div>
+                            <div className="p-4 rounded-xl text-center" style={{ backgroundColor: 'rgba(139, 184, 232, 0.1)' }}>
+                                <div className="text-3xl mb-2">🎬</div>
+                                <h4 className="font-semibold mb-1" style={{ color: COLORS.text }}>Predict Rating</h4>
+                                <p className="text-xs" style={{ color: COLORS.textMuted }}>Weighted average of neighbor ratings</p>
+                            </div>
+                        </div>
+
+                        <div className="mt-6 p-4 rounded-xl" style={{ background: `linear-gradient(135deg, rgba(39, 116, 174, 0.1), rgba(255, 209, 0, 0.1))` }}>
+                            <h4 className="font-semibold mb-2" style={{ color: COLORS.primary }}>📐 {metric} Similarity Formula</h4>
+                            {metric === 'Cosine' ? (
+                                <p className="font-mono text-sm" style={{ color: COLORS.text }}>
+                                    sim(u, v) = (u . v) / (||u|| x ||v||) = Sum(u_i x v_i) / (sqrt(Sum(u_i^2)) x sqrt(Sum(v_i^2)))
+                                </p>
+                            ) : (
+                                <p className="font-mono text-sm" style={{ color: COLORS.text }}>
+                                    sim(u, v) = Sum((u_i - u_bar)(v_i - v_bar)) / (sqrt(Sum((u_i - u_bar)^2)) x sqrt(Sum((v_i - v_bar)^2)))
+                                </p>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Recommendation Example */}
+                    <div className="glass-card-solid rounded-2xl p-6">
+                        <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: COLORS.lightBlue }}>
+                            <span className="text-xl">🎬</span> Sample Recommendations for User
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                            {[
+                                { title: 'Inception', predicted: 4.8, genre: 'Sci-Fi' },
+                                { title: 'The Dark Knight', predicted: 4.7, genre: 'Action' },
+                                { title: 'Pulp Fiction', predicted: 4.5, genre: 'Drama' },
+                                { title: 'Interstellar', predicted: 4.4, genre: 'Sci-Fi' },
+                                { title: 'The Matrix', predicted: 4.3, genre: 'Action' }
+                            ].map((movie, idx) => (
+                                <div key={idx} className="p-4 rounded-xl transition-all hover:scale-105" style={{
+                                    background: `linear-gradient(135deg, rgba(39, 116, 174, 0.2), rgba(0, 85, 135, 0.2))`,
+                                    border: `1px solid ${COLORS.cardBorder}`
+                                }}>
+                                    <div className="text-2xl mb-2">{GENRE_ICONS[movie.genre]}</div>
+                                    <h4 className="font-semibold text-white text-sm mb-1">{movie.title}</h4>
+                                    <p className="text-xs mb-2" style={{ color: COLORS.textMuted }}>{movie.genre}</p>
+                                    <div className="flex items-center gap-1">
+                                        <span style={{ color: COLORS.accent }}>★</span>
+                                        <span className="text-sm font-medium" style={{ color: COLORS.accent }}>{movie.predicted.toFixed(1)}</span>
+                                        <span className="text-xs" style={{ color: COLORS.textMuted }}>predicted</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Main App
+        const App = () => {
+            return (
+                <div className="min-h-screen">
+                    <Header />
+
+                    <main className="max-w-7xl mx-auto px-6 py-8">
+                        {/* Title */}
+                        <div className="text-center mb-8">
+                            <h2 className="text-4xl font-bold text-white mb-2">
+                                Assignment 3
+                            </h2>
+                            <p className="text-lg" style={{ color: COLORS.textMuted }}>
+                                Clustering & Collaborative Filtering for Netflix Movie Recommendations
+                            </p>
+                        </div>
+
+                        <div className="mt-6">
+                            <ClusteringTab />
+                            <div className="mt-12">
+                                <CollaborativeFilteringTab />
+                            </div>
+                        </div>
+                    </main>
+
+                    {/* Footer */}
+                    <div style={{ textAlign: 'center', marginTop: '40px', paddingTop: '20px' }}>
+                        <p style={{ color: '#888', fontSize: '0.75rem' }}>
+                            MGMT298D: Science and Strategy of AI | UCLA Anderson School of Management
+                        </p>
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>

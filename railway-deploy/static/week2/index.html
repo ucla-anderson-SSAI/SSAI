@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Week 2: Tree Models - Range Rover Pricing | UCLA Anderson</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #ffffff;
+            min-height: 100vh;
+            color: #1a1a1a;
+        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+        ::-webkit-scrollbar-thumb { background: #2774AE; border-radius: 4px; }
+
+        /* Header */
+        .header {
+            background: #ffffff;
+            border-bottom: 2px solid #FFD100;
+            padding: 20px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header-left {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .course-badge {
+            color: #FFD100;
+            font-weight: 600;
+            font-size: 0.65rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+        .header-title h1 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #005587;
+            letter-spacing: -0.01em;
+        }
+        .header-title p {
+            color: #666666;
+            font-size: 0.85rem;
+            margin-top: 4px;
+        }
+        .header-right {
+            text-align: right;
+        }
+        .ucla-small {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: #666666;
+            margin-bottom: 2px;
+        }
+        .ucla-anderson {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #2774AE;
+        }
+
+        /* Controls Section - Light */
+        .controls-section {
+            background: #ffffff;
+            padding: 16px 28px;
+            border-bottom: 1px solid rgba(0,0,0,0.08);
+        }
+        .tab-nav {
+            display: flex;
+            gap: 8px;
+            background: #ffffff;
+            padding: 6px;
+            border-radius: 10px;
+            width: fit-content;
+            border: 1px solid rgba(0,0,0,0.08);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .tab-btn {
+            padding: 10px 24px;
+            background: transparent;
+            border: none;
+            color: #666;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tab-btn:hover {
+            color: #1a1a1a;
+            background: rgba(0,0,0,0.04);
+        }
+        .tab-btn.active {
+            background: #2774AE;
+            color: #ffffff;
+        }
+
+        /* Results Section - Light */
+        .results-section {
+            background: #ffffff;
+            padding: 20px 28px;
+            min-height: calc(100vh - 180px);
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Control Panel - Light */
+        .control-panel {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 20px;
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+            border: 1px solid rgba(0,0,0,0.08);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .panel-title {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: #2774AE;
+        }
+        .control-group { margin-bottom: 16px; }
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 0.8rem;
+            color: #1a1a1a;
+        }
+        .control-value {
+            background: rgba(39, 116, 174, 0.1);
+            padding: 3px 8px;
+            border-radius: 4px;
+            color: #2774AE;
+            font-size: 0.75rem;
+            font-family: monospace;
+        }
+        .select-input {
+            width: 100%;
+            padding: 10px 14px;
+            background: #ffffff;
+            border: 1px solid rgba(0,0,0,0.15);
+            border-radius: 8px;
+            color: #1a1a1a;
+            font-size: 0.85rem;
+        }
+        .select-input option { background: #ffffff; }
+        .slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #e0e0e0;
+            -webkit-appearance: none;
+        }
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #2774AE, #005587);
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(39, 116, 174, 0.4);
+        }
+        .train-btn {
+            width: 100%;
+            padding: 14px 20px;
+            background: linear-gradient(135deg, #2774AE, #005587);
+            border: none;
+            border-radius: 10px;
+            color: #ffffff;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 16px;
+            box-shadow: 0 4px 12px rgba(39, 116, 174, 0.3);
+            transition: all 0.2s;
+        }
+        .train-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(39, 116, 174, 0.4);
+        }
+        .train-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Metrics in Control Panel */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(0,0,0,0.08);
+        }
+        .metric-card {
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            border: 1px solid rgba(0,0,0,0.06);
+        }
+        .metric-value {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #2774AE;
+            font-family: monospace;
+        }
+        .metric-value.positive { color: #22c55e; }
+        .metric-value.negative { color: #ef4444; }
+        .metric-label {
+            font-size: 0.65rem;
+            color: #666;
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+
+        /* Charts Area - Light cards */
+        .viz-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+        .chart-card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(0,0,0,0.08);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .chart-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #1a1a1a;
+        }
+        .chart-container { height: 220px; position: relative; }
+
+        /* Instructions - Light cards */
+        .instructions-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .instruction-card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid rgba(0,0,0,0.08);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .instruction-card.full-width { grid-column: span 2; }
+        .instruction-card h3 {
+            font-size: 1.1rem;
+            color: #2774AE;
+            margin-bottom: 14px;
+        }
+        .instruction-card p {
+            color: #444;
+            line-height: 1.7;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+        .instruction-card code {
+            background: rgba(39, 116, 174, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            color: #2774AE;
+        }
+        .highlight-box {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-left: 3px solid #2774AE;
+            border-radius: 8px;
+            padding: 14px;
+            margin: 14px 0;
+        }
+        .highlight-box h4 {
+            color: #2774AE;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+        .highlight-box p {
+            color: #555;
+            margin-bottom: 6px;
+        }
+
+        /* Model Summary Card (special styling) */
+        .model-summary {
+            padding: 16px;
+            color: #444;
+            font-size: 0.85rem;
+            line-height: 1.8;
+        }
+        .model-summary p {
+            margin-bottom: 6px;
+        }
+        .model-summary strong {
+            color: #1a1a1a;
+        }
+        .tip-box {
+            margin-top: 12px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 3px solid #FFD100;
+            color: #555;
+        }
+        .tip-box strong {
+            color: #1a1a1a;
+        }
+
+        @media (max-width: 1100px) {
+            .main-layout { grid-template-columns: 1fr; }
+            .charts-grid { grid-template-columns: 1fr; }
+            .instructions-container { grid-template-columns: 1fr; }
+            .instruction-card.full-width { grid-column: span 1; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo } = React;
+
+        const API_BASE = "/api/week2";
+
+        const colors = {
+            primary: '#2774AE',
+            accent: '#FFD100',
+            darkBlue: '#005587',
+            lightBlue: '#8BB8E8',
+            positive: '#22c55e',
+            negative: '#ef4444',
+            darkBg: '#005587',
+            darkCard: '#1a1d24',
+            darkText: '#e5e5e5',
+            darkMuted: '#888',
+            lightBg: '#f8f9fa',
+            lightCard: '#ffffff'
+        };
+
+        // Mock data generator
+        const generateMockData = (params) => {
+            const { model_type, max_depth, n_estimators, learning_rate } = params;
+            const baseMAE = 4000 - (max_depth * 180) + Math.random() * 400;
+            const overfitFactor = max_depth > 7 ? (max_depth - 7) * 250 : 0;
+            const ensembleBonus = model_type !== 'decision_tree' ? 500 : 0;
+            const xgbBonus = model_type === 'xgboost' ? (learning_rate > 0.05 && learning_rate < 0.2 ? 300 : -100) : 0;
+            const trainMAE = Math.max(400, baseMAE - 1200 - overfitFactor - ensembleBonus - xgbBonus);
+            const testMAE = Math.max(1200, baseMAE + overfitFactor - ensembleBonus - xgbBonus);
+
+            return {
+                metrics: {
+                    mae: testMAE,
+                    rmse: testMAE * 1.25,
+                    r2: Math.min(0.96, Math.max(0.4, 0.55 + max_depth * 0.035 - overfitFactor * 0.008)),
+                    train_mae: trainMAE,
+                    test_mae: testMAE,
+                    n_trees: model_type === 'decision_tree' ? 1 : n_estimators,
+                    training_time: (max_depth * 0.08 + n_estimators * 0.012 + Math.random() * 0.5).toFixed(2)
+                },
+                feature_importance: [
+                    { feature: 'year', importance: 0.32 + Math.random() * 0.08 },
+                    { feature: 'mileage', importance: 0.28 + Math.random() * 0.07 },
+                    { feature: 'engine_size', importance: 0.15 + Math.random() * 0.05 },
+                    { feature: 'trim_level', importance: 0.12 + Math.random() * 0.04 },
+                    { feature: 'fuel_type', importance: 0.08 + Math.random() * 0.03 },
+                    { feature: 'transmission', importance: 0.05 + Math.random() * 0.02 }
+                ].sort((a, b) => b.importance - a.importance),
+                predictions: Array.from({ length: 60 }, (_, i) => {
+                    const actual = 28000 + Math.random() * 55000;
+                    const error = (Math.random() - 0.5) * testMAE * 1.8;
+                    return { actual, predicted: actual + error };
+                }),
+                depth_analysis: Array.from({ length: 15 }, (_, i) => {
+                    const d = i + 1;
+                    const trainErr = 4500 - d * 280 + Math.random() * 150;
+                    const testErr = 4500 - d * 200 + (d > 6 ? (d - 6) * 180 : 0) + Math.random() * 200;
+                    return { depth: d, train_error: Math.max(250, trainErr), test_error: Math.max(900, testErr) };
+                })
+            };
+        };
+
+        // Chart.js Bar Component
+        function BarChart({ data, title, horizontal = false }) {
+            const canvasRef = useRef(null);
+            const chartRef = useRef(null);
+
+            useEffect(() => {
+                if (!canvasRef.current || !data.length) return;
+                if (chartRef.current) chartRef.current.destroy();
+
+                const ctx = canvasRef.current.getContext('2d');
+                chartRef.current = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: data.map(d => d.feature || d.name),
+                        datasets: [{
+                            label: title,
+                            data: data.map(d => d.importance || d.value),
+                            backgroundColor: data.map((_, i) =>
+                                i === 0 ? colors.primary : i === 1 ? colors.darkBlue : i === 2 ? colors.lightBlue : '#ccc'
+                            ),
+                            borderRadius: 4,
+                        }]
+                    },
+                    options: {
+                        indexAxis: horizontal ? 'y' : 'x',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: {
+                                grid: { color: 'rgba(0,0,0,0.06)' },
+                                ticks: { color: '#666', font: { size: 10 } }
+                            },
+                            y: {
+                                grid: { color: 'rgba(0,0,0,0.06)' },
+                                ticks: { color: '#666', font: { size: 10 } }
+                            }
+                        }
+                    }
+                });
+
+                return () => { if (chartRef.current) chartRef.current.destroy(); };
+            }, [data, title, horizontal]);
+
+            return <canvas ref={canvasRef} />;
+        }
+
+        // Chart.js Scatter Component
+        function ScatterChart({ data, title, xLabel, yLabel }) {
+            const canvasRef = useRef(null);
+            const chartRef = useRef(null);
+
+            useEffect(() => {
+                if (!canvasRef.current || !data.length) return;
+                if (chartRef.current) chartRef.current.destroy();
+
+                const ctx = canvasRef.current.getContext('2d');
+                chartRef.current = new Chart(ctx, {
+                    type: 'scatter',
+                    data: {
+                        datasets: [{
+                            label: title,
+                            data: data.map(d => ({ x: d.actual, y: d.predicted })),
+                            backgroundColor: colors.primary,
+                            pointRadius: 4,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: {
+                                title: { display: true, text: xLabel, color: '#666' },
+                                grid: { color: 'rgba(0,0,0,0.06)' },
+                                ticks: { color: '#666', callback: v => '$' + (v/1000).toFixed(0) + 'K' }
+                            },
+                            y: {
+                                title: { display: true, text: yLabel, color: '#666' },
+                                grid: { color: 'rgba(0,0,0,0.06)' },
+                                ticks: { color: '#666', callback: v => '$' + (v/1000).toFixed(0) + 'K' }
+                            }
+                        }
+                    }
+                });
+
+                return () => { if (chartRef.current) chartRef.current.destroy(); };
+            }, [data, title, xLabel, yLabel]);
+
+            return <canvas ref={canvasRef} />;
+        }
+
+        // Chart.js Line Component for Overfitting Analysis
+        function LineChart({ data, currentDepth }) {
+            const canvasRef = useRef(null);
+            const chartRef = useRef(null);
+
+            useEffect(() => {
+                if (!canvasRef.current || !data.length) return;
+                if (chartRef.current) chartRef.current.destroy();
+
+                const ctx = canvasRef.current.getContext('2d');
+                chartRef.current = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.map(d => d.depth),
+                        datasets: [
+                            {
+                                label: 'Train Error',
+                                data: data.map(d => d.train_error),
+                                borderColor: colors.positive,
+                                backgroundColor: 'transparent',
+                                borderWidth: 2,
+                                pointRadius: 2,
+                                tension: 0.3
+                            },
+                            {
+                                label: 'Test Error',
+                                data: data.map(d => d.test_error),
+                                borderColor: colors.negative,
+                                backgroundColor: 'transparent',
+                                borderWidth: 2,
+                                pointRadius: 2,
+                                tension: 0.3
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: { color: '#666', font: { size: 10 } }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: { display: true, text: 'Max Depth', color: '#666' },
+                                grid: { color: 'rgba(0,0,0,0.06)' },
+                                ticks: { color: '#666' }
+                            },
+                            y: {
+                                grid: { color: 'rgba(0,0,0,0.06)' },
+                                ticks: { color: '#666', callback: v => '$' + (v/1000).toFixed(0) + 'K' }
+                            }
+                        }
+                    }
+                });
+
+                return () => { if (chartRef.current) chartRef.current.destroy(); };
+            }, [data, currentDepth]);
+
+            return <canvas ref={canvasRef} />;
+        }
+
+        // Main App Component
+        const App = () => {
+            const [isTraining, setIsTraining] = useState(false);
+            const [params, setParams] = useState({
+                model_type: 'decision_tree',
+                max_depth: 4,
+                n_estimators: 100,
+                learning_rate: 0.1,
+                min_samples_split: 5
+            });
+            const [results, setResults] = useState(null);
+
+            useEffect(() => {
+                setResults(generateMockData(params));
+            }, []);
+
+            const handleTrain = async () => {
+                setIsTraining(true);
+                await new Promise(resolve => setTimeout(resolve, 800));
+                setResults(generateMockData(params));
+                setIsTraining(false);
+            };
+
+            const handleParamChange = (key, value) => {
+                setParams(prev => ({ ...prev, [key]: value }));
+            };
+
+            const showEnsembleParams = params.model_type !== 'decision_tree';
+            const showLearningRate = params.model_type === 'xgboost';
+
+            const getOverfitStatus = () => {
+                if (!results) return null;
+                const ratio = results.metrics.test_mae / results.metrics.train_mae;
+                if (ratio < 1.3) return { status: 'good', text: 'Good fit', color: colors.positive };
+                if (ratio < 2.0) return { status: 'warning', text: 'Slight overfit', color: colors.accent };
+                return { status: 'bad', text: 'Overfitting!', color: colors.negative };
+            };
+
+            return (
+                <div>
+                    {/* Header */}
+                    <header style={{
+                        background: '#2774AE',
+                        borderBottom: '2px solid #FFD100',
+                        padding: '1rem 2rem',
+                        position: 'sticky',
+                        top: 0,
+                        zIndex: 100
+                    }}>
+                        <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <p style={{ fontSize: '0.65rem', color: '#FFD100', fontWeight: 400, marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
+                                    MGMT298D: Science and Strategy of AI
+                                </p>
+                                <h1 style={{ fontSize: '1.4rem', fontWeight: 600, color: '#f5f5f5', letterSpacing: '0' }}>
+                                    Week 2: Tree Models
+                                </h1>
+                                <p style={{ fontSize: '0.85rem', color: '#b0b0b0', marginTop: '0.25rem' }}>
+                                    Decision Trees, Random Forests & XGBoost for Range Rover Pricing
+                                </p>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                                <span style={{ fontSize: '1rem', fontWeight: 500, color: '#f5f5f5' }}>
+                                    UCLA Anderson
+                                </span>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* Light Results Section */}
+                    <div className="results-section">
+                            <div className="main-layout">
+                                <aside className="control-panel">
+                                    <h2 className="panel-title">Model Configuration</h2>
+
+                                    <div className="control-group">
+                                        <label className="control-label"><span>Model Type</span></label>
+                                        <select className="select-input" value={params.model_type} onChange={(e) => handleParamChange('model_type', e.target.value)}>
+                                            <option value="decision_tree">Decision Tree</option>
+                                            <option value="random_forest">Random Forest</option>
+                                            <option value="xgboost">XGBoost</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="control-group">
+                                        <label className="control-label">
+                                            <span>Max Depth</span>
+                                            <span className="control-value">{params.max_depth}</span>
+                                        </label>
+                                        <input type="range" className="slider" min="1" max="15" value={params.max_depth} onChange={(e) => handleParamChange('max_depth', parseInt(e.target.value))} />
+                                    </div>
+
+                                    {showEnsembleParams && (
+                                        <div className="control-group">
+                                            <label className="control-label">
+                                                <span>Number of Trees</span>
+                                                <span className="control-value">{params.n_estimators}</span>
+                                            </label>
+                                            <input type="range" className="slider" min="10" max="200" step="10" value={params.n_estimators} onChange={(e) => handleParamChange('n_estimators', parseInt(e.target.value))} />
+                                        </div>
+                                    )}
+
+                                    {showLearningRate && (
+                                        <div className="control-group">
+                                            <label className="control-label">
+                                                <span>Learning Rate</span>
+                                                <span className="control-value">{params.learning_rate.toFixed(2)}</span>
+                                            </label>
+                                            <input type="range" className="slider" min="0.01" max="0.5" step="0.01" value={params.learning_rate} onChange={(e) => handleParamChange('learning_rate', parseFloat(e.target.value))} />
+                                        </div>
+                                    )}
+
+                                    <button className="train-btn" onClick={handleTrain} disabled={isTraining}>
+                                        {isTraining ? 'Training...' : 'Train Model'}
+                                    </button>
+
+                                    {results && (
+                                        <div className="metrics-grid">
+                                            <div className="metric-card">
+                                                <div className="metric-value">${(results.metrics.mae / 1000).toFixed(1)}K</div>
+                                                <div className="metric-label">MAE</div>
+                                            </div>
+                                            <div className="metric-card">
+                                                <div className="metric-value" style={{ color: colors.positive }}>{(results.metrics.r2 * 100).toFixed(1)}%</div>
+                                                <div className="metric-label">R-Squared</div>
+                                            </div>
+                                            <div className="metric-card">
+                                                <div className="metric-value">${(results.metrics.rmse / 1000).toFixed(1)}K</div>
+                                                <div className="metric-label">RMSE</div>
+                                            </div>
+                                            <div className="metric-card">
+                                                <div className="metric-value" style={{ color: colors.lightBlue }}>{results.metrics.n_trees}</div>
+                                                <div className="metric-label">Trees</div>
+                                            </div>
+                                            <div className="metric-card" style={{ gridColumn: 'span 2' }}>
+                                                <div className="metric-value" style={{ color: getOverfitStatus()?.color }}>
+                                                    {getOverfitStatus()?.text}
+                                                </div>
+                                                <div className="metric-label">Fit Status</div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </aside>
+
+                                <main className="viz-area">
+                                    <div className="charts-grid">
+                                        <div className="chart-card">
+                                            <h4 className="chart-title">Feature Importance</h4>
+                                            <div className="chart-container">
+                                                <BarChart data={results?.feature_importance || []} title="Importance" horizontal={true} />
+                                            </div>
+                                        </div>
+
+                                        <div className="chart-card">
+                                            <h4 className="chart-title">Actual vs Predicted Prices</h4>
+                                            <div className="chart-container">
+                                                <ScatterChart data={results?.predictions || []} title="Predictions" xLabel="Actual Price" yLabel="Predicted Price" />
+                                            </div>
+                                        </div>
+
+                                        <div className="chart-card">
+                                            <h4 className="chart-title">Overfitting Analysis (Error vs Depth)</h4>
+                                            <div className="chart-container">
+                                                <LineChart data={results?.depth_analysis || []} currentDepth={params.max_depth} />
+                                            </div>
+                                        </div>
+
+                                        <div className="chart-card">
+                                            <h4 className="chart-title">Model Summary</h4>
+                                            <div className="model-summary">
+                                                <p><strong>Model:</strong> {params.model_type.replace('_', ' ').toUpperCase()}</p>
+                                                <p><strong>Max Depth:</strong> {params.max_depth}</p>
+                                                {showEnsembleParams && <p><strong>Trees:</strong> {params.n_estimators}</p>}
+                                                {showLearningRate && <p><strong>Learning Rate:</strong> {params.learning_rate}</p>}
+                                                <p><strong>Training Time:</strong> {results?.metrics.training_time}s</p>
+                                                <div className="tip-box">
+                                                    <strong>Tip:</strong> Watch the overfitting chart - when test error rises while train error falls, you're overfitting!
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </main>
+                            </div>
+                    </div>
+                </div>
+
+                {/* Footer */}
+                <p style={{ color: colors.textDim || '#888', fontSize: '0.75rem', marginTop: '20px' }}>
+                    MGMT298D: Science and Strategy of AI | UCLA Anderson School of Management
+                </p>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
