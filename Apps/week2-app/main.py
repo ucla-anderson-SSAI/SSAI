@@ -110,7 +110,9 @@ def load_and_prepare_data():
     # Features and target
     feature_cols = ['year', 'mileage', 'trim_enc', 'state_enc', 'color_enc']
     X = df[feature_cols].values
-    y = df['price'].values
+    # Use sellingprice if it exists, otherwise fall back to price
+    price_col = 'sellingprice' if 'sellingprice' in df.columns else 'price'
+    y = df[price_col].values
 
     return df
 
