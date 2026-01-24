@@ -127,7 +127,7 @@ def get_features_and_target(df):
     available_features = [col for col in feature_cols if col in df.columns]
 
     X = df[available_features]
-    y = df['price']
+    y = df['sellingprice']
 
     return X, y, available_features
 
@@ -203,17 +203,17 @@ async def get_sample_data(n_samples: int = 10):
             "columns": list(df.columns),
             "sample": sample.to_dict(orient="records"),
             "feature_columns": ["year", "mileage", "trim_enc", "state_enc", "color_enc"],
-            "target_column": "price",
+            "target_column": "sellingprice",
             "categorical_mappings": {
                 col: dict(zip(encoders[col].classes_, range(len(encoders[col].classes_))))
                 for col in encoders
             },
             "statistics": {
-                "price": {
-                    "mean": round(df["price"].mean(), 2),
-                    "std": round(df["price"].std(), 2),
-                    "min": round(df["price"].min(), 2),
-                    "max": round(df["price"].max(), 2)
+                "sellingprice": {
+                    "mean": round(df["sellingprice"].mean(), 2),
+                    "std": round(df["sellingprice"].std(), 2),
+                    "min": round(df["sellingprice"].min(), 2),
+                    "max": round(df["sellingprice"].max(), 2)
                 },
                 "year": {
                     "min": int(df["year"].min()),

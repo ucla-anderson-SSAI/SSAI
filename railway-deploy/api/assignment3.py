@@ -84,15 +84,10 @@ class CollaborativeFilteringRequest(BaseModel):
     n_neighbors: int
 
 
-@router.on_event("startup")
-async def startup_event():
-    """Load data on startup"""
-    load_data()
-
-
 @router.get("/")
-async def root():
-    return FileResponse("index.html")
+async def health_check():
+    """Health check endpoint"""
+    return {"status": "healthy", "assignment": 3}
 
 
 @router.get("/health")

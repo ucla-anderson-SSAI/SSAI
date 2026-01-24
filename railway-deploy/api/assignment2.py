@@ -101,14 +101,10 @@ def load_and_prepare_data():
     # Features and target
     feature_cols = ['year', 'mileage', 'trim_enc', 'state_enc', 'color_enc']
     X = df[feature_cols].values
-    y = df['price'].values
+    y = df['sellingprice'].values
 
     return df
 
-# Load data on startup
-@router.on_event("startup")
-async def startup_event():
-    load_and_prepare_data()
 
 class AnalyzeRequest(BaseModel):
     n_estimators: int
@@ -120,6 +116,8 @@ class GridSearchRequest(BaseModel):
 @router.post("/grid_search")
 async def grid_search():
     """Run grid search over learning_rate and n_estimators"""
+    load_and_prepare_data()  # Load data if not already loaded
+
     learning_rates = [0.01, 0.05, 0.1, 0.2, 0.3]
     n_estimators_list = [25, 50, 75, 100, 150, 200]
 
