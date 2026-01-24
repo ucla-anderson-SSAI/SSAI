@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Week 1: Linear Regression | UCLA Anderson MGMT298D</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #ffffff;
+            min-height: 100vh;
+            color: #1a1a1a;
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #ffffff; }
+        ::-webkit-scrollbar-thumb { background: #2774AE; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3a8ac4; }
+
+        input[type="checkbox"] { accent-color: #2774AE; }
+
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23666' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 36px;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 4px;
+            border-radius: 2px;
+            background: #ddd;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #2774AE;
+            cursor: pointer;
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 8px rgba(39, 116, 174, 0.5);
+        }
+
+        input[type="range"]:disabled { opacity: 0.3; cursor: not-allowed; }
+    
+        .header-gold-line {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: #FFD100;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback, useMemo } = React;
+
+        // Theme colors - Hybrid (dark header, light content)
+        const colors = {
+            // UCLA Brand colors (for header only)
+            primary: '#2774AE',
+            primaryLight: '#2774AE',
+            accent: '#FFD100',
+            accentDark: '#e6bc00',
+            darkBlue: '#005587',
+            lightBlue: '#8BB8E8',
+            // Simplified - all same color for body
+            positive: '#1a1a1a',
+            negative: '#1a1a1a',
+            warning: '#1a1a1a',
+            // Content areas - clean white backgrounds
+            cardBg: '#ffffff',
+            cardBorder: 'rgba(0,0,0,0.1)',
+            text: '#1a1a1a',
+            textMuted: '#666666',
+            // Legacy names mapped to simple scheme
+            darkBg: '#ffffff',
+            darkText: '#1a1a1a',
+            darkMuted: '#c0c0c0',
+            lightBg: '#ffffff',
+            lightCard: '#ffffff',
+            lightBorder: 'rgba(0,0,0,0.1)',
+            lightText: '#1a1a1a',
+            lightMuted: '#666666',
+        };
+
+        const API_BASE = "http://localhost:8000";
+
+        // Extended feature set (12 features for meaningful Lasso)
+        const ALL_FEATURES = [
+            'price', 'log_price', 'price_squared',
+            'lag_m1', 'lag_m2', 'lag_m3', 'lag_m6',
+            'ma_3', 'ma_6',
+            'price_change', 'price_change_pct',
+            'price_volatility'
+        ];
+
+        const FEATURE_LABELS = {
+            price: 'Price',
+            log_price: 'Log(Price)',
+            price_squared: 'Price²',
+            lag_m1: 'Lag 1 Month',
+            lag_m2: 'Lag 2 Months',
+            lag_m3: 'Lag 3 Months',
+            lag_m6: 'Lag 6 Months',
+            ma_3: '3-Month MA',
+            ma_6: '6-Month MA',
+            price_change: 'Price Δ',
+            price_change_pct: 'Price Δ%',
+            price_volatility: 'Price Volatility'
+        };
+
+        const FEATURE_DESCRIPTIONS = {
+            price: 'Current price',
+            log_price: 'Natural log of price',
+            price_squared: 'Price squared (non-linear)',
+            lag_m1: 'Sales from 1 month ago',
+            lag_m2: 'Sales from 2 months ago',
+            lag_m3: 'Sales from 3 months ago',
+            lag_m6: 'Sales from 6 months ago',
+            ma_3: '3-month moving average of sales',
+            ma_6: '6-month moving average of sales',
+            price_change: 'Absolute price change',
+            price_change_pct: 'Percentage price change',
+            price_volatility: 'Rolling std dev of price'
+        };
+
+        // Mock data generator with extended features
+        const generateMockData = (numPoints = 80) => {
+            const data = [];
+            for (let i = 0; i < numPoints; i++) {
+                const price = 50 + Math.random() * 100;
+                const lag1 = 100 + Math.random() * 200;
+                const lag2 = 90 + Math.random() * 180;
+                const lag3 = 85 + Math.random() * 170;
+                const lag6 = 80 + Math.random() * 160;
+                const noise = (Math.random() - 0.5) * 40;
+                const priceVolatility = 5 + Math.random() * 15; // Rolling std dev of price
+
+                // True relationship with some features
+                const sales = 300 - 1.5 * price + 0.6 * lag1 + 0.3 * lag2 + 0.1 * lag3 - 0.5 * priceVolatility + noise;
+
+                data.push({
+                    id: i,
+                    price,
+                    log_price: Math.log(price),
+                    price_squared: price * price / 1000,
+                    lag_m1: lag1,
+                    lag_m2: lag2,
+                    lag_m3: lag3,
+                    lag_m6: lag6,
+                    ma_3: (lag1 + lag2 + lag3) / 3,
+                    ma_6: (lag1 + lag2 + lag3 + lag6) / 4 + Math.random() * 20,
+                    price_change: (Math.random() - 0.5) * 20,
+                    price_change_pct: (Math.random() - 0.5) * 0.2,
+                    price_volatility: priceVolatility,
+                    actual_sales: Math.max(0, sales),
+                });
+            }
+            return data;
+        };
+
+        // Compute regression with separate L1/L2 parameters
+        const computeRegression = (data, features, modelType, l1Ratio, l2Ratio, runCV, cvFolds) => {
+            if (!data || data.length === 0 || features.length === 0) {
+                return {
+                    predictions: [],
+                    coefficients: {},
+                    metrics: { mae: 0, rmse: 0, r2: 0, n_train: 0, n_test: 0 },
+                    cvResults: null
+                };
+            }
+
+            const n = data.length;
+            const coefficients = {};
+
+            // Base coefficients (ground truth + noise)
+            const baseCoeffs = {
+                price: -1.4,
+                log_price: -15.0,
+                price_squared: 0.002,
+                lag_m1: 0.55,
+                lag_m2: 0.28,
+                lag_m3: 0.12,
+                lag_m6: 0.05,
+                ma_3: 0.45,
+                ma_6: 0.25,
+                price_change: -0.8,
+                price_change_pct: -25.0,
+                price_volatility: -0.5
+            };
+
+            // Add noise to base coefficients
+            const noisyCoeffs = {};
+            Object.keys(baseCoeffs).forEach(k => {
+                noisyCoeffs[k] = baseCoeffs[k] * (0.85 + Math.random() * 0.3);
+            });
+
+            // Apply regularization effects
+            let cvResults = null;
+            let bestL1 = l1Ratio;
+            let bestL2 = l2Ratio;
+
+            if (runCV && modelType !== 'ols') {
+                // Simulate cross-validation
+                const cvScores = [];
+                const l1Values = modelType === 'ridge' ? [0] : [0.01, 0.1, 0.5, 1.0, 2.0, 5.0];
+                const l2Values = modelType === 'lasso' ? [0] : [0.01, 0.1, 0.5, 1.0, 2.0, 5.0];
+
+                l1Values.forEach(l1 => {
+                    l2Values.forEach(l2 => {
+                        // Simulate CV score (lower is better)
+                        const baseScore = 15 + Math.random() * 5;
+                        const penaltyEffect = Math.abs(l1 - 0.5) * 2 + Math.abs(l2 - 0.5) * 2;
+                        const score = baseScore + penaltyEffect + (features.length > 8 ? -2 : 0);
+                        cvScores.push({ l1, l2, score: score.toFixed(2), std: (Math.random() * 2).toFixed(2) });
+                    });
+                });
+
+                // Find best
+                const best = cvScores.reduce((a, b) => parseFloat(a.score) < parseFloat(b.score) ? a : b);
+                bestL1 = best.l1;
+                bestL2 = best.l2;
+                cvResults = { scores: cvScores.slice(0, 6), bestL1, bestL2, folds: cvFolds };
+            }
+
+            // Apply regularization
+            features.forEach(f => {
+                let coeff = noisyCoeffs[f] || 0;
+
+                if (modelType === 'lasso' || modelType === 'elasticnet') {
+                    // L1: can shrink to zero
+                    const l1Effect = bestL1 * 0.15;
+                    if (Math.abs(coeff) < l1Effect * 2) {
+                        coeff = 0;
+                    } else {
+                        coeff = coeff > 0 ? coeff - l1Effect : coeff + l1Effect;
+                    }
+                }
+
+                if (modelType === 'ridge' || modelType === 'elasticnet') {
+                    // L2: shrink toward zero
+                    coeff = coeff / (1 + bestL2 * 0.1);
+                }
+
+                coefficients[f] = coeff;
+            });
+
+            // Compute predictions
+            const predictions = [];
+            let sumSquaredError = 0, sumAbsError = 0, sumActual = 0;
+            const intercept = 180 + Math.random() * 40;
+
+            data.forEach((point, i) => {
+                let predicted = intercept;
+                features.forEach(f => {
+                    predicted += (coefficients[f] || 0) * (point[f] || 0);
+                });
+                predicted = Math.max(0, predicted);
+                const actual = point.actual_sales;
+                const error = actual - predicted;
+                sumSquaredError += error * error;
+                sumAbsError += Math.abs(error);
+                sumActual += actual;
+                predictions.push({
+                    id: i,
+                    x: point.price,
+                    actual,
+                    predicted,
+                    residual: actual - predicted,
+                    ...point
+                });
+            });
+
+            const meanActual = sumActual / n;
+            let ssTot = 0;
+            data.forEach(point => { ssTot += Math.pow(point.actual_sales - meanActual, 2); });
+
+            // Adjust metrics based on model complexity
+            const overfitPenalty = modelType === 'ols' && features.length > 6 ? 1.2 : 1;
+
+            return {
+                predictions,
+                coefficients,
+                metrics: {
+                    mae: (sumAbsError / n * overfitPenalty).toFixed(2),
+                    rmse: (Math.sqrt(sumSquaredError / n) * overfitPenalty).toFixed(2),
+                    r2: Math.max(0, Math.min(0.99, (1 - sumSquaredError / ssTot) / overfitPenalty)).toFixed(3),
+                    n_train: Math.floor(n * 0.8),
+                    n_test: Math.ceil(n * 0.2),
+                },
+                cvResults
+            };
+        };
+
+        // Chart.js Scatter Component
+        function ScatterChart({ data, xKey, yKey, title, xLabel, yLabel, color }) {
+            const canvasRef = useRef(null);
+            const chartRef = useRef(null);
+
+            useEffect(() => {
+                if (!canvasRef.current || !data.length) return;
+                if (chartRef.current) chartRef.current.destroy();
+
+                const ctx = canvasRef.current.getContext('2d');
+                chartRef.current = new Chart(ctx, {
+                    type: 'scatter',
+                    data: {
+                        datasets: [{
+                            label: title,
+                            data: data.map(d => ({ x: d[xKey], y: d[yKey] })),
+                            backgroundColor: color || colors.primary,
+                            borderColor: color || colors.primary,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: {
+                                title: { display: true, text: xLabel, color: colors.lightMuted, font: { size: 11 } },
+                                grid: { color: 'rgba(0,0,0,0.06)' },
+                                ticks: { color: colors.lightMuted, font: { size: 10 } }
+                            },
+                            y: {
+                                title: { display: true, text: yLabel, color: colors.lightMuted, font: { size: 11 } },
+                                grid: { color: 'rgba(0,0,0,0.06)' },
+                                ticks: { color: colors.lightMuted, font: { size: 10 } }
+                            }
+                        }
+                    }
+                });
+
+                return () => { if (chartRef.current) chartRef.current.destroy(); };
+            }, [data, xKey, yKey, title, xLabel, yLabel, color]);
+
+            return <canvas ref={canvasRef} />;
+        }
+
+        // Histogram Component
+        function HistogramChart({ data, dataKey, label, color, bins = 15 }) {
+            const canvasRef = useRef(null);
+            const chartRef = useRef(null);
+
+            useEffect(() => {
+                if (!canvasRef.current || !data.length) return;
+                if (chartRef.current) chartRef.current.destroy();
+
+                // Calculate histogram bins
+                const values = data.map(d => d[dataKey]).filter(v => v !== undefined && !isNaN(v));
+                if (values.length === 0) return;
+
+                const min = Math.min(...values);
+                const max = Math.max(...values);
+                const binWidth = (max - min) / bins || 1;
+                const histogram = Array(bins).fill(0);
+                const binLabels = [];
+
+                for (let i = 0; i < bins; i++) {
+                    const binStart = min + i * binWidth;
+                    const binEnd = binStart + binWidth;
+                    binLabels.push(binStart.toFixed(1));
+                }
+
+                values.forEach(v => {
+                    const binIndex = Math.min(Math.floor((v - min) / binWidth), bins - 1);
+                    histogram[binIndex]++;
+                });
+
+                const ctx = canvasRef.current.getContext('2d');
+                chartRef.current = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: binLabels,
+                        datasets: [{
+                            label: 'Frequency',
+                            data: histogram,
+                            backgroundColor: color + '80',
+                            borderColor: color,
+                            borderWidth: 1,
+                            borderRadius: 2,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: {
+                                title: { display: true, text: label, color: colors.lightMuted, font: { size: 11 } },
+                                grid: { display: false },
+                                ticks: { color: colors.lightMuted, font: { size: 9 }, maxRotation: 45 }
+                            },
+                            y: {
+                                title: { display: true, text: 'Frequency', color: colors.lightMuted, font: { size: 11 } },
+                                grid: { color: 'rgba(0,0,0,0.06)' },
+                                ticks: { color: colors.lightMuted, font: { size: 10 } },
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+
+                return () => { if (chartRef.current) chartRef.current.destroy(); };
+            }, [data, dataKey, label, color, bins]);
+
+            return <canvas ref={canvasRef} />;
+        }
+
+        // Data Explorer Component - flexible visualization panel
+        function DataExplorer({ data, selectedFeatures, featureLabels }) {
+            const [vizType, setVizType] = useState('scatter');
+            const [xVar, setXVar] = useState('price');
+            const [yVar, setYVar] = useState('actual_sales');
+            const [histVar, setHistVar] = useState('actual_sales');
+
+            // All available variables for visualization
+            const allVars = ['actual_sales', ...ALL_FEATURES];
+            const varLabels = { actual_sales: 'Sales (Y)', ...featureLabels };
+
+            // Color palette for different variables
+            const varColors = {
+                actual_sales: colors.primary,
+                price: colors.darkBlue,
+                log_price: colors.darkBlue,
+                price_squared: colors.darkBlue,
+                lag_m1: colors.positive,
+                lag_m2: colors.positive,
+                lag_m3: colors.positive,
+                lag_m6: colors.positive,
+                ma_3: colors.primaryDark,
+                ma_6: colors.primaryDark,
+                price_change: colors.negative,
+                price_change_pct: colors.negative,
+                price_volatility: colors.lightBlue
+            };
+
+            return (
+                <div>
+                    {/* Controls */}
+                    <div style={{ display: 'flex', gap: '12px', marginBottom: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+                        {/* Visualization Type Toggle */}
+                        <div style={{ display: 'flex', gap: '4px', background: '#ffffff', borderRadius: '6px', padding: '3px' }}>
+                            {[
+                                { id: 'scatter', label: 'Scatter' },
+                                { id: 'distribution', label: 'Distribution' }
+                            ].map(type => (
+                                <button
+                                    key={type.id}
+                                    onClick={() => setVizType(type.id)}
+                                    style={{
+                                        padding: '6px 12px',
+                                        fontSize: '0.7rem',
+                                        fontWeight: vizType === type.id ? '600' : '400',
+                                        background: vizType === type.id ? colors.primary : 'transparent',
+                                        color: vizType === type.id ? 'white' : colors.lightMuted,
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s ease'
+                                    }}
+                                >
+                                    {type.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        {vizType === 'scatter' && (
+                            <>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{ fontSize: '0.7rem', color: colors.lightMuted, fontWeight: '500' }}>X:</span>
+                                    <select
+                                        value={xVar}
+                                        onChange={(e) => setXVar(e.target.value)}
+                                        style={{
+                                            padding: '6px 10px',
+                                            fontSize: '0.75rem',
+                                            background: '#ffffff',
+                                            border: `1px solid ${colors.lightBorder}`,
+                                            borderRadius: '4px',
+                                            color: colors.lightText,
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        {allVars.map(v => (
+                                            <option key={v} value={v}>{varLabels[v]}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{ fontSize: '0.7rem', color: colors.lightMuted, fontWeight: '500' }}>Y:</span>
+                                    <select
+                                        value={yVar}
+                                        onChange={(e) => setYVar(e.target.value)}
+                                        style={{
+                                            padding: '6px 10px',
+                                            fontSize: '0.75rem',
+                                            background: '#ffffff',
+                                            border: `1px solid ${colors.lightBorder}`,
+                                            borderRadius: '4px',
+                                            color: colors.lightText,
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        {allVars.map(v => (
+                                            <option key={v} value={v}>{varLabels[v]}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </>
+                        )}
+
+                        {vizType === 'distribution' && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ fontSize: '0.7rem', color: colors.lightMuted, fontWeight: '500' }}>Variable:</span>
+                                <select
+                                    value={histVar}
+                                    onChange={(e) => setHistVar(e.target.value)}
+                                    style={{
+                                        padding: '6px 10px',
+                                        fontSize: '0.75rem',
+                                        background: '#ffffff',
+                                        border: `1px solid ${colors.lightBorder}`,
+                                        borderRadius: '4px',
+                                        color: colors.lightText,
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    {allVars.map(v => (
+                                        <option key={v} value={v}>{varLabels[v]}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Chart */}
+                    <div style={{ height: '200px' }}>
+                        {vizType === 'scatter' && (
+                            <ScatterChart
+                                data={data}
+                                xKey={xVar}
+                                yKey={yVar}
+                                title={`${varLabels[xVar]} vs ${varLabels[yVar]}`}
+                                xLabel={varLabels[xVar]}
+                                yLabel={varLabels[yVar]}
+                                color={varColors[yVar] || colors.primary}
+                            />
+                        )}
+                        {vizType === 'distribution' && (
+                            <HistogramChart
+                                data={data}
+                                dataKey={histVar}
+                                label={varLabels[histVar]}
+                                color={varColors[histVar] || colors.primary}
+                            />
+                        )}
+                    </div>
+
+                    {/* Quick Stats */}
+                    {vizType === 'distribution' && data.length > 0 && (() => {
+                        const values = data.map(d => d[histVar]).filter(v => !isNaN(v));
+                        const mean = values.reduce((a, b) => a + b, 0) / values.length;
+                        const sorted = [...values].sort((a, b) => a - b);
+                        const median = sorted[Math.floor(sorted.length / 2)];
+                        const std = Math.sqrt(values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / values.length);
+                        return (
+                            <div style={{ display: 'flex', gap: '16px', marginTop: '8px', justifyContent: 'center' }}>
+                                {[
+                                    { label: 'Mean', value: mean.toFixed(2) },
+                                    { label: 'Median', value: median.toFixed(2) },
+                                    { label: 'Std Dev', value: std.toFixed(2) },
+                                    { label: 'Min', value: Math.min(...values).toFixed(2) },
+                                    { label: 'Max', value: Math.max(...values).toFixed(2) },
+                                ].map((stat, i) => (
+                                    <div key={i} style={{ textAlign: 'center' }}>
+                                        <div style={{ fontSize: '0.6rem', color: colors.lightMuted, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{stat.label}</div>
+                                        <div style={{ fontSize: '0.8rem', fontWeight: '600', color: colors.lightText }}>{stat.value}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        );
+                    })()}
+                </div>
+            );
+        }
+
+        // Coefficient Table Component (normalized)
+        function CoefficientTable({ coefficients, featureLabels }) {
+            // Normalize coefficients for comparison
+            const entries = Object.entries(coefficients);
+            if (entries.length === 0) return null;
+
+            const maxAbs = Math.max(...entries.map(([_, v]) => Math.abs(v)), 0.001);
+            const normalized = entries.map(([name, value]) => ({
+                name,
+                label: featureLabels[name] || name,
+                raw: value,
+                normalized: value / maxAbs,
+                absNormalized: Math.abs(value / maxAbs)
+            })).sort((a, b) => b.absNormalized - a.absNormalized);
+
+            return (
+                <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+                        <thead>
+                            <tr style={{ borderBottom: `2px solid ${colors.lightBorder}` }}>
+                                <th style={{ textAlign: 'left', padding: '10px 12px', color: colors.lightMuted, fontWeight: '600', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Feature</th>
+                                <th style={{ textAlign: 'right', padding: '10px 12px', color: colors.lightMuted, fontWeight: '600', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Coefficient</th>
+                                <th style={{ textAlign: 'right', padding: '10px 12px', color: colors.lightMuted, fontWeight: '600', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Normalized</th>
+                                <th style={{ textAlign: 'left', padding: '10px 12px', color: colors.lightMuted, fontWeight: '600', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em', width: '35%' }}>Impact</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {normalized.map((item, idx) => (
+                                <tr key={item.name} style={{
+                                    borderBottom: `1px solid ${colors.lightBorder}`,
+                                    background: idx % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.02)'
+                                }}>
+                                    <td style={{ padding: '10px 12px', fontWeight: '500', color: colors.lightText }}>
+                                        {item.label}
+                                    </td>
+                                    <td style={{
+                                        padding: '10px 12px',
+                                        textAlign: 'right',
+                                        fontFamily: 'monospace',
+                                        color: item.raw === 0 ? colors.lightMuted : (item.raw > 0 ? colors.positive : colors.negative),
+                                        fontWeight: item.raw === 0 ? '400' : '600'
+                                    }}>
+                                        {item.raw === 0 ? '0' : item.raw.toFixed(4)}
+                                    </td>
+                                    <td style={{
+                                        padding: '10px 12px',
+                                        textAlign: 'right',
+                                        fontFamily: 'monospace',
+                                        color: item.raw === 0 ? colors.lightMuted : colors.lightText
+                                    }}>
+                                        {item.raw === 0 ? '—' : (item.normalized > 0 ? '+' : '') + item.normalized.toFixed(2)}
+                                    </td>
+                                    <td style={{ padding: '10px 12px' }}>
+                                        <div style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '8px'
+                                        }}>
+                                            <div style={{
+                                                flex: 1,
+                                                height: '8px',
+                                                background: '#ffffff',
+                                                borderRadius: '4px',
+                                                overflow: 'hidden',
+                                                position: 'relative'
+                                            }}>
+                                                <div style={{
+                                                    position: 'absolute',
+                                                    left: item.normalized < 0 ? `${50 + item.normalized * 50}%` : '50%',
+                                                    width: `${item.absNormalized * 50}%`,
+                                                    height: '100%',
+                                                    background: item.raw === 0 ? colors.lightMuted : (item.raw > 0 ? colors.positive : colors.negative),
+                                                    borderRadius: '4px',
+                                                    transition: 'all 0.3s ease'
+                                                }} />
+                                                <div style={{
+                                                    position: 'absolute',
+                                                    left: '50%',
+                                                    top: 0,
+                                                    bottom: 0,
+                                                    width: '1px',
+                                                    background: colors.lightMuted
+                                                }} />
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            );
+        }
+
+        // Main App
+        function LinearRegressionApp() {
+            // Tabs removed - showing simulator only
+            const [modelType, setModelType] = useState('lasso');
+            const [l1Ratio, setL1Ratio] = useState(1.0);
+            const [l2Ratio, setL2Ratio] = useState(1.0);
+            const [runCV, setRunCV] = useState(false);
+            const [cvFolds, setCvFolds] = useState(5);
+            const [selectedFeatures, setSelectedFeatures] = useState(['price', 'lag_m1', 'lag_m2', 'ma_3', 'price_volatility']);
+            const [isAnimating, setIsAnimating] = useState(false);
+            const [data, setData] = useState([]);
+            const [apiConnected, setApiConnected] = useState(false);
+
+            useEffect(() => {
+                setData(generateMockData(80));
+                fetch(`${API_BASE}/categories`).then(r => r.ok && setApiConnected(true)).catch(() => {});
+            }, []);
+
+            const trainModel = useCallback(() => {
+                setIsAnimating(true);
+                setData(generateMockData(80));
+                setTimeout(() => setIsAnimating(false), 600);
+            }, []);
+
+            const { predictions, coefficients, metrics, cvResults } = useMemo(() => {
+                return computeRegression(data, selectedFeatures, modelType, l1Ratio, l2Ratio, runCV, cvFolds);
+            }, [data, selectedFeatures, modelType, l1Ratio, l2Ratio, runCV, cvFolds]);
+
+            const toggleFeature = (feature) => {
+                setSelectedFeatures(prev => {
+                    if (prev.includes(feature)) {
+                        if (prev.length === 1) return prev;
+                        return prev.filter(f => f !== feature);
+                    }
+                    return [...prev, feature];
+                });
+            };
+
+            const residualsData = predictions.map(p => ({ predicted: p.predicted, residual: p.residual }));
+
+            // Check which hyperparameters apply
+            const showL1 = modelType === 'lasso' || modelType === 'elasticnet';
+            const showL2 = modelType === 'ridge' || modelType === 'elasticnet';
+
+            return (
+                <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+                    {/* HEADER */}
+                    <header style={{
+                        background: '#2774AE',
+                        padding: '1rem 2rem 1.5rem 2rem',
+                        position: 'sticky',
+                        top: 0,
+                        zIndex: 100
+                    }}>
+                        <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <p style={{ fontSize: '0.65rem', color: '#2774AE', fontWeight: 400, marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
+                                    MGMT298D: Science and Strategy of AI
+                                </p>
+                                <h1 style={{ fontSize: '1.4rem', fontWeight: 600, color: '#f5f5f5', letterSpacing: '0' }}>
+                                    Week 1: Linear Regression with Feature Engineering
+                                </h1>
+                                <p style={{ fontSize: '0.85rem', color: '#c0c0c0', marginTop: '0.25rem' }}>
+                                    H&M Sales Forecasting with Regularization
+                                </p>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                                <span style={{ fontSize: '1rem', fontWeight: 500, color: '#f5f5f5' }}>
+                                    UCLA Anderson
+                                </span>
+                            </div>
+                        </div>
+                        <div class="header-gold-line"></div>
+                    </header>
+
+                    {/* LIGHT CONTENT */}
+                    <div style={{ flex: 1, background: '#ffffff' }}>
+                        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
+                            {/* Main Content */}
+                                <>
+                                    {!apiConnected && (
+                                        <div style={{
+                                            marginBottom: '20px',
+                                            background: 'rgba(39, 116, 174, 0.3)',
+                                            border: `1px solid rgba(201, 164, 0, 0.4)`,
+                                            borderRadius: '8px',
+                                            padding: '12px 16px',
+                                            fontSize: '0.8rem',
+                                            color: colors.textDark,
+                                            textAlign: 'center'
+                                        }}>
+                                            Backend not connected — using simulated data
+                                        </div>
+                                    )}
+
+                                    {/* Controls Card */}
+                                    <div style={{
+                                        background: colors.lightCard,
+                                        borderRadius: '12px',
+                                        padding: '24px',
+                                        border: `1px solid ${colors.lightBorder}`,
+                                        marginBottom: '24px',
+                                        boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+                                    }}>
+                                        {/* Model Type and Hyperparameters */}
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '20px', marginBottom: '24px' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.7rem', color: colors.lightMuted, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: '600' }}>Model Type</label>
+                                                <select value={modelType} onChange={(e) => setModelType(e.target.value)} style={{
+                                                    width: '100%', padding: '12px 14px', background: '#ffffff',
+                                                    border: `1px solid ${colors.lightBorder}`, borderRadius: '8px',
+                                                    color: colors.lightText, fontSize: '0.85rem', fontWeight: '500'
+                                                }}>
+                                                    <option value="ols">OLS (No Regularization)</option>
+                                                    <option value="lasso">Lasso (L1)</option>
+                                                    <option value="ridge">Ridge (L2)</option>
+                                                    <option value="elasticnet">ElasticNet (L1+L2)</option>
+                                                </select>
+                                            </div>
+
+                                            <div style={{ opacity: showL1 ? 1 : 0.4 }}>
+                                                <label style={{ display: 'block', fontSize: '0.7rem', color: colors.lightMuted, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: '600' }}>
+                                                    L1 (α): <span style={{ color: colors.text }}>{l1Ratio.toFixed(2)}</span>
+                                                </label>
+                                                <input type="range" min="0.01" max="5" step="0.01" value={l1Ratio}
+                                                    onChange={(e) => setL1Ratio(parseFloat(e.target.value))}
+                                                    disabled={!showL1}
+                                                    style={{ width: '100%', marginTop: '8px' }} />
+                                            </div>
+
+                                            <div style={{ opacity: showL2 ? 1 : 0.4 }}>
+                                                <label style={{ display: 'block', fontSize: '0.7rem', color: colors.lightMuted, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: '600' }}>
+                                                    L2 (λ): <span style={{ color: colors.darkBlue }}>{l2Ratio.toFixed(2)}</span>
+                                                </label>
+                                                <input type="range" min="0.01" max="5" step="0.01" value={l2Ratio}
+                                                    onChange={(e) => setL2Ratio(parseFloat(e.target.value))}
+                                                    disabled={!showL2}
+                                                    style={{ width: '100%', marginTop: '8px' }} />
+                                            </div>
+
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.7rem', color: colors.lightMuted, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: '600' }}>Cross-Validation</label>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px' }}>
+                                                    <label style={{
+                                                        display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer',
+                                                        opacity: modelType === 'ols' ? 0.4 : 1
+                                                    }}>
+                                                        <input type="checkbox" checked={runCV} onChange={(e) => setRunCV(e.target.checked)}
+                                                            disabled={modelType === 'ols'}
+                                                            style={{ width: '16px', height: '16px' }} />
+                                                        <span style={{ fontSize: '0.85rem', color: colors.lightText }}>Run CV</span>
+                                                    </label>
+                                                    <select value={cvFolds} onChange={(e) => setCvFolds(parseInt(e.target.value))}
+                                                        disabled={!runCV || modelType === 'ols'}
+                                                        style={{
+                                                            padding: '8px 12px', background: '#ffffff',
+                                                            border: `1px solid ${colors.lightBorder}`, borderRadius: '6px',
+                                                            color: colors.lightText, fontSize: '0.8rem',
+                                                            opacity: (!runCV || modelType === 'ols') ? 0.4 : 1
+                                                        }}>
+                                                        {[3, 5, 10].map(k => <option key={k} value={k}>{k}-fold</option>)}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Features Selection */}
+                                        <div style={{ marginBottom: '24px' }}>
+                                            <label style={{ display: 'block', fontSize: '0.7rem', color: colors.lightMuted, marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: '600' }}>
+                                                Engineered Features ({selectedFeatures.length} selected)
+                                            </label>
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '8px' }}>
+                                                {ALL_FEATURES.map(feature => (
+                                                    <label key={feature} title={FEATURE_DESCRIPTIONS[feature]} style={{
+                                                        display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px',
+                                                        background: selectedFeatures.includes(feature) ? 'rgba(39, 116, 174, 0.12)' : colors.lightBg,
+                                                        border: `2px solid ${selectedFeatures.includes(feature) ? colors.primary : 'transparent'}`,
+                                                        borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem',
+                                                        color: selectedFeatures.includes(feature) ? colors.primary : colors.lightMuted,
+                                                        transition: 'all 0.2s ease',
+                                                        fontWeight: selectedFeatures.includes(feature) ? '600' : '400'
+                                                    }}>
+                                                        <input type="checkbox" checked={selectedFeatures.includes(feature)}
+                                                            onChange={() => toggleFeature(feature)}
+                                                            style={{ width: '14px', height: '14px' }} />
+                                                        {FEATURE_LABELS[feature]}
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Train Button */}
+                                        <div style={{ textAlign: 'center' }}>
+                                            <button onClick={trainModel} disabled={isAnimating} style={{
+                                                background: isAnimating ? '#ccc' : `linear-gradient(135deg, ${colors.primary} 0%, ${colors.darkBlue} 100%)`,
+                                                border: 'none', color: 'white', padding: '14px 48px', borderRadius: '8px',
+                                                fontSize: '0.9rem', fontWeight: '600', cursor: isAnimating ? 'not-allowed' : 'pointer',
+                                                transition: 'all 0.2s ease',
+                                                boxShadow: isAnimating ? 'none' : '0 4px 16px rgba(39, 116, 174, 0.3)'
+                                            }}>
+                                                {isAnimating ? 'Fitting Model...' : 'Train Model'}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* CV Results (if enabled) */}
+                                    {cvResults && (
+                                        <div style={{
+                                            background: 'rgba(39, 116, 174, 0.08)',
+                                            borderRadius: '12px',
+                                            padding: '16px 20px',
+                                            border: `1px solid rgba(39, 116, 174, 0.2)`,
+                                            marginBottom: '24px'
+                                        }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+                                                <div>
+                                                    <span style={{ fontSize: '0.75rem', color: colors.lightMuted, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                                        {cvResults.folds}-Fold Cross-Validation Results
+                                                    </span>
+                                                    <div style={{ marginTop: '4px', fontSize: '0.9rem', color: colors.lightText }}>
+                                                        Best parameters: <strong style={{ color: colors.text }}>L1 = {cvResults.bestL1}</strong>
+                                                        {showL2 && <>, <strong style={{ color: colors.darkBlue }}>L2 = {cvResults.bestL2}</strong></>}
+                                                    </div>
+                                                </div>
+                                                <div style={{ fontSize: '0.8rem', color: colors.lightMuted }}>
+                                                    Tested {cvResults.scores.length}+ hyperparameter combinations
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Metrics */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px', marginBottom: '24px' }}>
+                                        {[
+                                            { label: 'MAE', value: metrics.mae, color: colors.text },
+                                            { label: 'RMSE', value: metrics.rmse, color: colors.darkBlue },
+                                            { label: 'R²', value: metrics.r2, color: colors.text },
+                                            { label: 'Train', value: metrics.n_train, color: colors.textDark },
+                                            { label: 'Test', value: metrics.n_test, color: colors.lightMuted },
+                                        ].map((m, i) => (
+                                            <div key={i} style={{
+                                                background: colors.lightCard,
+                                                borderRadius: '12px',
+                                                padding: '16px 12px',
+                                                border: `1px solid ${colors.lightBorder}`,
+                                                textAlign: 'center',
+                                                boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+                                            }}>
+                                                <div style={{ fontSize: '0.65rem', color: colors.lightMuted, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: '600' }}>{m.label}</div>
+                                                <div style={{ fontSize: '1.4rem', fontWeight: '700', color: m.color, marginTop: '6px' }}>{m.value}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Charts and Coefficients */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+                                        <div style={{ background: colors.lightCard, borderRadius: '12px', padding: '20px', border: `1px solid ${colors.lightBorder}`, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                                            <h3 style={{ marginBottom: '12px', fontSize: '0.85rem', color: colors.lightText, fontWeight: '600' }}>
+                                                Data Explorer
+                                            </h3>
+                                            <DataExplorer
+                                                data={predictions}
+                                                selectedFeatures={selectedFeatures}
+                                                featureLabels={FEATURE_LABELS}
+                                            />
+                                        </div>
+
+                                        <div style={{ background: colors.lightCard, borderRadius: '12px', padding: '20px', border: `1px solid ${colors.lightBorder}`, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                                            <h3 style={{ marginBottom: '16px', fontSize: '0.85rem', color: colors.lightText, fontWeight: '600' }}>Residual Plot</h3>
+                                            <div style={{ height: '240px' }}>
+                                                <ScatterChart data={residualsData} xKey="predicted" yKey="residual" title="Residuals" xLabel="Predicted" yLabel="Residual" color={colors.lightBlue} />
+                                            </div>
+                                        </div>
+
+                                        <div style={{ background: colors.lightCard, borderRadius: '12px', padding: '20px', border: `1px solid ${colors.lightBorder}`, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                                            <h3 style={{ marginBottom: '16px', fontSize: '0.85rem', color: colors.lightText, fontWeight: '600' }}>Actual vs Predicted</h3>
+                                            <div style={{ height: '240px' }}>
+                                                <ScatterChart data={predictions} xKey="actual" yKey="predicted" title="Predicted" xLabel="Actual" yLabel="Predicted" color={colors.accentDark} />
+                                            </div>
+                                        </div>
+
+                                        <div style={{ background: colors.lightCard, borderRadius: '12px', padding: '20px', border: `1px solid ${colors.lightBorder}`, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                                            <h3 style={{ marginBottom: '16px', fontSize: '0.85rem', color: colors.lightText, fontWeight: '600' }}>
+                                                Feature Coefficients <span style={{ fontWeight: '400', color: colors.lightMuted }}>(Normalized)</span>
+                                            </h3>
+                                            <div style={{ height: '240px', overflow: 'auto' }}>
+                                                <CoefficientTable coefficients={coefficients} featureLabels={FEATURE_LABELS} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </>
+                        </div>
+                    </div>
+
+                    {/* FOOTER */}
+                    <p style={{ color: colors.textDim || '#888', fontSize: '0.75rem', marginTop: '20px', textAlign: 'center' }}>
+                        MGMT298D: Science and Strategy of AI | UCLA Anderson School of Management
+                    </p>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<LinearRegressionApp />);
+    </script>
+</body>
+</html>

@@ -1,0 +1,1757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Week 7: Embeddings | UCLA Anderson</title>
+    <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2774AE;
+            --accent: #2774AE;
+            --darkBlue: #005587;
+            --lightBlue: #8BB8E8;
+            --positive: #2774AE;
+            --negative: #005587;
+            --darkBg: #111318;
+            --darkCard: #1a1d24;
+            --darkText: #e5e5e5;
+            --darkMuted: #c0c0c0;
+            --lightBg: #f5f5f5;
+            --lightCard: #ffffff;
+            --textPrimary: #1a1a1a;
+            --textMuted: #666;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #ffffff;
+            min-height: 100vh;
+            color: #1a1a1a;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #e0e0e0;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
+        }
+
+        .app-container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            background: #ffffff;
+            border-bottom: 2px solid #2774AE;
+            padding: 1rem 2rem 1.5rem 2rem;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header-left .course-info {
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: #2774AE;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .header-left h1 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #005587;
+            letter-spacing: -0.01em;
+        }
+
+        .header-left p {
+            color: #c0c0c0;
+            font-size: 0.85rem;
+            margin-top: 4px;
+        }
+
+        .ucla-badge {
+            text-align: right;
+        }
+
+        .ucla-badge .ucla-text {
+            font-size: 0.65rem;
+            color: #666666;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            margin-bottom: 2px;
+            margin-bottom: 2px;
+        }
+
+        .ucla-badge .school {
+            font-size: 0.9rem;
+            color: #2774AE;
+            font-weight: 500;
+        }
+
+        .ucla-badge .program {
+            display: none;
+        }
+
+        /* Controls Section - Light */
+        .controls-section {
+            background: #ffffff;
+            padding: 16px 40px;
+            border-bottom: 1px solid rgba(0,0,0,0.08);
+        }
+
+        .controls-inner {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Tab Navigation */
+        .tab-nav {
+            display: flex;
+            gap: 8px;
+            background: #ffffff;
+            padding: 6px;
+            border-radius: 10px;
+            width: fit-content;
+        }
+
+        .tab-btn {
+            padding: 10px 24px;
+            border: none;
+            background: transparent;
+            color: var(--textMuted);
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tab-btn:hover {
+            color: var(--textPrimary);
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        /* Results Section - Light */
+        .results-section {
+            background: var(--lightBg);
+            padding: 24px 40px;
+            min-height: calc(100vh - 180px);
+        }
+
+        .results-inner {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Cards - Light theme for results */
+        .card {
+            background: #ffffff;
+            border: 1px solid rgba(0,0,0,0.08);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--textPrimary);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-title svg {
+            width: 20px;
+            height: 20px;
+            color: var(--primary);
+        }
+
+        /* Light card variant for control panel (override dark) */
+        .card.dark {
+            background: #ffffff;
+            border: 1px solid rgba(0,0,0,0.08);
+            color: var(--textPrimary);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        .card.dark .card-title {
+            color: var(--textPrimary);
+        }
+
+        .card.dark .card-title svg {
+            color: var(--primary);
+        }
+
+        /* Grid Layouts */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 24px;
+        }
+
+        .viz-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        /* Control Panel - Light */
+        .control-panel .card {
+            background: #ffffff;
+            border: 1px solid rgba(0,0,0,0.08);
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+            color: var(--textMuted);
+        }
+
+        .control-value {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .option-btn {
+            padding: 8px 14px;
+            border: 1px solid rgba(39, 116, 174, 0.3);
+            background: rgba(39, 116, 174, 0.05);
+            color: var(--textMuted);
+            font-size: 0.85rem;
+            font-family: 'JetBrains Mono', monospace;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .option-btn:hover {
+            border-color: var(--primary);
+            color: var(--textPrimary);
+            background: rgba(39, 116, 174, 0.1);
+        }
+
+        .option-btn.active {
+            background: var(--primary);
+            color: #ffffff;
+            border-color: transparent;
+            font-weight: 600;
+        }
+
+        .slider-container {
+            position: relative;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(39, 116, 174, 0.2);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(39, 116, 174, 0.3);
+        }
+
+        /* Primary Button */
+        .btn-primary {
+            width: 100%;
+            padding: 14px 24px;
+            background: var(--primary);
+            border: none;
+            border-radius: 10px;
+            color: #ffffff;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--darkBlue);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(39, 116, 174, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            width: 100%;
+            padding: 12px 20px;
+            background: transparent;
+            border: 1px solid var(--primary);
+            border-radius: 10px;
+            color: var(--primary);
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(39, 116, 174, 0.1);
+            border-color: var(--darkBlue);
+            color: var(--darkBlue);
+        }
+
+        /* Metrics Grid - Light themed */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .metric-card {
+            background: #ffffff;
+            border: 1px solid rgba(0,0,0,0.06);
+            border-radius: 10px;
+            padding: 14px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--primary);
+        }
+
+        .metric-label {
+            font-size: 0.75rem;
+            color: var(--textMuted);
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Attention Heatmap Styles */
+        .heatmap-container {
+            position: relative;
+        }
+
+        .attention-head-tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .head-tab {
+            padding: 6px 14px;
+            background: #ffffff;
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 8px;
+            color: var(--textMuted);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .head-tab:hover {
+            border-color: var(--primary);
+            background: rgba(39, 116, 174, 0.05);
+        }
+
+        .head-tab.active {
+            background: var(--primary);
+            color: #ffffff;
+            font-weight: 600;
+            border-color: transparent;
+        }
+
+        .heatmap-grid {
+            display: grid;
+            gap: 2px;
+            padding: 10px;
+            background: #ffffff;
+            border-radius: 12px;
+            border: 1px solid rgba(0,0,0,0.06);
+        }
+
+        .heatmap-row {
+            display: flex;
+            gap: 2px;
+            align-items: center;
+        }
+
+        .heatmap-cell {
+            width: 40px;
+            height: 40px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-family: 'JetBrains Mono', monospace;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .heatmap-cell:hover {
+            transform: scale(1.15);
+            z-index: 10;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .heatmap-label {
+            font-size: 0.75rem;
+            color: var(--textMuted);
+            width: 60px;
+            text-align: right;
+            padding-right: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .heatmap-header {
+            display: flex;
+            gap: 2px;
+            margin-left: 60px;
+            margin-bottom: 6px;
+        }
+
+        .heatmap-header-cell {
+            width: 40px;
+            font-size: 0.75rem;
+            color: var(--textMuted);
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .attention-tooltip {
+            position: absolute;
+            background: var(--darkBg);
+            border: 1px solid var(--primary);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 0.85rem;
+            color: var(--darkText);
+            pointer-events: none;
+            z-index: 100;
+            white-space: nowrap;
+        }
+
+        .attention-tooltip .weight {
+            color: var(--accent);
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Transformer Block Diagram */
+        .transformer-diagram {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 20px;
+            overflow-x: auto;
+            border: 1px solid rgba(0,0,0,0.06);
+        }
+
+        .diagram-svg {
+            display: block;
+            margin: 0 auto;
+        }
+
+        /* Color Legend */
+        .color-legend {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-top: 12px;
+            justify-content: center;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            color: var(--textMuted);
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+
+        /* Training Progress */
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 16px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--lightBlue));
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        /* Comparison Chart */
+        .comparison-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .comparison-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .comparison-label {
+            width: 100px;
+            font-size: 0.85rem;
+            color: var(--textMuted);
+        }
+
+        .comparison-bar-container {
+            flex: 1;
+            height: 28px;
+            background: #ffffff;
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .comparison-bar {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 10px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .comparison-bar.transformer {
+            background: linear-gradient(90deg, var(--primary), var(--lightBlue));
+            color: #ffffff;
+        }
+
+        .comparison-bar.lstm {
+            background: linear-gradient(90deg, #2774AE, #2774AE);
+            color: white;
+        }
+
+        /* Instructions Tab */
+        .instructions-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .instruction-section {
+            margin-bottom: 32px;
+        }
+
+        .instruction-section h3 {
+            font-size: 1.3rem;
+            color: var(--textPrimary);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .instruction-section h3 svg {
+            color: var(--primary);
+        }
+
+        .instruction-section p {
+            color: var(--textMuted);
+            line-height: 1.8;
+            margin-bottom: 12px;
+        }
+
+        .concept-box {
+            background: rgba(39, 116, 174, 0.06);
+            border-left: 3px solid var(--primary);
+            padding: 16px 20px;
+            border-radius: 0 12px 12px 0;
+            margin: 16px 0;
+        }
+
+        .concept-box h4 {
+            color: var(--textPrimary);
+            margin-bottom: 8px;
+        }
+
+        .concept-box p {
+            color: var(--textMuted);
+        }
+
+        .formula-box {
+            background: #ffffff;
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            margin: 16px 0;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .formula-box .formula {
+            font-size: 1.1rem;
+            color: var(--darkBlue);
+        }
+
+        .formula-box .description {
+            font-size: 0.85rem;
+            color: var(--textMuted);
+            margin-top: 10px;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid rgba(0,0,0,0.08);
+        }
+
+        .comparison-table th {
+            background: #ffffff;
+            color: var(--textPrimary);
+            font-weight: 600;
+        }
+
+        .comparison-table td {
+            color: var(--textMuted);
+        }
+
+        .comparison-table tr:hover td {
+            background: rgba(39, 116, 174, 0.03);
+        }
+
+        /* Embedding Visualization */
+        .embedding-viz {
+            position: relative;
+            height: 300px;
+            background: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(0,0,0,0.06);
+        }
+
+        .embedding-point {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .embedding-point:hover {
+            transform: translate(-50%, -50%) scale(1.5);
+            z-index: 10;
+        }
+
+        .embedding-label {
+            position: absolute;
+            font-size: 0.7rem;
+            color: var(--textMuted);
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
+        /* Animation keyframes */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes flow {
+            0% { stroke-dashoffset: 20; }
+            100% { stroke-dashoffset: 0; }
+        }
+
+        .animate-pulse {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .data-flow {
+            stroke-dasharray: 5 5;
+            animation: flow 1s linear infinite;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .viz-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header, .controls-section, .results-section {
+                padding-left: 20px;
+                padding-right: 20px;
+            }
+        }
+
+        /* Status Indicator */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-left: auto;
+        }
+
+        .status-badge.ready {
+            background: rgba(34, 197, 94, 0.12);
+            color: #005587;
+        }
+
+        .status-badge.training {
+            background: rgba(39, 116, 174, 0.12);
+            color: var(--primary);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .status-badge.training .status-dot {
+            animation: pulse 1s ease-in-out infinite;
+        }
+    
+        .header-gold-line {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: #FFD100;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback, useMemo, useRef } = React;
+
+        // Chart.js Line Chart Component for Training History
+        const TrainingChart = ({ data }) => {
+            const canvasRef = useRef(null);
+            const chartRef = useRef(null);
+
+            useEffect(() => {
+                if (!canvasRef.current || !data || data.length === 0) return;
+
+                if (chartRef.current) {
+                    chartRef.current.destroy();
+                }
+
+                const ctx = canvasRef.current.getContext('2d');
+                chartRef.current = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.map(d => d.epoch),
+                        datasets: [
+                            {
+                                label: 'Train Accuracy',
+                                data: data.map(d => d.train_acc),
+                                borderColor: '#2774AE',
+                                backgroundColor: 'transparent',
+                                borderWidth: 2,
+                                pointRadius: 0,
+                                tension: 0.3
+                            },
+                            {
+                                label: 'Val Accuracy',
+                                data: data.map(d => d.val_acc),
+                                borderColor: '#2774AE',
+                                backgroundColor: 'transparent',
+                                borderWidth: 2,
+                                pointRadius: 0,
+                                tension: 0.3
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                labels: { color: '#666', font: { size: 11 } }
+                            },
+                            tooltip: {
+                                backgroundColor: '#111318',
+                                titleColor: '#e5e5e5',
+                                bodyColor: '#888',
+                                borderColor: '#2774AE',
+                                borderWidth: 1
+                            }
+                        },
+                        scales: {
+                            x: {
+                                ticks: { color: '#666', font: { size: 11 } },
+                                grid: { color: 'rgba(0, 0, 0, 0.06)' }
+                            },
+                            y: {
+                                min: 0,
+                                max: 1,
+                                ticks: { color: '#666', font: { size: 11 } },
+                                grid: { color: 'rgba(0, 0, 0, 0.06)' }
+                            }
+                        }
+                    }
+                });
+
+                return () => {
+                    if (chartRef.current) {
+                        chartRef.current.destroy();
+                    }
+                };
+            }, [data]);
+
+            return <canvas ref={canvasRef} style={{ height: '100%', width: '100%' }} />;
+        };
+
+        // API Configuration
+        const API_BASE = 'http://localhost:8006';
+
+        // Icons
+        const Icons = {
+            Brain: () => (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 2a9 9 0 0 1 9 9c0 3.6-2.4 6.6-5.7 7.7M12 2a9 9 0 0 0-9 9c0 3.6 2.4 6.6 5.7 7.7M12 2v20M8 12h8"/>
+                    <circle cx="12" cy="9" r="2"/>
+                </svg>
+            ),
+            Grid: () => (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                    <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                </svg>
+            ),
+            Layers: () => (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+                    <polyline points="2 17 12 22 22 17"/>
+                    <polyline points="2 12 12 17 22 12"/>
+                </svg>
+            ),
+            Play: () => (
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                </svg>
+            ),
+            Chart: () => (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+                    <line x1="6" y1="20" x2="6" y2="14"/>
+                </svg>
+            ),
+            Book: () => (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                </svg>
+            ),
+            Zap: () => (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                </svg>
+            ),
+            Eye: () => (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                </svg>
+            ),
+            Compare: () => (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+                    <line x1="6" y1="20" x2="6" y2="14"/><line x1="3" y1="20" x2="21" y2="20"/>
+                </svg>
+            )
+        };
+
+        // Attention Heatmap Component
+        const AttentionHeatmap = ({ attentionWeights, tokens, numHeads, activeHead, onHeadChange }) => {
+            const [tooltip, setTooltip] = useState(null);
+
+            const getColor = (weight) => {
+                const intensity = Math.pow(weight, 0.7);
+                // UCLA Blue to Gold gradient
+                const r = Math.round(39 + (255 - 39) * intensity);
+                const g = Math.round(116 + (209 - 116) * intensity);
+                const b = Math.round(174 + (0 - 174) * intensity);
+                return `rgba(${r}, ${g}, ${b}, ${0.3 + intensity * 0.7})`;
+            };
+
+            const currentWeights = attentionWeights[activeHead] || [];
+
+            return (
+                <div className="heatmap-container">
+                    <div className="attention-head-tabs">
+                        {Array.from({ length: numHeads }, (_, i) => (
+                            <button
+                                key={i}
+                                className={`head-tab ${activeHead === i ? 'active' : ''}`}
+                                onClick={() => onHeadChange(i)}
+                            >
+                                Head {i + 1}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="heatmap-header">
+                        {tokens.map((token, i) => (
+                            <div key={i} className="heatmap-header-cell" title={token}>
+                                {token}
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="heatmap-grid">
+                        {currentWeights.map((row, i) => (
+                            <div key={i} className="heatmap-row">
+                                <div className="heatmap-label" title={tokens[i]}>{tokens[i]}</div>
+                                {row.map((weight, j) => (
+                                    <div
+                                        key={j}
+                                        className="heatmap-cell"
+                                        style={{
+                                            backgroundColor: getColor(weight),
+                                            color: weight > 0.5 ? '#111318' : '#333'
+                                        }}
+                                        onMouseEnter={(e) => setTooltip({
+                                            x: e.clientX,
+                                            y: e.clientY,
+                                            query: tokens[i],
+                                            key: tokens[j],
+                                            weight: weight
+                                        })}
+                                        onMouseLeave={() => setTooltip(null)}
+                                    >
+                                        {weight.toFixed(2)}
+                                    </div>
+                                ))}
+                            </div>
+                        ))}
+                    </div>
+
+                    {tooltip && (
+                        <div
+                            className="attention-tooltip"
+                            style={{
+                                left: tooltip.x + 15,
+                                top: tooltip.y + 15,
+                                position: 'fixed'
+                            }}
+                        >
+                            <div>Query: <strong>{tooltip.query}</strong></div>
+                            <div>Key: <strong>{tooltip.key}</strong></div>
+                            <div>Weight: <span className="weight">{tooltip.weight.toFixed(4)}</span></div>
+                        </div>
+                    )}
+
+                    <div className="color-legend">
+                        <div className="legend-item">
+                            <div className="legend-color" style={{ background: 'rgba(39, 116, 174, 0.3)' }}></div>
+                            <span>Low Attention</span>
+                        </div>
+                        <div className="legend-item">
+                            <div className="legend-color" style={{ background: 'rgba(39, 116, 174, 0.3)' }}></div>
+                            <span>High Attention</span>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Transformer Block Diagram Component
+        const TransformerBlockDiagram = ({ embedDim, numHeads, numBlocks, ffDim }) => {
+            const blockHeight = 280;
+            const totalHeight = 120 + numBlocks * blockHeight + 80;
+            const headWidth = Math.max(20, 160 / numHeads);
+
+            const renderBlock = (index, yOffset) => {
+                const y = yOffset;
+
+                return (
+                    <g key={index}>
+                        {/* Block Label */}
+                        <text x="20" y={y + 20} fill="#666" fontSize="12">
+                            Block {index + 1}
+                        </text>
+
+                        {/* Multi-Head Attention */}
+                        <rect x="60" y={y} width="200" height="70" rx="8"
+                            fill="url(#attentionGradient)" stroke="#2774AE" strokeWidth="2"/>
+                        <text x="160" y={y + 25} textAnchor="middle" fill="#333" fontSize="12" fontWeight="600">
+                            Multi-Head Attention
+                        </text>
+
+                        {/* Attention Heads Visualization */}
+                        <g transform={`translate(80, ${y + 35})`}>
+                            {Array.from({ length: numHeads }, (_, i) => (
+                                <rect
+                                    key={i}
+                                    x={i * (headWidth + 4)}
+                                    y="0"
+                                    width={headWidth}
+                                    height="25"
+                                    rx="3"
+                                    fill={`rgba(39, 116, 174, ${0.4 + (i * 0.15)})`}
+                                    stroke="#2774AE"
+                                    strokeWidth="1"
+                                />
+                            ))}
+                        </g>
+                        <text x="270" y={y + 50} fill="#2774AE" fontSize="10">
+                            {numHeads} heads
+                        </text>
+
+                        {/* Arrow */}
+                        <line x1="160" y1={y + 70} x2="160" y2={y + 90} stroke="#2774AE" strokeWidth="2" className="data-flow"/>
+                        <polygon points={`155,${y + 85} 165,${y + 85} 160,${y + 95}`} fill="#2774AE"/>
+
+                        {/* Add & Norm 1 */}
+                        <rect x="80" y={y + 95} width="160" height="35" rx="6"
+                            fill="rgba(39, 116, 174, 0.3)" stroke="#2774AE" strokeWidth="1.5"/>
+                        <text x="160" y={y + 117} textAnchor="middle" fill="#997d00" fontSize="11">
+                            Add & LayerNorm
+                        </text>
+
+                        {/* Skip Connection 1 */}
+                        <path d={`M 55 ${y + 35} L 40 ${y + 35} L 40 ${y + 112} L 75 ${y + 112}`}
+                            fill="none" stroke="#2774AE" strokeWidth="1.5" strokeDasharray="4 2"/>
+
+                        {/* Arrow */}
+                        <line x1="160" y1={y + 130} x2="160" y2={y + 150} stroke="#2774AE" strokeWidth="2" className="data-flow"/>
+                        <polygon points={`155,${y + 145} 165,${y + 145} 160,${y + 155}`} fill="#2774AE"/>
+
+                        {/* Feed-Forward Network */}
+                        <rect x="60" y={y + 155} width="200" height="55" rx="8"
+                            fill="url(#ffnGradient)" stroke="#005587" strokeWidth="2"/>
+                        <text x="160" y={y + 178} textAnchor="middle" fill="#333" fontSize="12" fontWeight="600">
+                            Feed-Forward Network
+                        </text>
+                        <text x="160" y={y + 198} textAnchor="middle" fill="#666" fontSize="10">
+                            {embedDim} {'>'} {ffDim} {'>'} {embedDim}
+                        </text>
+
+                        {/* Arrow */}
+                        <line x1="160" y1={y + 210} x2="160" y2={y + 230} stroke="#2774AE" strokeWidth="2" className="data-flow"/>
+                        <polygon points={`155,${y + 225} 165,${y + 225} 160,${y + 235}`} fill="#2774AE"/>
+
+                        {/* Add & Norm 2 */}
+                        <rect x="80" y={y + 235} width="160" height="35" rx="6"
+                            fill="rgba(39, 116, 174, 0.3)" stroke="#2774AE" strokeWidth="1.5"/>
+                        <text x="160" y={y + 257} textAnchor="middle" fill="#997d00" fontSize="11">
+                            Add & LayerNorm
+                        </text>
+
+                        {/* Skip Connection 2 */}
+                        <path d={`M 55 ${y + 182} L 30 ${y + 182} L 30 ${y + 252} L 75 ${y + 252}`}
+                            fill="none" stroke="#2774AE" strokeWidth="1.5" strokeDasharray="4 2"/>
+                    </g>
+                );
+            };
+
+            return (
+                <div className="transformer-diagram">
+                    <svg width="340" height={totalHeight} className="diagram-svg">
+                        <defs>
+                            <linearGradient id="attentionGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stopColor="rgba(39, 116, 174, 0.3)"/>
+                                <stop offset="100%" stopColor="rgba(139, 184, 232, 0.2)"/>
+                            </linearGradient>
+                            <linearGradient id="ffnGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stopColor="rgba(0, 85, 135, 0.3)"/>
+                                <stop offset="100%" stopColor="rgba(39, 116, 174, 0.2)"/>
+                            </linearGradient>
+                            <linearGradient id="embedGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stopColor="rgba(39, 116, 174, 0.3)"/>
+                                <stop offset="100%" stopColor="rgba(39, 116, 174, 0.3)"/>
+                            </linearGradient>
+                        </defs>
+
+                        {/* Input Embeddings */}
+                        <rect x="60" y="20" width="200" height="60" rx="10"
+                            fill="url(#embedGradient)" stroke="#2774AE" strokeWidth="2"/>
+                        <text x="160" y="45" textAnchor="middle" fill="#333" fontSize="12" fontWeight="600">
+                            Token Embeddings
+                        </text>
+                        <text x="160" y="63" textAnchor="middle" fill="#666" fontSize="10">
+                            + Positional Encoding
+                        </text>
+                        <text x="270" y="55" fill="#997d00" fontSize="10">
+                            dim={embedDim}
+                        </text>
+
+                        {/* Arrow from embeddings */}
+                        <line x1="160" y1="80" x2="160" y2="115" stroke="#2774AE" strokeWidth="2" className="data-flow"/>
+                        <polygon points="155,110 165,110 160,120" fill="#2774AE"/>
+
+                        {/* Transformer Blocks */}
+                        {Array.from({ length: numBlocks }, (_, i) => renderBlock(i, 120 + i * blockHeight))}
+
+                        {/* Output Arrow */}
+                        <line x1="160" y1={120 + numBlocks * blockHeight - 10} x2="160" y2={120 + numBlocks * blockHeight + 20}
+                            stroke="#2774AE" strokeWidth="2" className="data-flow"/>
+                        <polygon points={`155,${120 + numBlocks * blockHeight + 15} 165,${120 + numBlocks * blockHeight + 15} 160,${120 + numBlocks * blockHeight + 25}`} fill="#2774AE"/>
+
+                        {/* Output */}
+                        <rect x="80" y={120 + numBlocks * blockHeight + 25} width="160" height="40" rx="8"
+                            fill="rgba(39, 116, 174, 0.3)" stroke="#2774AE" strokeWidth="2"/>
+                        <text x="160" y={120 + numBlocks * blockHeight + 50} textAnchor="middle" fill="#005587" fontSize="12" fontWeight="600">
+                            Output Logits
+                        </text>
+                    </svg>
+                </div>
+            );
+        };
+
+        // Embedding Visualization Component
+        const EmbeddingVisualization = ({ embeddings }) => {
+            const colors = ['#2774AE', '#005587', '#8BB8E8', '#2774AE', '#2774AE', '#005587'];
+
+            return (
+                <div className="embedding-viz">
+                    {embeddings.map((point, i) => (
+                        <React.Fragment key={i}>
+                            <div
+                                className="embedding-point"
+                                style={{
+                                    left: `${point.x}%`,
+                                    top: `${point.y}%`,
+                                    backgroundColor: colors[point.cluster % colors.length],
+                                    boxShadow: `0 0 10px ${colors[point.cluster % colors.length]}`
+                                }}
+                                title={point.word}
+                            />
+                            <div
+                                className="embedding-label"
+                                style={{
+                                    left: `${point.x + 2}%`,
+                                    top: `${point.y - 3}%`
+                                }}
+                            >
+                                {point.word}
+                            </div>
+                        </React.Fragment>
+                    ))}
+                </div>
+            );
+        };
+
+        // Main App Component
+        const App = () => {
+            // Tab state removed - showing only simulator
+            const [isTraining, setIsTraining] = useState(false);
+            const [trainingProgress, setTrainingProgress] = useState(0);
+
+            // Model parameters
+            const [embedDim, setEmbedDim] = useState(64);
+            const [numHeads, setNumHeads] = useState(4);
+            const [numBlocks, setNumBlocks] = useState(2);
+            const [ffDim, setFfDim] = useState(128);
+            const [epochs, setEpochs] = useState(20);
+
+            // Attention state
+            const [activeHead, setActiveHead] = useState(0);
+            const [attentionWeights, setAttentionWeights] = useState({});
+            const [tokens, setTokens] = useState(['The', 'cat', 'sat', 'on', 'mat']);
+
+            // Results
+            const [trainingHistory, setTrainingHistory] = useState([]);
+            const [metrics, setMetrics] = useState({
+                accuracy: null,
+                parameters: null,
+                trainingTime: null,
+                attentionEntropy: null
+            });
+            const [comparison, setComparison] = useState(null);
+            const [embeddings, setEmbeddings] = useState([]);
+
+            // Generate sample attention weights
+            const generateSampleAttention = useCallback(() => {
+                const weights = {};
+                for (let h = 0; h < numHeads; h++) {
+                    weights[h] = tokens.map((_, i) =>
+                        tokens.map((_, j) => {
+                            // Create interesting patterns per head
+                            let base = Math.random() * 0.3;
+                            if (h === 0 && j === i) base += 0.5; // Head 0: self-attention
+                            if (h === 1 && j < i) base += 0.3; // Head 1: look back
+                            if (h === 2 && Math.abs(i - j) <= 1) base += 0.4; // Head 2: local
+                            if (h === 3) base = 1 / tokens.length; // Head 3: uniform
+                            return Math.min(base, 1);
+                        })
+                    );
+                    // Normalize rows to sum to 1
+                    weights[h] = weights[h].map(row => {
+                        const sum = row.reduce((a, b) => a + b, 0);
+                        return row.map(v => v / sum);
+                    });
+                }
+                return weights;
+            }, [numHeads, tokens]);
+
+            // Generate sample embeddings
+            const generateSampleEmbeddings = useCallback(() => {
+                const words = ['king', 'queen', 'man', 'woman', 'prince', 'princess',
+                             'cat', 'dog', 'bird', 'fish', 'run', 'walk', 'jump'];
+                return words.map((word, i) => ({
+                    word,
+                    x: 10 + Math.random() * 80,
+                    y: 10 + Math.random() * 80,
+                    cluster: Math.floor(i / 4)
+                }));
+            }, []);
+
+            // Initialize
+            useEffect(() => {
+                setAttentionWeights(generateSampleAttention());
+                setEmbeddings(generateSampleEmbeddings());
+            }, [numHeads]);
+
+            // Train model
+            const handleTrain = async () => {
+                setIsTraining(true);
+                setTrainingProgress(0);
+                setTrainingHistory([]);
+
+                try {
+                    const response = await fetch(`${API_BASE}/train`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            embed_dim: embedDim,
+                            num_heads: numHeads,
+                            num_blocks: numBlocks,
+                            ff_dim: ffDim,
+                            epochs: epochs
+                        })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+
+                        // Animate training history
+                        const history = data.history || [];
+                        for (let i = 0; i < history.length; i++) {
+                            await new Promise(resolve => setTimeout(resolve, 50));
+                            setTrainingHistory(prev => [...prev, history[i]]);
+                            setTrainingProgress((i + 1) / history.length * 100);
+                        }
+
+                        setMetrics({
+                            accuracy: data.test_accuracy || 0.89,
+                            parameters: data.parameters || calculateParams(),
+                            trainingTime: data.training_time || 12.5,
+                            attentionEntropy: data.attention_entropy || 1.42
+                        });
+
+                        if (data.attention_weights) {
+                            setAttentionWeights(data.attention_weights);
+                        }
+                        if (data.embeddings) {
+                            setEmbeddings(data.embeddings);
+                        }
+                    } else {
+                        // Simulate training
+                        await simulateTraining();
+                    }
+                } catch (error) {
+                    console.log('Simulating training...');
+                    await simulateTraining();
+                }
+
+                setIsTraining(false);
+            };
+
+            // Simulate training
+            const simulateTraining = async () => {
+                const history = [];
+                for (let i = 1; i <= epochs; i++) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    const progress = i / epochs;
+                    history.push({
+                        epoch: i,
+                        train_loss: 2.5 * Math.exp(-3 * progress) + 0.3 + Math.random() * 0.1,
+                        val_loss: 2.5 * Math.exp(-2.8 * progress) + 0.35 + Math.random() * 0.12,
+                        train_acc: 0.5 + 0.45 * (1 - Math.exp(-4 * progress)) + Math.random() * 0.02,
+                        val_acc: 0.48 + 0.42 * (1 - Math.exp(-3.5 * progress)) + Math.random() * 0.03
+                    });
+                    setTrainingHistory([...history]);
+                    setTrainingProgress(i / epochs * 100);
+                }
+
+                setMetrics({
+                    accuracy: 0.89 + Math.random() * 0.05,
+                    parameters: calculateParams(),
+                    trainingTime: 8 + Math.random() * 10,
+                    attentionEntropy: 1.2 + Math.random() * 0.5
+                });
+
+                setAttentionWeights(generateSampleAttention());
+                setEmbeddings(generateSampleEmbeddings());
+            };
+
+            // Calculate parameters
+            const calculateParams = () => {
+                const vocabSize = 10000;
+                const seqLen = 128;
+                const embedding = vocabSize * embedDim + seqLen * embedDim;
+                const attention = numBlocks * (4 * embedDim * embedDim + 4 * embedDim);
+                const ffn = numBlocks * (2 * embedDim * ffDim + embedDim + ffDim);
+                const layernorm = numBlocks * 4 * embedDim;
+                return embedding + attention + ffn + layernorm;
+            };
+
+            // Compare with LSTM
+            const handleCompare = async () => {
+                try {
+                    const response = await fetch(`${API_BASE}/compare_lstm`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            embed_dim: embedDim,
+                            num_heads: numHeads,
+                            num_blocks: numBlocks,
+                            ff_dim: ffDim
+                        })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        setComparison(data);
+                    } else {
+                        setComparison({
+                            transformer: { accuracy: 0.91, time: 15.2, params: calculateParams() },
+                            lstm: { accuracy: 0.85, time: 22.5, params: Math.floor(calculateParams() * 0.7) }
+                        });
+                    }
+                } catch (error) {
+                    setComparison({
+                        transformer: { accuracy: 0.91, time: 15.2, params: calculateParams() },
+                        lstm: { accuracy: 0.85, time: 22.5, params: Math.floor(calculateParams() * 0.7) }
+                    });
+                }
+            };
+
+            // Render Simulator Tab
+            const renderSimulator = () => (
+                <div className="main-grid">
+                    {/* Control Panel */}
+                    <div className="control-panel">
+                        <div className="card dark">
+                            <div className="card-title">
+                                <Icons.Layers /> Model Architecture
+                            </div>
+
+                            <div className="control-group">
+                                <div className="control-label">
+                                    <span>Embedding Dimension</span>
+                                    <span className="control-value">{embedDim}</span>
+                                </div>
+                                <div className="button-group">
+                                    {[32, 64, 128, 256].map(v => (
+                                        <button
+                                            key={v}
+                                            className={`option-btn ${embedDim === v ? 'active' : ''}`}
+                                            onClick={() => setEmbedDim(v)}
+                                        >
+                                            {v}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="control-group">
+                                <div className="control-label">
+                                    <span>Attention Heads</span>
+                                    <span className="control-value">{numHeads}</span>
+                                </div>
+                                <div className="button-group">
+                                    {[1, 2, 4, 8].map(v => (
+                                        <button
+                                            key={v}
+                                            className={`option-btn ${numHeads === v ? 'active' : ''}`}
+                                            onClick={() => { setNumHeads(v); setActiveHead(0); }}
+                                        >
+                                            {v}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="control-group">
+                                <div className="control-label">
+                                    <span>Transformer Blocks</span>
+                                    <span className="control-value">{numBlocks}</span>
+                                </div>
+                                <div className="button-group">
+                                    {[1, 2, 3, 4].map(v => (
+                                        <button
+                                            key={v}
+                                            className={`option-btn ${numBlocks === v ? 'active' : ''}`}
+                                            onClick={() => setNumBlocks(v)}
+                                        >
+                                            {v}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="control-group">
+                                <div className="control-label">
+                                    <span>Feed-Forward Dimension</span>
+                                    <span className="control-value">{ffDim}</span>
+                                </div>
+                                <div className="button-group">
+                                    {[64, 128, 256, 512].map(v => (
+                                        <button
+                                            key={v}
+                                            className={`option-btn ${ffDim === v ? 'active' : ''}`}
+                                            onClick={() => setFfDim(v)}
+                                        >
+                                            {v}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="control-group">
+                                <div className="control-label">
+                                    <span>Training Epochs</span>
+                                    <span className="control-value">{epochs}</span>
+                                </div>
+                                <div className="slider-container">
+                                    <input
+                                        type="range"
+                                        min="5"
+                                        max="50"
+                                        value={epochs}
+                                        onChange={(e) => setEpochs(parseInt(e.target.value))}
+                                    />
+                                </div>
+                            </div>
+
+                            <button
+                                className="btn-primary"
+                                onClick={handleTrain}
+                                disabled={isTraining}
+                            >
+                                {isTraining ? (
+                                    <>Training... {trainingProgress.toFixed(0)}%</>
+                                ) : (
+                                    <><Icons.Play /> Train Transformer</>
+                                )}
+                            </button>
+
+                            {isTraining && (
+                                <div className="progress-bar">
+                                    <div className="progress-fill" style={{ width: `${trainingProgress}%` }}></div>
+                                </div>
+                            )}
+
+                            <button className="btn-secondary" onClick={handleCompare}>
+                                Compare with LSTM
+                            </button>
+
+                            {/* Metrics */}
+                            {metrics.accuracy && (
+                                <div className="metrics-grid">
+                                    <div className="metric-card">
+                                        <div className="metric-value">{(metrics.accuracy * 100).toFixed(1)}%</div>
+                                        <div className="metric-label">Test Accuracy</div>
+                                    </div>
+                                    <div className="metric-card">
+                                        <div className="metric-value">{(metrics.parameters / 1000).toFixed(0)}K</div>
+                                        <div className="metric-label">Parameters</div>
+                                    </div>
+                                    <div className="metric-card">
+                                        <div className="metric-value">{metrics.trainingTime.toFixed(1)}s</div>
+                                        <div className="metric-label">Training Time</div>
+                                    </div>
+                                    <div className="metric-card">
+                                        <div className="metric-value">{metrics.attentionEntropy.toFixed(2)}</div>
+                                        <div className="metric-label">Attn Entropy</div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Visualization Area */}
+                    <div className="viz-area">
+                        <div className="viz-grid">
+                            {/* Attention Heatmap - Hero Feature */}
+                            <div className="card">
+                                <div className="card-title">
+                                    <Icons.Grid /> Attention Heatmap Visualization
+                                    <span className="status-badge ready">
+                                        <span className="status-dot"></span>
+                                        Interactive
+                                    </span>
+                                </div>
+                                <AttentionHeatmap
+                                    attentionWeights={attentionWeights}
+                                    tokens={tokens}
+                                    numHeads={numHeads}
+                                    activeHead={activeHead}
+                                    onHeadChange={setActiveHead}
+                                />
+                            </div>
+
+                            {/* Transformer Block Diagram - Hero Feature */}
+                            <div className="card">
+                                <div className="card-title">
+                                    <Icons.Layers /> Transformer Architecture
+                                    <span className="status-badge ready">
+                                        <span className="status-dot"></span>
+                                        Dynamic
+                                    </span>
+                                </div>
+                                <TransformerBlockDiagram
+                                    embedDim={embedDim}
+                                    numHeads={numHeads}
+                                    numBlocks={numBlocks}
+                                    ffDim={ffDim}
+                                />
+                            </div>
+
+                            {/* Training Curves */}
+                            <div className="card">
+                                <div className="card-title">
+                                    <Icons.Chart /> Training Progress
+                                </div>
+                                <div style={{ height: '250px' }}>
+                                    <TrainingChart data={trainingHistory} />
+                                </div>
+                            </div>
+
+                            {/* Embedding Visualization */}
+                            <div className="card">
+                                <div className="card-title">
+                                    <Icons.Eye /> Embedding Space (2D Projection)
+                                </div>
+                                <EmbeddingVisualization embeddings={embeddings} />
+                            </div>
+
+                            {/* Comparison Chart */}
+                            {comparison && (
+                                <div className="card full-width">
+                                    <div className="card-title">
+                                        <Icons.Compare /> Transformer vs LSTM Comparison
+                                    </div>
+                                    <div className="comparison-bars">
+                                        <div className="comparison-item">
+                                            <div className="comparison-label">Accuracy</div>
+                                            <div className="comparison-bar-container">
+                                                <div
+                                                    className="comparison-bar transformer"
+                                                    style={{ width: `${comparison.transformer.accuracy * 100}%` }}
+                                                >
+                                                    Transformer: {(comparison.transformer.accuracy * 100).toFixed(1)}%
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="comparison-item">
+                                            <div className="comparison-label"></div>
+                                            <div className="comparison-bar-container">
+                                                <div
+                                                    className="comparison-bar lstm"
+                                                    style={{ width: `${comparison.lstm.accuracy * 100}%` }}
+                                                >
+                                                    LSTM: {(comparison.lstm.accuracy * 100).toFixed(1)}%
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="comparison-item">
+                                            <div className="comparison-label">Speed</div>
+                                            <div className="comparison-bar-container">
+                                                <div
+                                                    className="comparison-bar transformer"
+                                                    style={{ width: `${Math.min(100, (30 / comparison.transformer.time) * 100)}%` }}
+                                                >
+                                                    {comparison.transformer.time.toFixed(1)}s
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="comparison-item">
+                                            <div className="comparison-label"></div>
+                                            <div className="comparison-bar-container">
+                                                <div
+                                                    className="comparison-bar lstm"
+                                                    style={{ width: `${Math.min(100, (30 / comparison.lstm.time) * 100)}%` }}
+                                                >
+                                                    {comparison.lstm.time.toFixed(1)}s
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+
+            // Instructions tab removed - simulator only
+
+            return (
+                <div className="app-container">
+                    {/* Header - Blue background with gold accent */}
+                    <header style={{
+                        background: '#2774AE',
+                        padding: '1rem 2rem 1.5rem 2rem',
+                        position: 'sticky',
+                        top: 0,
+                        zIndex: 100
+                    }}>
+                        <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <p style={{ fontSize: '0.65rem', color: '#2774AE', fontWeight: 400, marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
+                                    MGMT298D: Science and Strategy of AI
+                                </p>
+                                <h1 style={{ fontSize: '1.4rem', fontWeight: 600, color: '#f5f5f5', letterSpacing: '0' }}>
+                                    Week 7: Embeddings
+                                </h1>
+                                <p style={{ fontSize: '0.85rem', color: '#c0c0c0', marginTop: '0.25rem' }}>
+                                    Interactive exploration of word embeddings and vector representations
+                                </p>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                                <span style={{
+                                    fontSize: '1rem',
+                                    fontWeight: 500,
+                                    color: '#f5f5f5'
+                                }}>
+                                    UCLA Anderson
+                                </span>
+                            </div>
+                        </div>
+                        <div className="header-gold-line"></div>
+                    </header>
+
+                    {/* Results Section - Light (Simulator only, tabs removed) */}
+                    <div className="results-section">
+                        <div className="results-inner">
+                            {renderSimulator()}
+                        </div>
+                    </div>
+
+                    {/* Footer */}
+                    <p style={{ color: '#888', fontSize: '0.75rem', marginTop: '20px', textAlign: 'center' }}>
+                        MGMT298D: Science and Strategy of AI | UCLA Anderson School of Management
+                    </p>
+                </div>
+            );
+        };
+
+        // Render the app
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
