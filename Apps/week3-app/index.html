@@ -707,7 +707,7 @@
         const { useState, useEffect, useRef, useCallback } = React;
 
         // API Configuration
-        const API_BASE = 'http://localhost:8002';
+        const API_BASE = window.location.origin;
 
         // Cluster colors - UCLA themed
         const CLUSTER_COLORS = [
