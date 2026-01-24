@@ -24,6 +24,10 @@ user_movie_matrix = None
 movie_titles = None
 
 
+# GitHub raw URL for data
+DATA_URL = "https://raw.githubusercontent.com/ucla-anderson-SSAI/SSAI/main/netflix_ratings.csv"
+
+
 def load_data():
     """Load and prepare Netflix ratings data"""
     global ratings_df, user_movie_matrix, movie_titles
@@ -31,11 +35,12 @@ def load_data():
     if ratings_df is not None:
         return
 
-    print("Loading Netflix ratings data...")
-    # Load from local file (generated data for demonstration)
-    import os
-    local_path = os.path.join(os.path.dirname(__file__), "netflix_ratings.csv")
-    ratings_df = pd.read_csv(local_path)
+    print("Loading Netflix ratings data from GitHub...")
+    try:
+        ratings_df = pd.read_csv(DATA_URL)
+    except Exception as e:
+        print(f"Error loading data from GitHub: {e}")
+        raise
 
     print(f"Loaded {len(ratings_df)} ratings")
     print(f"Columns: {ratings_df.columns.tolist()}")

@@ -77,22 +77,19 @@ def generate_sample_data():
 
     return data
 
+# GitHub raw URL for data
+DATA_URL = "https://raw.githubusercontent.com/ucla-anderson-SSAI/SSAI/main/range_rover.csv"
+
+
 def load_and_prepare_data():
     global df, X, y, encoders
 
-    # Try to load from local file first, then URL, then generate sample data
-    local_path = os.path.join(os.path.dirname(__file__), 'range_rover.csv')
+    if df is not None:
+        return
 
-    if os.path.exists(local_path):
-        df = pd.read_csv(local_path)
-    else:
-        try:
-            url = "https://raw.githubusercontent.com/ucla-anderson-SSAI/SSAI/refs/heads/main/range_rover.csv"
-            df = pd.read_csv(url)
-        except Exception as e:
-            print(f"Could not load remote data: {e}")
-            print("Generating sample Range Rover data...")
-            df = generate_sample_data()
+    # Load from GitHub
+    print("Loading Range Rover data from GitHub...")
+    df = pd.read_csv(DATA_URL)
 
     # Encode categorical variables
     categorical_cols = ['trim', 'state', 'color']

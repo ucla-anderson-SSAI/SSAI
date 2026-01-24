@@ -19,8 +19,8 @@ router = APIRouter()
 # CORS handled by main app
 
 # Constants
-DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
-DATA_FILE = os.path.join(DATA_DIR, "HMData.csv")
+# GitHub raw URL for data
+DATA_URL = "https://raw.githubusercontent.com/ucla-anderson-SSAI/SSAI/main/HMData.csv"
 MONTH_COLS = ["January", "February", "March", "April", "May", "June",
               "July", "August", "September", "October", "November", "December"]
 
@@ -114,16 +114,13 @@ class CompareResponse(BaseModel):
 
 
 def load_data():
-    """Load dataset."""
+    """Load dataset from GitHub."""
     global df, CATEGORIES
     if df is None:
-        if os.path.exists(DATA_FILE):
-            df = pd.read_csv(DATA_FILE)
-            CATEGORIES = sorted(df["name"].unique().tolist())
-            print(f"[INFO] Loaded {len(df)} rows, {len(CATEGORIES)} categories from {DATA_FILE}")
-        else:
-            print(f"[WARNING] Data file not found at {DATA_FILE}")
-            print(f"[INFO] Please place HMData.csv in the data/ directory")
+        print("[INFO] Loading HMData from GitHub...")
+        df = pd.read_csv(DATA_URL)
+        CATEGORIES = sorted(df["name"].unique().tolist())
+        print(f"[INFO] Loaded {len(df)} rows, {len(CATEGORIES)} categories")
 
 # Load data on import
 load_data()

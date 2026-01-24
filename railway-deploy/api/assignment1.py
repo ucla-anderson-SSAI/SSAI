@@ -73,13 +73,20 @@ class AnalyzeResponse(BaseModel):
     sample_data: List[dict]
 
 
-async def load_data():
-    """Load and preprocess Airbnb dataset at startup."""
+# GitHub raw URL for data
+DATA_URL = "https://raw.githubusercontent.com/ucla-anderson-SSAI/SSAI/main/listings.csv"
+
+
+def load_data():
+    """Load and preprocess Airbnb dataset."""
     global df, NEIGHBORHOODS
 
-    # Load data
-    data_path = os.path.join(os.path.dirname(__file__), "data", "listings.csv")
-    df = pd.read_csv(data_path, low_memory=False)
+    if df is not None:
+        return
+
+    # Load data from GitHub
+    print("Loading Airbnb listings data from GitHub...")
+    df = pd.read_csv(DATA_URL, low_memory=False)
 
     # Preprocess boolean columns (t/f to 1/0)
     bool_cols = ['host_is_superhost', 'instant_bookable', 'host_identity_verified']
