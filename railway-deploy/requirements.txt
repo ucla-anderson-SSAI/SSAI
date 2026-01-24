@@ -11,8 +11,8 @@ numpy>=1.26.4
 scikit-learn>=1.4.0
 xgboost>=2.0.2
 
-# Deep Learning
-tensorflow>=2.16.0
+# Deep Learning (using lighter tensorflow-cpu for deployment)
+tensorflow-cpu>=2.15.0
 
 # Visualization & Utils
 matplotlib>=3.8.2
