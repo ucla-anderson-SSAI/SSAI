@@ -1,0 +1,1765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Week 3: Clustering - Netflix Recommendations | UCLA Anderson</title>
+    <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2774AE;
+            --accent: #FFD100;
+            --darkBlue: #005587;
+            --lightBlue: #8BB8E8;
+            --positive: #22c55e;
+            --negative: #ef4444;
+            --darkBg: #111318;
+            --darkCard: #1a1d24;
+            --darkText: #e5e5e5;
+            --darkMuted: #888;
+            --lightBg: #f5f5f5;
+            --lightCard: #ffffff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #ffffff;
+            min-height: 100vh;
+            color: #1a1a1a;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--darkBlue);
+        }
+
+        .app-container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            background: #ffffff;
+            padding: 20px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #FFD100;
+        }
+
+        .header-left {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .course-code {
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: #FFD100;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+        }
+
+        .header h1 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #005587;
+            letter-spacing: -0.01em;
+        }
+
+        .header .subtitle {
+            color: #666666;
+            font-size: 0.85rem;
+            margin-top: 4px;
+        }
+
+        .header-right {
+            text-align: right;
+        }
+
+        .ucla-label {
+            font-size: 0.65rem;
+            font-weight: 500;
+            color: #666666;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+
+        .ucla-brand {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #2774AE;
+        }
+
+        /* Controls Section - Light */
+        .controls-section {
+            background: var(--lightBg);
+            padding: 20px 40px;
+        }
+
+        /* Tab Navigation */
+        .tab-nav {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            padding: 10px 24px;
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 8px;
+            color: #666;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .tab-btn:hover {
+            background: rgba(39, 116, 174, 0.1);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: #ffffff;
+        }
+
+        /* Control Panel */
+        .control-panel {
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .control-panel h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #1a1a1a;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-group label {
+            font-size: 0.85rem;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .control-group select,
+        .control-group input[type="range"] {
+            width: 100%;
+            padding: 10px 12px;
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            color: #1a1a1a;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .control-group select:hover,
+        .control-group select:focus {
+            border-color: var(--primary);
+            outline: none;
+        }
+
+        .control-group select option {
+            background: #ffffff;
+            color: #1a1a1a;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            height: 8px;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+            padding: 0;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, var(--primary), var(--lightBlue));
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(39, 116, 174, 0.5);
+        }
+
+        .slider-value {
+            font-size: 0.9rem;
+            color: var(--primary);
+            font-weight: 600;
+            text-align: right;
+        }
+
+        /* Animation Controls */
+        .animation-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .anim-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .anim-btn.play {
+            background: linear-gradient(135deg, var(--primary), var(--lightBlue));
+            color: white;
+            box-shadow: 0 4px 15px rgba(39, 116, 174, 0.4);
+        }
+
+        .anim-btn.play:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(39, 116, 174, 0.5);
+        }
+
+        .anim-btn.step {
+            background: linear-gradient(135deg, var(--darkBlue), var(--primary));
+            color: white;
+        }
+
+        .anim-btn.step:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 85, 135, 0.4);
+        }
+
+        .anim-btn.reset {
+            background: #ffffff;
+            color: #666;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .anim-btn.reset:hover {
+            background: #eee;
+            border-color: rgba(0, 0, 0, 0.15);
+        }
+
+        .anim-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .speed-selector {
+            display: flex;
+            gap: 5px;
+            margin-left: auto;
+        }
+
+        .speed-btn {
+            padding: 8px 16px;
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 6px;
+            color: #666;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .speed-btn.active {
+            background: rgba(39, 116, 174, 0.1);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* Algorithm Status */
+        .algorithm-status {
+            background: rgba(39, 116, 174, 0.05);
+            border: 1px solid rgba(39, 116, 174, 0.2);
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin-top: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-label {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .status-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .status-value.converged {
+            color: var(--positive);
+        }
+
+        /* Results Section - Light */
+        .results-section {
+            background: var(--lightBg);
+            padding: 30px 40px;
+        }
+
+        /* Metrics Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        @media (max-width: 900px) {
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .metric-card {
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .metric-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .metric-card .value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        .metric-card .label {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        /* Main Content Grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Chart Cards */
+        .chart-card {
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .chart-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-card.hero {
+            grid-column: 1 / -1;
+            background: #ffffff;
+        }
+
+        .chart-card h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chart-card h3 .icon {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--primary);
+            color: white;
+            border-radius: 6px;
+            font-size: 0.8rem;
+        }
+
+        /* Scatter Plot Styling */
+        .scatter-container {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            background: #f0f2f5;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .scatter-svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .cluster-point {
+            transition: all 0.5s ease;
+        }
+
+        .centroid {
+            filter: drop-shadow(0 0 10px currentColor);
+        }
+
+        .centroid-path {
+            stroke-dasharray: 5, 3;
+            opacity: 0.5;
+        }
+
+        /* Legend */
+        .cluster-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 15px;
+            justify-content: center;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .legend-centroid {
+            width: 16px;
+            height: 16px;
+            transform: rotate(45deg);
+        }
+
+        /* Instructions Tab */
+        .instructions-container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .instruction-section {
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .instruction-section h2 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .instruction-section h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 20px 0 15px;
+            color: var(--darkBlue);
+        }
+
+        .instruction-section p {
+            color: #666;
+            line-height: 1.7;
+            margin-bottom: 15px;
+        }
+
+        .instruction-section ul, .instruction-section ol {
+            color: #666;
+            line-height: 1.8;
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+
+        .instruction-section li {
+            margin-bottom: 8px;
+        }
+
+        .instruction-section code {
+            background: rgba(39, 116, 174, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.9em;
+            color: var(--primary);
+        }
+
+        .step-box {
+            background: rgba(39, 116, 174, 0.05);
+            border: 1px solid rgba(39, 116, 174, 0.2);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+
+        .step-box h4 {
+            color: var(--primary);
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .formula-box {
+            background: rgba(0, 85, 135, 0.05);
+            border: 1px solid rgba(0, 85, 135, 0.2);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            font-family: 'Monaco', monospace;
+            text-align: center;
+            color: var(--darkBlue);
+        }
+
+        .tip-box {
+            background: rgba(255, 209, 0, 0.1);
+            border-left: 4px solid var(--accent);
+            padding: 15px 20px;
+            margin: 15px 0;
+            border-radius: 0 10px 10px 0;
+        }
+
+        .tip-box strong {
+            color: #b8960b;
+        }
+
+        /* Loading State */
+        /* Loading State */
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px;
+            color: #666;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(39, 116, 174, 0.2);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Pulse Animation for Points */
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+        }
+
+        .point-assigning {
+            animation: pulse 0.3s ease;
+        }
+
+        /* Centroid Movement Animation */
+        @keyframes centroidMove {
+            0% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .centroid-moving {
+            animation: centroidMove 0.5s ease;
+        }
+
+        /* Feature Pills for controls */
+        .feature-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .feature-pill {
+            padding: 6px 12px;
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 20px;
+            color: #666;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .feature-pill.selected {
+            background: rgba(39, 116, 174, 0.1);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .feature-pill:hover {
+            border-color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback } = React;
+
+        // API Configuration
+        const API_BASE = "/api/week3";
+
+        // Cluster colors - UCLA themed
+        const CLUSTER_COLORS = [
+            '#2774AE', '#005587', '#8BB8E8', '#FFD100', '#22c55e',
+            '#ef4444', '#14b8a6', '#f97316', '#6366f1', '#84cc16'
+        ];
+
+        // Chart.js Components
+        function LineChartComponent({ data, dataKey, xKey, title }) {
+            const canvasRef = useRef(null);
+            const chartRef = useRef(null);
+
+            useEffect(() => {
+                if (!canvasRef.current || !data.length) return;
+                if (chartRef.current) chartRef.current.destroy();
+
+                const ctx = canvasRef.current.getContext('2d');
+                chartRef.current = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.map(d => d[xKey]),
+                        datasets: [{
+                            label: title,
+                            data: data.map(d => d[dataKey]),
+                            borderColor: '#2774AE',
+                            backgroundColor: 'rgba(39, 116, 174, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            pointBackgroundColor: '#2774AE',
+                            pointBorderColor: '#2774AE',
+                            pointRadius: 5,
+                            pointHoverRadius: 8,
+                            pointHoverBackgroundColor: '#005587'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: '#ffffff',
+                                borderColor: '#e0e0e0',
+                                borderWidth: 1,
+                                titleColor: '#333',
+                                bodyColor: '#666',
+                                padding: 12,
+                                cornerRadius: 8
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)',
+                                    drawBorder: false
+                                },
+                                ticks: { color: '#666' }
+                            },
+                            y: {
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)',
+                                    drawBorder: false
+                                },
+                                ticks: { color: '#666' }
+                            }
+                        }
+                    }
+                });
+                return () => { if (chartRef.current) chartRef.current.destroy(); };
+            }, [data, dataKey, xKey, title]);
+
+            return <div style={{height: '250px'}}><canvas ref={canvasRef} /></div>;
+        }
+
+        function BarChartComponent({ data, dataKey, xKey, title, highlightValue }) {
+            const canvasRef = useRef(null);
+            const chartRef = useRef(null);
+
+            useEffect(() => {
+                if (!canvasRef.current || !data.length) return;
+                if (chartRef.current) chartRef.current.destroy();
+
+                const ctx = canvasRef.current.getContext('2d');
+                chartRef.current = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: data.map(d => d[xKey]),
+                        datasets: [{
+                            label: title,
+                            data: data.map(d => d[dataKey]),
+                            backgroundColor: data.map(d => d[xKey] === highlightValue ? '#FFD100' : '#2774AE'),
+                            borderColor: data.map(d => d[xKey] === highlightValue ? '#FFD100' : '#2774AE'),
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: '#ffffff',
+                                borderColor: '#e0e0e0',
+                                borderWidth: 1,
+                                titleColor: '#333',
+                                bodyColor: '#666',
+                                padding: 12,
+                                cornerRadius: 8
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)',
+                                    drawBorder: false
+                                },
+                                ticks: { color: '#666' }
+                            },
+                            y: {
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)',
+                                    drawBorder: false
+                                },
+                                ticks: { color: '#666' },
+                                min: -0.2,
+                                max: 1
+                            }
+                        }
+                    }
+                });
+                return () => { if (chartRef.current) chartRef.current.destroy(); };
+            }, [data, dataKey, xKey, title, highlightValue]);
+
+            return <div style={{height: '250px'}}><canvas ref={canvasRef} /></div>;
+        }
+
+        function PieChartComponent({ data }) {
+            const canvasRef = useRef(null);
+            const chartRef = useRef(null);
+
+            useEffect(() => {
+                if (!canvasRef.current || !data.length) return;
+                if (chartRef.current) chartRef.current.destroy();
+
+                const ctx = canvasRef.current.getContext('2d');
+                chartRef.current = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.map(d => d.name),
+                        datasets: [{
+                            data: data.map(d => d.value),
+                            backgroundColor: data.map(d => d.color),
+                            borderColor: '#ffffff',
+                            borderWidth: 3,
+                            hoverOffset: 10
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '60%',
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'right',
+                                labels: {
+                                    color: '#666',
+                                    padding: 15,
+                                    usePointStyle: true,
+                                    pointStyle: 'circle',
+                                    font: { size: 11 }
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: '#ffffff',
+                                borderColor: '#e0e0e0',
+                                borderWidth: 1,
+                                titleColor: '#333',
+                                bodyColor: '#666',
+                                padding: 12,
+                                cornerRadius: 8,
+                                callbacks: {
+                                    label: function(context) {
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = ((context.parsed / total) * 100).toFixed(0);
+                                        return `${context.label}: ${context.parsed} (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                return () => { if (chartRef.current) chartRef.current.destroy(); };
+            }, [data]);
+
+            return <div style={{height: '250px'}}><canvas ref={canvasRef} /></div>;
+        }
+
+        function HorizontalBarChartComponent({ data, genres }) {
+            const canvasRef = useRef(null);
+            const chartRef = useRef(null);
+
+            const genreColors = {
+                'Action': '#2774AE',
+                'Comedy': '#FFD100',
+                'Drama': '#005587',
+                'Horror': '#8BB8E8',
+                'Sci-Fi': '#22c55e',
+                'Romance': '#ef4444'
+            };
+
+            useEffect(() => {
+                if (!canvasRef.current || !data.length) return;
+                if (chartRef.current) chartRef.current.destroy();
+
+                const ctx = canvasRef.current.getContext('2d');
+                const datasets = genres.map(genre => ({
+                    label: genre,
+                    data: data.map(d => d[genre] || 0),
+                    backgroundColor: genreColors[genre] || '#64748b',
+                    borderColor: genreColors[genre] || '#64748b',
+                    borderWidth: 1,
+                    borderRadius: 2
+                }));
+
+                chartRef.current = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: data.map(d => d.cluster),
+                        datasets: datasets
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                                labels: {
+                                    color: '#666',
+                                    padding: 10,
+                                    usePointStyle: true,
+                                    pointStyle: 'rect',
+                                    font: { size: 10 }
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: '#ffffff',
+                                borderColor: '#e0e0e0',
+                                borderWidth: 1,
+                                titleColor: '#333',
+                                bodyColor: '#666',
+                                padding: 12,
+                                cornerRadius: 8
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)',
+                                    drawBorder: false
+                                },
+                                ticks: { color: '#666' },
+                                min: 0,
+                                max: 5
+                            },
+                            y: {
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)',
+                                    drawBorder: false
+                                },
+                                ticks: { color: '#666' }
+                            }
+                        }
+                    }
+                });
+                return () => { if (chartRef.current) chartRef.current.destroy(); };
+            }, [data, genres]);
+
+            return <div style={{height: '250px'}}><canvas ref={canvasRef} /></div>;
+        }
+
+        // Generate mock data for clustering
+        const generateMockData = (numPoints = 150) => {
+            const data = [];
+            const genres = ['Action', 'Comedy', 'Drama', 'Horror', 'Sci-Fi', 'Romance'];
+
+            // Generate clusters
+            const clusterCenters = [
+                { x: 0.2, y: 0.8 },  // Action lovers
+                { x: 0.8, y: 0.7 },  // Comedy fans
+                { x: 0.5, y: 0.2 },  // Drama enthusiasts
+                { x: 0.3, y: 0.4 },  // Horror buffs
+            ];
+
+            for (let i = 0; i < numPoints; i++) {
+                const clusterIdx = Math.floor(Math.random() * clusterCenters.length);
+                const center = clusterCenters[clusterIdx];
+
+                const ratings = {};
+                genres.forEach(genre => {
+                    ratings[genre] = Math.random() * 5;
+                });
+
+                data.push({
+                    id: i,
+                    x: center.x + (Math.random() - 0.5) * 0.3,
+                    y: center.y + (Math.random() - 0.5) * 0.3,
+                    ratings,
+                    cluster: -1,
+                    userId: `User_${1000 + i}`
+                });
+            }
+            return data;
+        };
+
+        // K-Means implementation
+        const initializeCentroids = (data, k) => {
+            const shuffled = [...data].sort(() => Math.random() - 0.5);
+            return shuffled.slice(0, k).map((d, i) => ({
+                id: i,
+                x: d.x,
+                y: d.y,
+                prevX: d.x,
+                prevY: d.y
+            }));
+        };
+
+        const euclideanDistance = (p1, p2) => {
+            return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+        };
+
+        const assignClusters = (data, centroids) => {
+            return data.map(point => {
+                let minDist = Infinity;
+                let cluster = 0;
+                centroids.forEach((centroid, idx) => {
+                    const dist = euclideanDistance(point, centroid);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        cluster = idx;
+                    }
+                });
+                return { ...point, cluster, distance: minDist };
+            });
+        };
+
+        const updateCentroids = (data, centroids, k) => {
+            const newCentroids = [];
+            for (let i = 0; i < k; i++) {
+                const clusterPoints = data.filter(d => d.cluster === i);
+                if (clusterPoints.length > 0) {
+                    const avgX = clusterPoints.reduce((sum, p) => sum + p.x, 0) / clusterPoints.length;
+                    const avgY = clusterPoints.reduce((sum, p) => sum + p.y, 0) / clusterPoints.length;
+                    newCentroids.push({
+                        id: i,
+                        x: avgX,
+                        y: avgY,
+                        prevX: centroids[i].x,
+                        prevY: centroids[i].y
+                    });
+                } else {
+                    newCentroids.push(centroids[i]);
+                }
+            }
+            return newCentroids;
+        };
+
+        const calculateInertia = (data) => {
+            return data.reduce((sum, point) => sum + (point.distance || 0) ** 2, 0);
+        };
+
+        const calculateSilhouette = (data, k) => {
+            if (k <= 1 || data.length === 0) return 0;
+
+            let totalSilhouette = 0;
+            let validPoints = 0;
+
+            data.forEach(point => {
+                const sameCluster = data.filter(d => d.cluster === point.cluster && d.id !== point.id);
+                const otherClusters = [...new Set(data.map(d => d.cluster))].filter(c => c !== point.cluster);
+
+                if (sameCluster.length === 0) return;
+
+                // a: average distance to same cluster
+                const a = sameCluster.reduce((sum, p) => sum + euclideanDistance(point, p), 0) / sameCluster.length;
+
+                // b: minimum average distance to other clusters
+                let b = Infinity;
+                otherClusters.forEach(cluster => {
+                    const clusterPoints = data.filter(d => d.cluster === cluster);
+                    if (clusterPoints.length > 0) {
+                        const avgDist = clusterPoints.reduce((sum, p) => sum + euclideanDistance(point, p), 0) / clusterPoints.length;
+                        b = Math.min(b, avgDist);
+                    }
+                });
+
+                if (b !== Infinity) {
+                    const s = (b - a) / Math.max(a, b);
+                    totalSilhouette += s;
+                    validPoints++;
+                }
+            });
+
+            return validPoints > 0 ? totalSilhouette / validPoints : 0;
+        };
+
+        // DBSCAN implementation
+        const dbscan = (data, eps, minSamples) => {
+            const labels = new Array(data.length).fill(-1);
+            let clusterId = 0;
+
+            const getNeighbors = (pointIdx) => {
+                const neighbors = [];
+                data.forEach((p, idx) => {
+                    if (euclideanDistance(data[pointIdx], p) <= eps) {
+                        neighbors.push(idx);
+                    }
+                });
+                return neighbors;
+            };
+
+            const expandCluster = (pointIdx, neighbors, cluster) => {
+                labels[pointIdx] = cluster;
+                let i = 0;
+                while (i < neighbors.length) {
+                    const neighborIdx = neighbors[i];
+                    if (labels[neighborIdx] === -1) {
+                        labels[neighborIdx] = cluster;
+                        const newNeighbors = getNeighbors(neighborIdx);
+                        if (newNeighbors.length >= minSamples) {
+                            neighbors.push(...newNeighbors.filter(n => !neighbors.includes(n)));
+                        }
+                    }
+                    i++;
+                }
+            };
+
+            data.forEach((point, idx) => {
+                if (labels[idx] !== -1) return;
+                const neighbors = getNeighbors(idx);
+                if (neighbors.length >= minSamples) {
+                    expandCluster(idx, neighbors, clusterId);
+                    clusterId++;
+                }
+            });
+
+            return data.map((point, idx) => ({ ...point, cluster: labels[idx] }));
+        };
+
+        // Animated Scatter Plot Component
+        const AnimatedScatterPlot = ({ data, centroids, animationPhase, highlightedCluster }) => {
+            const svgRef = useRef(null);
+            const margin = { top: 20, right: 20, bottom: 40, left: 40 };
+            const width = 800;
+            const height = 500;
+            const plotWidth = width - margin.left - margin.right;
+            const plotHeight = height - margin.top - margin.bottom;
+
+            const xScale = (x) => margin.left + x * plotWidth;
+            const yScale = (y) => margin.top + (1 - y) * plotHeight;
+
+            return (
+                <div className="scatter-container">
+                    <svg className="scatter-svg" viewBox={`0 0 ${width} ${height}`}>
+                        {/* Grid */}
+                        <defs>
+                            <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(0,0,0,0.05)" strokeWidth="1"/>
+                            </pattern>
+                        </defs>
+                        <rect
+                            x={margin.left}
+                            y={margin.top}
+                            width={plotWidth}
+                            height={plotHeight}
+                            fill="url(#grid)"
+                        />
+
+                        {/* Axes */}
+                        <line
+                            x1={margin.left} y1={height - margin.bottom}
+                            x2={width - margin.right} y2={height - margin.bottom}
+                            stroke="rgba(0,0,0,0.2)" strokeWidth="1"
+                        />
+                        <line
+                            x1={margin.left} y1={margin.top}
+                            x2={margin.left} y2={height - margin.bottom}
+                            stroke="rgba(0,0,0,0.2)" strokeWidth="1"
+                        />
+                        <text x={width / 2} y={height - 5} fill="#666" fontSize="12" textAnchor="middle">
+                            PCA Component 1
+                        </text>
+                        <text x={15} y={height / 2} fill="#666" fontSize="12" textAnchor="middle" transform={`rotate(-90, 15, ${height/2})`}>
+                            PCA Component 2
+                        </text>
+
+                        {/* Centroid paths (show movement) */}
+                        {centroids.map((centroid, idx) => (
+                            centroid.prevX !== centroid.x || centroid.prevY !== centroid.y ? (
+                                <line
+                                    key={`path-${idx}`}
+                                    className="centroid-path"
+                                    x1={xScale(centroid.prevX)}
+                                    y1={yScale(centroid.prevY)}
+                                    x2={xScale(centroid.x)}
+                                    y2={yScale(centroid.y)}
+                                    stroke={CLUSTER_COLORS[idx % CLUSTER_COLORS.length]}
+                                    strokeWidth="2"
+                                />
+                            ) : null
+                        ))}
+
+                        {/* Data points */}
+                        {data.map((point, idx) => (
+                            <circle
+                                key={point.id}
+                                className={`cluster-point ${animationPhase === 'assigning' ? 'point-assigning' : ''}`}
+                                cx={xScale(point.x)}
+                                cy={yScale(point.y)}
+                                r={highlightedCluster !== null && point.cluster === highlightedCluster ? 8 : 5}
+                                fill={point.cluster >= 0 ? CLUSTER_COLORS[point.cluster % CLUSTER_COLORS.length] : '#94a3b8'}
+                                opacity={highlightedCluster !== null && point.cluster !== highlightedCluster ? 0.3 : 0.8}
+                                style={{
+                                    transition: 'all 0.3s ease',
+                                    filter: highlightedCluster !== null && point.cluster === highlightedCluster
+                                        ? `drop-shadow(0 0 5px ${CLUSTER_COLORS[point.cluster % CLUSTER_COLORS.length]})`
+                                        : 'none'
+                                }}
+                            />
+                        ))}
+
+                        {/* Centroids */}
+                        {centroids.map((centroid, idx) => (
+                            <g key={`centroid-${idx}`} className={animationPhase === 'updating' ? 'centroid-moving' : ''}>
+                                <rect
+                                    className="centroid"
+                                    x={xScale(centroid.x) - 10}
+                                    y={yScale(centroid.y) - 10}
+                                    width={20}
+                                    height={20}
+                                    fill={CLUSTER_COLORS[idx % CLUSTER_COLORS.length]}
+                                    stroke="white"
+                                    strokeWidth="2"
+                                    transform={`rotate(45, ${xScale(centroid.x)}, ${yScale(centroid.y)})`}
+                                    style={{ transition: 'all 0.5s ease' }}
+                                />
+                                <text
+                                    x={xScale(centroid.x)}
+                                    y={yScale(centroid.y) - 20}
+                                    fill="#333"
+                                    fontSize="12"
+                                    fontWeight="bold"
+                                    textAnchor="middle"
+                                >
+                                    C{idx + 1}
+                                </text>
+                            </g>
+                        ))}
+                    </svg>
+                </div>
+            );
+        };
+
+        // Main App Component
+        const App = () => {
+            // Tab state removed - showing only simulator content
+            const [algorithm, setAlgorithm] = useState('kmeans');
+            const [k, setK] = useState(4);
+            const [eps, setEps] = useState(0.15);
+            const [minSamples, setMinSamples] = useState(3);
+            const [speed, setSpeed] = useState('medium');
+
+            const [rawData, setRawData] = useState([]);
+            const [data, setData] = useState([]);
+            const [centroids, setCentroids] = useState([]);
+            const [iteration, setIteration] = useState(0);
+            const [isPlaying, setIsPlaying] = useState(false);
+            const [isConverged, setIsConverged] = useState(false);
+            const [animationPhase, setAnimationPhase] = useState('idle');
+            const [highlightedCluster, setHighlightedCluster] = useState(null);
+
+            const [metrics, setMetrics] = useState({
+                inertia: 0,
+                silhouette: 0,
+                numClusters: 0,
+                iterations: 0
+            });
+
+            const [elbowData, setElbowData] = useState([]);
+            const [silhouetteData, setSilhouetteData] = useState([]);
+            const [clusterProfiles, setClusterProfiles] = useState([]);
+            const [clusterSizes, setClusterSizes] = useState([]);
+
+            const animationRef = useRef(null);
+
+            const speedMs = { slow: 1500, medium: 800, fast: 300 };
+
+            // Initialize data
+            useEffect(() => {
+                const mockData = generateMockData(150);
+                setRawData(mockData);
+                setData(mockData);
+
+                // Calculate elbow data
+                const elbowResults = [];
+                for (let testK = 1; testK <= 10; testK++) {
+                    const testCentroids = initializeCentroids(mockData, testK);
+                    let testData = mockData;
+                    for (let i = 0; i < 10; i++) {
+                        testData = assignClusters(testData, testCentroids);
+                        const newCentroids = updateCentroids(testData, testCentroids, testK);
+                        testCentroids.splice(0, testCentroids.length, ...newCentroids);
+                    }
+                    elbowResults.push({
+                        k: testK,
+                        inertia: calculateInertia(testData),
+                        silhouette: calculateSilhouette(testData, testK)
+                    });
+                }
+                setElbowData(elbowResults);
+                setSilhouetteData(elbowResults.map(d => ({ k: d.k, score: d.silhouette })));
+            }, []);
+
+            // Reset algorithm
+            const handleReset = useCallback(() => {
+                setIsPlaying(false);
+                setIsConverged(false);
+                setIteration(0);
+                setAnimationPhase('idle');
+
+                if (animationRef.current) {
+                    clearTimeout(animationRef.current);
+                }
+
+                const resetData = rawData.map(d => ({ ...d, cluster: -1, distance: 0 }));
+                setData(resetData);
+
+                if (algorithm === 'kmeans') {
+                    const newCentroids = initializeCentroids(resetData, k);
+                    setCentroids(newCentroids);
+                } else {
+                    setCentroids([]);
+                }
+
+                setMetrics({ inertia: 0, silhouette: 0, numClusters: 0, iterations: 0 });
+                setClusterProfiles([]);
+                setClusterSizes([]);
+            }, [rawData, algorithm, k]);
+
+            // Run one step of K-means
+            const runStep = useCallback(() => {
+                if (algorithm !== 'kmeans' || isConverged) return;
+
+                setAnimationPhase('assigning');
+
+                setTimeout(() => {
+                    // Assign clusters
+                    const newData = assignClusters(data, centroids);
+                    setData(newData);
+
+                    setTimeout(() => {
+                        setAnimationPhase('updating');
+
+                        // Update centroids
+                        const newCentroids = updateCentroids(newData, centroids, k);
+
+                        // Check convergence
+                        const movement = newCentroids.reduce((sum, c, i) => {
+                            return sum + euclideanDistance(c, centroids[i]);
+                        }, 0);
+
+                        setCentroids(newCentroids);
+                        setIteration(prev => prev + 1);
+
+                        // Update metrics
+                        const inertia = calculateInertia(newData);
+                        const silhouette = calculateSilhouette(newData, k);
+
+                        setMetrics({
+                            inertia: inertia.toFixed(2),
+                            silhouette: silhouette.toFixed(3),
+                            numClusters: k,
+                            iterations: iteration + 1
+                        });
+
+                        // Update cluster profiles
+                        updateClusterAnalysis(newData, k);
+
+                        if (movement < 0.001) {
+                            setIsConverged(true);
+                            setIsPlaying(false);
+                            setAnimationPhase('converged');
+                        } else {
+                            setTimeout(() => setAnimationPhase('idle'), 200);
+                        }
+                    }, speedMs[speed] / 3);
+                }, speedMs[speed] / 3);
+            }, [algorithm, data, centroids, k, iteration, isConverged, speed]);
+
+            // Run DBSCAN
+            const runDBSCAN = useCallback(() => {
+                const result = dbscan(rawData, eps, minSamples);
+                setData(result);
+                setCentroids([]);
+
+                const uniqueClusters = [...new Set(result.map(d => d.cluster))].filter(c => c >= 0);
+                const silhouette = calculateSilhouette(result, uniqueClusters.length);
+
+                setMetrics({
+                    inertia: 'N/A',
+                    silhouette: silhouette.toFixed(3),
+                    numClusters: uniqueClusters.length,
+                    iterations: 1
+                });
+
+                updateClusterAnalysis(result, uniqueClusters.length);
+                setIsConverged(true);
+            }, [rawData, eps, minSamples]);
+
+            // Update cluster analysis
+            const updateClusterAnalysis = (clusteredData, numClusters) => {
+                const genres = ['Action', 'Comedy', 'Drama', 'Horror', 'Sci-Fi', 'Romance'];
+                const profiles = [];
+                const sizes = [];
+
+                for (let i = 0; i < numClusters; i++) {
+                    const clusterPoints = clusteredData.filter(d => d.cluster === i);
+                    if (clusterPoints.length === 0) continue;
+
+                    sizes.push({
+                        name: `Cluster ${i + 1}`,
+                        value: clusterPoints.length,
+                        color: CLUSTER_COLORS[i % CLUSTER_COLORS.length]
+                    });
+
+                    const profile = { cluster: `Cluster ${i + 1}` };
+                    genres.forEach(genre => {
+                        const avgRating = clusterPoints.reduce((sum, p) => sum + (p.ratings?.[genre] || 0), 0) / clusterPoints.length;
+                        profile[genre] = parseFloat(avgRating.toFixed(2));
+                    });
+                    profiles.push(profile);
+                }
+
+                setClusterProfiles(profiles);
+                setClusterSizes(sizes);
+            };
+
+            // Auto-play effect
+            useEffect(() => {
+                if (isPlaying && !isConverged) {
+                    animationRef.current = setTimeout(() => {
+                        runStep();
+                    }, speedMs[speed]);
+                }
+
+                return () => {
+                    if (animationRef.current) {
+                        clearTimeout(animationRef.current);
+                    }
+                };
+            }, [isPlaying, isConverged, runStep, speed]);
+
+            // Handle play/pause
+            const handlePlay = () => {
+                if (iteration === 0) {
+                    handleReset();
+                    setTimeout(() => setIsPlaying(true), 100);
+                } else {
+                    setIsPlaying(!isPlaying);
+                }
+            };
+
+            // Handle algorithm change
+            useEffect(() => {
+                handleReset();
+            }, [algorithm]);
+
+            // Run DBSCAN when parameters change
+            useEffect(() => {
+                if (algorithm === 'dbscan') {
+                    runDBSCAN();
+                }
+            }, [algorithm, eps, minSamples]);
+
+            return (
+                <div className="app-container">
+                    {/* Header */}
+                    <header style={{
+                        background: '#2774AE',
+                        borderBottom: '2px solid #FFD100',
+                        padding: '1rem 2rem',
+                        position: 'sticky',
+                        top: 0,
+                        zIndex: 100
+                    }}>
+                        <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <p style={{ fontSize: '0.65rem', color: '#FFD100', fontWeight: 400, marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
+                                    MGMT298D: Science and Strategy of AI
+                                </p>
+                                <h1 style={{ fontSize: '1.4rem', fontWeight: 600, color: '#f5f5f5', letterSpacing: '0' }}>
+                                    Week 3: Clustering
+                                </h1>
+                                <p style={{ fontSize: '0.85rem', color: '#b0b0b0', marginTop: '0.25rem' }}>
+                                    User Segmentation with K-Means and DBSCAN
+                                </p>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                                <span style={{
+                                    fontSize: '1rem',
+                                    fontWeight: 500,
+                                    color: '#f5f5f5'
+                                }}>
+                                    UCLA Anderson
+                                </span>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* Controls Section */}
+                    <div className="controls-section">
+                        <div className="control-panel">
+                                <h3>
+                                    <span style={{color: 'var(--primary)'}}>&#9881;</span>
+                                    Algorithm Configuration
+                                </h3>
+                                <div className="controls-grid">
+                                    <div className="control-group">
+                                        <label>Algorithm</label>
+                                        <select value={algorithm} onChange={(e) => setAlgorithm(e.target.value)}>
+                                            <option value="kmeans">K-Means</option>
+                                            <option value="dbscan">DBSCAN</option>
+                                        </select>
+                                    </div>
+
+                                    {algorithm === 'kmeans' && (
+                                        <div className="control-group">
+                                            <label>Number of Clusters (k)</label>
+                                            <input
+                                                type="range"
+                                                min="2"
+                                                max="10"
+                                                value={k}
+                                                onChange={(e) => setK(parseInt(e.target.value))}
+                                            />
+                                            <div className="slider-value">{k} clusters</div>
+                                        </div>
+                                    )}
+
+                                    {algorithm === 'dbscan' && (
+                                        <>
+                                            <div className="control-group">
+                                                <label>Epsilon (eps)</label>
+                                                <input
+                                                    type="range"
+                                                    min="0.05"
+                                                    max="0.5"
+                                                    step="0.01"
+                                                    value={eps}
+                                                    onChange={(e) => setEps(parseFloat(e.target.value))}
+                                                />
+                                                <div className="slider-value">{eps.toFixed(2)}</div>
+                                            </div>
+                                            <div className="control-group">
+                                                <label>Min Samples</label>
+                                                <input
+                                                    type="range"
+                                                    min="2"
+                                                    max="10"
+                                                    value={minSamples}
+                                                    onChange={(e) => setMinSamples(parseInt(e.target.value))}
+                                                />
+                                                <div className="slider-value">{minSamples} points</div>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+
+                                {algorithm === 'kmeans' && (
+                                    <>
+                                        <div className="animation-controls" style={{marginTop: '20px'}}>
+                                            <button
+                                                className={`anim-btn ${isPlaying ? 'reset' : 'play'}`}
+                                                onClick={handlePlay}
+                                                disabled={isConverged}
+                                            >
+                                                {isPlaying ? '|| Pause' : '> Play'}
+                                            </button>
+                                            <button
+                                                className="anim-btn step"
+                                                onClick={runStep}
+                                                disabled={isPlaying || isConverged}
+                                            >
+                                                >> Step
+                                            </button>
+                                            <button
+                                                className="anim-btn reset"
+                                                onClick={handleReset}
+                                            >
+                                                Reset
+                                            </button>
+
+                                            <div className="speed-selector">
+                                                {['slow', 'medium', 'fast'].map(s => (
+                                                    <button
+                                                        key={s}
+                                                        className={`speed-btn ${speed === s ? 'active' : ''}`}
+                                                        onClick={() => setSpeed(s)}
+                                                    >
+                                                        {s.charAt(0).toUpperCase() + s.slice(1)}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div className="algorithm-status">
+                                            <div className="status-item">
+                                                <span className="status-label">Phase:</span>
+                                                <span className="status-value">
+                                                    {animationPhase === 'idle' && 'Ready'}
+                                                    {animationPhase === 'assigning' && 'Assigning Points...'}
+                                                    {animationPhase === 'updating' && 'Moving Centroids...'}
+                                                    {animationPhase === 'converged' && 'Converged!'}
+                                                </span>
+                                            </div>
+                                            <div className="status-item">
+                                                <span className="status-label">Iteration:</span>
+                                                <span className="status-value">{iteration}</span>
+                                            </div>
+                                            <div className="status-item">
+                                                <span className="status-label">Status:</span>
+                                                <span className={`status-value ${isConverged ? 'converged' : ''}`}>
+                                                    {isConverged ? 'Converged' : isPlaying ? 'Running' : 'Paused'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                    </div>
+
+                    {/* Results Section */}
+                    <div className="results-section">
+                                {/* Metrics */}
+                                <div className="metrics-grid">
+                                    <div className="metric-card">
+                                        <div className="value">{metrics.inertia}</div>
+                                        <div className="label">Inertia (WCSS)</div>
+                                    </div>
+                                    <div className="metric-card">
+                                        <div className="value">{metrics.silhouette}</div>
+                                        <div className="label">Silhouette Score</div>
+                                    </div>
+                                    <div className="metric-card">
+                                        <div className="value">{metrics.numClusters}</div>
+                                        <div className="label">Clusters Found</div>
+                                    </div>
+                                    <div className="metric-card">
+                                        <div className="value">{metrics.iterations}</div>
+                                        <div className="label">Iterations</div>
+                                    </div>
+                                </div>
+
+                                {/* Main Visualization */}
+                                <div className="chart-card hero">
+                                    <h3>
+                                        <span className="icon">*</span>
+                                        Animated Clustering Visualization (2D PCA Projection)
+                                    </h3>
+                                    <AnimatedScatterPlot
+                                        data={data}
+                                        centroids={centroids}
+                                        animationPhase={animationPhase}
+                                        highlightedCluster={highlightedCluster}
+                                    />
+                                    <div className="cluster-legend">
+                                        {clusterSizes.map((cluster, idx) => (
+                                            <div
+                                                key={idx}
+                                                className="legend-item"
+                                                onMouseEnter={() => setHighlightedCluster(idx)}
+                                                onMouseLeave={() => setHighlightedCluster(null)}
+                                                style={{cursor: 'pointer'}}
+                                            >
+                                                <div className="legend-dot" style={{background: cluster.color}}></div>
+                                                {cluster.name} ({cluster.value} users)
+                                            </div>
+                                        ))}
+                                        {algorithm === 'kmeans' && (
+                                            <div className="legend-item">
+                                                <div className="legend-centroid" style={{background: '#333', border: '2px solid #fff'}}></div>
+                                                Centroid
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Secondary Charts */}
+                                <div className="main-grid">
+                                    {/* Elbow Plot */}
+                                    <div className="chart-card">
+                                        <h3>
+                                            <span className="icon">~</span>
+                                            Elbow Method (Inertia vs k)
+                                        </h3>
+                                        <LineChartComponent
+                                            data={elbowData}
+                                            dataKey="inertia"
+                                            xKey="k"
+                                            title="Inertia"
+                                        />
+                                    </div>
+
+                                    {/* Silhouette Scores */}
+                                    <div className="chart-card">
+                                        <h3>
+                                            <span className="icon">=</span>
+                                            Silhouette Score by k
+                                        </h3>
+                                        <BarChartComponent
+                                            data={silhouetteData}
+                                            dataKey="score"
+                                            xKey="k"
+                                            title="Silhouette Score"
+                                            highlightValue={k}
+                                        />
+                                    </div>
+
+                                    {/* Cluster Sizes */}
+                                    <div className="chart-card">
+                                        <h3>
+                                            <span className="icon">o</span>
+                                            Cluster Size Distribution
+                                        </h3>
+                                        <PieChartComponent data={clusterSizes} />
+                                    </div>
+
+                                    {/* Cluster Profiles */}
+                                    <div className="chart-card">
+                                        <h3>
+                                            <span className="icon">+</span>
+                                            Cluster Genre Profiles
+                                        </h3>
+                                        <HorizontalBarChartComponent
+                                            data={clusterProfiles}
+                                            genres={['Action', 'Comedy', 'Drama', 'Horror']}
+                                        />
+                                    </div>
+                                </div>
+                    </div>
+                </div>
+
+                {/* Footer */}
+                <p style={{ color: '#888', fontSize: '0.75rem', marginTop: '20px' }}>
+                    MGMT298D: Science and Strategy of AI | UCLA Anderson School of Management
+                </p>
+            );
+        };
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>

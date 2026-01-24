@@ -1,9 +1,0 @@
-__pycache__
-*.pyc
-*.pyo
-.git
-.gitignore
-README.md
-setup_project.py
-fix_routers.py
-*.log

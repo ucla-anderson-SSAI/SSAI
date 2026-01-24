@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assignment 8: LLM API Parameters & Generation | UCLA Anderson</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #ffffff;
+            min-height: 100vh;
+            color: #1a1a1a;
+        }
+        .glass-card { background: #ffffff; border: 1px solid rgba(0, 0, 0, 0.1); }
+        .glass-card-strong {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(39, 116, 174, 0.15);
+        }
+        .glow-ucla { box-shadow: 0 0 40px rgba(39, 116, 174, 0.3); }
+        .gradient-text {
+            background: linear-gradient(135deg, #2774AE, #8BB8E8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .gradient-text-gold {
+            background: linear-gradient(135deg, #FFD100, #FFE566);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .tab-active {
+            background: linear-gradient(135deg, #2774AE, #005587);
+            box-shadow: 0 4px 20px rgba(39, 116, 174, 0.4);
+        }
+        .slider-ucla::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, #2774AE, #005587);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(39, 116, 174, 0.6);
+        }
+        .slider-ucla::-webkit-slider-runnable-track {
+            background: linear-gradient(90deg, #2774AE, #8BB8E8, #FFD100);
+            height: 8px;
+            border-radius: 4px;
+        }
+        .token-bar {
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .response-card {
+            animation: fadeInUp 0.5s ease-out forwards;
+            opacity: 0;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(39, 116, 174, 0.3); }
+            50% { box-shadow: 0 0 40px rgba(255, 209, 0, 0.5); }
+        }
+        .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+        .probability-bar {
+            transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
+                        background-color 0.3s ease,
+                        opacity 0.3s ease;
+        }
+        .cumulative-fill {
+            transition: width 0.5s ease-out;
+        }
+        .json-key { color: #FFD100; }
+        .json-string { color: #22c55e; }
+        .json-number { color: #8BB8E8; }
+        .json-bracket { color: #2774AE; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: linear-gradient(135deg, #2774AE, #005587); border-radius: 4px; }
+    </style>
+</head>
+<body class="text-[#e5e5e5]">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback } = React;
+
+        // UCLA Dark Theme Colors
+        const colors = {
+            primary: '#2774AE',
+            accent: '#FFD100',
+            darkBlue: '#005587',
+            lightBlue: '#8BB8E8',
+            positive: '#22c55e',
+            negative: '#ef4444',
+            background: '#2774AE',
+            cardBg: '#ffffff',
+            cardBorder: 'rgba(0, 0, 0, 0.1)',
+            text: '#1a1a1a',
+            textMuted: '#666666'
+        };
+
+        // Simulated token probabilities that change with temperature
+        const baseTokenProbabilities = [
+            { token: "ordered", baseProb: 0.35 },
+            { token: "asked", baseProb: 0.25 },
+            { token: "sat", baseProb: 0.15 },
+            { token: "looked", baseProb: 0.10 },
+            { token: "said", baseProb: 0.05 },
+            { token: "began", baseProb: 0.03 },
+            { token: "noticed", baseProb: 0.025 },
+            { token: "felt", baseProb: 0.02 },
+            { token: "suddenly", baseProb: 0.015 },
+            { token: "immediately", baseProb: 0.01 }
+        ];
+
+        // Temperature effect on probabilities (softmax with temperature)
+        const applyTemperature = (probs, temp) => {
+            const logits = probs.map(p => Math.log(p.baseProb + 0.001));
+            const scaledLogits = logits.map(l => l / temp);
+            const maxLogit = Math.max(...scaledLogits);
+            const expLogits = scaledLogits.map(l => Math.exp(l - maxLogit));
+            const sumExp = expLogits.reduce((a, b) => a + b, 0);
+            return probs.map((p, i) => ({
+                ...p,
+                probability: (expLogits[i] / sumExp) * 100
+            }));
+        };
+
+        // Sample responses at different temperatures
+        const temperatureResponses = {
+            low: [
+                "ordered a black coffee and sat down at the nearest table.",
+                "ordered a latte and waited patiently in line.",
+                "ordered an espresso and checked its internal systems."
+            ],
+            medium: [
+                "noticed the barista was also a robot and they exchanged binary greetings.",
+                "felt oddly nostalgic, despite having no memories of coffee shops.",
+                "asked for the Wi-Fi password using Morse code eye blinks."
+            ],
+            high: [
+                "challenged the espresso machine to a dance-off, winning with the robot shuffle.",
+                "began composing a sonnet about the existential crisis of decaf beans.",
+                "accidentally synced with the cash register and started beatboxing prices."
+            ],
+            wild: [
+                "transformed into a vintage jukebox and played polka music while serving itself motor oil lattes!",
+                "declared itself the supreme overlord of pastries and knighted a croissant.",
+                "started a philosophical debate with a coffee bean about the meaning of grind."
+            ]
+        };
+
+        // Metrics Panel Component
+        const MetricsPanel = ({ temperature, topK, topP, responseLength, tokenCount }) => (
+            <div className="grid grid-cols-5 gap-4 mb-6">
+                {[
+                    { label: "Temperature", value: temperature.toFixed(2), color: "from-[#2774AE] to-[#8BB8E8]" },
+                    { label: "Top-K", value: topK, color: "from-[#005587] to-[#2774AE]" },
+                    { label: "Top-P", value: topP.toFixed(2), color: "from-[#2774AE] to-[#FFD100]" },
+                    { label: "Response Length", value: `${responseLength} chars`, color: "from-[#8BB8E8] to-[#2774AE]" },
+                    { label: "Token Count", value: tokenCount, color: "from-[#FFD100] to-[#2774AE]" }
+                ].map((metric, i) => (
+                    <div key={i} className="glass-card rounded-xl p-4 text-center">
+                        <div className={`text-2xl font-bold bg-gradient-to-r ${metric.color} bg-clip-text text-transparent`}>
+                            {metric.value}
+                        </div>
+                        <div className="text-xs text-[#888888] mt-1">{metric.label}</div>
+                    </div>
+                ))}
+            </div>
+        );
+
+        // Token Probability Bar Chart - HERO FEATURE
+        const TokenProbabilityChart = ({ temperature }) => {
+            const [animatedData, setAnimatedData] = useState([]);
+
+            useEffect(() => {
+                const newData = applyTemperature(baseTokenProbabilities, temperature);
+                setAnimatedData(newData);
+            }, [temperature]);
+
+            const getBarColor = (prob) => {
+                if (prob > 50) return "#2774AE";
+                if (prob > 30) return "#005587";
+                if (prob > 15) return "#8BB8E8";
+                if (prob > 5) return "#FFD100";
+                return "#888888";
+            };
+
+            return (
+                <div className="glass-card-strong rounded-2xl p-6 glow-ucla">
+                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <span className="text-2xl">*</span>
+                        <span className="text-[#FFD100]">Next Token Probability Distribution</span>
+                    </h3>
+                    <div className="space-y-3">
+                        {animatedData.map((item, idx) => (
+                            <div key={item.token} className="flex items-center gap-3">
+                                <div className="w-24 text-sm font-mono text-[#8BB8E8] truncate">
+                                    "{item.token}"
+                                </div>
+                                <div className="flex-1 h-8 bg-[#002845] rounded-lg overflow-hidden relative">
+                                    <div
+                                        className="probability-bar h-full rounded-lg flex items-center justify-end pr-2"
+                                        style={{
+                                            width: `${item.probability}%`,
+                                            backgroundColor: getBarColor(item.probability),
+                                            minWidth: '40px'
+                                        }}
+                                    >
+                                        <span className="text-xs font-bold text-white">
+                                            {item.probability.toFixed(1)}%
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="mt-4 p-3 bg-[#005587]/30 rounded-lg border border-[#2774AE]/30">
+                        <p className="text-sm text-[#8BB8E8]">
+                            {temperature < 0.5 ?
+                                "Low temperature: High confidence in top token. Deterministic output." :
+                            temperature < 1.0 ?
+                                "Balanced temperature: Moderate distribution. Good variety with coherence." :
+                            temperature < 1.5 ?
+                                "High temperature: Flatter distribution. More creative/varied outputs." :
+                                "Very high temperature: Nearly uniform distribution. Maximum randomness!"
+                            }
+                        </p>
+                    </div>
+                </div>
+            );
+        };
+
+        // Temperature Tab Component
+        const TemperatureTab = () => {
+            const [temperature, setTemperature] = useState(0.7);
+            const [responses, setResponses] = useState([]);
+            const [isGenerating, setIsGenerating] = useState(false);
+
+            const getTemperatureCategory = (temp) => {
+                if (temp <= 0.3) return { label: "Deterministic", color: "text-[#2774AE]", emoji: "*" };
+                if (temp <= 0.8) return { label: "Balanced", color: "text-[#22c55e]", emoji: "=" };
+                if (temp <= 1.5) return { label: "Creative", color: "text-[#FFD100]", emoji: "~" };
+                return { label: "Wild", color: "text-[#ef4444]", emoji: "!" };
+            };
+
+            const generateResponses = () => {
+                setIsGenerating(true);
+                setResponses([]);
+
+                let respArray;
+                if (temperature <= 0.3) respArray = temperatureResponses.low;
+                else if (temperature <= 0.8) respArray = temperatureResponses.medium;
+                else if (temperature <= 1.5) respArray = temperatureResponses.high;
+                else respArray = temperatureResponses.wild;
+
+                // Simulate streaming responses
+                respArray.forEach((resp, idx) => {
+                    setTimeout(() => {
+                        setResponses(prev => [...prev, resp]);
+                        if (idx === respArray.length - 1) setIsGenerating(false);
+                    }, (idx + 1) * 500);
+                });
+            };
+
+            const category = getTemperatureCategory(temperature);
+
+            return (
+                <div className="space-y-6">
+                    <MetricsPanel
+                        temperature={temperature}
+                        topK={50}
+                        topP={0.95}
+                        responseLength={responses.reduce((a, r) => a + r.length, 0)}
+                        tokenCount={responses.reduce((a, r) => a + Math.ceil(r.split(' ').length * 1.3), 0)}
+                    />
+
+                    <div className="grid grid-cols-2 gap-6">
+                        {/* Temperature Control */}
+                        <div className="glass-card-strong rounded-2xl p-6">
+                            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                                <span className="text-2xl text-[#FFD100]">T</span>
+                                <span className="text-[#FFD100]">Temperature Control</span>
+                            </h3>
+
+                            <div className="mb-6">
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className="text-[#888888]">Temperature</span>
+                                    <span className={`text-3xl font-bold ${category.color}`}>
+                                        {temperature.toFixed(2)}
+                                    </span>
+                                </div>
+                                <input
+                                    type="range"
+                                    min="0.1"
+                                    max="2.0"
+                                    step="0.1"
+                                    value={temperature}
+                                    onChange={(e) => setTemperature(parseFloat(e.target.value))}
+                                    className="w-full h-2 rounded-lg appearance-none cursor-pointer slider-ucla"
+                                />
+                                <div className="flex justify-between text-xs text-[#888888] mt-1">
+                                    <span>0.1 (Deterministic)</span>
+                                    <span>2.0 (Wild)</span>
+                                </div>
+                            </div>
+
+                            <div className={`p-4 rounded-xl ${
+                                temperature <= 0.3 ? 'bg-[#2774AE]/20 border-[#2774AE]/30' :
+                                temperature <= 0.8 ? 'bg-[#22c55e]/20 border-[#22c55e]/30' :
+                                temperature <= 1.5 ? 'bg-[#FFD100]/20 border-[#FFD100]/30' :
+                                'bg-[#ef4444]/20 border-[#ef4444]/30'
+                            } border`}>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <span className="text-2xl">{category.emoji}</span>
+                                    <span className={`font-bold ${category.color}`}>{category.label}</span>
+                                </div>
+                                <p className="text-sm text-[#e5e5e5]">
+                                    {temperature <= 0.3 ? "Best for factual tasks, code generation, and consistent outputs." :
+                                     temperature <= 0.8 ? "Best for general-purpose tasks, Q&A, and conversational AI." :
+                                     temperature <= 1.5 ? "Best for brainstorming, creative writing, and diverse ideas." :
+                                     "Maximum creativity and randomness. Use with caution!"}
+                                </p>
+                            </div>
+
+                            {/* Temperature Zones */}
+                            <div className="mt-6 grid grid-cols-4 gap-2">
+                                {[
+                                    { range: "0.1-0.3", label: "Factual", color: "bg-[#2774AE]" },
+                                    { range: "0.5-0.8", label: "Balanced", color: "bg-[#22c55e]" },
+                                    { range: "1.0-1.5", label: "Creative", color: "bg-[#FFD100]" },
+                                    { range: "1.5+", label: "Wild", color: "bg-[#ef4444]" }
+                                ].map((zone, i) => (
+                                    <div key={i} className="text-center p-2 rounded-lg bg-[#002845]">
+                                        <div className={`w-4 h-4 ${zone.color} rounded-full mx-auto mb-1`}></div>
+                                        <div className="text-xs text-[#888888]">{zone.range}</div>
+                                        <div className="text-xs font-medium text-[#e5e5e5]">{zone.label}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Token Probability Visualization */}
+                        <TokenProbabilityChart temperature={temperature} />
+                    </div>
+
+                    {/* Interactive Demo */}
+                    <div className="glass-card-strong rounded-2xl p-6 glow-ucla">
+                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                            <span className="text-2xl text-[#2774AE]">&gt;</span>
+                            <span className="text-[#FFD100]">Interactive Generation Demo</span>
+                        </h3>
+
+                        <div className="bg-[#002845] rounded-xl p-4 mb-4 border border-[#2774AE]/30">
+                            <div className="text-sm text-[#888888] mb-2">Prompt:</div>
+                            <div className="font-mono text-[#8BB8E8]">
+                                "Complete this sentence: The robot walked into the coffee shop and"
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={generateResponses}
+                            disabled={isGenerating}
+                            className={`w-full py-3 rounded-xl font-semibold transition-all ${
+                                isGenerating
+                                    ? 'bg-[#002845] cursor-wait text-[#888888]'
+                                    : 'bg-gradient-to-r from-[#2774AE] to-[#005587] hover:from-[#8BB8E8] hover:to-[#2774AE] text-white'
+                            } mb-4`}
+                        >
+                            {isGenerating ? (
+                                <span className="flex items-center justify-center gap-2">
+                                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                                    </svg>
+                                    Generating at T={temperature.toFixed(1)}...
+                                </span>
+                            ) : `Generate Responses at T=${temperature.toFixed(1)}`}
+                        </button>
+
+                        <div className="space-y-3">
+                            {responses.map((resp, idx) => (
+                                <div
+                                    key={idx}
+                                    className="response-card bg-[#005587]/20 rounded-xl p-4 border border-[#2774AE]/20"
+                                    style={{ animationDelay: `${idx * 0.1}s` }}
+                                >
+                                    <div className="flex items-start gap-3">
+                                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#2774AE] to-[#005587] flex items-center justify-center text-sm font-bold text-white">
+                                            {idx + 1}
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-[#e5e5e5]">
+                                                The robot walked into the coffee shop and <span className="text-[#FFD100] font-medium">{resp}</span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Temperature Math Explanation */}
+                    <div className="glass-card rounded-2xl p-6">
+                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                            <span className="text-2xl text-[#FFD100]">f(x)</span>
+                            <span className="text-[#e5e5e5]">How Temperature Works</span>
+                        </h3>
+                        <div className="grid grid-cols-2 gap-6">
+                            <div className="bg-[#002845] rounded-xl p-4 font-mono text-sm">
+                                <div className="text-[#2774AE] mb-2">// Softmax with Temperature</div>
+                                <div className="text-[#e5e5e5]">
+                                    P(token_i) = exp(logit_i / T) / Sum exp(logit_j / T)
+                                </div>
+                                <div className="mt-4 text-[#888888] text-xs">
+                                    <p>* Lower T - sharper distribution (deterministic)</p>
+                                    <p>* Higher T - flatter distribution (random)</p>
+                                    <p>* T=1.0 - original softmax probabilities</p>
+                                </div>
+                            </div>
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-3 p-3 bg-[#2774AE]/20 rounded-lg border border-[#2774AE]/30">
+                                    <span className="text-2xl text-[#2774AE]">*</span>
+                                    <div>
+                                        <div className="font-semibold text-[#2774AE]">T - 0</div>
+                                        <div className="text-sm text-[#888888]">Argmax (always picks highest probability)</div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3 p-3 bg-[#22c55e]/20 rounded-lg border border-[#22c55e]/30">
+                                    <span className="text-2xl text-[#22c55e]">=</span>
+                                    <div>
+                                        <div className="font-semibold text-[#22c55e]">T = 1.0</div>
+                                        <div className="text-sm text-[#888888]">Standard softmax distribution</div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3 p-3 bg-[#ef4444]/20 rounded-lg border border-[#ef4444]/30">
+                                    <span className="text-2xl text-[#ef4444]">~</span>
+                                    <div>
+                                        <div className="font-semibold text-[#ef4444]">T - infinity</div>
+                                        <div className="text-sm text-[#888888]">Uniform distribution (pure random)</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Sampling Tab Component
+        const SamplingTab = () => {
+            const [topK, setTopK] = useState(40);
+            const [topP, setTopP] = useState(0.9);
+            const [showTopK, setShowTopK] = useState(true);
+
+            const tokenPool = [
+                { token: "ordered", prob: 0.25 },
+                { token: "asked", prob: 0.18 },
+                { token: "sat", prob: 0.12 },
+                { token: "looked", prob: 0.10 },
+                { token: "said", prob: 0.08 },
+                { token: "began", prob: 0.07 },
+                { token: "noticed", prob: 0.06 },
+                { token: "felt", prob: 0.05 },
+                { token: "suddenly", prob: 0.04 },
+                { token: "immediately", prob: 0.03 },
+                { token: "quietly", prob: 0.02 }
+            ];
+
+            // Calculate cumulative probabilities
+            const cumulativeData = tokenPool.map((t, idx) => {
+                const cumulative = tokenPool.slice(0, idx + 1).reduce((a, b) => a + b.prob, 0);
+                return { ...t, cumulative, index: idx + 1 };
+            });
+
+            const topPCutoffIndex = cumulativeData.findIndex(d => d.cumulative >= topP);
+
+            return (
+                <div className="space-y-6">
+                    <MetricsPanel
+                        temperature={0.7}
+                        topK={topK}
+                        topP={topP}
+                        responseLength={0}
+                        tokenCount={0}
+                    />
+
+                    {/* Sampling Method Toggle */}
+                    <div className="flex gap-4 justify-center">
+                        <button
+                            onClick={() => setShowTopK(true)}
+                            className={`px-6 py-3 rounded-xl font-semibold transition-all ${
+                                showTopK ? 'tab-active text-white' : 'glass-card hover:bg-white/10 text-[#e5e5e5]'
+                            }`}
+                        >
+                            Top-K Sampling
+                        </button>
+                        <button
+                            onClick={() => setShowTopK(false)}
+                            className={`px-6 py-3 rounded-xl font-semibold transition-all ${
+                                !showTopK ? 'tab-active text-white' : 'glass-card hover:bg-white/10 text-[#e5e5e5]'
+                            }`}
+                        >
+                            Top-P (Nucleus) Sampling
+                        </button>
+                    </div>
+
+                    {showTopK ? (
+                        /* Top-K Visualization */
+                        <div className="glass-card-strong rounded-2xl p-6 glow-ucla">
+                            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                                <span className="text-2xl text-[#2774AE]">#</span>
+                                <span className="text-[#FFD100]">Top-K Sampling (K = {topK})</span>
+                            </h3>
+
+                            <div className="mb-6">
+                                <input
+                                    type="range"
+                                    min="1"
+                                    max="100"
+                                    value={topK}
+                                    onChange={(e) => setTopK(parseInt(e.target.value))}
+                                    className="w-full h-2 rounded-lg appearance-none cursor-pointer slider-ucla"
+                                />
+                                <div className="flex justify-between text-xs text-[#888888] mt-1">
+                                    <span>1 (Most focused)</span>
+                                    <span>100 (Broadest)</span>
+                                </div>
+                            </div>
+
+                            <div className="bg-[#002845] rounded-xl p-4 mb-4">
+                                <p className="text-sm text-[#888888] mb-4">
+                                    Top-K sampling keeps only the <span className="text-[#2774AE] font-bold">K most probable tokens</span> and redistributes probability among them.
+                                </p>
+
+                                <div className="space-y-2">
+                                    {tokenPool.map((t, idx) => {
+                                        const isInPool = idx < Math.min(topK, tokenPool.length);
+                                        return (
+                                            <div key={t.token} className="flex items-center gap-3">
+                                                <div className={`w-6 h-6 rounded flex items-center justify-center text-xs font-bold ${
+                                                    isInPool ? 'bg-[#2774AE] text-white' : 'bg-[#333] text-[#888888]'
+                                                }`}>
+                                                    {idx + 1}
+                                                </div>
+                                                <div className="w-20 font-mono text-sm text-[#e5e5e5]">{t.token}</div>
+                                                <div className="flex-1 h-6 bg-[#002845] rounded overflow-hidden">
+                                                    <div
+                                                        className={`h-full transition-all duration-300 ${
+                                                            isInPool ? 'bg-gradient-to-r from-[#2774AE] to-[#8BB8E8]' : 'bg-[#333] opacity-30'
+                                                        }`}
+                                                        style={{ width: `${t.prob * 400}%` }}
+                                                    />
+                                                </div>
+                                                <div className={`w-16 text-right text-sm ${isInPool ? 'text-[#8BB8E8]' : 'text-[#666]'}`}>
+                                                    {(t.prob * 100).toFixed(1)}%
+                                                </div>
+                                                <div className={`w-20 text-xs ${isInPool ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>
+                                                    {isInPool ? '[+] In pool' : '[-] Excluded'}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="p-4 bg-[#2774AE]/20 rounded-xl border border-[#2774AE]/30 text-center">
+                                    <div className="text-2xl mb-2 text-[#2774AE]">K=1</div>
+                                    <div className="text-sm text-[#888888]">Greedy decoding</div>
+                                </div>
+                                <div className="p-4 bg-[#22c55e]/20 rounded-xl border border-[#22c55e]/30 text-center">
+                                    <div className="text-2xl mb-2 text-[#22c55e]">K=40</div>
+                                    <div className="text-sm text-[#888888]">Common default</div>
+                                </div>
+                                <div className="p-4 bg-[#FFD100]/20 rounded-xl border border-[#FFD100]/30 text-center">
+                                    <div className="text-2xl mb-2 text-[#FFD100]">K=100</div>
+                                    <div className="text-sm text-[#888888]">High diversity</div>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        /* Top-P Visualization */
+                        <div className="glass-card-strong rounded-2xl p-6">
+                            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                                <span className="text-2xl text-[#FFD100]">%</span>
+                                <span className="text-[#FFD100]">Top-P (Nucleus) Sampling (P = {topP.toFixed(2)})</span>
+                            </h3>
+
+                            <div className="mb-6">
+                                <input
+                                    type="range"
+                                    min="0.1"
+                                    max="1.0"
+                                    step="0.05"
+                                    value={topP}
+                                    onChange={(e) => setTopP(parseFloat(e.target.value))}
+                                    className="w-full h-2 rounded-lg appearance-none cursor-pointer slider-ucla"
+                                />
+                                <div className="flex justify-between text-xs text-[#888888] mt-1">
+                                    <span>0.1 (Most focused)</span>
+                                    <span>1.0 (All tokens)</span>
+                                </div>
+                            </div>
+
+                            <div className="bg-[#002845] rounded-xl p-4 mb-4">
+                                <p className="text-sm text-[#888888] mb-4">
+                                    Top-P sampling includes tokens until cumulative probability reaches <span className="text-[#FFD100] font-bold">{(topP * 100).toFixed(0)}%</span>
+                                </p>
+
+                                {/* Cumulative Probability Bar */}
+                                <div className="mb-6">
+                                    <div className="text-sm text-[#888888] mb-2">Cumulative Probability</div>
+                                    <div className="h-8 bg-[#002845] rounded-lg overflow-hidden relative">
+                                        {cumulativeData.map((t, idx) => {
+                                            const isIncluded = t.cumulative <= topP || idx <= topPCutoffIndex;
+                                            const prevCumulative = idx > 0 ? cumulativeData[idx-1].cumulative : 0;
+                                            return (
+                                                <div
+                                                    key={t.token}
+                                                    className={`absolute h-full transition-all duration-300 border-r border-[#003B5C] ${
+                                                        isIncluded ? 'bg-gradient-to-r from-[#FFD100] to-[#2774AE]' : 'bg-[#333] opacity-30'
+                                                    }`}
+                                                    style={{
+                                                        left: `${prevCumulative * 100}%`,
+                                                        width: `${t.prob * 100}%`
+                                                    }}
+                                                />
+                                            );
+                                        })}
+                                        {/* Cutoff Line */}
+                                        <div
+                                            className="absolute h-full w-1 bg-[#ef4444] z-10"
+                                            style={{ left: `${topP * 100}%` }}
+                                        >
+                                            <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs text-[#ef4444] whitespace-nowrap">
+                                                P={topP.toFixed(2)} cutoff
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-between text-xs text-[#888888] mt-1">
+                                        <span>0%</span>
+                                        <span>100%</span>
+                                    </div>
+                                </div>
+
+                                {/* Token List */}
+                                <div className="space-y-2">
+                                    {cumulativeData.map((t, idx) => {
+                                        const isIncluded = idx <= topPCutoffIndex || t.cumulative <= topP;
+                                        return (
+                                            <div key={t.token} className="flex items-center gap-3">
+                                                <div className="w-20 font-mono text-sm text-[#e5e5e5]">{t.token}</div>
+                                                <div className="flex-1 h-6 bg-[#002845] rounded overflow-hidden">
+                                                    <div
+                                                        className={`h-full transition-all duration-300 ${
+                                                            isIncluded ? 'bg-gradient-to-r from-[#FFD100] to-[#2774AE]' : 'bg-[#333] opacity-30'
+                                                        }`}
+                                                        style={{ width: `${t.prob * 400}%` }}
+                                                    />
+                                                </div>
+                                                <div className="w-16 text-right text-sm text-[#888888]">
+                                                    {(t.prob * 100).toFixed(1)}%
+                                                </div>
+                                                <div className="w-20 text-right text-sm text-[#FFD100]">
+                                                    Sum {(t.cumulative * 100).toFixed(0)}%
+                                                </div>
+                                                <div className={`w-20 text-xs ${isIncluded ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>
+                                                    {isIncluded ? '[+] In nucleus' : '[-] Excluded'}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            <div className="p-4 bg-[#FFD100]/20 rounded-xl border border-[#FFD100]/30">
+                                <h4 className="font-semibold text-[#FFD100] mb-2">Why Top-P is often preferred:</h4>
+                                <ul className="text-sm text-[#e5e5e5] space-y-1">
+                                    <li>* Adapts to context: more tokens when uncertain, fewer when confident</li>
+                                    <li>* Common default: P=0.9 or P=0.95</li>
+                                    <li>* Can be combined with Top-K for finer control</li>
+                                </ul>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Comparison */}
+                    <div className="glass-card rounded-2xl p-6">
+                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                            <span className="text-2xl text-[#FFD100]">=</span>
+                            <span className="text-[#e5e5e5]">Top-K vs Top-P Comparison</span>
+                        </h3>
+                        <div className="grid grid-cols-2 gap-6">
+                            <div className="p-4 bg-[#2774AE]/20 rounded-xl border border-[#2774AE]/30">
+                                <h4 className="font-semibold text-[#2774AE] mb-3">Top-K</h4>
+                                <ul className="text-sm space-y-2 text-[#e5e5e5]">
+                                    <li>[+] Fixed number of tokens</li>
+                                    <li>[+] Predictable pool size</li>
+                                    <li>[-] May include low-prob tokens</li>
+                                    <li>[-] May exclude good alternatives</li>
+                                </ul>
+                            </div>
+                            <div className="p-4 bg-[#FFD100]/20 rounded-xl border border-[#FFD100]/30">
+                                <h4 className="font-semibold text-[#FFD100] mb-3">Top-P (Nucleus)</h4>
+                                <ul className="text-sm space-y-2 text-[#e5e5e5]">
+                                    <li>[+] Adaptive to confidence</li>
+                                    <li>[+] Natural probability cutoff</li>
+                                    <li>[+] More linguistically motivated</li>
+                                    <li>[-] Variable pool size</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Structured Output Tab
+        const StructuredOutputTab = () => {
+            const [showParsed, setShowParsed] = useState(true);
+            const [scenario, setScenario] = useState('success');
+
+            const rawOutputs = {
+                success: `{
+  "sentiment": "positive",
+  "score": 0.92,
+  "key_phrases": ["excellent service", "highly recommend"],
+  "categories": ["quality", "customer_service"],
+  "confidence": 0.88
+}`,
+                partial: `Based on my analysis, the sentiment is positive with a score of approximately 0.85.
+
+{
+  "sentiment": "positive",
+  "score": 0.85
+  // Note: other fields pending
+}`,
+                failure: `I'd be happy to analyze this review!
+
+The review seems very positive overall. The customer mentions "great product" and "fast shipping".
+
+Here's my analysis:
+- Sentiment: Positive
+- Score: High (around 8-9 out of 10)
+- Keywords: great, fast, recommend`
+            };
+
+            const parsedOutputs = {
+                success: {
+                    sentiment: "positive",
+                    score: 0.92,
+                    key_phrases: ["excellent service", "highly recommend"],
+                    categories: ["quality", "customer_service"],
+                    confidence: 0.88
+                },
+                partial: null,
+                failure: null
+            };
+
+            const formatJSON = (obj, indent = 0) => {
+                if (!obj) return null;
+                const spaces = '  '.repeat(indent);
+                return (
+                    <pre className="text-sm">
+                        <span className="json-bracket">{'{'}</span>
+                        {Object.entries(obj).map(([key, value], idx, arr) => (
+                            <div key={key}>
+                                {spaces}  <span className="json-key">"{key}"</span>:
+                                {Array.isArray(value) ? (
+                                    <>
+                                        <span className="json-bracket">[</span>
+                                        {value.map((v, i) => (
+                                            <span key={i} className="json-string">"{v}"{i < value.length - 1 ? ', ' : ''}</span>
+                                        ))}
+                                        <span className="json-bracket">]</span>
+                                    </>
+                                ) : typeof value === 'string' ? (
+                                    <span className="json-string">"{value}"</span>
+                                ) : (
+                                    <span className="json-number">{value}</span>
+                                )}
+                                {idx < arr.length - 1 ? ',' : ''}
+                            </div>
+                        ))}
+                        <span className="json-bracket">{'}'}</span>
+                    </pre>
+                );
+            };
+
+            return (
+                <div className="space-y-6">
+                    <MetricsPanel
+                        temperature={0.3}
+                        topK={40}
+                        topP={0.95}
+                        responseLength={rawOutputs[scenario].length}
+                        tokenCount={Math.ceil(rawOutputs[scenario].split(' ').length * 1.3)}
+                    />
+
+                    {/* Scenario Selector */}
+                    <div className="glass-card-strong rounded-2xl p-6 glow-ucla">
+                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                            <span className="text-2xl text-[#FFD100]">{'{}'}</span>
+                            <span className="text-[#FFD100]">JSON Output Demo</span>
+                        </h3>
+
+                        <div className="flex gap-3 mb-6">
+                            {[
+                                { id: 'success', label: 'Success', icon: '[+]', color: '#22c55e' },
+                                { id: 'partial', label: 'Partial', icon: '[!]', color: '#FFD100' },
+                                { id: 'failure', label: 'Failure', icon: '[-]', color: '#ef4444' }
+                            ].map(s => (
+                                <button
+                                    key={s.id}
+                                    onClick={() => setScenario(s.id)}
+                                    className={`flex-1 py-3 rounded-xl font-semibold transition-all ${
+                                        scenario === s.id
+                                            ? `border`
+                                            : 'glass-card hover:bg-white/10'
+                                    }`}
+                                    style={{
+                                        backgroundColor: scenario === s.id ? `${s.color}33` : undefined,
+                                        borderColor: scenario === s.id ? s.color : undefined,
+                                        color: scenario === s.id ? s.color : '#e5e5e5'
+                                    }}
+                                >
+                                    <span className="mr-2">{s.icon}</span>
+                                    {s.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="bg-[#002845] rounded-xl p-4 mb-4 border border-[#2774AE]/30">
+                            <div className="text-sm text-[#888888] mb-2">Prompt:</div>
+                            <div className="font-mono text-[#8BB8E8] text-sm">
+                                "Analyze this review and return JSON with: sentiment, score, key_phrases, categories, confidence"
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <div className="text-sm text-[#888888] mb-2 flex items-center gap-2">
+                                    <span>Raw LLM Output</span>
+                                    {scenario === 'success' && <span className="text-[#22c55e] text-xs">Valid JSON</span>}
+                                    {scenario === 'partial' && <span className="text-[#FFD100] text-xs">Mixed content</span>}
+                                    {scenario === 'failure' && <span className="text-[#ef4444] text-xs">No valid JSON</span>}
+                                </div>
+                                <div className={`bg-[#002845] rounded-xl p-4 font-mono text-sm h-64 overflow-auto border ${
+                                    scenario === 'success' ? 'border-[#22c55e]/30' :
+                                    scenario === 'partial' ? 'border-[#FFD100]/30' : 'border-[#ef4444]/30'
+                                }`}>
+                                    <pre className="whitespace-pre-wrap text-[#e5e5e5]">{rawOutputs[scenario]}</pre>
+                                </div>
+                            </div>
+                            <div>
+                                <div className="text-sm text-[#888888] mb-2">Parsed Result</div>
+                                <div className={`bg-[#002845] rounded-xl p-4 h-64 overflow-auto border ${
+                                    parsedOutputs[scenario] ? 'border-[#22c55e]/30' : 'border-[#ef4444]/30'
+                                }`}>
+                                    {parsedOutputs[scenario] ? (
+                                        formatJSON(parsedOutputs[scenario])
+                                    ) : (
+                                        <div className="flex items-center justify-center h-full">
+                                            <div className="text-center">
+                                                <div className="text-4xl mb-2 text-[#ef4444]">X</div>
+                                                <div className="text-[#ef4444] font-semibold">Parse Failed</div>
+                                                <div className="text-sm text-[#888888] mt-2">
+                                                    {scenario === 'partial' ? 'Incomplete JSON structure' : 'No valid JSON found'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Best Practices */}
+                    <div className="grid grid-cols-2 gap-6">
+                        <div className="glass-card rounded-2xl p-6">
+                            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                                <span className="text-2xl text-[#FFD100]">T</span>
+                                <span className="text-[#e5e5e5]">Optimal Settings</span>
+                            </h3>
+                            <div className="space-y-3">
+                                <div className="p-3 bg-[#22c55e]/20 rounded-lg border border-[#22c55e]/30">
+                                    <div className="font-semibold text-[#22c55e]">Temperature: 0.1 - 0.3</div>
+                                    <div className="text-sm text-[#888888]">Low temperature for consistent structure</div>
+                                </div>
+                                <div className="p-3 bg-[#2774AE]/20 rounded-lg border border-[#2774AE]/30">
+                                    <div className="font-semibold text-[#2774AE]">Top-P: 0.9 - 0.95</div>
+                                    <div className="text-sm text-[#888888]">Nucleus sampling for quality</div>
+                                </div>
+                                <div className="p-3 bg-[#FFD100]/20 rounded-lg border border-[#FFD100]/30">
+                                    <div className="font-semibold text-[#FFD100]">Response Format: JSON mode</div>
+                                    <div className="text-sm text-[#888888]">Use API's native JSON mode when available</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="glass-card rounded-2xl p-6">
+                            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                                <span className="text-2xl text-[#2774AE]">!</span>
+                                <span className="text-[#e5e5e5]">Error Handling</span>
+                            </h3>
+                            <div className="space-y-3 text-sm">
+                                <div className="p-3 bg-[#002845] rounded-lg">
+                                    <code className="text-[#8BB8E8]">1. Try JSON.parse()</code>
+                                    <p className="text-[#888888] mt-1">First attempt direct parsing</p>
+                                </div>
+                                <div className="p-3 bg-[#002845] rounded-lg">
+                                    <code className="text-[#8BB8E8]">2. Extract JSON with regex</code>
+                                    <p className="text-[#888888] mt-1">Find JSON blocks in mixed content</p>
+                                </div>
+                                <div className="p-3 bg-[#002845] rounded-lg">
+                                    <code className="text-[#8BB8E8]">3. Retry with clearer prompt</code>
+                                    <p className="text-[#888888] mt-1">Add "Return ONLY valid JSON"</p>
+                                </div>
+                                <div className="p-3 bg-[#002845] rounded-lg">
+                                    <code className="text-[#8BB8E8]">4. Validate with schema</code>
+                                    <p className="text-[#888888] mt-1">Use Zod, Pydantic, or JSON Schema</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Code Example */}
+                    <div className="glass-card rounded-2xl p-6">
+                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                            <span className="text-2xl text-[#2774AE]">&lt;/&gt;</span>
+                            <span className="text-[#e5e5e5]">Robust Parsing Example</span>
+                        </h3>
+                        <div className="bg-[#002845] rounded-xl p-4 font-mono text-sm overflow-auto">
+                            <pre className="text-[#e5e5e5]">{`def parse_llm_json(response: str) -> dict | None:
+    """Robustly extract JSON from LLM response."""
+    # Try direct parse first
+    try:
+        return json.loads(response)
+    except json.JSONDecodeError:
+        pass
+
+    # Try to find JSON block
+    json_match = re.search(r'\\{[\\s\\S]*\\}', response)
+    if json_match:
+        try:
+            return json.loads(json_match.group())
+        except json.JSONDecodeError:
+            pass
+
+    # Fallback: retry with structured prompt
+    return None  # Trigger retry logic`}</pre>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Main App Component
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('temperature');
+
+            const tabs = [
+                { id: 'temperature', label: 'Temperature', icon: 'T' },
+                { id: 'sampling', label: 'Sampling', icon: '~' },
+                { id: 'structured', label: 'Structured Output', icon: '{}' }
+            ];
+
+            return (
+                <div className="min-h-screen p-6">
+                    {/* Header */}
+                    <header style={{
+                        background: '#2774AE',
+                        borderBottom: '2px solid #FFD100',
+                        padding: '1rem 2rem',
+                        position: 'sticky',
+                        top: 0,
+                        zIndex: 100
+                    }}>
+                        <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <p style={{ fontSize: '0.65rem', color: '#FFD100', fontWeight: 400, marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
+                                    MGMT298D: Science and Strategy of AI
+                                </p>
+                                <h1 style={{ fontSize: '1.4rem', fontWeight: 600, color: '#f5f5f5', letterSpacing: '0' }}>
+                                    Assignment 8: LLM API Parameters & Generation
+                                </h1>
+                                <p style={{ fontSize: '0.85rem', color: '#b0b0b0', marginTop: '0.25rem' }}>
+                                    Exploring temperature, sampling, and generation strategies
+                                </p>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                                <span style={{
+                                    fontSize: '1rem',
+                                    fontWeight: 500,
+                                    color: '#f5f5f5'
+                                }}>
+                                    UCLA Anderson
+                                </span>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* Tab Navigation */}
+                    <div className="max-w-7xl mx-auto mb-6">
+                        <div className="flex gap-2 p-2 glass-card rounded-2xl">
+                            {tabs.map(tab => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
+                                        activeTab === tab.id
+                                            ? 'tab-active text-white'
+                                            : 'text-[#888888] hover:text-white hover:bg-white/10'
+                                    }`}
+                                >
+                                    <span className="text-[#FFD100]">{tab.icon}</span>
+                                    <span className="hidden md:inline">{tab.label}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Tab Content */}
+                    <div className="max-w-7xl mx-auto">
+                        {activeTab === 'temperature' && <TemperatureTab />}
+                        {activeTab === 'sampling' && <SamplingTab />}
+                        {activeTab === 'structured' && <StructuredOutputTab />}
+                    </div>
+
+                    {/* Footer */}
+                    <div style={{ textAlign: 'center', marginTop: '40px', paddingTop: '20px' }}>
+                        <p style={{ color: '#888', fontSize: '0.75rem' }}>
+                            MGMT298D: Science and Strategy of AI | UCLA Anderson School of Management
+                        </p>
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>

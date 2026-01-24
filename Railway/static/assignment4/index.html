@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assignment 4: RL Dynamic Pricing | UCLA Anderson MGMT 298D</title>
+
+    <!-- React and ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+    <!-- Babel for JSX transpilation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Chart.js for charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #2774AE;
+            --accent: #FFD100;
+            --darkBlue: #005587;
+            --lightBlue: #8BB8E8;
+            --positive: #22c55e;
+            --negative: #ef4444;
+            --background: #ffffff;
+            --cardBg: #ffffff;
+            --cardBorder: rgba(0, 0, 0, 0.1);
+            --text: #1a1a1a;
+            --textMuted: #666666;
+        }
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #ffffff;
+            min-height: 100vh;
+            color: #1a1a1a;
+        }
+        #root {
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // Theme colors
+        const theme = {
+            primary: '#2774AE',
+            accent: '#FFD100',
+            darkBlue: '#005587',
+            lightBlue: '#8BB8E8',
+            positive: '#22c55e',
+            negative: '#ef4444',
+            background: '#ffffff',
+            cardBg: '#ffffff',
+            cardBorder: 'rgba(0, 0, 0, 0.1)',
+            text: '#1a1a1a',
+            textMuted: '#666666'
+        };
+
+        // Chart.js is available as window.Chart
+
+        // Chart.js Area Chart Component
+        const ChartArea = ({ data, dataKey, xKey, stroke, fill, yDomain, height, tooltipLabel }) => {
+            const canvasRef = React.useRef(null);
+            const chartRef = React.useRef(null);
+
+            React.useEffect(() => {
+                if (!canvasRef.current || !data || data.length === 0) return;
+                if (chartRef.current) chartRef.current.destroy();
+
+                const ctx = canvasRef.current.getContext('2d');
+                chartRef.current = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.map(d => d[xKey]),
+                        datasets: [{
+                            label: tooltipLabel || dataKey,
+                            data: data.map(d => d[dataKey]),
+                            borderColor: stroke,
+                            backgroundColor: fill,
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 0,
+                            pointHoverRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: theme.background,
+                                borderColor: theme.cardBorder,
+                                borderWidth: 1,
+                                titleColor: theme.text,
+                                bodyColor: theme.text,
+                                callbacks: {
+                                    label: (ctx) => `${tooltipLabel || dataKey}: $${ctx.parsed.y.toLocaleString()}`
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { color: theme.cardBorder },
+                                ticks: { color: theme.textMuted, font: { size: 10 } }
+                            },
+                            y: {
+                                min: yDomain ? yDomain[0] : undefined,
+                                max: yDomain ? yDomain[1] : undefined,
+                                grid: { color: theme.cardBorder },
+                                ticks: { color: theme.textMuted, font: { size: 10 } }
+                            }
+                        }
+                    }
+                });
+
+                return () => { if (chartRef.current) chartRef.current.destroy(); };
+            }, [data, dataKey, xKey, stroke, fill, yDomain, tooltipLabel]);
+
+            return <canvas ref={canvasRef} style={{ height: height || '100%' }} />;
+        };
+
+        // Chart.js Area Chart Component for Occupancy (percentage)
+        const ChartAreaOccupancy = ({ data, dataKey, xKey, stroke, fill, yDomain }) => {
+            const canvasRef = React.useRef(null);
+            const chartRef = React.useRef(null);
+
+            React.useEffect(() => {
+                if (!canvasRef.current || !data || data.length === 0) return;
+                if (chartRef.current) chartRef.current.destroy();
+
+                const ctx = canvasRef.current.getContext('2d');
+                chartRef.current = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.map(d => d[xKey]),
+                        datasets: [{
+                            label: 'Occupancy',
+                            data: data.map(d => d[dataKey]),
+                            borderColor: stroke,
+                            backgroundColor: fill,
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 0,
+                            pointHoverRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: theme.background,
+                                borderColor: theme.cardBorder,
+                                borderWidth: 1,
+                                titleColor: theme.text,
+                                bodyColor: theme.text,
+                                callbacks: {
+                                    label: (ctx) => `Occupancy: ${ctx.parsed.y}%`
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { color: theme.cardBorder },
+                                ticks: { color: theme.textMuted, font: { size: 10 } }
+                            },
+                            y: {
+                                min: yDomain ? yDomain[0] : 0,
+                                max: yDomain ? yDomain[1] : 100,
+                                grid: { color: theme.cardBorder },
+                                ticks: { color: theme.textMuted, font: { size: 10 } }
+                            }
+                        }
+                    }
+                });
+
+                return () => { if (chartRef.current) chartRef.current.destroy(); };
+            }, [data, dataKey, xKey, stroke, fill, yDomain]);
+
+            return <canvas ref={canvasRef} style={{ height: '100%' }} />;
+        };
+
+        // Constants
+        const TOTAL_SEATS = 75;
+        const TOTAL_DAYS = 180;
+        const ARRIVAL_RATE = 1;
+        const PRICES = [199, 249, 299, 349, 499, 699];
+
+        // Utility functions
+        const samplePoisson = (lambda) => {
+            const L = Math.exp(-lambda);
+            let k = 0;
+            let p = 1;
+            do {
+                k++;
+                p *= Math.random();
+            } while (p > L);
+            return k - 1;
+        };
+
+        const getCapacityBucket = (remaining, total) => {
+            const pct = remaining / total;
+            if (pct > 0.7) return 'high';
+            if (pct > 0.3) return 'medium';
+            return 'low';
+        };
+
+        const getTimeBucket = (daysLeft) => {
+            if (daysLeft >= 60) return 'far';
+            if (daysLeft >= 15) return 'medium';
+            return 'near';
+        };
+
+        const getState = (seatsRemaining, daysLeft) => getCapacityBucket(seatsRemaining, TOTAL_SEATS) + '-' + getTimeBucket(daysLeft);
+
+        const generateCustomerWTP = (daysLeft) => {
+            const t = TOTAL_DAYS - daysLeft + 1;
+            const meanWTP = 100 + t + Math.pow(t / 50, 5);
+            const u1 = Math.random();
+            const u2 = Math.random();
+            const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+            return Math.max(0, meanWTP + z * 10);
+        };
+
+        const initQTable = () => {
+            const Q = {};
+            ['high', 'medium', 'low'].forEach(cap => {
+                ['far', 'medium', 'near'].forEach(time => {
+                    PRICES.forEach(price => { Q[cap + '-' + time + '-' + price] = 20000; });
+                });
+            });
+            return Q;
+        };
+
+        const getQValue = (Q, state, price) => Q[state + '-' + price] || 0;
+        const setQValue = (Q, state, price, value) => { Q[state + '-' + price] = value; };
+
+        const initBanditState = () => {
+            const state = { totalFlights: 0 };
+            PRICES.forEach(price => { state[price] = { totalRevenue: 0, flights: 0, revenues: [] }; });
+            return state;
+        };
+
+        const selectBanditPrice = (banditState) => {
+            let bestPrice = PRICES[0];
+            let bestSampledRevenue = -Infinity;
+
+            PRICES.forEach(price => {
+                const { totalRevenue, flights, revenues } = banditState[price];
+
+                if (flights === 0) {
+                    bestSampledRevenue = Infinity;
+                    bestPrice = price;
+                    return;
+                }
+
+                const meanRevenue = totalRevenue / flights;
+                const variance = revenues.length > 1
+                    ? revenues.reduce((sum, r) => sum + Math.pow(r - meanRevenue, 2), 0) / (revenues.length - 1)
+                    : 10000;
+                const stdDev = Math.sqrt(variance);
+
+                const u1 = Math.random();
+                const u2 = Math.random();
+                const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+                const sampledRevenue = meanRevenue + z * stdDev / Math.sqrt(flights);
+
+                if (sampledRevenue > bestSampledRevenue) {
+                    bestSampledRevenue = sampledRevenue;
+                    bestPrice = price;
+                }
+            });
+
+            return bestPrice;
+        };
+
+        // Seat component
+        const Seat = ({ status }) => (
+            <div style={{
+                width: '14px', height: '16px',
+                backgroundColor: status === 'available' ? 'rgba(255,255,255,0.1)' : status === 'sold-new' ? theme.positive : theme.primary,
+                borderRadius: '3px 3px 1px 1px', margin: '1px',
+                border: status === 'sold-new' ? `2px solid ${theme.accent}` : `1px solid ${theme.cardBorder}`,
+                transition: 'all 0.3s ease',
+                transform: status === 'sold-new' ? 'scale(1.15)' : 'scale(1)',
+            }} />
+        );
+
+        // Airplane visualization
+        const AirplaneVisualization = ({ seats }) => {
+            const rows = [];
+            for (let i = 0; i < TOTAL_SEATS; i += 6) rows.push(seats.slice(i, i + 6));
+            return (
+                <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: '40px 40px 15px 15px', padding: '20px 15px 15px 15px', position: 'relative', border: `2px solid ${theme.cardBorder}` }}>
+                    <div style={{ position: 'absolute', top: '-10px', left: '50%', transform: 'translateX(-50%)', width: '40px', height: '20px', background: theme.background, borderRadius: '20px 20px 0 0', border: `2px solid ${theme.cardBorder}`, borderBottom: 'none' }} />
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1px' }}>
+                        {rows.map((row, ri) => (
+                            <div key={ri} style={{ display: 'flex', alignItems: 'center' }}>
+                                <span style={{ fontSize: '7px', color: theme.textMuted, width: '14px', textAlign: 'right', marginRight: '3px' }}>{ri + 1}</span>
+                                {row.slice(0, 3).map((seat, si) => <Seat key={si} status={seat} />)}
+                                <div style={{ width: '6px' }} />
+                                {row.slice(3).map((seat, si) => <Seat key={si + 3} status={seat} />)}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        // Header component
+        const Header = () => (
+            <header style={{
+                background: '#2774AE',
+                borderBottom: '2px solid #FFD100',
+                padding: '1rem 2rem',
+                position: 'sticky',
+                top: 0,
+                zIndex: 100
+            }}>
+                <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                        <p style={{ fontSize: '0.65rem', color: '#FFD100', fontWeight: 400, marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
+                            MGMT298D: Science and Strategy of AI
+                        </p>
+                        <h1 style={{ fontSize: '1.4rem', fontWeight: 600, color: '#f5f5f5', letterSpacing: '0' }}>
+                            Assignment 4: RL Dynamic Pricing
+                        </h1>
+                        <p style={{ fontSize: '0.85rem', color: '#b0b0b0', marginTop: '0.25rem' }}>
+                            Airline Pricing Simulator
+                        </p>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                        <span style={{
+                            fontSize: '1rem',
+                            fontWeight: 500,
+                            color: '#f5f5f5'
+                        }}>
+                            UCLA Anderson
+                        </span>
+                    </div>
+                </div>
+            </header>
+        );
+
+        // Main App Component (based on airline-pricing-simulator.jsx)
+        function AirlinePricingSimulator() {
+            const [isRunning, setIsRunning] = React.useState(false);
+            const [speed, setSpeed] = React.useState(1);
+            const [policy, setPolicy] = React.useState('static');
+            const [flightNum, setFlightNum] = React.useState(0);
+            const [currentDay, setCurrentDay] = React.useState(1);
+            const [customerIndex, setCustomerIndex] = React.useState(0);
+            const dailyCustomersRef = React.useRef(0);
+            const [seats, setSeats] = React.useState(Array(TOTAL_SEATS).fill('available'));
+            const [currentPrice, setCurrentPrice] = React.useState(199);
+            const [staticPrice, setStaticPrice] = React.useState(199);
+            const [lastCustomer, setLastCustomer] = React.useState(null);
+            const [flightRevenue, setFlightRevenue] = React.useState(0);
+            const [flightTickets, setFlightTickets] = React.useState(0);
+            const [dayRevenue, setDayRevenue] = React.useState(0);
+            const [revenueHistory, setRevenueHistory] = React.useState([]);
+            const [qParams, setQParams] = React.useState({ learningRate: 0.3, discount: 0.9, epsilon: 0.1 });
+            const [banditExploration, setBanditExploration] = React.useState(50);
+            const [showParams, setShowParams] = React.useState(false);
+            const [policyResults, setPolicyResults] = React.useState({});
+            const maxFlights = 20;
+
+            const Q = React.useRef(initQTable());
+            const banditState = React.useRef(initBanditState());
+            const banditFlightPrice = React.useRef(null);
+            const dayStartState = React.useRef(null);
+            const dayPrice = React.useRef(null);
+            const stopRef = React.useRef(false);
+            const dayRevenueRef = React.useRef(0);
+            const flightHistory = React.useRef([]);
+
+            const seatsRemaining = seats.filter(s => s === 'available').length;
+            const daysLeft = TOTAL_DAYS - currentDay + 1;
+
+            const resetFlight = React.useCallback(() => {
+                setCurrentDay(1);
+                setCustomerIndex(0);
+                dailyCustomersRef.current = 0;
+                setSeats(Array(TOTAL_SEATS).fill('available'));
+                setFlightRevenue(0);
+                setFlightTickets(0);
+                setDayRevenue(0);
+                setLastCustomer(null);
+                dayStartState.current = null;
+                dayPrice.current = null;
+                banditFlightPrice.current = null;
+                dayRevenueRef.current = 0;
+                flightHistory.current = [];
+            }, []);
+
+            const fullReset = React.useCallback(() => {
+                setIsRunning(false);
+                stopRef.current = true;
+                setFlightNum(0);
+                setRevenueHistory([]);
+                Q.current = initQTable();
+                banditState.current = initBanditState();
+                resetFlight();
+            }, [resetFlight]);
+
+            const selectDailyPrice = React.useCallback((seatsRem, dLeft) => {
+                const state = getState(seatsRem, dLeft);
+                if (policy === 'static') return staticPrice;
+                if (policy === 'bandit') {
+                    if (banditFlightPrice.current === null) {
+                        banditFlightPrice.current = selectBanditPrice(banditState.current);
+                    }
+                    return banditFlightPrice.current;
+                }
+                if (policy === 'qlearning') {
+                    if (Math.random() < qParams.epsilon) return PRICES[Math.floor(Math.random() * PRICES.length)];
+                    let bestPrice = PRICES[0], bestQ = -Infinity;
+                    PRICES.forEach(p => { const qVal = getQValue(Q.current, state, p); if (qVal > bestQ) { bestQ = qVal; bestPrice = p; } });
+                    return bestPrice;
+                }
+                return staticPrice;
+            }, [policy, staticPrice, qParams.epsilon]);
+
+            const endDay = React.useCallback((finalDayRevenue, seatsRem, dLeft) => {
+                if (policy === 'qlearning' && dayStartState.current !== null && dayPrice.current !== null) {
+                    flightHistory.current.push({ state: dayStartState.current, action: dayPrice.current });
+                }
+            }, [policy]);
+
+            const simulationStep = React.useCallback(() => {
+                if (stopRef.current) { setIsRunning(false); return; }
+
+                if (flightNum >= maxFlights) {
+                    setIsRunning(false);
+                    return;
+                }
+
+                const seatsRem = seats.filter(s => s === 'available').length;
+                const dLeft = TOTAL_DAYS - currentDay + 1;
+
+                if (currentDay > TOTAL_DAYS || seatsRem === 0) {
+                    if (policy === 'bandit' && banditFlightPrice.current !== null) {
+                        const price = banditFlightPrice.current;
+                        banditState.current[price].totalRevenue += flightRevenue;
+                        banditState.current[price].flights++;
+                        banditState.current[price].revenues.push(flightRevenue);
+                        banditState.current.totalFlights++;
+                    }
+                    if (policy === 'qlearning' && flightHistory.current.length > 0) {
+                        const totalRevenue = flightRevenue;
+                        const visited = new Set();
+                        const history = flightHistory.current;
+                        for (let i = 0; i < history.length; i++) {
+                            const { state, action } = history[i];
+                            const key = state + '-' + action;
+                            if (!visited.has(key)) {
+                                visited.add(key);
+                                const oldQ = getQValue(Q.current, state, action);
+                                const newQ = oldQ + qParams.learningRate * (totalRevenue - oldQ);
+                                setQValue(Q.current, state, action, newQ);
+                            }
+                        }
+                    }
+                    setRevenueHistory(prev => [...prev, { flight: flightNum + 1, revenue: flightRevenue, tickets: flightTickets, policy, occupancy: Math.round((flightTickets / TOTAL_SEATS) * 100) }]);
+                    setFlightNum(prev => prev + 1);
+                    resetFlight();
+                    return;
+                }
+
+                if (customerIndex === 0) {
+                    dailyCustomersRef.current = 1;
+                    const newPrice = selectDailyPrice(seatsRem, dLeft);
+                    setCurrentPrice(newPrice);
+                    setDayRevenue(0);
+                    dayRevenueRef.current = 0;
+                    dayStartState.current = getState(seatsRem, dLeft);
+                    dayPrice.current = newPrice;
+                }
+
+                if (customerIndex < dailyCustomersRef.current && seatsRem > 0) {
+                    const wtp = generateCustomerWTP(dLeft);
+                    const price = dayPrice.current || currentPrice;
+                    const bought = wtp >= price;
+                    setLastCustomer({ wtp: wtp.toFixed(0), price, bought });
+
+                    if (bought) {
+                        setSeats(prev => {
+                            const newSeats = [...prev];
+                            const idx = newSeats.findIndex(s => s === 'available');
+                            if (idx !== -1) newSeats[idx] = speed === Infinity ? 'sold' : 'sold-new';
+                            return newSeats;
+                        });
+                        setFlightRevenue(prev => prev + price);
+                        setFlightTickets(prev => prev + 1);
+                        setDayRevenue(prev => prev + price);
+                        dayRevenueRef.current += price;
+                        if (speed !== Infinity) {
+                            setTimeout(() => setSeats(curr => curr.map(s => s === 'sold-new' ? 'sold' : s)), 150);
+                        }
+                    }
+                    setCustomerIndex(prev => prev + 1);
+                }
+
+                if (customerIndex >= dailyCustomersRef.current) {
+                    const newSeatsRem = seats.filter(s => s === 'available').length - (seats.some(s => s === 'sold-new') ? 1 : 0);
+                    endDay(dayRevenueRef.current, newSeatsRem, dLeft);
+                    setCurrentDay(prev => prev + 1);
+                    setCustomerIndex(0);
+                    dailyCustomersRef.current = 0;
+                }
+            }, [seats, currentDay, customerIndex, flightNum, flightRevenue, flightTickets, currentPrice, policy, selectDailyPrice, endDay, resetFlight, qParams, maxFlights, speed]);
+
+            const batchSimulateFlights = React.useCallback((numFlights) => {
+                const results = [];
+                const currentQ = Q.current;
+                const currentBandit = banditState.current;
+
+                for (let f = 0; f < numFlights; f++) {
+                    let seatsRem = TOTAL_SEATS;
+                    let revenue = 0;
+                    let tickets = 0;
+                    const history = [];
+
+                    const flightPrice = policy === 'bandit' ? selectBanditPrice(currentBandit) : null;
+
+                    for (let day = 1; day <= TOTAL_DAYS && seatsRem > 0; day++) {
+                        const dLeft = TOTAL_DAYS - day + 1;
+                        const state = getState(seatsRem, dLeft);
+
+                        let price;
+                        if (policy === 'static') {
+                            price = staticPrice;
+                        } else if (policy === 'bandit') {
+                            price = flightPrice;
+                        } else if (policy === 'qlearning') {
+                            if (Math.random() < qParams.epsilon) {
+                                price = PRICES[Math.floor(Math.random() * PRICES.length)];
+                            } else {
+                                let bestPrice = PRICES[0], bestQ = -Infinity;
+                                PRICES.forEach(p => {
+                                    const qVal = getQValue(currentQ, state, p);
+                                    if (qVal > bestQ) { bestQ = qVal; bestPrice = p; }
+                                });
+                                price = bestPrice;
+                            }
+                        } else {
+                            price = staticPrice;
+                        }
+
+                        history.push({ state, action: price });
+
+                        const wtp = generateCustomerWTP(dLeft);
+                        const bought = wtp >= price && seatsRem > 0;
+
+                        if (bought) {
+                            revenue += price;
+                            tickets++;
+                            seatsRem--;
+                        }
+                    }
+
+                    if (policy === 'bandit') {
+                        currentBandit[flightPrice].totalRevenue += revenue;
+                        currentBandit[flightPrice].flights++;
+                        currentBandit[flightPrice].revenues.push(revenue);
+                        currentBandit.totalFlights++;
+                    }
+
+                    if (policy === 'qlearning' && history.length > 0) {
+                        const visited = new Set();
+                        for (const { state, action } of history) {
+                            const key = state + '-' + action;
+                            if (!visited.has(key)) {
+                                visited.add(key);
+                                const oldQ = getQValue(currentQ, state, action);
+                                const newQ = oldQ + qParams.learningRate * (revenue - oldQ);
+                                setQValue(currentQ, state, action, newQ);
+                            }
+                        }
+                    }
+
+                    results.push({
+                        flight: flightNum + results.length + 1,
+                        revenue,
+                        tickets,
+                        policy,
+                        occupancy: Math.round((tickets / TOTAL_SEATS) * 100)
+                    });
+                }
+
+                return results;
+            }, [policy, staticPrice, qParams, flightNum]);
+
+            React.useEffect(() => {
+                if (!isRunning) return;
+                stopRef.current = false;
+
+                const runStep = () => {
+                    if (speed === Infinity) {
+                        const flightsRemaining = maxFlights - flightNum;
+                        if (flightsRemaining <= 0) {
+                            setIsRunning(false);
+                            return;
+                        }
+                        const batchSize = Math.min(100, flightsRemaining);
+                        const results = batchSimulateFlights(batchSize);
+                        setRevenueHistory(prev => [...prev, ...results]);
+                        setFlightNum(prev => prev + batchSize);
+                        setSeats(Array(TOTAL_SEATS).fill('available'));
+                        setCurrentDay(1);
+                        setFlightRevenue(0);
+                        setFlightTickets(0);
+                    } else {
+                        simulationStep();
+                    }
+                };
+
+                const interval = setInterval(runStep, speed === Infinity ? 1 : 120 / speed);
+                return () => clearInterval(interval);
+            }, [isRunning, speed, simulationStep, batchSimulateFlights, maxFlights, flightNum]);
+
+            React.useEffect(() => {
+                const policyData = revenueHistory.filter(r => r.policy === policy);
+                if (policyData.length >= maxFlights) {
+                    const avgRev = policyData.reduce((s, x) => s + x.revenue, 0) / policyData.length;
+                    const avgOcc = policyData.reduce((s, x) => s + x.occupancy, 0) / policyData.length;
+                    const last5 = policyData.slice(-5);
+                    const last5AvgRev = last5.reduce((s, x) => s + x.revenue, 0) / last5.length;
+                    const last5AvgOcc = last5.reduce((s, x) => s + x.occupancy, 0) / last5.length;
+                    setPolicyResults(prev => ({
+                        ...prev,
+                        [policy]: {
+                            flights: policyData.length,
+                            avgRevenue: avgRev,
+                            avgOccupancy: avgOcc,
+                            last5AvgRevenue: last5AvgRev,
+                            last5AvgOccupancy: last5AvgOcc
+                        }
+                    }));
+                }
+            }, [revenueHistory, policy, maxFlights]);
+
+            const getPolicyName = (p) => ({ static: 'Static', bandit: 'Bandit (TS)', qlearning: 'Q-Learning' }[p] || p);
+            const getPolicyColor = (p) => ({ static: theme.textMuted, bandit: theme.accent, qlearning: theme.positive }[p] || '#888');
+            const getRecentAvg = (n = 10) => { const r = revenueHistory.filter(x => x.policy === policy).slice(-n); return r.length ? r.reduce((s, x) => s + x.revenue, 0) / r.length : 0; };
+            const getAllTimeAvg = () => { const r = revenueHistory.filter(x => x.policy === policy); return r.length ? r.reduce((s, x) => s + x.revenue, 0) / r.length : 0; };
+
+            return (
+                <div style={{ minHeight: '100vh', background: theme.background, color: theme.text, fontFamily: 'system-ui, sans-serif' }}>
+                    <Header />
+
+                    <div style={{ padding: '16px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '12px', flexWrap: 'wrap' }}>
+                                    <select value={policy} onChange={(e) => { setPolicy(e.target.value); fullReset(); }} style={{ background: theme.cardBg, border: `2px solid ${getPolicyColor(policy)}`, color: theme.text, padding: '6px 12px', borderRadius: '6px', fontSize: '0.8rem' }}>
+                                        <option value="static">Static</option>
+                                        <option value="bandit">Bandit (Thompson)</option>
+                                        <option value="qlearning">Q-Learning</option>
+                                    </select>
+                                    <button onClick={() => { stopRef.current = false; setIsRunning(!isRunning); }} style={{ background: isRunning ? `linear-gradient(135deg, ${theme.negative}, #dc2626)` : `linear-gradient(135deg, ${theme.positive}, #16a34a)`, border: 'none', color: 'white', padding: '6px 16px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer' }}>{isRunning ? 'PAUSE' : 'RUN'}</button>
+                                    <button onClick={fullReset} style={{ background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, color: theme.text, padding: '6px 12px', borderRadius: '6px', fontSize: '0.8rem', cursor: 'pointer' }}>RESET</button>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: theme.cardBg, padding: '4px 10px', borderRadius: '6px', border: `1px solid ${theme.cardBorder}` }}>
+                                        <span style={{ fontSize: '0.7rem', color: theme.textMuted }}>Speed:</span>
+                                        {[1, 10, 50].map(s => (<button key={s} onClick={() => setSpeed(s)} style={{ background: speed === s ? theme.primary : 'transparent', border: 'none', color: speed === s ? 'white' : theme.textMuted, padding: '2px 6px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}>{s}x</button>))}
+                                    </div>
+                                    {policy === 'static' && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: theme.cardBg, padding: '4px 10px', borderRadius: '6px', border: `1px solid ${theme.cardBorder}` }}>
+                                            <span style={{ fontSize: '0.7rem', color: theme.textMuted }}>${staticPrice}</span>
+                                            <input type="range" min={0} max={70} step="1" value={staticPrice === 0 ? 0 : Math.round((staticPrice + 1) / 10)} onChange={(e) => { const v = parseInt(e.target.value); setStaticPrice(v === 0 ? 0 : v * 10 - 1); }} disabled={isRunning} style={{ width: '150px' }} />
+                                        </div>
+                                    )}
+                                    {policy === 'qlearning' && <button onClick={() => setShowParams(!showParams)} style={{ background: showParams ? theme.primary : theme.cardBg, border: `1px solid ${theme.cardBorder}`, color: theme.text, padding: '6px 10px', borderRadius: '6px', fontSize: '0.8rem', cursor: 'pointer' }}>Settings</button>}
+                                </div>
+
+                                {showParams && policy === 'qlearning' && (
+                                    <div style={{ maxWidth: '600px', margin: '0 auto 12px', background: theme.cardBg, borderRadius: '8px', padding: '12px', border: `1px solid ${theme.positive}40` }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                                            {[['learningRate', 'Learning Rate', 0.01, 0.5], ['discount', 'Discount', 0.5, 0.99], ['epsilon', 'Epsilon', 0, 0.4]].map(([k, l, min, max]) => (
+                                                <div key={k}><label style={{ fontSize: '0.7rem', color: theme.textMuted }}>{l}: {qParams[k].toFixed(3)}</label><input type="range" min={min} max={max} step="0.01" value={qParams[k]} onChange={(e) => setQParams(p => ({ ...p, [k]: parseFloat(e.target.value) }))} disabled={isRunning} style={{ width: '100%' }} /></div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: '12px', maxWidth: '950px', margin: '0 auto' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                        <div style={{ background: theme.cardBg, borderRadius: '10px', padding: '12px', border: `1px solid ${theme.cardBorder}` }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                                <span style={{ fontSize: '0.75rem', color: theme.textMuted }}>Flight #{flightNum + 1}</span>
+                                                <span style={{ fontSize: '0.75rem', color: theme.accent, fontWeight: '600' }}>Day {currentDay}/{TOTAL_DAYS}</span>
+                                            </div>
+                                            <AirplaneVisualization seats={seats} />
+                                            <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: '10px', fontSize: '0.7rem' }}>
+                                                <div style={{ textAlign: 'center' }}><div style={{ color: theme.textMuted }}>Sold</div><div style={{ color: theme.positive, fontWeight: '600', fontSize: '1rem' }}>{TOTAL_SEATS - seatsRemaining}</div></div>
+                                                <div style={{ textAlign: 'center' }}><div style={{ color: theme.textMuted }}>Left</div><div style={{ color: theme.textMuted, fontWeight: '600', fontSize: '1rem' }}>{seatsRemaining}</div></div>
+                                            </div>
+                                        </div>
+                                        <div style={{ background: theme.cardBg, borderRadius: '10px', padding: '12px', border: `1px solid ${theme.cardBorder}` }}>
+                                            <div style={{ fontSize: '0.6rem', color: theme.textMuted }}>THIS FLIGHT</div>
+                                            <div style={{ fontSize: '1.4rem', fontWeight: '700', color: theme.positive }}>${flightRevenue.toLocaleString()}</div>
+                                            <div style={{ fontSize: '0.65rem', color: theme.textMuted }}>{flightTickets} tix @ ${flightTickets ? (flightRevenue / flightTickets).toFixed(0) : 0} avg</div>
+                                        </div>
+                                        <div style={{ background: theme.cardBg, borderRadius: '10px', padding: '10px', border: `1px solid ${theme.cardBorder}` }}>
+                                            <div style={{ fontSize: '0.55rem', color: theme.textMuted }}>STATE</div>
+                                            <div style={{ fontSize: '0.85rem', fontWeight: '600', color: theme.lightBlue }}>{getState(seatsRemaining, daysLeft)}</div>
+                                        </div>
+                                    </div>
+
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px' }}>
+                                            <div style={{ background: theme.cardBg, borderRadius: '8px', padding: '10px', border: `1px solid ${theme.cardBorder}`, textAlign: 'center' }}><div style={{ fontSize: '0.5rem', color: theme.textMuted }}>FLIGHTS</div><div style={{ fontSize: '1.1rem', fontWeight: '700', color: theme.primary }}>{revenueHistory.filter(r => r.policy === policy).length}/{maxFlights}</div></div>
+                                            <div style={{ background: theme.cardBg, borderRadius: '8px', padding: '10px', border: `1px solid ${theme.cardBorder}`, textAlign: 'center' }}><div style={{ fontSize: '0.5rem', color: theme.textMuted }}>LAST</div><div style={{ fontSize: '1.1rem', fontWeight: '700', color: theme.positive }}>${getRecentAvg(1).toFixed(0)}</div></div>
+                                            <div style={{ background: theme.cardBg, borderRadius: '8px', padding: '10px', border: `1px solid ${theme.cardBorder}`, textAlign: 'center' }}><div style={{ fontSize: '0.5rem', color: theme.textMuted }}>AVG (LAST 5)</div><div style={{ fontSize: '1.1rem', fontWeight: '700', color: theme.accent }}>${getRecentAvg(5).toFixed(0)}</div></div>
+                                            <div style={{ background: theme.cardBg, borderRadius: '8px', padding: '10px', border: `1px solid ${theme.cardBorder}`, textAlign: 'center' }}><div style={{ fontSize: '0.5rem', color: theme.textMuted }}>AVG (ALL)</div><div style={{ fontSize: '1.1rem', fontWeight: '700', color: theme.lightBlue }}>${getAllTimeAvg().toFixed(0)}</div></div>
+                                            <div style={{ background: theme.cardBg, borderRadius: '8px', padding: '10px', border: `1px solid ${theme.cardBorder}`, textAlign: 'center' }}><div style={{ fontSize: '0.5rem', color: theme.textMuted }}>POLICY</div><div style={{ fontSize: '0.8rem', fontWeight: '600', color: getPolicyColor(policy) }}>{getPolicyName(policy)}</div></div>
+                                        </div>
+
+                                        <div style={{ background: theme.cardBg, borderRadius: '10px', padding: '12px', border: `1px solid ${theme.cardBorder}`, flex: 1 }}>
+                                            <h3 style={{ margin: '0 0 8px 0', fontSize: '0.75rem', color: theme.textMuted }}>CUMULATIVE AVERAGE REVENUE {policy === 'qlearning' && <span style={{ color: theme.positive }}>- Watch it learn!</span>}</h3>
+                                            <div style={{ height: '120px' }}>
+                                                <ChartArea
+                                                    data={revenueHistory.filter(r => r.policy === policy).map((r, i, arr) => ({ ...r, avgRevenue: arr.slice(0, i + 1).reduce((sum, x) => sum + x.revenue, 0) / (i + 1) }))}
+                                                    dataKey="avgRevenue"
+                                                    xKey="flight"
+                                                    stroke={getPolicyColor(policy)}
+                                                    fill={getPolicyColor(policy) + '40'}
+                                                    yDomain={[10000, 25000]}
+                                                    tooltipLabel="Avg Revenue"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div style={{ background: theme.cardBg, borderRadius: '10px', padding: '12px', border: `1px solid ${theme.cardBorder}` }}>
+                                            <h3 style={{ margin: '0 0 8px 0', fontSize: '0.75rem', color: theme.textMuted }}>REVENUE PER FLIGHT</h3>
+                                            <div style={{ height: '100px' }}>
+                                                <ChartArea
+                                                    data={revenueHistory.filter(r => r.policy === policy)}
+                                                    dataKey="revenue"
+                                                    xKey="flight"
+                                                    stroke={getPolicyColor(policy)}
+                                                    fill={getPolicyColor(policy) + '40'}
+                                                    tooltipLabel="Revenue"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div style={{ background: theme.cardBg, borderRadius: '10px', padding: '12px', border: `1px solid ${theme.cardBorder}` }}>
+                                            <h3 style={{ margin: '0 0 8px 0', fontSize: '0.75rem', color: theme.textMuted }}>ROLLING AVG (LAST 5)</h3>
+                                            <div style={{ height: '100px' }}>
+                                                <ChartArea
+                                                    data={revenueHistory.filter(r => r.policy === policy).map((r, i, arr) => ({ ...r, last5Avg: arr.slice(Math.max(0, i - 4), i + 1).reduce((sum, x) => sum + x.revenue, 0) / Math.min(i + 1, 5) }))}
+                                                    dataKey="last5Avg"
+                                                    xKey="flight"
+                                                    stroke={theme.lightBlue}
+                                                    fill={theme.lightBlue + '40'}
+                                                    tooltipLabel="Avg (5)"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div style={{ background: theme.cardBg, borderRadius: '10px', padding: '12px', border: `1px solid ${theme.cardBorder}` }}>
+                                            <h3 style={{ margin: '0 0 8px 0', fontSize: '0.75rem', color: theme.textMuted }}>OCCUPANCY % BY FLIGHT</h3>
+                                            <div style={{ height: '100px' }}>
+                                                <ChartAreaOccupancy
+                                                    data={revenueHistory.filter(r => r.policy === policy)}
+                                                    dataKey="occupancy"
+                                                    xKey="flight"
+                                                    stroke={theme.accent}
+                                                    fill={theme.accent + '40'}
+                                                    yDomain={[0, 100]}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {policy === 'qlearning' && (
+                                            <div style={{ background: theme.cardBg, borderRadius: '10px', padding: '12px', border: `1px solid ${theme.positive}40` }}>
+                                                <h3 style={{ margin: '0 0 8px 0', fontSize: '0.7rem', color: theme.positive }}>Q-TABLE: LEARNED BEST PRICE PER STATE</h3>
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'auto repeat(3, 1fr)', gap: '3px', fontSize: '0.6rem' }}>
+                                                    <div></div>
+                                                    {['far', 'medium', 'near'].map(t => <div key={t} style={{ textAlign: 'center', color: theme.textMuted, padding: '3px', fontSize: '0.55rem' }}>{t === 'far' ? '>=60d' : t === 'medium' ? '15-59d' : '<15d'}</div>)}
+                                                    {['high', 'medium', 'low'].map(cap => (
+                                                        <React.Fragment key={cap}>
+                                                            <div style={{ color: theme.textMuted, padding: '3px', fontSize: '0.55rem' }}>{cap === 'high' ? '>70%' : cap === 'medium' ? '30-70%' : '<30%'}</div>
+                                                            {['far', 'medium', 'near'].map(time => {
+                                                                const state = cap + '-' + time;
+                                                                let bestPrice = PRICES[0], bestQ = -Infinity;
+                                                                PRICES.forEach(p => { const q = getQValue(Q.current, state, p); if (q > bestQ) { bestQ = q; bestPrice = p; } });
+                                                                const isCurrent = getState(seatsRemaining, daysLeft) === state;
+                                                                return <div key={time} style={{ textAlign: 'center', padding: '5px 3px', background: isCurrent ? 'rgba(34, 197, 94, 0.2)' : 'rgba(0,0,0,0.3)', borderRadius: '3px', color: theme.accent, fontWeight: '600', border: isCurrent ? `2px solid ${theme.positive}` : 'none' }}>${bestPrice}</div>;
+                                                            })}
+                                                        </React.Fragment>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {policy === 'bandit' && (
+                                            <div style={{ background: theme.cardBg, borderRadius: '10px', padding: '12px', border: `1px solid ${theme.accent}40` }}>
+                                                <h3 style={{ margin: '0 0 8px 0', fontSize: '0.7rem', color: theme.accent }}>THOMPSON SAMPLING: AVG FLIGHT REVENUE</h3>
+                                                <div style={{ display: 'flex', justifyContent: 'space-around', fontSize: '0.65rem', flexWrap: 'wrap', gap: '4px' }}>
+                                                    {PRICES.map(p => { const d = banditState.current[p]; return (<div key={p} style={{ textAlign: 'center', minWidth: '45px' }}><div style={{ color: theme.textMuted }}>${p}</div><div style={{ color: theme.accent, fontWeight: '600' }}>${d.flights ? (d.totalRevenue / d.flights).toFixed(0) : '?'}</div><div style={{ color: theme.textMuted, fontSize: '0.5rem' }}>n={d.flights}</div></div>); })}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div style={{ maxWidth: '950px', margin: '12px auto 0', background: theme.cardBg, borderRadius: '8px', padding: '12px', border: `1px solid ${theme.cardBorder}` }}>
+                                    <h4 style={{ margin: '0 0 10px 0', fontSize: '0.75rem', color: theme.textMuted }}>Policy Comparison</h4>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
+                                        <thead>
+                                            <tr style={{ borderBottom: `1px solid ${theme.cardBorder}` }}>
+                                                <th style={{ padding: '8px', textAlign: 'left', color: theme.textMuted }}>Policy</th>
+                                                <th style={{ padding: '8px', textAlign: 'right', color: theme.textMuted }}>Flights</th>
+                                                <th style={{ padding: '8px', textAlign: 'right', color: theme.textMuted }}>Avg Revenue</th>
+                                                <th style={{ padding: '8px', textAlign: 'right', color: theme.textMuted }}>Avg Occ</th>
+                                                <th style={{ padding: '8px', textAlign: 'right', color: theme.lightBlue }}>Last 5 Rev</th>
+                                                <th style={{ padding: '8px', textAlign: 'right', color: theme.lightBlue }}>Last 5 Occ</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {['static', 'bandit', 'qlearning'].map(p => {
+                                                const result = policyResults[p];
+                                                return (
+                                                    <tr key={p} style={{ borderBottom: `1px solid ${theme.cardBorder}40` }}>
+                                                        <td style={{ padding: '8px', color: getPolicyColor(p), fontWeight: '600' }}>{getPolicyName(p)}</td>
+                                                        <td style={{ padding: '8px', textAlign: 'right', color: theme.text }}>{result ? result.flights : '-'}</td>
+                                                        <td style={{ padding: '8px', textAlign: 'right', color: theme.positive, fontWeight: '600' }}>{result ? '$' + result.avgRevenue.toFixed(0) : '-'}</td>
+                                                        <td style={{ padding: '8px', textAlign: 'right', color: theme.accent }}>{result ? result.avgOccupancy.toFixed(1) + '%' : '-'}</td>
+                                                        <td style={{ padding: '8px', textAlign: 'right', color: theme.lightBlue, fontWeight: '600' }}>{result ? '$' + result.last5AvgRevenue.toFixed(0) : '-'}</td>
+                                                        <td style={{ padding: '8px', textAlign: 'right', color: theme.lightBlue }}>{result ? result.last5AvgOccupancy.toFixed(1) + '%' : '-'}</td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                    </div>
+                    {/* Footer */}
+                    <div style={{ textAlign: 'center', marginTop: '40px', paddingTop: '20px' }}>
+                        <p style={{ color: '#888', fontSize: '0.75rem' }}>
+                            MGMT298D: Science and Strategy of AI | UCLA Anderson School of Management
+                        </p>
+                    </div>
+                </div>
+            );
+        }
+
+        // Render the app
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<AirlinePricingSimulator />);
+    </script>
+</body>
+</html>
