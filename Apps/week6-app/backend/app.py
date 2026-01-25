@@ -1,12 +1,16 @@
 """
 Flask backend for Week 6 CNN Training App
 Real CNN training on CIFAR-10 with Keras
+With queueing system for concurrent user limits
 """
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import numpy as np
 import os
+import time
+from collections import deque
+from datetime import datetime, timedelta
 
 # Set TensorFlow to CPU only and reduce logging
 os.environ['CUDA_VISIBLE_DEVICES'] = ''
@@ -18,15 +22,28 @@ from tensorflow.keras import layers
 from tensorflow.keras.datasets import cifar10
 import threading
 import uuid
-import json
 
 app = Flask(__name__)
 CORS(app)
 
-# Store training sessions
-training_sessions = {}
+# ============================================
+# Configuration
+# ============================================
+MAX_CONCURRENT_TRAININGS = 5  # Max simultaneous training jobs
+SESSION_TIMEOUT_MINUTES = 10  # Clean up sessions after this long
+CLEANUP_INTERVAL_SECONDS = 60  # How often to run cleanup
 
+# ============================================
+# Global State
+# ============================================
+training_sessions = {}  # session_id -> session data
+training_queue = deque()  # Queue of session_ids waiting to train
+active_trainings = set()  # Set of session_ids currently training
+state_lock = threading.Lock()  # Thread-safe access to shared state
+
+# ============================================
 # Load CIFAR-10 once at startup
+# ============================================
 print("Loading CIFAR-10 dataset...")
 (X_TRAIN_FULL, Y_TRAIN_FULL), (X_TEST, Y_TEST) = cifar10.load_data()
 X_TRAIN_FULL = X_TRAIN_FULL.astype('float32') / 255.0
@@ -39,6 +56,84 @@ CIFAR10_CLASSES = ['airplane', 'automobile', 'bird', 'cat', 'deer',
                    'dog', 'frog', 'horse', 'ship', 'truck']
 
 
+# ============================================
+# Session Cleanup Thread
+# ============================================
+def cleanup_old_sessions():
+    """Remove sessions older than SESSION_TIMEOUT_MINUTES"""
+    while True:
+        time.sleep(CLEANUP_INTERVAL_SECONDS)
+        now = datetime.now()
+
+        with state_lock:
+            expired = []
+            for session_id, session in training_sessions.items():
+                created = session.get('created_at', now)
+                if now - created > timedelta(minutes=SESSION_TIMEOUT_MINUTES):
+                    expired.append(session_id)
+
+            for session_id in expired:
+                # Remove from all tracking structures
+                if session_id in active_trainings:
+                    active_trainings.discard(session_id)
+                if session_id in training_queue:
+                    training_queue.remove(session_id)
+
+                # Clear model to free memory
+                if training_sessions[session_id].get('model'):
+                    del training_sessions[session_id]['model']
+                del training_sessions[session_id]
+
+            if expired:
+                print(f"Cleaned up {len(expired)} expired sessions")
+
+# Start cleanup thread
+cleanup_thread = threading.Thread(target=cleanup_old_sessions, daemon=True)
+cleanup_thread.start()
+
+
+# ============================================
+# Queue Processor Thread
+# ============================================
+def process_queue():
+    """Process training queue - start jobs when slots available"""
+    while True:
+        time.sleep(0.5)  # Check queue every 500ms
+
+        with state_lock:
+            # Start queued jobs if we have capacity
+            while len(active_trainings) < MAX_CONCURRENT_TRAININGS and training_queue:
+                session_id = training_queue.popleft()
+
+                # Skip if session was cleaned up
+                if session_id not in training_sessions:
+                    continue
+
+                session = training_sessions[session_id]
+
+                # Skip if already started or completed
+                if session['status'] not in ['queued']:
+                    continue
+
+                active_trainings.add(session_id)
+                session['status'] = 'starting'
+
+                # Start training in new thread
+                thread = threading.Thread(
+                    target=train_model_async,
+                    args=(session_id, session['config'])
+                )
+                thread.daemon = True
+                thread.start()
+
+# Start queue processor thread
+queue_thread = threading.Thread(target=process_queue, daemon=True)
+queue_thread.start()
+
+
+# ============================================
+# Model Building and Training
+# ============================================
 def build_cnn_model(config):
     """Build CNN model based on frontend config"""
     model = keras.Sequential()
@@ -118,7 +213,9 @@ def extract_filters(model, num_blocks):
 
 def train_model_async(session_id, config):
     """Train model in background thread"""
-    session = training_sessions[session_id]
+    session = training_sessions.get(session_id)
+    if not session:
+        return
 
     try:
         # Get training sample size
@@ -204,39 +301,65 @@ def train_model_async(session_id, config):
         session['error'] = str(e)
         print(f"Training error: {traceback.format_exc()}")
 
+    finally:
+        # Remove from active trainings
+        with state_lock:
+            active_trainings.discard(session_id)
 
+
+# ============================================
+# API Endpoints
+# ============================================
 @app.route('/api/health', methods=['GET'])
 def health():
+    with state_lock:
+        queue_length = len(training_queue)
+        active_count = len(active_trainings)
+        total_sessions = len(training_sessions)
+
     return jsonify({
         'status': 'ok',
         'tf_version': tf.__version__,
-        'cifar_loaded': len(X_TRAIN_FULL)
+        'cifar_loaded': len(X_TRAIN_FULL),
+        'queue_length': queue_length,
+        'active_trainings': active_count,
+        'max_concurrent': MAX_CONCURRENT_TRAININGS,
+        'total_sessions': total_sessions
     })
 
 
 @app.route('/api/train', methods=['POST'])
 def start_training():
-    """Start a new training session"""
+    """Start a new training session (may be queued)"""
     config = request.json
     session_id = str(uuid.uuid4())
 
-    training_sessions[session_id] = {
-        'status': 'initializing',
-        'config': config,
-        'current_epoch': 0,
-        'history': [],
-        'filters': None,
-        'model': None,
-        'test_accuracy': None,
-        'sample_predictions': None
-    }
+    with state_lock:
+        # Create session
+        training_sessions[session_id] = {
+            'status': 'queued',
+            'config': config,
+            'current_epoch': 0,
+            'history': [],
+            'filters': None,
+            'model': None,
+            'test_accuracy': None,
+            'sample_predictions': None,
+            'created_at': datetime.now(),
+            'queue_position': len(training_queue) + 1
+        }
 
-    # Start training in background thread
-    thread = threading.Thread(target=train_model_async, args=(session_id, config))
-    thread.daemon = True
-    thread.start()
+        # Add to queue
+        training_queue.append(session_id)
+        queue_position = len(training_queue)
+        active_count = len(active_trainings)
 
-    return jsonify({'session_id': session_id})
+    return jsonify({
+        'session_id': session_id,
+        'queue_position': queue_position,
+        'active_trainings': active_count,
+        'max_concurrent': MAX_CONCURRENT_TRAININGS
+    })
 
 
 @app.route('/api/train/<session_id>', methods=['GET'])
@@ -247,11 +370,22 @@ def get_training_status(session_id):
 
     session = training_sessions[session_id]
 
+    # Calculate current queue position
+    with state_lock:
+        if session_id in training_queue:
+            queue_position = list(training_queue).index(session_id) + 1
+        else:
+            queue_position = 0
+        active_count = len(active_trainings)
+
     response = {
         'status': session['status'],
         'current_epoch': session['current_epoch'],
         'total_epochs': session['config']['epochs'],
-        'history': session['history']
+        'history': session['history'],
+        'queue_position': queue_position,
+        'active_trainings': active_count,
+        'max_concurrent': MAX_CONCURRENT_TRAININGS
     }
 
     if session['status'] == 'complete':
@@ -298,6 +432,22 @@ def predict():
     })
 
 
+@app.route('/api/stats', methods=['GET'])
+def get_stats():
+    """Get server statistics"""
+    with state_lock:
+        return jsonify({
+            'queue_length': len(training_queue),
+            'active_trainings': len(active_trainings),
+            'max_concurrent': MAX_CONCURRENT_TRAININGS,
+            'total_sessions': len(training_sessions),
+            'queued_sessions': [sid for sid in training_queue],
+            'active_sessions': list(active_trainings)
+        })
+
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
+    print(f"Starting server on port {port}")
+    print(f"Max concurrent trainings: {MAX_CONCURRENT_TRAININGS}")
     app.run(host='0.0.0.0', port=port, debug=False, threaded=True)

@@ -1166,19 +1166,27 @@
             const [testAccuracy, setTestAccuracy] = useState(null);
             const [sessionId, setSessionId] = useState(null);
             const [backendStatus, setBackendStatus] = useState('checking');
+            const [queuePosition, setQueuePosition] = useState(0);
+            const [serverStats, setServerStats] = useState({ active: 0, max: 5 });
 
-            // Check backend health on mount
+            // Check backend health on mount and periodically
             useEffect(() => {
-                fetch(`${API_BASE_URL}/api/health`)
-                    .then(r => r.json())
-                    .then(data => {
-                        setBackendStatus('connected');
-                        console.log('Backend connected:', data);
-                    })
-                    .catch(err => {
-                        setBackendStatus('disconnected');
-                        console.error('Backend not available:', err);
-                    });
+                const checkHealth = () => {
+                    fetch(`${API_BASE_URL}/api/health`)
+                        .then(r => r.json())
+                        .then(data => {
+                            setBackendStatus('connected');
+                            setServerStats({ active: data.active_trainings || 0, max: data.max_concurrent || 5, queue: data.queue_length || 0 });
+                            console.log('Backend connected:', data);
+                        })
+                        .catch(err => {
+                            setBackendStatus('disconnected');
+                            console.error('Backend not available:', err);
+                        });
+                };
+                checkHealth();
+                const interval = setInterval(checkHealth, 5000); // Check every 5 seconds
+                return () => clearInterval(interval);
             }, []);
 
             useEffect(() => {
@@ -1247,7 +1255,16 @@
                             throw new Error(status.error);
                         }
 
-                        setTrainingStatus(status.status);
+                        // Update queue info
+                        setQueuePosition(status.queue_position || 0);
+                        setServerStats({ active: status.active_trainings || 0, max: status.max_concurrent || 5 });
+
+                        // Show appropriate status message
+                        if (status.queue_position > 0) {
+                            setTrainingStatus(`In queue: position ${status.queue_position} (${status.active_trainings}/${status.max_concurrent} training)`);
+                        } else {
+                            setTrainingStatus(status.status);
+                        }
                         setCurrentEpoch(status.current_epoch || 0);
 
                         if (status.history && status.history.length > 0) {
@@ -1403,24 +1420,39 @@
                             <div style={{
                                 display: 'flex',
                                 alignItems: 'center',
+                                justifyContent: 'space-between',
                                 gap: '0.5rem',
                                 marginBottom: '0.5rem',
-                                padding: '0.5rem',
+                                padding: '0.5rem 0.75rem',
                                 borderRadius: '6px',
                                 background: backendStatus === 'connected' ? '#e8f5e9' : backendStatus === 'checking' ? '#fff3e0' : '#ffebee',
                                 fontSize: '0.8rem'
                             }}>
-                                <div style={{
-                                    width: '8px',
-                                    height: '8px',
-                                    borderRadius: '50%',
-                                    background: backendStatus === 'connected' ? '#4CAF50' : backendStatus === 'checking' ? '#FF9800' : '#f44336'
-                                }} />
-                                <span>
-                                    {backendStatus === 'connected' && 'Python backend connected'}
-                                    {backendStatus === 'checking' && 'Checking backend...'}
-                                    {backendStatus === 'disconnected' && 'Backend not connected — start Python server on port 5000'}
-                                </span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <div style={{
+                                        width: '8px',
+                                        height: '8px',
+                                        borderRadius: '50%',
+                                        background: backendStatus === 'connected' ? '#4CAF50' : backendStatus === 'checking' ? '#FF9800' : '#f44336'
+                                    }} />
+                                    <span>
+                                        {backendStatus === 'connected' && 'Python backend connected'}
+                                        {backendStatus === 'checking' && 'Checking backend...'}
+                                        {backendStatus === 'disconnected' && 'Backend not connected — start Python server on port 5000'}
+                                    </span>
+                                </div>
+                                {backendStatus === 'connected' && (
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.5rem',
+                                        color: '#666',
+                                        fontSize: '0.75rem'
+                                    }}>
+                                        <span>🖥️ {serverStats.active}/{serverStats.max} active</span>
+                                        {serverStats.queue > 0 && <span>• {serverStats.queue} queued</span>}
+                                    </div>
+                                )}
                             </div>
 
                             <button className="run-button" onClick={runTraining} disabled={isTraining || backendStatus !== 'connected'}>
