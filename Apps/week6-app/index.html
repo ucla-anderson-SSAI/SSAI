@@ -23,26 +23,15 @@
             color: #1a1a1a;
         }
 
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-
-        ::-webkit-scrollbar-track { background: #ffffff;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: linear-gradient(180deg, #2774AE, #005587);
-            border-radius: 4px;
-        }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f5f5f5; }
+        ::-webkit-scrollbar-thumb { background: #2774AE; border-radius: 4px; }
 
         .app-container {
             min-height: 100vh;
-            position: relative;
             background: #ffffff;
         }
 
-        /* Header */
         .header {
             background: #2774AE;
             padding: 1rem 2rem 1.5rem 2rem;
@@ -62,7 +51,7 @@
         .header-left .course-label {
             font-size: 0.65rem;
             font-weight: 400;
-            color: #2774AE;
+            color: rgba(255,255,255,0.7);
             margin-bottom: 0.25rem;
             letter-spacing: 0.2em;
             text-transform: uppercase;
@@ -72,7 +61,6 @@
             font-size: 1.4rem;
             font-weight: 600;
             color: #f5f5f5;
-            letter-spacing: 0;
         }
 
         .header-left p {
@@ -81,17 +69,21 @@
             margin-top: 0.25rem;
         }
 
-        .header-right {
-            text-align: right;
-        }
-
         .header-right .ucla-anderson {
             font-size: 1rem;
             color: #f5f5f5;
             font-weight: 500;
         }
 
-        /* Tab Navigation */
+        .header-gold-line {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: #FFD100;
+        }
+
         .tab-navigation {
             display: flex;
             justify-content: center;
@@ -99,22 +91,20 @@
             padding: 1.5rem;
             background: #ffffff;
             border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+            flex-wrap: wrap;
         }
 
         .tab-btn {
-            padding: 0.8rem 2rem;
+            padding: 0.8rem 1.5rem;
             border: 1px solid rgba(0, 0, 0, 0.08);
             background: #ffffff;
             color: #666666;
             font-family: 'Inter', sans-serif;
             font-weight: 500;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             border-radius: 10px;
             cursor: pointer;
             transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
         }
 
         .tab-btn:hover {
@@ -129,347 +119,62 @@
             border-color: #2774AE;
         }
 
-        .tab-icon {
-            font-size: 1.1rem;
-        }
-
-        /* Main Content */
         .main-content {
             max-width: 1600px;
             margin: 0 auto;
             padding: 2rem;
-            position: relative;
-            z-index: 1;
         }
 
-        /* CNN Builder Tab */
-        .cnn-builder {
-            display: grid;
-            grid-template-columns: 1fr 350px;
-            gap: 2rem;
-        }
-
-        .pipeline-section {
-            background: #ffffff;
-            border-radius: 12px;
-            padding: 2rem;
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-        }
-
-        .section-title {
-            font-size: 1.3rem;
-            font-weight: 700;
-            margin-bottom: 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            color: #2774AE;
-        }
-
-        .section-title-icon {
-            width: 36px;
-            height: 36px;
-            background: rgba(39, 116, 174, 0.2);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-        }
-
-        /* CNN Pipeline Visualization */
-        .pipeline-container {
-            background: #ffffff;
-            border-radius: 12px;
-            padding: 2rem;
-            overflow-x: auto;
-            position: relative;
-            border: 1px solid rgba(0, 0, 0, 0.05);
-        }
-
-        .pipeline-wrapper {
-            display: flex;
-            align-items: center;
-            justify-content: flex-start;
-            gap: 1rem;
-            min-width: fit-content;
-            padding: 1rem 0;
-        }
-
-        .pipeline-block {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.5rem;
-            transition: all 0.5s ease;
-        }
-
-        .block-visual {
-            position: relative;
-            transition: all 0.5s ease;
-        }
-
-        /* Input Image Block */
-        .input-block .block-visual {
-            width: 80px;
-            height: 80px;
-            display: grid;
-            grid-template-columns: repeat(8, 1fr);
-            grid-template-rows: repeat(8, 1fr);
-            gap: 1px;
-            background: #ffffff;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 20px rgba(39, 116, 174, 0.3);
-        }
-
-        .pixel {
-            transition: background 0.3s ease;
-        }
-
-        /* Conv Block */
-        .conv-block .block-visual {
-            position: relative;
-            perspective: 500px;
-        }
-
-        .feature-cube {
-            position: relative;
-            transform-style: preserve-3d;
-            animation: rotateCube 10s ease-in-out infinite;
-        }
-
-        @keyframes rotateCube {
-            0%, 100% { transform: rotateX(-10deg) rotateY(-15deg); }
-            50% { transform: rotateX(-10deg) rotateY(15deg); }
-        }
-
-        .cube-face {
-            position: absolute;
-            border: 1px solid rgba(39, 116, 174, 0.5);
-            display: grid;
-            gap: 1px;
-            background: rgba(39, 116, 174, 0.1);
-        }
-
-        .cube-front {
-            transform: translateZ(var(--depth));
-            background: linear-gradient(135deg, rgba(39, 116, 174, 0.3), rgba(0, 85, 135, 0.2));
-        }
-
-        .cube-back {
-            transform: translateZ(calc(var(--depth) * -1));
-            background: rgba(39, 116, 174, 0.1);
-        }
-
-        .cube-top {
-            transform: rotateX(90deg) translateZ(var(--height));
-            background: linear-gradient(135deg, rgba(139, 184, 232, 0.3), rgba(39, 116, 174, 0.2));
-        }
-
-        .cube-side {
-            transform: rotateY(90deg) translateZ(var(--width));
-            background: rgba(139, 184, 232, 0.2);
-        }
-
-        /* Pool Block */
-        .pool-block .block-visual {
-            width: 40px;
-            height: 40px;
-            background: #ffffff;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            color: #003B5C;
-            box-shadow: 0 4px 15px rgba(39, 116, 174, 0.3);
-        }
-
-        /* Flatten Block */
-        .flatten-block .block-visual {
-            width: 20px;
-            height: 100px;
-            background: linear-gradient(180deg, #2774AE, #005587, #8BB8E8);
-            border-radius: 4px;
-            box-shadow: 0 4px 15px rgba(39, 116, 174, 0.4);
-        }
-
-        /* Dense Block */
-        .dense-block .block-visual {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .neuron {
-            width: 16px;
-            height: 16px;
-            background: radial-gradient(circle, #2774AE, #005587);
-            border-radius: 50%;
-            box-shadow: 0 0 10px rgba(39, 116, 174, 0.5);
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        .neuron:nth-child(2) { animation-delay: 0.2s; }
-        .neuron:nth-child(3) { animation-delay: 0.4s; }
-        .neuron:nth-child(4) { animation-delay: 0.6s; }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.2); opacity: 0.8; }
-        }
-
-        /* Output Block */
-        .output-block .block-visual {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            grid-template-rows: repeat(2, 1fr);
-            gap: 4px;
-        }
-
-        .output-class {
-            width: 24px;
-            height: 24px;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.6rem;
-            font-weight: 600;
-            color: #003B5C;
-            transition: all 0.3s ease;
-        }
-
-        .output-class.active {
-            transform: scale(1.2);
-            box-shadow: 0 0 15px rgba(39, 116, 174, 0.6);
-        }
-
-        /* Connection Arrows */
-        .connection-arrow {
-            display: flex;
-            align-items: center;
-            color: #2774AE;
-            font-size: 1.5rem;
-            opacity: 0.6;
-            animation: flowArrow 1.5s ease-in-out infinite;
-        }
-
-        @keyframes flowArrow {
-            0%, 100% { opacity: 0.3; transform: translateX(0); }
-            50% { opacity: 0.8; transform: translateX(5px); }
-        }
-
-        .block-label {
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: #666666;
-            text-align: center;
-        }
-
-        .block-dims {
-            font-size: 0.65rem;
-            color: #2774AE;
-            font-family: 'JetBrains Mono', monospace;
-            background: rgba(39, 116, 174, 0.1);
-            padding: 2px 8px;
-            border-radius: 4px;
-        }
-
-        /* Data Flow Animation */
-        .data-particle {
-            position: absolute;
-            width: 8px;
-            height: 8px;
-            background: #2774AE;
-            border-radius: 50%;
-            box-shadow: 0 0 10px #2774AE, 0 0 20px #2774AE;
-            animation: flowData 3s linear infinite;
-        }
-
-        @keyframes flowData {
-            0% { left: 0; opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { left: 100%; opacity: 0; }
-        }
-
-        /* Filter Visualization */
-        .filter-viz {
-            margin-top: 2rem;
-            padding-top: 2rem;
-            border-top: 1px solid rgba(39, 116, 174, 0.15);
-        }
-
-        .filter-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1rem;
-            justify-content: center;
-        }
-
-        .filter-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .filter-kernel {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 2px;
-            background: #ffffff;
-            padding: 4px;
-            border-radius: 6px;
-        }
-
-        .kernel-cell {
-            width: 20px;
-            height: 20px;
-            border-radius: 2px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.6rem;
-            font-weight: 600;
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        .filter-name {
-            font-size: 0.7rem;
-            color: #666666;
-        }
-
-        /* Controls Panel */
-        .controls-panel {
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-        }
-
-        .control-card {
+        .section-card {
             background: #ffffff;
             border-radius: 12px;
             padding: 1.5rem;
             border: 1px solid rgba(0, 0, 0, 0.08);
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            margin-bottom: 1.5rem;
         }
 
-        .control-title {
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: #2774AE;
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 700;
             margin-bottom: 1rem;
+            color: #2774AE;
             display: flex;
             align-items: center;
             gap: 0.5rem;
         }
 
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+        }
+
+        @media (max-width: 1200px) {
+            .grid-2 { grid-template-columns: 1fr; }
+            .grid-3 { grid-template-columns: repeat(2, 1fr); }
+            .grid-4 { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 768px) {
+            .grid-3 { grid-template-columns: 1fr; }
+            .grid-4 { grid-template-columns: 1fr; }
+        }
+
         .control-group {
-            margin-bottom: 1.25rem;
+            margin-bottom: 1rem;
         }
 
         .control-label {
@@ -499,13 +204,12 @@
 
         .slider::-webkit-slider-thumb {
             -webkit-appearance: none;
-            appearance: none;
             width: 18px;
             height: 18px;
-            background: #ffffff;
+            background: #2774AE;
             border-radius: 50%;
             cursor: pointer;
-            box-shadow: 0 2px 10px rgba(39, 116, 174, 0.5);
+            box-shadow: 0 2px 6px rgba(39, 116, 174, 0.4);
         }
 
         .button-group {
@@ -517,24 +221,24 @@
         .option-btn {
             padding: 0.5rem 1rem;
             border: 1px solid rgba(39, 116, 174, 0.3);
-            background: rgba(39, 116, 174, 0.1);
+            background: rgba(39, 116, 174, 0.05);
             color: #666666;
             border-radius: 8px;
             font-size: 0.8rem;
             font-family: 'JetBrains Mono', monospace;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
         }
 
         .option-btn:hover {
-            background: rgba(39, 116, 174, 0.2);
+            background: rgba(39, 116, 174, 0.15);
             color: #2774AE;
         }
 
         .option-btn.active {
-            background: #ffffff;
+            background: #2774AE;
             color: #ffffff;
-            border-color: transparent;
+            border-color: #2774AE;
         }
 
         .toggle-container {
@@ -554,7 +258,7 @@
         }
 
         .toggle.active {
-            background: #ffffff;
+            background: #2774AE;
         }
 
         .toggle-knob {
@@ -566,156 +270,13 @@
             background: #ffffff;
             border-radius: 50%;
             transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
 
         .toggle.active .toggle-knob {
             left: 27px;
         }
 
-        /* Metrics Display */
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 0.75rem;
-        }
-
-        .metric-item {
-            background: #ffffff;
-            border-radius: 10px;
-            padding: 1rem;
-            text-align: center;
-            border: 1px solid rgba(0, 0, 0, 0.05);
-        }
-
-        .metric-value {
-            font-size: 1.3rem;
-            font-weight: 700;
-            font-family: 'JetBrains Mono', monospace;
-            color: #2774AE;
-        }
-
-        .metric-label {
-            font-size: 0.7rem;
-            color: #666666;
-            margin-top: 0.25rem;
-        }
-
-        /* Transfer Learning Tab */
-        .transfer-learning {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 2rem;
-        }
-
-        .model-selection {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .model-card {
-            flex: 1;
-            background: #ffffff;
-            border: 2px solid rgba(0, 0, 0, 0.08);
-            border-radius: 12px;
-            padding: 1.25rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            text-align: center;
-        }
-
-        .model-card:hover {
-            border-color: rgba(39, 116, 174, 0.5);
-            background: #ffffff;
-        }
-
-        .model-card.selected {
-            border-color: #2774AE;
-            background: rgba(39, 116, 174, 0.08);
-        }
-
-        .model-icon {
-            font-size: 2rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .model-name {
-            font-weight: 600;
-            color: #1a1a1a;
-            margin-bottom: 0.25rem;
-        }
-
-        .model-params {
-            font-size: 0.75rem;
-            color: #666666;
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        .strategy-toggle {
-            display: flex;
-            background: #ffffff;
-            border-radius: 10px;
-            padding: 4px;
-            margin-bottom: 1.5rem;
-        }
-
-        .strategy-btn {
-            flex: 1;
-            padding: 0.75rem;
-            border: none;
-            background: transparent;
-            color: #666666;
-            font-family: 'Inter', sans-serif;
-            font-weight: 500;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .strategy-btn.active {
-            background: #2774AE;
-            color: #ffffff;
-        }
-
-        .layers-viz {
-            background: #ffffff;
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-top: 1rem;
-            border: 1px solid rgba(0, 0, 0, 0.05);
-        }
-
-        .layer-bar {
-            height: 30px;
-            border-radius: 6px;
-            margin-bottom: 0.5rem;
-            display: flex;
-            align-items: center;
-            padding: 0 1rem;
-            font-size: 0.75rem;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-
-        .layer-frozen {
-            background: linear-gradient(90deg, #8BB8E8, #2774AE);
-            color: white;
-        }
-
-        .layer-trainable {
-            background: linear-gradient(90deg, #2774AE, #e6bc00);
-            color: #003B5C;
-        }
-
-        /* Comparison Chart */
-        .comparison-chart {
-            background: #ffffff;
-            border-radius: 12px;
-            padding: 1.5rem;
-            border: 1px solid rgba(0, 0, 0, 0.05);
-        }
-
-        /* Run Button */
         .run-button {
             width: 100%;
             padding: 1rem;
@@ -756,26 +317,295 @@
             to { transform: rotate(360deg); }
         }
 
-        /* Responsive */
-        @media (max-width: 1200px) {
-            .cnn-builder {
-                grid-template-columns: 1fr;
-            }
-
-            .transfer-learning {
-                grid-template-columns: 1fr;
-            }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem;
         }
-    
-        .header-gold-line {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: #FFD100;
-            margin: 0;
-            padding: 0;
+
+        .metric-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            color: #2774AE;
+        }
+
+        .metric-label {
+            font-size: 0.7rem;
+            color: #666666;
+            margin-top: 0.25rem;
+        }
+
+        .chart-container {
+            height: 280px;
+            position: relative;
+        }
+
+        /* Sample Images Grid */
+        .sample-image {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .sample-image.correct {
+            border-color: #27ae60;
+        }
+
+        .sample-image.incorrect {
+            border-color: #e74c3c;
+        }
+
+        .sample-image-visual {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            gap: 0;
+        }
+
+        .sample-image-label {
+            padding: 0.25rem;
+            font-size: 0.65rem;
+            text-align: center;
+            background: #f8f9fa;
+            font-weight: 500;
+        }
+
+        .sample-image.correct .sample-image-label {
+            background: rgba(39, 174, 96, 0.1);
+            color: #27ae60;
+        }
+
+        .sample-image.incorrect .sample-image-label {
+            background: rgba(231, 76, 60, 0.1);
+            color: #e74c3c;
+        }
+
+        /* Filter Visualization */
+        .filter-layer {
+            margin-bottom: 1.5rem;
+        }
+
+        .filter-layer-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .filter-layer-subtitle {
+            font-size: 0.75rem;
+            color: #888;
+            font-weight: 400;
+        }
+
+        .filter-grid {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .filter-visual {
+            width: 60px;
+            height: 60px;
+            border-radius: 6px;
+            border: 1px solid rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .filter-name {
+            font-size: 0.65rem;
+            color: #666;
+        }
+
+        /* Upload Section */
+        .upload-zone {
+            border: 2px dashed rgba(39, 116, 174, 0.3);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: rgba(39, 116, 174, 0.02);
+        }
+
+        .upload-zone:hover {
+            border-color: #2774AE;
+            background: rgba(39, 116, 174, 0.05);
+        }
+
+        .upload-zone.has-image {
+            padding: 1rem;
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: #2774AE;
+            margin-bottom: 1rem;
+        }
+
+        .upload-text {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .uploaded-image {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .prediction-result {
+            background: linear-gradient(135deg, #2774AE, #005587);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .prediction-class {
+            font-size: 2rem;
+            font-weight: 700;
+            text-transform: capitalize;
+            margin-bottom: 0.5rem;
+        }
+
+        .prediction-confidence {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        .confidence-bars {
+            margin-top: 1.5rem;
+        }
+
+        .confidence-bar-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .confidence-bar-label {
+            width: 80px;
+            font-size: 0.75rem;
+            text-align: right;
+            color: #666;
+        }
+
+        .confidence-bar-track {
+            flex: 1;
+            height: 20px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .confidence-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #2774AE, #005587);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 0.5rem;
+            font-size: 0.7rem;
+            color: white;
+            font-weight: 600;
+            transition: width 0.5s ease;
+        }
+
+        .epoch-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(39, 116, 174, 0.1);
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: #2774AE;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .epoch-dot {
+            width: 8px;
+            height: 8px;
+            background: #2774AE;
+            border-radius: 50%;
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+
+        .pipeline-viz {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            overflow-x: auto;
+            padding: 1rem 0;
+        }
+
+        .pipeline-block {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            min-width: 60px;
+        }
+
+        .pipeline-block-visual {
+            padding: 0.5rem 0.75rem;
+            background: linear-gradient(135deg, #2774AE, #005587);
+            color: white;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .pipeline-block-label {
+            font-size: 0.6rem;
+            color: #888;
+        }
+
+        .pipeline-arrow {
+            color: #ccc;
+            font-size: 1.2rem;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: #888;
+            font-size: 0.75rem;
         }
     </style>
 </head>
@@ -783,15 +613,53 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef, useMemo } = React;
+        const { useState, useEffect, useRef, useMemo, useCallback } = React;
 
-        // Chart.js Bar Chart Component for comparison data
-        const ChartBar = ({ data, dataKey1, dataKey2, label1, label2, color1, color2 }) => {
+        // CIFAR-10 Classes
+        const CIFAR10_CLASSES = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck'];
+
+        // Color palettes for generating synthetic CIFAR-like images
+        const CLASS_COLORS = {
+            airplane: ['#87CEEB', '#4A90D9', '#2774AE', '#B0C4DE', '#F0F8FF'],
+            automobile: ['#DC143C', '#8B0000', '#FF6347', '#2F4F4F', '#696969'],
+            bird: ['#FFD700', '#FFA500', '#8B4513', '#228B22', '#32CD32'],
+            cat: ['#DEB887', '#D2691E', '#8B4513', '#F5DEB3', '#FFDEAD'],
+            deer: ['#8B4513', '#A0522D', '#D2691E', '#228B22', '#6B8E23'],
+            dog: ['#D2691E', '#8B4513', '#F4A460', '#DEB887', '#FFDEAD'],
+            frog: ['#228B22', '#32CD32', '#00FF00', '#006400', '#90EE90'],
+            horse: ['#8B4513', '#A0522D', '#D2691E', '#2F4F4F', '#696969'],
+            ship: ['#4169E1', '#000080', '#1E90FF', '#87CEEB', '#B0C4DE'],
+            truck: ['#FF4500', '#FF6347', '#2F4F4F', '#696969', '#808080']
+        };
+
+        // Generate synthetic image pixels for a class
+        const generateClassImage = (className) => {
+            const colors = CLASS_COLORS[className] || CLASS_COLORS.cat;
+            const pixels = [];
+            for (let i = 0; i < 64; i++) {
+                const row = Math.floor(i / 8);
+                const col = i % 8;
+                // Create some pattern based on class
+                let colorIdx;
+                if (className === 'airplane' || className === 'ship') {
+                    colorIdx = row < 3 ? 0 : (col > 2 && col < 6 ? 2 : 1);
+                } else if (className === 'automobile' || className === 'truck') {
+                    colorIdx = row > 5 ? 3 : (row > 2 ? 0 : 4);
+                } else {
+                    colorIdx = Math.floor(Math.random() * colors.length);
+                }
+                pixels.push(colors[colorIdx]);
+            }
+            return pixels;
+        };
+
+        // Training Curve Chart Component
+        const TrainingChart = ({ trainingHistory, currentEpoch }) => {
             const canvasRef = useRef(null);
             const chartRef = useRef(null);
 
             useEffect(() => {
-                if (!canvasRef.current || !data || data.length === 0) return;
+                if (!canvasRef.current) return;
 
                 if (chartRef.current) {
                     chartRef.current.destroy();
@@ -799,54 +667,77 @@
 
                 const ctx = canvasRef.current.getContext('2d');
                 chartRef.current = new Chart(ctx, {
-                    type: 'bar',
+                    type: 'line',
                     data: {
-                        labels: data.map(d => d.name),
+                        labels: trainingHistory.map((_, i) => `${i + 1}`),
                         datasets: [
                             {
-                                label: label1,
-                                data: data.map(d => d[dataKey1]),
-                                backgroundColor: color1,
-                                borderColor: color1,
-                                borderWidth: 1,
-                                borderRadius: 4
+                                label: 'Training Accuracy',
+                                data: trainingHistory.map(h => h.trainAcc),
+                                borderColor: '#2774AE',
+                                backgroundColor: 'rgba(39, 116, 174, 0.1)',
+                                fill: true,
+                                tension: 0.4,
+                                pointRadius: 4,
+                                pointBackgroundColor: '#2774AE'
                             },
                             {
-                                label: label2,
-                                data: data.map(d => d[dataKey2]),
-                                backgroundColor: color2,
-                                borderColor: color2,
-                                borderWidth: 1,
-                                borderRadius: 4
+                                label: 'Validation Accuracy',
+                                data: trainingHistory.map(h => h.valAcc),
+                                borderColor: '#FFD100',
+                                backgroundColor: 'rgba(255, 209, 0, 0.1)',
+                                fill: true,
+                                tension: 0.4,
+                                pointRadius: 4,
+                                pointBackgroundColor: '#FFD100'
                             }
                         ]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        animation: {
+                            duration: 300
+                        },
                         plugins: {
                             legend: {
                                 display: true,
+                                position: 'top',
                                 labels: {
-                                    color: '#666666'
+                                    color: '#666',
+                                    usePointStyle: true,
+                                    padding: 20
                                 }
                             },
                             tooltip: {
-                                backgroundColor: 'rgba(10,10,10,0.95)',
-                                titleColor: '#e5e5e5',
-                                bodyColor: '#888888',
-                                borderColor: 'rgba(39,116,174,0.3)',
-                                borderWidth: 1
+                                backgroundColor: 'rgba(0,0,0,0.8)',
+                                titleColor: '#fff',
+                                bodyColor: '#fff',
+                                callbacks: {
+                                    label: (context) => `${context.dataset.label}: ${context.raw.toFixed(1)}%`
+                                }
                             }
                         },
                         scales: {
                             x: {
-                                ticks: { color: '#666666' },
-                                grid: { color: 'rgba(0, 0, 0, 0.06)' }
+                                title: {
+                                    display: true,
+                                    text: 'Epoch',
+                                    color: '#666'
+                                },
+                                ticks: { color: '#666' },
+                                grid: { color: 'rgba(0, 0, 0, 0.05)' }
                             },
                             y: {
-                                ticks: { color: '#666666' },
-                                grid: { color: 'rgba(0, 0, 0, 0.06)' }
+                                title: {
+                                    display: true,
+                                    text: 'Accuracy (%)',
+                                    color: '#666'
+                                },
+                                min: 0,
+                                max: 100,
+                                ticks: { color: '#666' },
+                                grid: { color: 'rgba(0, 0, 0, 0.05)' }
                             }
                         }
                     }
@@ -857,231 +748,186 @@
                         chartRef.current.destroy();
                     }
                 };
-            }, [data, dataKey1, dataKey2, label1, label2, color1, color2]);
+            }, [trainingHistory]);
 
-            return <canvas ref={canvasRef} style={{ height: '100%', width: '100%' }} />;
+            return <canvas ref={canvasRef} />;
         };
 
-        // CIFAR-10 Classes
-        const CIFAR10_CLASSES = ['airplane', 'auto', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck'];
+        // Loss Chart Component
+        const LossChart = ({ trainingHistory }) => {
+            const canvasRef = useRef(null);
+            const chartRef = useRef(null);
 
-        // Filter Kernels
-        const FILTER_KERNELS = [
-            { name: 'Horizontal Edge', values: [[-1,-1,-1],[0,0,0],[1,1,1]] },
-            { name: 'Vertical Edge', values: [[-1,0,1],[-1,0,1],[-1,0,1]] },
-            { name: 'Diagonal', values: [[1,0,-1],[0,0,0],[-1,0,1]] },
-            { name: 'Sharpen', values: [[0,-1,0],[-1,5,-1],[0,-1,0]] },
-            { name: 'Blur', values: [[1,1,1],[1,1,1],[1,1,1]] },
-            { name: 'Corner', values: [[-1,-1,2],[-1,2,-1],[2,-1,-1]] }
-        ];
+            useEffect(() => {
+                if (!canvasRef.current || trainingHistory.length === 0) return;
 
-        // Generate random pixel colors for input visualization
-        const generatePixels = () => {
-            const colors = ['#2774AE', '#005587', '#8BB8E8', '#2774AE', '#2774AE', '#8BB8E8', '#2774AE', '#2774AE'];
-            return Array(64).fill(0).map(() => colors[Math.floor(Math.random() * colors.length)]);
+                if (chartRef.current) {
+                    chartRef.current.destroy();
+                }
+
+                const ctx = canvasRef.current.getContext('2d');
+                chartRef.current = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: trainingHistory.map((_, i) => `${i + 1}`),
+                        datasets: [
+                            {
+                                label: 'Training Loss',
+                                data: trainingHistory.map(h => h.trainLoss),
+                                borderColor: '#e74c3c',
+                                backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                                fill: true,
+                                tension: 0.4
+                            },
+                            {
+                                label: 'Validation Loss',
+                                data: trainingHistory.map(h => h.valLoss),
+                                borderColor: '#9b59b6',
+                                backgroundColor: 'rgba(155, 89, 182, 0.1)',
+                                fill: true,
+                                tension: 0.4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                                labels: { color: '#666', usePointStyle: true, padding: 20 }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: { display: true, text: 'Epoch', color: '#666' },
+                                ticks: { color: '#666' },
+                                grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                            },
+                            y: {
+                                title: { display: true, text: 'Loss', color: '#666' },
+                                ticks: { color: '#666' },
+                                grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                            }
+                        }
+                    }
+                });
+
+                return () => {
+                    if (chartRef.current) chartRef.current.destroy();
+                };
+            }, [trainingHistory]);
+
+            return <canvas ref={canvasRef} />;
         };
 
-        // Input Image Block Component
-        const InputBlock = ({ pixels }) => (
-            <div className="pipeline-block input-block">
-                <div className="block-visual">
-                    {pixels.map((color, i) => (
-                        <div key={i} className="pixel" style={{ background: color }} />
-                    ))}
-                </div>
-                <div className="block-label">Input</div>
-                <div className="block-dims">32x32x3</div>
-            </div>
-        );
-
-        // Conv Block Component
-        const ConvBlock = ({ index, filters, size, batchNorm }) => {
-            const inputSize = 32 / Math.pow(2, index);
-            const outputSize = inputSize;
-            const depth = Math.min(filters / 8, 12);
-
+        // Sample Image Component
+        const SampleImage = ({ pixels, trueLabel, predictedLabel, showResult }) => {
+            const isCorrect = trueLabel === predictedLabel;
             return (
-                <div className="pipeline-block conv-block">
-                    <div className="block-visual" style={{
-                        width: `${Math.max(40, outputSize * 1.5)}px`,
-                        height: `${Math.max(40, outputSize * 1.5)}px`
-                    }}>
-                        <div className="feature-cube" style={{
-                            width: `${Math.max(35, outputSize * 1.2)}px`,
-                            height: `${Math.max(35, outputSize * 1.2)}px`,
-                            '--depth': `${depth}px`,
-                            '--width': `${Math.max(35, outputSize * 1.2) / 2}px`,
-                            '--height': `${Math.max(35, outputSize * 1.2) / 2}px`
-                        }}>
-                            {/* Simplified cube representation */}
-                            <div style={{
-                                width: '100%',
-                                height: '100%',
-                                background: `linear-gradient(135deg, rgba(39, 116, 174, ${0.3 + index * 0.1}), rgba(0, 85, 135, ${0.2 + index * 0.1}))`,
-                                borderRadius: '6px',
-                                border: '2px solid rgba(39, 116, 174, 0.5)',
-                                boxShadow: `${depth}px ${depth}px 0 rgba(139, 184, 232, 0.3), 0 0 15px rgba(39, 116, 174, 0.3)`,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '0.7rem',
-                                fontWeight: '600',
-                                color: '#1a1a1a'
-                            }}>
-                                {filters}
-                            </div>
-                        </div>
-                    </div>
-                    <div className="block-label">Conv{index + 1}{batchNorm ? '+BN' : ''}</div>
-                    <div className="block-dims">{outputSize}x{outputSize}x{filters}</div>
-                </div>
-            );
-        };
-
-        // Pool Block Component
-        const PoolBlock = ({ type, index }) => {
-            const size = 32 / Math.pow(2, index + 1);
-            return (
-                <div className="pipeline-block pool-block">
-                    <div className="block-visual">
-                        {type === 'max' ? String.fromCharCode(8595) : '~'}
-                    </div>
-                    <div className="block-label">{type === 'max' ? 'MaxPool' : 'AvgPool'}</div>
-                    <div className="block-dims">2x2</div>
-                </div>
-            );
-        };
-
-        // Flatten Block Component
-        const FlattenBlock = ({ size }) => (
-            <div className="pipeline-block flatten-block">
-                <div className="block-visual" />
-                <div className="block-label">Flatten</div>
-                <div className="block-dims">{size}</div>
-            </div>
-        );
-
-        // Dense Block Component
-        const DenseBlock = ({ units }) => (
-            <div className="pipeline-block dense-block">
-                <div className="block-visual">
-                    {Array(Math.min(6, Math.ceil(units / 64))).fill(0).map((_, i) => (
-                        <div key={i} className="neuron" />
-                    ))}
-                </div>
-                <div className="block-label">Dense</div>
-                <div className="block-dims">{units}</div>
-            </div>
-        );
-
-        // Output Block Component
-        const OutputBlock = ({ prediction }) => {
-            const classColors = ['#2774AE', '#005587', '#8BB8E8', '#2774AE', '#2774AE', '#8BB8E8', '#06b6d4', '#2774AE', '#2774AE', '#8BB8E8'];
-            return (
-                <div className="pipeline-block output-block">
-                    <div className="block-visual">
-                        {CIFAR10_CLASSES.map((cls, i) => (
-                            <div
-                                key={i}
-                                className={`output-class ${prediction === i ? 'active' : ''}`}
-                                style={{ background: classColors[i] }}
-                                title={cls}
-                            >
-                                {cls.substring(0, 2)}
-                            </div>
+                <div className={`sample-image ${showResult ? (isCorrect ? 'correct' : 'incorrect') : ''}`}>
+                    <div className="sample-image-visual">
+                        {pixels.map((color, i) => (
+                            <div key={i} style={{ background: color }} />
                         ))}
                     </div>
-                    <div className="block-label">Output</div>
-                    <div className="block-dims">10 classes</div>
+                    <div className="sample-image-label">
+                        {showResult ? (
+                            isCorrect ? `✓ ${trueLabel}` : `✗ ${predictedLabel}`
+                        ) : trueLabel}
+                    </div>
                 </div>
             );
         };
 
-        // Connection Arrow Component
-        const ConnectionArrow = () => (
-            <div className="connection-arrow">{String.fromCharCode(8594)}</div>
-        );
+        // Higher-Order Filter Visualization
+        const FilterVisualization = ({ layer }) => {
+            const filters = useMemo(() => {
+                if (layer === 1) {
+                    // Layer 1: Edge detectors
+                    return [
+                        { name: 'Horizontal', pattern: 'linear-gradient(0deg, #2774AE 33%, #fff 33%, #fff 66%, #005587 66%)' },
+                        { name: 'Vertical', pattern: 'linear-gradient(90deg, #2774AE 33%, #fff 33%, #fff 66%, #005587 66%)' },
+                        { name: 'Diagonal ↘', pattern: 'linear-gradient(135deg, #2774AE, #fff, #005587)' },
+                        { name: 'Diagonal ↗', pattern: 'linear-gradient(45deg, #2774AE, #fff, #005587)' },
+                        { name: 'Corner', pattern: 'conic-gradient(from 0deg, #2774AE, #fff, #005587, #fff, #2774AE)' },
+                        { name: 'Spot', pattern: 'radial-gradient(circle, #005587, #fff, #2774AE)' }
+                    ];
+                } else if (layer === 2) {
+                    // Layer 2: Textures
+                    return [
+                        { name: 'Checkers', pattern: 'repeating-conic-gradient(#2774AE 0% 25%, #fff 0% 50%) 50% / 20px 20px' },
+                        { name: 'Stripes', pattern: 'repeating-linear-gradient(45deg, #2774AE, #2774AE 5px, #fff 5px, #fff 10px)' },
+                        { name: 'Grid', pattern: 'linear-gradient(#2774AE 2px, transparent 2px), linear-gradient(90deg, #2774AE 2px, #f0f0f0 2px)' },
+                        { name: 'Dots', pattern: 'radial-gradient(circle, #2774AE 20%, transparent 20%) 0 0 / 15px 15px' },
+                        { name: 'Waves', pattern: 'repeating-linear-gradient(0deg, #2774AE, #2774AE 5px, #8BB8E8 5px, #8BB8E8 10px, #fff 10px, #fff 15px)' },
+                        { name: 'Cross', pattern: 'linear-gradient(#2774AE 40%, transparent 40%), linear-gradient(90deg, #2774AE 40%, #fff 40%)' }
+                    ];
+                } else {
+                    // Layer 3+: Object parts
+                    return [
+                        { name: 'Wheel', pattern: 'radial-gradient(circle, #333 30%, #666 30%, #666 50%, #999 50%, #999 70%, #ccc 70%)' },
+                        { name: 'Eye', pattern: 'radial-gradient(circle, #000 20%, #4a6fa5 20%, #4a6fa5 40%, #fff 40%)' },
+                        { name: 'Fur', pattern: 'repeating-linear-gradient(60deg, #8B4513, #D2691E 3px, #F4A460 3px, #F4A460 6px)' },
+                        { name: 'Wing', pattern: 'linear-gradient(135deg, #87CEEB 50%, #4A90D9 50%)' },
+                        { name: 'Snout', pattern: 'ellipse(60% 40% at 50% 60%) #D2691E' },
+                        { name: 'Tail', pattern: 'linear-gradient(45deg, transparent 40%, #8B4513 40%, #8B4513 60%, transparent 60%)' }
+                    ];
+                }
+            }, [layer]);
 
-        // Filter Visualization Component
-        const FilterVisualization = () => (
-            <div className="filter-viz">
-                <div className="section-title" style={{ fontSize: '1rem' }}>
-                    First Layer Filter Patterns
-                </div>
+            return (
                 <div className="filter-grid">
-                    {FILTER_KERNELS.map((filter, idx) => (
+                    {filters.map((filter, idx) => (
                         <div key={idx} className="filter-item">
-                            <div className="filter-kernel">
-                                {filter.values.flat().map((val, i) => (
-                                    <div
-                                        key={i}
-                                        className="kernel-cell"
-                                        style={{
-                                            background: val > 0
-                                                ? `rgba(39, 116, 174, ${Math.abs(val) / 5})`
-                                                : val < 0
-                                                    ? `rgba(255, 209, 0, ${Math.abs(val) / 5})`
-                                                    : 'rgba(255,255,255,0.1)',
-                                            color: Math.abs(val) > 0 ? '#e5e5e5' : '#666'
-                                        }}
-                                    >
-                                        {val}
-                                    </div>
-                                ))}
-                            </div>
+                            <div
+                                className="filter-visual"
+                                style={{ background: filter.pattern, backgroundSize: 'cover' }}
+                            />
                             <div className="filter-name">{filter.name}</div>
                         </div>
                     ))}
                 </div>
-            </div>
-        );
+            );
+        };
 
-        // CNN Pipeline Visualization
+        // CNN Architecture Pipeline
         const CNNPipeline = ({ config }) => {
-            const [pixels] = useState(generatePixels());
-            const [prediction, setPrediction] = useState(0);
+            const blocks = [];
+            let currentSize = 32;
+            let currentChannels = 3;
 
-            useEffect(() => {
-                const interval = setInterval(() => {
-                    setPrediction(Math.floor(Math.random() * 10));
-                }, 2000);
-                return () => clearInterval(interval);
-            }, []);
+            blocks.push({ type: 'Input', size: `${currentSize}×${currentSize}×${currentChannels}` });
 
-            const calculateFlattenSize = () => {
-                const finalSize = 32 / Math.pow(2, config.convBlocks);
-                return finalSize * finalSize * config.filters;
-            };
+            for (let i = 0; i < config.convBlocks; i++) {
+                const filters = config.filters * Math.pow(2, Math.min(i, 2));
+                blocks.push({ type: `Conv${i+1}`, size: `${currentSize}×${currentSize}×${filters}` });
+                if (config.batchNorm) {
+                    blocks.push({ type: 'BN', size: '' });
+                }
+                blocks.push({ type: 'ReLU', size: '' });
+                currentSize = Math.floor(currentSize / 2);
+                blocks.push({ type: 'Pool', size: `${currentSize}×${currentSize}` });
+                currentChannels = filters;
+            }
+
+            const flatSize = currentSize * currentSize * currentChannels;
+            blocks.push({ type: 'Flatten', size: `${flatSize}` });
+            blocks.push({ type: 'Dense', size: '256' });
+            blocks.push({ type: 'Output', size: '10' });
 
             return (
-                <div className="pipeline-container">
-                    <div className="pipeline-wrapper">
-                        <InputBlock pixels={pixels} />
-                        <ConnectionArrow />
-
-                        {Array(config.convBlocks).fill(0).map((_, i) => (
-                            <React.Fragment key={i}>
-                                <ConvBlock
-                                    index={i}
-                                    filters={config.filters * Math.pow(2, Math.min(i, 2))}
-                                    size={config.kernelSize}
-                                    batchNorm={config.batchNorm}
-                                />
-                                <ConnectionArrow />
-                                <PoolBlock type={config.poolType} index={i} />
-                                {i < config.convBlocks - 1 && <ConnectionArrow />}
-                            </React.Fragment>
-                        ))}
-
-                        <ConnectionArrow />
-                        <FlattenBlock size={calculateFlattenSize()} />
-                        <ConnectionArrow />
-                        <DenseBlock units={256} />
-                        <ConnectionArrow />
-                        <OutputBlock prediction={prediction} />
-                    </div>
-
-                    <FilterVisualization />
+                <div className="pipeline-viz">
+                    {blocks.map((block, idx) => (
+                        <React.Fragment key={idx}>
+                            <div className="pipeline-block">
+                                <div className="pipeline-block-visual">{block.type}</div>
+                                {block.size && <div className="pipeline-block-label">{block.size}</div>}
+                            </div>
+                            {idx < blocks.length - 1 && <span className="pipeline-arrow">→</span>}
+                        </React.Fragment>
+                    ))}
                 </div>
             );
         };
@@ -1089,84 +935,100 @@
         // CNN Builder Tab
         const CNNBuilderTab = () => {
             const [config, setConfig] = useState({
-                convBlocks: 2,
+                convBlocks: 3,
                 filters: 32,
                 kernelSize: 3,
                 poolType: 'max',
                 batchNorm: true,
-                dropout: 0.25
+                dropout: 0.25,
+                epochs: 20
             });
-            const [metrics, setMetrics] = useState({
-                trainAcc: 0,
-                testAcc: 0,
-                params: 0,
-                time: 0,
-                memory: 0
-            });
+
             const [isTraining, setIsTraining] = useState(false);
+            const [currentEpoch, setCurrentEpoch] = useState(0);
+            const [trainingHistory, setTrainingHistory] = useState([]);
+            const [sampleImages, setSampleImages] = useState([]);
+            const [classificationResults, setClassificationResults] = useState([]);
+
+            // Generate sample images on mount
+            useEffect(() => {
+                const samples = CIFAR10_CLASSES.slice(0, 8).map(cls => ({
+                    pixels: generateClassImage(cls),
+                    trueLabel: cls,
+                    predictedLabel: cls
+                }));
+                setSampleImages(samples);
+            }, []);
 
             const calculateParams = useMemo(() => {
                 let params = 0;
                 let inputChannels = 3;
-
                 for (let i = 0; i < config.convBlocks; i++) {
                     const outputChannels = config.filters * Math.pow(2, Math.min(i, 2));
                     params += config.kernelSize * config.kernelSize * inputChannels * outputChannels + outputChannels;
                     if (config.batchNorm) params += outputChannels * 4;
                     inputChannels = outputChannels;
                 }
-
                 const finalSize = 32 / Math.pow(2, config.convBlocks);
                 const flattenSize = finalSize * finalSize * inputChannels;
                 params += flattenSize * 256 + 256;
                 params += 256 * 10 + 10;
-
                 return params;
             }, [config]);
 
             const runTraining = async () => {
                 setIsTraining(true);
+                setTrainingHistory([]);
+                setCurrentEpoch(0);
+                setClassificationResults([]);
 
-                // Simulate training with progressive updates
-                for (let epoch = 0; epoch < 10; epoch++) {
-                    await new Promise(resolve => setTimeout(resolve, 300));
-                    setMetrics({
-                        trainAcc: Math.min(95, 60 + epoch * 4 + Math.random() * 3),
-                        testAcc: Math.min(88, 55 + epoch * 3.5 + Math.random() * 2),
-                        params: calculateParams,
-                        time: (epoch + 1) * 5,
-                        memory: Math.round(calculateParams / 10000)
-                    });
+                const baseTrainAcc = 45 + config.convBlocks * 5 + (config.batchNorm ? 5 : 0);
+                const baseValAcc = 40 + config.convBlocks * 4 + (config.batchNorm ? 4 : 0);
+
+                for (let epoch = 1; epoch <= config.epochs; epoch++) {
+                    await new Promise(resolve => setTimeout(resolve, 200));
+
+                    const progress = epoch / config.epochs;
+                    const learningCurve = 1 - Math.exp(-3 * progress);
+
+                    const trainAcc = Math.min(98, baseTrainAcc + learningCurve * 45 + Math.random() * 3);
+                    const valAcc = Math.min(92, baseValAcc + learningCurve * 40 + Math.random() * 4);
+                    const trainLoss = Math.max(0.05, 2.5 * (1 - learningCurve) + Math.random() * 0.1);
+                    const valLoss = Math.max(0.1, 2.8 * (1 - learningCurve) + Math.random() * 0.15);
+
+                    setCurrentEpoch(epoch);
+                    setTrainingHistory(prev => [...prev, { trainAcc, valAcc, trainLoss, valLoss }]);
                 }
 
+                // Generate classification results
+                const results = sampleImages.map(img => {
+                    const correct = Math.random() > 0.15; // 85% accuracy
+                    return {
+                        ...img,
+                        predictedLabel: correct ? img.trueLabel : CIFAR10_CLASSES[Math.floor(Math.random() * 10)]
+                    };
+                });
+                setClassificationResults(results);
                 setIsTraining(false);
             };
 
-            return (
-                <div className="cnn-builder">
-                    <div className="pipeline-section">
-                        <div className="section-title">
-                            CNN Architecture Pipeline
-                        </div>
-                        <CNNPipeline config={config} />
-                    </div>
+            const latestMetrics = trainingHistory.length > 0 ? trainingHistory[trainingHistory.length - 1] : null;
 
-                    <div className="controls-panel">
-                        <div className="control-card">
-                            <div className="control-title">
-                                <span>*</span> Architecture Controls
-                            </div>
+            return (
+                <div>
+                    {/* Architecture Controls */}
+                    <div className="grid-2">
+                        <div className="section-card">
+                            <div className="section-title">⚙️ Architecture Controls</div>
 
                             <div className="control-group">
                                 <div className="control-label">
-                                    <span>Conv Blocks</span>
+                                    <span>Convolutional Blocks</span>
                                     <span className="control-value">{config.convBlocks}</span>
                                 </div>
                                 <input
-                                    type="range"
-                                    className="slider"
-                                    min="1" max="4"
-                                    value={config.convBlocks}
+                                    type="range" className="slider"
+                                    min="1" max="4" value={config.convBlocks}
                                     onChange={(e) => setConfig({...config, convBlocks: parseInt(e.target.value)})}
                                 />
                             </div>
@@ -1175,13 +1037,10 @@
                                 <div className="control-label">Base Filters</div>
                                 <div className="button-group">
                                     {[16, 32, 64, 128].map(f => (
-                                        <button
-                                            key={f}
+                                        <button key={f}
                                             className={`option-btn ${config.filters === f ? 'active' : ''}`}
                                             onClick={() => setConfig({...config, filters: f})}
-                                        >
-                                            {f}
-                                        </button>
+                                        >{f}</button>
                                     ))}
                                 </div>
                             </div>
@@ -1189,14 +1048,11 @@
                             <div className="control-group">
                                 <div className="control-label">Kernel Size</div>
                                 <div className="button-group">
-                                    {[3, 5].map(k => (
-                                        <button
-                                            key={k}
+                                    {[3, 5, 7].map(k => (
+                                        <button key={k}
                                             className={`option-btn ${config.kernelSize === k ? 'active' : ''}`}
                                             onClick={() => setConfig({...config, kernelSize: k})}
-                                        >
-                                            {k}x{k}
-                                        </button>
+                                        >{k}×{k}</button>
                                     ))}
                                 </div>
                             </div>
@@ -1204,25 +1060,18 @@
                             <div className="control-group">
                                 <div className="control-label">Pooling Type</div>
                                 <div className="button-group">
-                                    {['max', 'avg'].map(p => (
-                                        <button
-                                            key={p}
-                                            className={`option-btn ${config.poolType === p ? 'active' : ''}`}
-                                            onClick={() => setConfig({...config, poolType: p})}
-                                        >
-                                            {p === 'max' ? 'Max' : 'Average'}
-                                        </button>
-                                    ))}
+                                    <button className={`option-btn ${config.poolType === 'max' ? 'active' : ''}`}
+                                        onClick={() => setConfig({...config, poolType: 'max'})}>Max</button>
+                                    <button className={`option-btn ${config.poolType === 'avg' ? 'active' : ''}`}
+                                        onClick={() => setConfig({...config, poolType: 'avg'})}>Average</button>
                                 </div>
                             </div>
 
                             <div className="control-group">
                                 <div className="toggle-container">
-                                    <span className="control-label" style={{ marginBottom: 0 }}>Batch Normalization</span>
-                                    <div
-                                        className={`toggle ${config.batchNorm ? 'active' : ''}`}
-                                        onClick={() => setConfig({...config, batchNorm: !config.batchNorm})}
-                                    >
+                                    <span>Batch Normalization</span>
+                                    <div className={`toggle ${config.batchNorm ? 'active' : ''}`}
+                                        onClick={() => setConfig({...config, batchNorm: !config.batchNorm})}>
                                         <div className="toggle-knob" />
                                     </div>
                                 </div>
@@ -1233,57 +1082,149 @@
                                     <span>Dropout Rate</span>
                                     <span className="control-value">{config.dropout.toFixed(2)}</span>
                                 </div>
-                                <input
-                                    type="range"
-                                    className="slider"
-                                    min="0" max="0.5" step="0.05"
-                                    value={config.dropout}
+                                <input type="range" className="slider"
+                                    min="0" max="0.5" step="0.05" value={config.dropout}
                                     onChange={(e) => setConfig({...config, dropout: parseFloat(e.target.value)})}
                                 />
                             </div>
+
+                            <div className="control-group">
+                                <div className="control-label">
+                                    <span>Training Epochs</span>
+                                    <span className="control-value">{config.epochs}</span>
+                                </div>
+                                <input type="range" className="slider"
+                                    min="5" max="50" step="5" value={config.epochs}
+                                    onChange={(e) => setConfig({...config, epochs: parseInt(e.target.value)})}
+                                />
+                            </div>
+
+                            <button className="run-button" onClick={runTraining} disabled={isTraining}>
+                                {isTraining ? (
+                                    <><div className="loading-spinner" /> Training Epoch {currentEpoch}/{config.epochs}</>
+                                ) : (
+                                    <>▶ Train CNN Model</>
+                                )}
+                            </button>
                         </div>
 
-                        <div className="control-card">
-                            <div className="control-title">
-                                <span>#</span> Model Metrics
-                            </div>
-                            <div className="metrics-grid">
+                        <div className="section-card">
+                            <div className="section-title">📊 Model Metrics</div>
+
+                            {isTraining && (
+                                <div className="epoch-indicator">
+                                    <div className="epoch-dot" />
+                                    Training Epoch {currentEpoch} of {config.epochs}
+                                </div>
+                            )}
+
+                            <div className="metrics-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
                                 <div className="metric-item">
-                                    <div className="metric-value">{metrics.trainAcc.toFixed(1)}%</div>
+                                    <div className="metric-value">{latestMetrics ? latestMetrics.trainAcc.toFixed(1) : '0.0'}%</div>
                                     <div className="metric-label">Train Accuracy</div>
                                 </div>
                                 <div className="metric-item">
-                                    <div className="metric-value">{metrics.testAcc.toFixed(1)}%</div>
-                                    <div className="metric-label">Test Accuracy</div>
+                                    <div className="metric-value">{latestMetrics ? latestMetrics.valAcc.toFixed(1) : '0.0'}%</div>
+                                    <div className="metric-label">Val Accuracy</div>
                                 </div>
                                 <div className="metric-item">
                                     <div className="metric-value">{(calculateParams / 1000).toFixed(0)}K</div>
                                     <div className="metric-label">Parameters</div>
                                 </div>
                                 <div className="metric-item">
-                                    <div className="metric-value">{metrics.time}s</div>
-                                    <div className="metric-label">Training Time</div>
+                                    <div className="metric-value">{latestMetrics ? latestMetrics.trainLoss.toFixed(3) : '0.000'}</div>
+                                    <div className="metric-label">Train Loss</div>
                                 </div>
                             </div>
+
+                            <div style={{ marginTop: '1.5rem' }}>
+                                <div className="section-title" style={{ fontSize: '0.9rem' }}>Network Architecture</div>
+                                <CNNPipeline config={config} />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Training Curves */}
+                    <div className="grid-2" style={{ marginTop: '1.5rem' }}>
+                        <div className="section-card">
+                            <div className="section-title">📈 Accuracy vs Epoch</div>
+                            <div className="chart-container">
+                                <TrainingChart trainingHistory={trainingHistory} currentEpoch={currentEpoch} />
+                            </div>
+                        </div>
+                        <div className="section-card">
+                            <div className="section-title">📉 Loss vs Epoch</div>
+                            <div className="chart-container">
+                                <LossChart trainingHistory={trainingHistory} />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Sample Images & Classification Results */}
+                    <div className="grid-2" style={{ marginTop: '1.5rem' }}>
+                        <div className="section-card">
+                            <div className="section-title">🖼️ Training Samples (CIFAR-10)</div>
+                            <div className="grid-4">
+                                {sampleImages.map((img, idx) => (
+                                    <SampleImage
+                                        key={idx}
+                                        pixels={img.pixels}
+                                        trueLabel={img.trueLabel}
+                                        predictedLabel={img.trueLabel}
+                                        showResult={false}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                        <div className="section-card">
+                            <div className="section-title">✓✗ Classification Results</div>
+                            {classificationResults.length > 0 ? (
+                                <div className="grid-4">
+                                    {classificationResults.map((img, idx) => (
+                                        <SampleImage
+                                            key={idx}
+                                            pixels={img.pixels}
+                                            trueLabel={img.trueLabel}
+                                            predictedLabel={img.predictedLabel}
+                                            showResult={true}
+                                        />
+                                    ))}
+                                </div>
+                            ) : (
+                                <div style={{ textAlign: 'center', padding: '2rem', color: '#888' }}>
+                                    Train the model to see classification results
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Learned Filters */}
+                    <div className="section-card" style={{ marginTop: '1.5rem' }}>
+                        <div className="section-title">🔍 What CNNs Learn: Hierarchical Feature Detection</div>
+
+                        <div className="filter-layer">
+                            <div className="filter-layer-title">
+                                Layer 1: Edge Detectors
+                                <span className="filter-layer-subtitle">— Low-level features like edges and gradients</span>
+                            </div>
+                            <FilterVisualization layer={1} />
                         </div>
 
-                        <button
-                            className="run-button"
-                            onClick={runTraining}
-                            disabled={isTraining}
-                        >
-                            {isTraining ? (
-                                <>
-                                    <div className="loading-spinner" />
-                                    Training...
-                                </>
-                            ) : (
-                                <>
-                                    <span>|></span>
-                                    Train CNN Model
-                                </>
-                            )}
-                        </button>
+                        <div className="filter-layer">
+                            <div className="filter-layer-title">
+                                Layer 2: Texture Patterns
+                                <span className="filter-layer-subtitle">— Combinations of edges form textures</span>
+                            </div>
+                            <FilterVisualization layer={2} />
+                        </div>
+
+                        <div className="filter-layer">
+                            <div className="filter-layer-title">
+                                Layer 3+: Object Parts
+                                <span className="filter-layer-subtitle">— High-level features like eyes, wheels, wings</span>
+                            </div>
+                            <FilterVisualization layer={3} />
+                        </div>
                     </div>
                 </div>
             );
@@ -1291,186 +1232,341 @@
 
         // Transfer Learning Tab
         const TransferLearningTab = () => {
-            const [selectedModel, setSelectedModel] = useState('vgg16');
-            const [strategy, setStrategy] = useState('feature');
+            const [selectedModel, setSelectedModel] = useState('resnet50');
+            const [strategy, setStrategy] = useState('finetune');
             const [freezeLayers, setFreezeLayers] = useState(80);
-            const [metrics, setMetrics] = useState(null);
             const [isTraining, setIsTraining] = useState(false);
+            const [trainingHistory, setTrainingHistory] = useState([]);
 
             const models = [
-                { id: 'vgg16', name: 'VGG16', params: '138M' },
-                { id: 'resnet50', name: 'ResNet50', params: '25M' },
-                { id: 'mobilenet', name: 'MobileNet', params: '3.4M' }
+                { id: 'vgg16', name: 'VGG16', params: '138M', accuracy: '71.3%', icon: '🏛️' },
+                { id: 'resnet50', name: 'ResNet50', params: '25.6M', accuracy: '76.1%', icon: '🔄' },
+                { id: 'mobilenet', name: 'MobileNetV2', params: '3.4M', accuracy: '71.8%', icon: '📱' },
+                { id: 'efficientnet', name: 'EfficientNet-B0', params: '5.3M', accuracy: '77.1%', icon: '⚡' }
             ];
 
-            const comparisonData = [
-                { name: 'Scratch', accuracy: 72, time: 100, params: 100 },
-                { name: 'Feature Ext.', accuracy: 89, time: 25, params: 15 },
-                { name: 'Fine-tune', accuracy: 94, time: 60, params: 100 }
-            ];
-
-            const totalLayers = selectedModel === 'vgg16' ? 16 : selectedModel === 'resnet50' ? 50 : 28;
+            const totalLayers = selectedModel === 'vgg16' ? 16 : selectedModel === 'resnet50' ? 50 : selectedModel === 'mobilenet' ? 53 : 237;
             const frozenLayers = Math.round(totalLayers * freezeLayers / 100);
-            const trainableLayers = totalLayers - frozenLayers;
 
             const runTransferLearning = async () => {
                 setIsTraining(true);
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                setTrainingHistory([]);
 
-                const baseAcc = selectedModel === 'mobilenet' ? 85 : selectedModel === 'resnet50' ? 91 : 88;
-                const strategyBonus = strategy === 'finetune' ? 5 : 0;
+                const baseAcc = selectedModel === 'efficientnet' ? 88 : selectedModel === 'resnet50' ? 85 : 80;
+                const strategyBonus = strategy === 'finetune' ? 8 : 0;
 
-                setMetrics({
-                    accuracy: baseAcc + strategyBonus + Math.random() * 3,
-                    trainTime: strategy === 'feature' ? 15 : 45,
-                    params: strategy === 'feature' ? frozenLayers * 1000 : totalLayers * 10000
-                });
+                for (let epoch = 1; epoch <= 15; epoch++) {
+                    await new Promise(resolve => setTimeout(resolve, 150));
+                    const progress = epoch / 15;
+                    const curve = 1 - Math.exp(-4 * progress);
+
+                    setTrainingHistory(prev => [...prev, {
+                        trainAcc: Math.min(99, baseAcc + strategyBonus + curve * 10 + Math.random() * 2),
+                        valAcc: Math.min(96, baseAcc + strategyBonus - 5 + curve * 12 + Math.random() * 3),
+                        trainLoss: Math.max(0.02, 1.5 * (1 - curve) + Math.random() * 0.05),
+                        valLoss: Math.max(0.05, 1.8 * (1 - curve) + Math.random() * 0.08)
+                    }]);
+                }
                 setIsTraining(false);
             };
 
             return (
-                <div className="transfer-learning">
-                    <div className="pipeline-section">
-                        <div className="section-title">
-                            Transfer Learning Configuration
-                        </div>
+                <div>
+                    <div className="grid-2">
+                        <div className="section-card">
+                            <div className="section-title">🧠 Pre-trained Model Selection</div>
+                            <div className="grid-2" style={{ gap: '0.75rem' }}>
+                                {models.map(model => (
+                                    <div key={model.id}
+                                        onClick={() => setSelectedModel(model.id)}
+                                        style={{
+                                            padding: '1rem',
+                                            borderRadius: '10px',
+                                            border: selectedModel === model.id ? '2px solid #2774AE' : '2px solid #eee',
+                                            background: selectedModel === model.id ? 'rgba(39,116,174,0.05)' : '#fff',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s'
+                                        }}>
+                                        <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>{model.icon}</div>
+                                        <div style={{ fontWeight: 600 }}>{model.name}</div>
+                                        <div style={{ fontSize: '0.75rem', color: '#888' }}>{model.params} params</div>
+                                        <div style={{ fontSize: '0.75rem', color: '#2774AE' }}>ImageNet: {model.accuracy}</div>
+                                    </div>
+                                ))}
+                            </div>
 
-                        <div className="model-selection">
-                            {models.map(model => (
-                                <div
-                                    key={model.id}
-                                    className={`model-card ${selectedModel === model.id ? 'selected' : ''}`}
-                                    onClick={() => setSelectedModel(model.id)}
-                                >
-                                    <div className="model-icon" style={{
-                                        width: '50px',
-                                        height: '50px',
-                                        margin: '0 auto 0.5rem',
-                                        background: 'linear-gradient(135deg, #2774AE, #005587)',
-                                        borderRadius: '12px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        fontSize: '1.5rem',
-                                        fontWeight: '700',
-                                        color: '#1a1a1a'
-                                    }}>{model.icon}</div>
-                                    <div className="model-name">{model.name}</div>
-                                    <div className="model-params">{model.params} params</div>
+                            <div style={{ marginTop: '1.5rem' }}>
+                                <div className="control-label">Transfer Strategy</div>
+                                <div className="button-group">
+                                    <button className={`option-btn ${strategy === 'feature' ? 'active' : ''}`}
+                                        onClick={() => setStrategy('feature')}>Feature Extraction</button>
+                                    <button className={`option-btn ${strategy === 'finetune' ? 'active' : ''}`}
+                                        onClick={() => setStrategy('finetune')}>Fine-tuning</button>
                                 </div>
-                            ))}
-                        </div>
+                            </div>
 
-                        <div className="strategy-toggle">
-                            <button
-                                className={`strategy-btn ${strategy === 'feature' ? 'active' : ''}`}
-                                onClick={() => setStrategy('feature')}
-                            >
-                                Feature Extraction
+                            <div className="control-group" style={{ marginTop: '1rem' }}>
+                                <div className="control-label">
+                                    <span>Freeze Layers</span>
+                                    <span className="control-value">{freezeLayers}% ({frozenLayers}/{totalLayers})</span>
+                                </div>
+                                <input type="range" className="slider"
+                                    min="0" max="100" value={freezeLayers}
+                                    onChange={(e) => setFreezeLayers(parseInt(e.target.value))}
+                                />
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                                <div style={{
+                                    flex: freezeLayers,
+                                    background: 'linear-gradient(90deg, #8BB8E8, #2774AE)',
+                                    padding: '0.5rem',
+                                    borderRadius: '6px',
+                                    color: 'white',
+                                    fontSize: '0.75rem',
+                                    textAlign: 'center'
+                                }}>Frozen</div>
+                                <div style={{
+                                    flex: 100 - freezeLayers,
+                                    background: 'linear-gradient(90deg, #FFD100, #FFA500)',
+                                    padding: '0.5rem',
+                                    borderRadius: '6px',
+                                    color: '#333',
+                                    fontSize: '0.75rem',
+                                    textAlign: 'center'
+                                }}>Trainable</div>
+                            </div>
+
+                            <button className="run-button" style={{ marginTop: '1.5rem' }}
+                                onClick={runTransferLearning} disabled={isTraining}>
+                                {isTraining ? <><div className="loading-spinner" /> Training...</> : <>▶ Run Transfer Learning</>}
                             </button>
-                            <button
-                                className={`strategy-btn ${strategy === 'finetune' ? 'active' : ''}`}
-                                onClick={() => setStrategy('finetune')}
-                            >
-                                Fine-tuning
-                            </button>
                         </div>
 
-                        <div className="control-group" style={{ marginBottom: '1.5rem' }}>
-                            <div className="control-label">
-                                <span>Layers to Freeze</span>
-                                <span className="control-value">{freezeLayers}% ({frozenLayers}/{totalLayers})</span>
+                        <div className="section-card">
+                            <div className="section-title">📈 Training Progress</div>
+                            <div className="chart-container">
+                                <TrainingChart trainingHistory={trainingHistory} />
                             </div>
-                            <input
-                                type="range"
-                                className="slider"
-                                min="0" max="100"
-                                value={freezeLayers}
-                                onChange={(e) => setFreezeLayers(parseInt(e.target.value))}
-                            />
-                        </div>
 
-                        <div className="layers-viz">
-                            <div className="control-label" style={{ marginBottom: '1rem' }}>Layer Configuration</div>
-                            <div className="layer-bar layer-frozen" style={{ width: `${freezeLayers}%`, minWidth: freezeLayers > 0 ? '80px' : '0' }}>
-                                {frozenLayers > 0 && `Frozen (${frozenLayers})`}
-                            </div>
-                            <div className="layer-bar layer-trainable" style={{ width: `${100 - freezeLayers}%`, minWidth: trainableLayers > 0 ? '80px' : '0' }}>
-                                {trainableLayers > 0 && `Trainable (${trainableLayers})`}
-                            </div>
-                        </div>
-
-                        <button
-                            className="run-button"
-                            onClick={runTransferLearning}
-                            disabled={isTraining}
-                            style={{ marginTop: '1.5rem' }}
-                        >
-                            {isTraining ? (
-                                <>
-                                    <div className="loading-spinner" />
-                                    Training...
-                                </>
-                            ) : (
-                                <>
-                                    <span>|></span>
-                                    Run Transfer Learning
-                                </>
+                            {trainingHistory.length > 0 && (
+                                <div className="metrics-grid" style={{ marginTop: '1rem', gridTemplateColumns: 'repeat(2, 1fr)' }}>
+                                    <div className="metric-item">
+                                        <div className="metric-value">{trainingHistory[trainingHistory.length-1].valAcc.toFixed(1)}%</div>
+                                        <div className="metric-label">Final Val Accuracy</div>
+                                    </div>
+                                    <div className="metric-item">
+                                        <div className="metric-value">{strategy === 'feature' ? '~2 min' : '~10 min'}</div>
+                                        <div className="metric-label">Est. Training Time</div>
+                                    </div>
+                                </div>
                             )}
-                        </button>
-
-                        {metrics && (
-                            <div className="metrics-grid" style={{ marginTop: '1.5rem' }}>
-                                <div className="metric-item">
-                                    <div className="metric-value">{metrics.accuracy.toFixed(1)}%</div>
-                                    <div className="metric-label">Test Accuracy</div>
-                                </div>
-                                <div className="metric-item">
-                                    <div className="metric-value">{metrics.trainTime}min</div>
-                                    <div className="metric-label">Training Time</div>
-                                </div>
-                            </div>
-                        )}
+                        </div>
                     </div>
 
-                    <div className="pipeline-section">
-                        <div className="section-title">
-                            Training Strategy Comparison
-                        </div>
-
-                        <div className="comparison-chart" style={{ height: '300px' }}>
-                            <ChartBar
-                                data={comparisonData}
-                                dataKey1="accuracy"
-                                dataKey2="time"
-                                label1="Accuracy %"
-                                label2="Time (rel)"
-                                color1="#2774AE"
-                                color2="#2774AE"
-                            />
-                        </div>
-
-                        <div style={{ marginTop: '1.5rem', padding: '1rem', background: '#f8f9fa', borderRadius: '10px' }}>
-                            <h4 style={{ color: '#2774AE', marginBottom: '0.75rem' }}>Strategy Guide</h4>
-                            <ul style={{ color: '#666666', fontSize: '0.85rem', lineHeight: 1.8, paddingLeft: '1.5rem' }}>
-                                <li><strong>Feature Extraction:</strong> Freeze all pretrained layers, only train new classifier</li>
-                                <li><strong>Fine-tuning:</strong> Unfreeze some layers to adapt features to new domain</li>
-                                <li>Use feature extraction for small datasets or similar domains</li>
-                                <li>Use fine-tuning when you have more data or different domain</li>
-                            </ul>
+                    <div className="section-card" style={{ marginTop: '1.5rem' }}>
+                        <div className="section-title">💡 Transfer Learning Strategies Explained</div>
+                        <div className="grid-2">
+                            <div style={{ padding: '1rem', background: '#f8f9fa', borderRadius: '10px' }}>
+                                <h4 style={{ color: '#2774AE', marginBottom: '0.5rem' }}>Feature Extraction</h4>
+                                <p style={{ fontSize: '0.85rem', color: '#666', lineHeight: 1.6 }}>
+                                    Freeze all pre-trained layers and only train a new classifier head.
+                                    <strong> Best for:</strong> Small datasets, similar domains to ImageNet, limited compute.
+                                    <strong> Pros:</strong> Fast training, less overfitting risk.
+                                </p>
+                            </div>
+                            <div style={{ padding: '1rem', background: '#f8f9fa', borderRadius: '10px' }}>
+                                <h4 style={{ color: '#2774AE', marginBottom: '0.5rem' }}>Fine-tuning</h4>
+                                <p style={{ fontSize: '0.85rem', color: '#666', lineHeight: 1.6 }}>
+                                    Unfreeze some or all layers and train with a small learning rate.
+                                    <strong> Best for:</strong> Larger datasets, domains different from ImageNet.
+                                    <strong> Pros:</strong> Higher accuracy, features adapt to new domain.
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
             );
         };
 
-        // Main App Component
+        // Image Classification Tab (Upload your own image)
+        const ClassifyImageTab = () => {
+            const [uploadedImage, setUploadedImage] = useState(null);
+            const [imagePreview, setImagePreview] = useState(null);
+            const [isClassifying, setIsClassifying] = useState(false);
+            const [prediction, setPrediction] = useState(null);
+            const fileInputRef = useRef(null);
+
+            const handleImageUpload = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    setUploadedImage(file);
+                    const reader = new FileReader();
+                    reader.onload = (e) => setImagePreview(e.target.result);
+                    reader.readAsDataURL(file);
+                    setPrediction(null);
+                }
+            };
+
+            const classifyImage = async () => {
+                setIsClassifying(true);
+
+                // Simulate classification delay
+                await new Promise(resolve => setTimeout(resolve, 1500));
+
+                // Generate realistic-looking predictions
+                const predictions = CIFAR10_CLASSES.map(cls => ({
+                    class: cls,
+                    confidence: Math.random()
+                }));
+
+                // Normalize to sum to 1
+                const sum = predictions.reduce((a, b) => a + b.confidence, 0);
+                predictions.forEach(p => p.confidence = p.confidence / sum);
+
+                // Sort by confidence
+                predictions.sort((a, b) => b.confidence - a.confidence);
+
+                // Make top prediction more dominant
+                predictions[0].confidence = 0.6 + Math.random() * 0.3;
+                const remaining = 1 - predictions[0].confidence;
+                for (let i = 1; i < predictions.length; i++) {
+                    predictions[i].confidence = remaining * predictions[i].confidence /
+                        predictions.slice(1).reduce((a, b) => a + b.confidence, 0);
+                }
+
+                setPrediction(predictions);
+                setIsClassifying(false);
+            };
+
+            const resetUpload = () => {
+                setUploadedImage(null);
+                setImagePreview(null);
+                setPrediction(null);
+                if (fileInputRef.current) fileInputRef.current.value = '';
+            };
+
+            return (
+                <div>
+                    <div className="grid-2">
+                        <div className="section-card">
+                            <div className="section-title">📤 Upload Image</div>
+
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImageUpload}
+                                style={{ display: 'none' }}
+                            />
+
+                            <div
+                                className={`upload-zone ${imagePreview ? 'has-image' : ''}`}
+                                onClick={() => !imagePreview && fileInputRef.current?.click()}
+                            >
+                                {imagePreview ? (
+                                    <>
+                                        <img src={imagePreview} alt="Uploaded" className="uploaded-image" />
+                                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                                            <button className="option-btn" onClick={resetUpload}>
+                                                Choose Different Image
+                                            </button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="upload-icon">📷</div>
+                                        <div className="upload-text">
+                                            Click to upload an image<br/>
+                                            <small>Supports JPG, PNG, GIF</small>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+
+                            {imagePreview && (
+                                <button
+                                    className="run-button"
+                                    style={{ marginTop: '1rem' }}
+                                    onClick={classifyImage}
+                                    disabled={isClassifying}
+                                >
+                                    {isClassifying ? (
+                                        <><div className="loading-spinner" /> Classifying...</>
+                                    ) : (
+                                        <>🔍 Classify Image</>
+                                    )}
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="section-card">
+                            <div className="section-title">🎯 Classification Results</div>
+
+                            {prediction ? (
+                                <>
+                                    <div className="prediction-result">
+                                        <div className="prediction-class">{prediction[0].class}</div>
+                                        <div className="prediction-confidence">
+                                            Confidence: {(prediction[0].confidence * 100).toFixed(1)}%
+                                        </div>
+                                    </div>
+
+                                    <div className="confidence-bars">
+                                        {prediction.slice(0, 5).map((p, idx) => (
+                                            <div key={idx} className="confidence-bar-item">
+                                                <div className="confidence-bar-label">{p.class}</div>
+                                                <div className="confidence-bar-track">
+                                                    <div
+                                                        className="confidence-bar-fill"
+                                                        style={{ width: `${p.confidence * 100}%` }}
+                                                    >
+                                                        {(p.confidence * 100).toFixed(1)}%
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </>
+                            ) : (
+                                <div style={{ textAlign: 'center', padding: '3rem', color: '#888' }}>
+                                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🖼️</div>
+                                    Upload an image to see classification results
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="section-card" style={{ marginTop: '1.5rem' }}>
+                        <div className="section-title">ℹ️ About This Classifier</div>
+                        <div style={{ color: '#666', fontSize: '0.9rem', lineHeight: 1.8 }}>
+                            <p>
+                                This demo simulates a CNN trained on <strong>CIFAR-10</strong>, which contains 60,000 32×32 color images
+                                in 10 classes: airplane, automobile, bird, cat, deer, dog, frog, horse, ship, and truck.
+                            </p>
+                            <p style={{ marginTop: '1rem' }}>
+                                <strong>Note:</strong> This is a simulated classification for educational purposes.
+                                In a real application, the image would be processed by an actual trained neural network
+                                (e.g., using TensorFlow.js or an API backend).
+                            </p>
+                            <p style={{ marginTop: '1rem' }}>
+                                <strong>Try uploading:</strong> Photos of cars, planes, animals (cats, dogs, birds, horses, deer, frogs),
+                                ships, or trucks for best results!
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Main App
         const App = () => {
             const [activeTab, setActiveTab] = useState('cnn');
 
             const tabs = [
-                { id: 'cnn', label: 'CNN Builder' },
-                { id: 'transfer', label: 'Transfer Learning' }
+                { id: 'cnn', label: '🏗️ CNN Builder', desc: 'Build & train CNNs' },
+                { id: 'transfer', label: '🔄 Transfer Learning', desc: 'Use pre-trained models' },
+                { id: 'classify', label: '📷 Classify Image', desc: 'Upload & classify' }
             ];
 
             return (
@@ -1504,12 +1600,11 @@
                     <main className="main-content">
                         {activeTab === 'cnn' && <CNNBuilderTab />}
                         {activeTab === 'transfer' && <TransferLearningTab />}
+                        {activeTab === 'classify' && <ClassifyImageTab />}
                     </main>
-                    {/* Footer */}
-                    <div style={{ textAlign: 'center', marginTop: '40px', paddingTop: '20px' }}>
-                        <p style={{ color: '#888', fontSize: '0.75rem' }}>
-                            MGMT298D: Science and Strategy of AI | UCLA Anderson School of Management
-                        </p>
+
+                    <div className="footer">
+                        MGMT298D: Science and Strategy of AI | UCLA Anderson School of Management
                     </div>
                 </div>
             );
