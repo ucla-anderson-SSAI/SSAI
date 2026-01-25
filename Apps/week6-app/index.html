@@ -1150,8 +1150,8 @@
         // Python Keras Backend for Real CNN Training
         // ============================================
 
-        // Backend API URL - UPDATE THIS after deploying to Railway
-        const API_BASE_URL = window.API_BASE_URL || 'https://ucla-ssai-week6.up.railway.app';
+        // Backend API URL - empty string means same origin (when served from Railway)
+        const API_BASE_URL = window.API_BASE_URL || '';
 
         // CNN Builder Tab
         const CNNBuilderTab = () => {

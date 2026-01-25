@@ -4,7 +4,7 @@ Real CNN training on CIFAR-10 with Keras
 With queueing system for concurrent user limits
 """
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_file
 from flask_cors import CORS
 import numpy as np
 import os
@@ -465,12 +465,8 @@ def get_stats():
 
 @app.route('/', methods=['GET'])
 def root():
-    """Root endpoint"""
-    return jsonify({
-        'app': 'Week 6 CNN Training Backend',
-        'status': 'running',
-        'endpoints': ['/api/health', '/api/train', '/api/stats']
-    })
+    """Serve the frontend"""
+    return send_file('index.html')
 
 
 # Start background threads
