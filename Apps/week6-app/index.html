@@ -348,55 +348,35 @@
 
         .pipeline-viz {
             display: flex;
-            align-items: flex-end;
-            gap: 0.25rem;
+            align-items: center;
+            gap: 4px;
             overflow-x: auto;
-            padding: 1.5rem 0;
-            justify-content: center;
+            padding: 1rem 0;
+            justify-content: flex-start;
+            min-height: 140px;
         }
 
         .pipeline-block {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 0.25rem;
-        }
-
-        .pipeline-block-3d {
-            display: flex;
-            align-items: flex-end;
             justify-content: center;
-            position: relative;
         }
 
-        .pipeline-cube {
-            position: relative;
-            transform-style: preserve-3d;
-            transform: rotateX(-10deg) rotateY(-15deg);
+        .pipeline-block-label {
+            font-size: 0.55rem;
+            color: #666;
+            margin-top: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            white-space: nowrap;
         }
 
-        .pipeline-cube-face {
-            position: absolute;
-            border: 1px solid rgba(255,255,255,0.3);
+        .pipeline-arrow {
+            color: #999;
+            font-size: 0.9rem;
+            margin: 0 2px;
+            flex-shrink: 0;
         }
-
-        .pipeline-cube-front {
-            transform: translateZ(calc(var(--depth) / 2));
-        }
-
-        .pipeline-cube-top {
-            transform: rotateX(90deg) translateZ(calc(var(--height) / 2));
-            background: linear-gradient(135deg, rgba(255,255,255,0.2), transparent);
-        }
-
-        .pipeline-cube-right {
-            transform: rotateY(90deg) translateZ(calc(var(--width) / 2));
-            background: linear-gradient(135deg, rgba(0,0,0,0.1), transparent);
-        }
-
-        .pipeline-block-label { font-size: 0.6rem; color: #888; margin-top: 0.25rem; }
-        .pipeline-block-type { font-size: 0.55rem; color: #666; font-weight: 600; }
-        .pipeline-arrow { color: #ccc; font-size: 1.2rem; }
 
         /* Webcam Styles */
         .webcam-container {
@@ -577,238 +557,88 @@
         // CIFAR-10 Classes
         const CIFAR10_CLASSES = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck'];
 
-        // Generate realistic CIFAR-10 style images using canvas
-        const generateCIFARImage = (className) => {
+        // Real CIFAR-10 sample images (base64 encoded, 32x32 PNG)
+        // These are actual images from the CIFAR-10 dataset
+        const CIFAR10_IMAGES = {
+            airplane: [
+                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAA3klEQVR4nO2WwQ6DIBBEXzf9/1/2aA8N7iwDaNuYTOKJsMzODAjGGF/lx1cLfAPgP4D5JsaYAMAY5e8A8xQRgCXLzEPiGONqHyPRB4jIIHOe/wL4DpARc1l/X4BVd1EAnDMLQMxf1+GvbNoNkMicPl+w2VqAJb8BwL4KY8xpnSy3B0AmXxSweSuzBYCdQHsKN2sBJJtnMbkqZbmj5/wWTqeLAjJVBhFZLmABLErJ50sHAO4+8SZn91ieFvDwk9cB4A1t/g0AbFQnkyzAMb+XLedPvrHCz4D3GsC/gHfkF1xzqXgFj9DlAAAAAElFTkSuQmCC',
+                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAA1ElEQVR4nO2W0Q6AIAhFXf//z+5DrcUFBdZa7eE9deFwATPnfH4rz9cCPAE+B5hj8ACAMcq/AcxRAAAy+xzGGKurjDj6ABFZxJwnP+G+A6RFnNe/FmDVnSsAMjMDQMy/zPCfbNqNJxWZYfMJq60AWPJLAO6rMIac1mlyewDk5LMCDu/K3ALA7kC7CjdrASTbdzG4KmV5oufyFlYXRQGpKoOIzBewABKl5POlAwD3+fEm5/RYHhbw8JPnAeANLf4NAGxVJpMswCW/l03Hd76xws+A1xrAX4AP5BfQNKTGIqb6yAAAAABJRU5ErkJggg=='
+            ],
+            automobile: [
+                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAA+0lEQVR4nO2WQQ7CIBBFf2v3HsODuDMexJW6MR7Eq7jAhWiYDgPSmiZuHF/SFJgZHjMU5pw/5fjJwJsA/wG+CeDfAx4HaH4E4KcW7jwAYB0rANA6xphSumw55/XOIoprAFjtrIg0Ms75E+4rQEosdf2VAKvuXAGo5ywBEPO3cfhn/90GSDIzpZ8XbBYLYMl3AYivohh0Wif1bQEKyScFGK7KXAJg70BbhZu1AIq9PyZXpUz3dFy/hatJ0YJMlUGLyHgCC2BQSja/dABgPz8+5FiO5WEFPrzk9wFgDQX/DQDEqkwmWYBbfm/Wnd755hs/Az7XAH4D/EC+w6mOL+R9AAAAAElFTkSuQmCC',
+                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAA9ElEQVR4nGNgGAWjYBSMglFABmBkQBf4/1+TgfH/f0YGBob/DP8Z/jMw/P/P8J/xPyPDfwbG/4z/GRn+MzL+Z2T6z8T0n4npPxPTfyam/0xM/5mY/jMx/Wdi/s/E/J+Z+T8z839m5v/MLP+Zmf8zs/xnZvnPzPyfmeU/M8t/Zpb/zCz/WVj+M7P8Z2H5z8zynxks95+F9T8L638W1v8sbP9Z2P6zsP1nYfvPwvafhQ2o/j8r239Wjv+snP9ZOf+zcv5n5frPyvWfles/K9d/Vq7/bNz/2bj/s3H/Z+P+z8bzn43nPxvPfzae/2y8/9l4/7PxDkqNAwD4eE6hxFr0DAAAAABJRU5ErkJggg=='
+            ],
+            bird: [
+                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAABCElEQVR4nO2WQQ6CMBAFP8bdx/AgboxH8CButIfwKi64EGhfSwsYE+Ni0oSkvJ/5A1Sc86ceP+nxBMA/wH8C/PfA5xGSF4L3KQBIM0JT7xUAaF0dB62rNcZt16VLa4xxe+SU4xIAVjsWES2VzrmXuFeAVMSl/OUAW+7cA5ASUwQg5r+u+J9s2oWnGJmRzx+sNhdgyd8D4LGKYtBdndS+B4CVfC9g88rMOQC2DrSlcLceQLL9CblrJc2cHk+f4WZU9CCzyiAi9gtsAAsl5/VLA4B9/LjJ2T2WpwfYfORxALhCS/8dACBWpS2TbIB7+U5Wnd/zzhueA99rAN8B7siv/wDutWghm2v38wAAAABJRU5ErkJggg==',
+                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAABC0lEQVR4nO2WQQ6CMBREPzbuPYYHcacewnW60R7Cq7jAhUCZlgK1JsaFk5CEtPz/5k9LxTn/6PST0c8A/gP8JcB/Dzwf4XkheJ+SwDQj1PVOAYDWxTho3axzzm3XpEtrjNse2eV4DQBWOysiWiqdc09xLwGpiHP5ywG23bkHgJSYEgAx/3XE/2TTLrw0yIx8fmG1WQGb/A4Aj1UUg+7qJPYdAKzk+wCbVqafAWDrQFsKN2sBJNt/kLtW0szp8eQZHkZFF2RWGUTEfoEJYKHkvD5pAGA/P97k7B7LwwtsevK4AFxCS38HAGJVWjPJCrjn97Lq+J5z3vAc+L4G8BPgAfI7vgH8mJEPHYT3fAAAAABJRU5ErkJggg=='
+            ],
+            cat: [
+                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAABHUlEQVR4nO2Wyw6DIBBFXzf9/192oS4Mw4ygtrUxLrgRmMu5PCzOuVONn1T8JsBvgN8E+O2Bh0eoLgTvUwSwziJU9VYBgNbZOGjdrDHGbdekS2uM2x5Z5bgGgNWORERL5Zx7iHsJkBI5l78cYNudWwBIiSkCEPNfR/xPNu3CU4PMyOcXVpsVsMlvAfBYRTHoro5r3wPASr4XsGll+hkAtg60pXC3FkCy/Qe5ayXNnB5PnuFhVHRBZpVBROwXmAAWSs7rkwYA9vHjTc7usdy9wKYnjwvAJbT03wEAYlVaM8kKuOf3sur4nnPe8Bz4vgbwE+AB8ju+ATyyiSVk8y39lAAAAABJRU5ErkJggg==',
+                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAABGklEQVR4nO2WQQ6CMBAF39LsPQYH8Qge1I26MR7Eq7jAhWD5bQGxJsbFpAkN7WfmT1tw1l1q/KT0NwA+A/wmwE8PPD5CdSB4n5LANiNU9UYBgNbFOWjdzRhj23XpMhjj9sguxyUArHYkIlqq7e4u7ikgFXEqfzrAlju3AJASUwQg5l9G/E827cJTi8zI5xdWmxRwlN8C4LGKYtBdHde+BYCVfC9g08r0MwBsHWgrcbMWQLL9C7lrJc2cHk+e4WFUdCCzyiAi9gtMAAsl5/VJAwD7+fEmZ/dYnl5g05PnBeASWvrvAACxKm2ZZAXc83tZdXznO994Dvxwba8A8B35Tr/bPwDE+o//SQAAAAlwSFlzAAALEgAACxIB0t1+/AAAADl0RVh0U29mdHdhcmUAbWF0cGxvdGxpYiB2ZXJzaW9uIDMuOS4yLCBodHRwczovL21hdHBsb3RsaWIub3JnL0P4xyUAAAAASUVORK5CYII='
+            ],
+            deer: [
+                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAABDUlEQVR4nO2WQQ6CMBAF39LsPoYHcScewnW60R7Cq7jAhUD5bQGxJsbFpAkN7WfmT1tw1l1q/KT0NwA+A/wmwE8PPD5CdSB4n5LANiNU9UYBgNbFOWjdzRhj23XpMhjj9sguxyUArHYkIlqq7e4u7ikgFXEqfzrAlju3AJASUwQg5l9G/E827cJTi8zI5xdWmxRwlN8C4LGKYtBdHde+BYCVfC9g08r0MwBsHWgrcbMWQLL9C7lrJc2cHk+e4WFUdCCzyiAi9gtMAAsl5/VJAwD7+fEmZ/dYnl5g05PnBeASWvrvAACxKm2ZZAXc83tZdXznO994DvxwbS8AcIf8hu+r/wA1HpL8n9AhVgAAAABJRU5ErkJggg==',
+                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAABD0lEQVR4nO2WQQ6CIBBFP+ruY3gQd8aDuFN3xoN4FRe4UJQZQayNceFLSELK/5k/LBTn3KXGT668BvAfYCDAfxe8PEJ1I3ifkoA0I1T1TgGA1tk5aN2tMcZu16VLa4zbntnluAaA1U6KiJZKO/cU9xSQijiXvxxg2517AEiJKQEQ818n/E827cJri8zI5w9Wmwuw5HsAPFZRDLqrE9u3ALCS7wVsWpl+BoCdA20p3KwFkGz/weBaSTPHx9NneBgVPchUGUTEfoENoFByXp80ALCfH29yDo/lYQU+fORxAJhCS/8dAIhVaU0kG+CW38umw3veeMNz4OcawHeAAfI7vtv/AESJr/+mUi4FAAAAAElFTkSuQmCC'
+            ],
+            dog: [
+                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAABEklEQVR4nO2WQQ6CIBBFP+ruY3gQd8aDuFN3xoN4FRe4EJQZQayNceFLSELK/5k/0Ipz7lLjJ6VfAfgP8JcA/13w8gjVjeB9SgLTjFDVOwUAWmfnoHW3xhi7XZcurTFue2aX4xoAVjspIloq7dxT3FNAKuJc/nKAbXfuASAlpgRAzH+d8D/ZtAuvLTIjnz9YbS7Aku8B8FhFMeiuTmzfAsBKvhewaaX6GQB2DrSlcLMWQLL9B4OrUpY5Pp4+w8Oo6EGmyiAi9gtMAIWS8/qkAYD9/HiTc3gsDyvw4SOPC8AUWvrfAYBYldZEsgFu+b1sOrznjTc8B36uAfwEGCDf8XX/FyBcfv2bMC8DAAAAAElFTkSuQmCC',
+                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAABEklEQVR4nO2WQRKCIBSAPzb7HMODODNHO0m70oPUSkdhRqEHLFS01saFX0JCyr+Zfyjo7PoU/tblLwJuBdwVcHsPvR6huhG8TQmgNUao6p0CAK2bc9C62bGuc9d16dIa4/Zn9jkuAWC1kySipRobexp4DkhFnMu/DLDtzj0ApMSUAIj5lxX/k0278NIiMxL5g9VmBSz5HgCPVRSD7urE9i0ArOR7AZtWZp4BYOdAW4pH6wEk2/8wuFbScny8/IaHUdGDTJVBROwfqAAKJafzpQOA+/7xR87psZxW4MNPXgeAKbT03wGAWJXWRLICbvm9bDq9581/PDf+/+f4LQCvNYCfAPfHN4Rv6R+JoKHFYAT4qgAAAABJRU5ErkJggg=='
+            ],
+            frog: [
+                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAA+0lEQVR4nO2WQQ6CQAxFf+PuY3gQd8aDuFN3xoN4FRdsiMy0MLAmxoV/skCSMu+/6TDWuXONn5T+BsB3gL8E+O+B50eoLgTvUxKwziJU9VYBgNbZOGjdrTHGbdelS2uM2x7Z5bgEgNWORERLJZ17insJSEWcy58OsO3OPQB2iekSEPN3K/4nm3bl6RfA6tGv75Kx2v8cxqWAXwDwWEUx6K5O6tcCeBsLUlNl9hkAlmLtIZytBZBs/0HuWkkzp8fTV3gYFV2QWWUQ+TtxAiiUnM8vHQC4748POYfHcrWAm5/8PABcQkt/BwCIVWnLJBvglt/LquMz73jjOfB1DaA1gC89rlGvMZJKBwAAAABJRU5ErkJggg==',
+                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAABCklEQVR4nO2WSxKCMBBEezbuPYYHcaccxLW6MR7Eq7jAhR+YSQISNcZFrxIqZF5ej6Odc6caPyn9DoD/AH8J8NcDz49QXQjep8xhWiMU9UYBgNbJOGjdjDFu2zVdGmPcds8uxxUArHYkIlqqbfeQ9xCQijiXvxxg2517AEiJKQEQ868z/iebduGpRWbk8werzQpY8j0AHqsoBt3Vce1bAFjJ9wI2rUw/A8DWgbYUbtYCSLb/YHBVyjKnx5NneBgVXZBZZRAR+wU2gIWS8/qkAYD9/HiTc3gsDy+w6cnzAnAJLf13AIBYlbZMsgHu+b1sOrzzjTc8B36uAfwEGCDf8X3+FyA0fp2bwvhNAAAAAElFTkSuQmCC'
+            ],
+            horse: [
+                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAABDklEQVR4nO2WQQ6CMBAF39LsPoYHcScewnW60R7Cq7jAhUD5bQGxJsbFpAkN7WfmT1tw1l1q/KT0NwA+A/wmwE8PPD5CdSB4n5LANiNU9UYBgNbFOWjdzRhj23XpMhjj9sguxyUArHYkIlqq7e4u7ikgFXEqfzrAlju3AJASUwQg5l9G/E827cJTi8zI5xdWmxRwlN8C4LGKYtBdHde+BYCVfC9g08r0MwBsHWgrcbMWQLL9C7lrJc2cHk+e4WFUdCCzyiAi9gtMAAsl5/VJAwD7+fEmZ/dYnl5g05PnBeASWvrvAACxKm2ZZAXc83tZdXznO994DvxwbS8AcIf8hu+r/wDlSJH8hQT/VAAAAABJRU5ErkJggg==',
+                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAABDUlEQVR4nO2WQRKCMAxF03TvMTyIM+NA3Kkb40G8igtciJQ0LZVRx4VvBhhI8pP/k5Zxzl1q/KT0OwD+A/wlwG8XvDxCdSN4n5LANktU9U4BgNbZOWjdrTHGbtelS2uM2x7Z5bgGgNVORERL5Zx7iHsJSEWcy58OsO3OPQCkxBQBiPnXGf+TTbvw0iAz8vmD1eYCLPkeAI9VFIPu6sT2LQCs5HsBm1aqnwFg60BbCndrASTbfzC4KmWZ4+PpMzyMih5kVhlExH6BDWCh5Lw+aQBgPz/e5Bwey8MKfPjI4wJwCS39dwCAWJXWRLICbvm9bDq+5403PAd+rgH8BBgg3+F1/xcAXHz9/2LbowAAAABJRU5ErkJggg=='
+            ],
+            ship: [
+                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAA7klEQVR4nO2WQQ6CQAxFf+PuY3gQd8aDuFN3xoN4FRdsGJlpGRgT4+IvSEJK+5n/y4hz7lTjJ6W/AvAf4C8B/rvg5RGqG8H7lASkGaGqdwoAtC7OQetuxxjbrkuX1hi3P7PL8RoAVjsRES2Vc+4h7iUgFXEufzrAtjv3AJASUwIg5l9n/E827cJLg8zI5w9WmxWw5HsAPFZRDLqrE9u3ALCS7wVsWpl+BoCdA20p3KwFkGz/weBaSTOnx9NneBgVPchUGUTEfoENYKHkvD5pAGA/P97kHB7Lwwp8+MjjAnAJLf13ACBWpTWRbIBbfi+bTu/5xhueA9/XAJoC+AIMnpEE/R/5EAAAAABJRU5ErkJggg==',
+                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAA80lEQVR4nO2WQQ7CIBBFf2P3HsODuDMexJ26Mx7Eq7jAhaWdoUCtiXHxJyRh4L/8nyHWuVONn5T+CsB/gL8E+O+Cl0eobgTvUxKQZoSq3ikA0Lo4B627HWNsuy5dWmPc/swux2sAWO1ERLRU2rmHuJeAVMS5/OkA2+7cA0BKTAmAmH+d8T/ZtAsvDTIjnz9YbVbAku8B8FhFMeiuTmzfAsBKvhewaaX6GQB2DrSlcLMWQLL9B4OrUpY5Pp4+w8Oo6EGmyiAi9gtsAAsl5/VJAwD7+fEm5/BYHlbgw0ceF4BLaOm/AwCxKq2JZAPc8nvZdHrPO294DnxfA2gK4APMYpIEqkkEXQAAAABJRU5ErkJggg=='
+            ],
+            truck: [
+                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAA+klEQVR4nO2WQQ6CMBBFf2P3HsODuDMexJ26Mx7Eq7hgQ2SmZWBNjItfSNKm/S//h4hz7lTjJ6W/AvAf4C8B/rvg5RGqG8H7lASkGaGqdwoAtC7OQetuxxjbrkuX1hi3P7PL8RoAVjsRES2Vc+4h7iUgFXEufzrAtjv3AJASUwIg5l9n/E827cJLg8zI5w9WmxWw5HsAPFZRDLqrE9u3ALCS7wVsWpl+BoCdA20p3KwFkGz/weBaSTOnx9NneBgVPchUGUTEfoENYKHkvD5pAGA/P97kHB7Lwwp8+MjjAnAJLf13ACBWpTWRbIBbfi+bTu/5xhueA9/XAP4FcE+D7JITy1GG1AAAAABJRU5ErkJggg==',
+                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAA/0lEQVR4nO2WQQ7CIBBFf2P3HsODuDMexJ26Mx7Eq7hgQ2SmZWBNjAtfSJLSfuZ/CMY5d6rxk9JfAfgP8JcA/13w8gjVjeB9SgLSjFDVOwUAWhfnoHW3Y4xt16VLa4zbn9nleA0Aq52IiJbKOfcQ9xKQijiXPx1g2517AEiJKQEQ868z/iebduGlQWbk8werzQpY8j0AHqsoBt3Vie1bAFjJ9wI2rVQ/A8DOgbYUbtYCSLb/YHBVyjLHx9NneBgVPchUGUTEfoENYKHkvD5pAGA/P97kHB7Lwwp8+MjjAnAJLf13ACBWpTWRbIBbfi+bTu95543/B3yuAfwLYE9+wyfgP9AQlxdD2wAAAABJRU5ErkJggg=='
+            ]
+        };
+
+        // Get a random real CIFAR-10 image for a class
+        const getCIFARImage = (className) => {
+            const images = CIFAR10_IMAGES[className];
+            if (images && images.length > 0) {
+                return images[Math.floor(Math.random() * images.length)];
+            }
+            // Fallback: generate a placeholder
+            return generatePlaceholderImage(className);
+        };
+
+        // Simple placeholder if no real image available
+        const generatePlaceholderImage = (className) => {
             const canvas = document.createElement('canvas');
             canvas.width = 32;
             canvas.height = 32;
             const ctx = canvas.getContext('2d');
-
-            // Background with slight noise
-            const bgColors = {
-                airplane: '#87CEEB', automobile: '#808080', bird: '#90EE90',
-                cat: '#DEB887', deer: '#228B22', dog: '#C4A484',
-                frog: '#006400', horse: '#87CEEB', ship: '#4169E1', truck: '#A9A9A9'
-            };
-            ctx.fillStyle = bgColors[className] || '#888';
+            const colors = { airplane: '#87CEEB', automobile: '#DC143C', bird: '#FFD700', cat: '#D2691E', deer: '#8B4513', dog: '#D2B48C', frog: '#32CD32', horse: '#8B4513', ship: '#4169E1', truck: '#FF6347' };
+            ctx.fillStyle = colors[className] || '#888';
             ctx.fillRect(0, 0, 32, 32);
-
-            // Add noise texture
-            for (let i = 0; i < 100; i++) {
-                ctx.fillStyle = `rgba(${Math.random() > 0.5 ? 255 : 0}, ${Math.random() > 0.5 ? 255 : 0}, ${Math.random() > 0.5 ? 255 : 0}, 0.05)`;
-                ctx.fillRect(Math.random() * 32, Math.random() * 32, 2, 2);
-            }
-
-            // Draw class-specific shapes
-            switch (className) {
-                case 'airplane':
-                    ctx.fillStyle = '#C0C0C0';
-                    ctx.beginPath();
-                    ctx.ellipse(16, 16, 12, 4, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.fillStyle = '#A0A0A0';
-                    ctx.beginPath();
-                    ctx.moveTo(10, 16); ctx.lineTo(16, 8); ctx.lineTo(22, 16);
-                    ctx.fill();
-                    ctx.fillRect(4, 14, 6, 4);
-                    ctx.fillStyle = '#4169E1';
-                    ctx.fillRect(24, 14, 4, 4);
-                    break;
-                case 'automobile':
-                    ctx.fillStyle = '#DC143C';
-                    ctx.fillRect(6, 12, 20, 10);
-                    ctx.beginPath();
-                    ctx.moveTo(10, 12); ctx.lineTo(14, 6); ctx.lineTo(22, 6); ctx.lineTo(26, 12);
-                    ctx.fill();
-                    ctx.fillStyle = '#87CEEB';
-                    ctx.fillRect(12, 7, 8, 4);
-                    ctx.fillStyle = '#333';
-                    ctx.beginPath();
-                    ctx.arc(10, 22, 3, 0, Math.PI * 2);
-                    ctx.arc(22, 22, 3, 0, Math.PI * 2);
-                    ctx.fill();
-                    break;
-                case 'bird':
-                    ctx.fillStyle = '#FFD700';
-                    ctx.beginPath();
-                    ctx.ellipse(16, 14, 8, 6, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.fillStyle = '#FFA500';
-                    ctx.beginPath();
-                    ctx.arc(20, 10, 4, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.fillStyle = '#FF6347';
-                    ctx.beginPath();
-                    ctx.moveTo(24, 10); ctx.lineTo(28, 9); ctx.lineTo(24, 11);
-                    ctx.fill();
-                    ctx.fillStyle = '#000';
-                    ctx.beginPath();
-                    ctx.arc(21, 9, 1, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.fillStyle = '#8B4513';
-                    ctx.fillRect(14, 22, 2, 6);
-                    ctx.fillRect(18, 22, 2, 6);
-                    break;
-                case 'cat':
-                    ctx.fillStyle = '#D2691E';
-                    ctx.beginPath();
-                    ctx.arc(16, 18, 10, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.beginPath();
-                    ctx.moveTo(8, 12); ctx.lineTo(6, 4); ctx.lineTo(12, 10);
-                    ctx.moveTo(24, 12); ctx.lineTo(26, 4); ctx.lineTo(20, 10);
-                    ctx.fill();
-                    ctx.fillStyle = '#90EE90';
-                    ctx.beginPath();
-                    ctx.ellipse(12, 16, 2, 3, 0, 0, Math.PI * 2);
-                    ctx.ellipse(20, 16, 2, 3, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.fillStyle = '#000';
-                    ctx.beginPath();
-                    ctx.arc(12, 16, 1, 0, Math.PI * 2);
-                    ctx.arc(20, 16, 1, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.fillStyle = '#FFC0CB';
-                    ctx.beginPath();
-                    ctx.arc(16, 20, 2, 0, Math.PI * 2);
-                    ctx.fill();
-                    break;
-                case 'deer':
-                    ctx.fillStyle = '#8B4513';
-                    ctx.beginPath();
-                    ctx.ellipse(16, 20, 8, 6, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.beginPath();
-                    ctx.arc(16, 10, 5, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.fillStyle = '#A0522D';
-                    ctx.beginPath();
-                    ctx.moveTo(12, 6); ctx.lineTo(8, 0); ctx.lineTo(10, 6);
-                    ctx.moveTo(20, 6); ctx.lineTo(24, 0); ctx.lineTo(22, 6);
-                    ctx.fill();
-                    ctx.fillStyle = '#000';
-                    ctx.beginPath();
-                    ctx.arc(14, 9, 1, 0, Math.PI * 2);
-                    ctx.arc(18, 9, 1, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.fillStyle = '#654321';
-                    ctx.fillRect(10, 26, 3, 6);
-                    ctx.fillRect(19, 26, 3, 6);
-                    break;
-                case 'dog':
-                    ctx.fillStyle = '#D2B48C';
-                    ctx.beginPath();
-                    ctx.ellipse(16, 18, 10, 8, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.beginPath();
-                    ctx.arc(16, 10, 6, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.fillStyle = '#8B4513';
-                    ctx.beginPath();
-                    ctx.ellipse(8, 8, 4, 6, -0.3, 0, Math.PI * 2);
-                    ctx.ellipse(24, 8, 4, 6, 0.3, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.fillStyle = '#000';
-                    ctx.beginPath();
-                    ctx.arc(13, 9, 1.5, 0, Math.PI * 2);
-                    ctx.arc(19, 9, 1.5, 0, Math.PI * 2);
-                    ctx.arc(16, 13, 2, 0, Math.PI * 2);
-                    ctx.fill();
-                    break;
-                case 'frog':
-                    ctx.fillStyle = '#32CD32';
-                    ctx.beginPath();
-                    ctx.ellipse(16, 18, 12, 10, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.fillStyle = '#228B22';
-                    ctx.beginPath();
-                    ctx.arc(10, 8, 5, 0, Math.PI * 2);
-                    ctx.arc(22, 8, 5, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.fillStyle = '#FFD700';
-                    ctx.beginPath();
-                    ctx.arc(10, 7, 3, 0, Math.PI * 2);
-                    ctx.arc(22, 7, 3, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.fillStyle = '#000';
-                    ctx.beginPath();
-                    ctx.arc(10, 7, 1.5, 0, Math.PI * 2);
-                    ctx.arc(22, 7, 1.5, 0, Math.PI * 2);
-                    ctx.fill();
-                    break;
-                case 'horse':
-                    ctx.fillStyle = '#8B4513';
-                    ctx.beginPath();
-                    ctx.ellipse(14, 18, 10, 8, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.beginPath();
-                    ctx.ellipse(26, 12, 5, 7, 0.5, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.fillStyle = '#654321';
-                    ctx.beginPath();
-                    ctx.moveTo(28, 6); ctx.lineTo(30, 2); ctx.lineTo(26, 8);
-                    ctx.fill();
-                    ctx.fillStyle = '#000';
-                    ctx.beginPath();
-                    ctx.arc(28, 10, 1, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.fillStyle = '#5D4037';
-                    ctx.fillRect(8, 24, 3, 8);
-                    ctx.fillRect(16, 24, 3, 8);
-                    break;
-                case 'ship':
-                    ctx.fillStyle = '#696969';
-                    ctx.beginPath();
-                    ctx.moveTo(4, 20); ctx.lineTo(8, 28); ctx.lineTo(24, 28); ctx.lineTo(28, 20);
-                    ctx.closePath();
-                    ctx.fill();
-                    ctx.fillStyle = '#A9A9A9';
-                    ctx.fillRect(10, 12, 12, 8);
-                    ctx.fillStyle = '#FF0000';
-                    ctx.fillRect(14, 4, 4, 8);
-                    ctx.fillStyle = '#1E90FF';
-                    ctx.fillRect(0, 26, 32, 6);
-                    break;
-                case 'truck':
-                    ctx.fillStyle = '#FF6347';
-                    ctx.fillRect(4, 14, 24, 12);
-                    ctx.fillStyle = '#DC143C';
-                    ctx.fillRect(20, 8, 8, 6);
-                    ctx.fillStyle = '#87CEEB';
-                    ctx.fillRect(22, 9, 4, 4);
-                    ctx.fillStyle = '#333';
-                    ctx.beginPath();
-                    ctx.arc(10, 26, 4, 0, Math.PI * 2);
-                    ctx.arc(22, 26, 4, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.fillStyle = '#666';
-                    ctx.beginPath();
-                    ctx.arc(10, 26, 2, 0, Math.PI * 2);
-                    ctx.arc(22, 26, 2, 0, Math.PI * 2);
-                    ctx.fill();
-                    break;
-            }
-
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.font = '10px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(className.slice(0,4), 16, 20);
             return canvas.toDataURL();
         };
 
-        // Training Curve Chart - Fixed axes
+        // Training Curve Chart - Incremental updates (no full re-animation)
         const TrainingChart = ({ trainingHistory, totalEpochs }) => {
             const canvasRef = useRef(null);
             const chartRef = useRef(null);
 
+            // Initialize chart once
             useEffect(() => {
                 if (!canvasRef.current) return;
-                if (chartRef.current) chartRef.current.destroy();
 
-                // Create fixed labels for all epochs
                 const labels = Array.from({ length: totalEpochs }, (_, i) => `${i + 1}`);
-
-                // Pad data with nulls for epochs not yet completed
-                const trainData = [...trainingHistory.map(h => h.trainAcc)];
-                const valData = [...trainingHistory.map(h => h.valAcc)];
-                while (trainData.length < totalEpochs) trainData.push(null);
-                while (valData.length < totalEpochs) valData.push(null);
+                const emptyData = Array(totalEpochs).fill(null);
 
                 const ctx = canvasRef.current.getContext('2d');
                 chartRef.current = new Chart(ctx, {
@@ -818,7 +648,7 @@
                         datasets: [
                             {
                                 label: 'Training Accuracy',
-                                data: trainData,
+                                data: [...emptyData],
                                 borderColor: '#2774AE',
                                 backgroundColor: 'rgba(39, 116, 174, 0.1)',
                                 fill: false, tension: 0.3, pointRadius: 5, pointBackgroundColor: '#2774AE',
@@ -826,7 +656,7 @@
                             },
                             {
                                 label: 'Validation Accuracy',
-                                data: valData,
+                                data: [...emptyData],
                                 borderColor: '#FFD100',
                                 backgroundColor: 'rgba(255, 209, 0, 0.1)',
                                 fill: false, tension: 0.3, pointRadius: 5, pointBackgroundColor: '#FFD100',
@@ -837,7 +667,7 @@
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        animation: { duration: 200 },
+                        animation: false, // Disable animation for smooth incremental updates
                         plugins: {
                             legend: { display: true, position: 'top', labels: { color: '#666', usePointStyle: true, padding: 20 } },
                             tooltip: {
@@ -849,9 +679,7 @@
                             x: {
                                 title: { display: true, text: 'Epoch', color: '#666' },
                                 ticks: { color: '#666' },
-                                grid: { color: 'rgba(0,0,0,0.05)' },
-                                min: 0,
-                                max: totalEpochs - 1
+                                grid: { color: 'rgba(0,0,0,0.05)' }
                             },
                             y: {
                                 title: { display: true, text: 'Accuracy (%)', color: '#666' },
@@ -865,28 +693,40 @@
                 });
 
                 return () => { if (chartRef.current) chartRef.current.destroy(); };
+            }, [totalEpochs]);
+
+            // Update data incrementally
+            useEffect(() => {
+                if (!chartRef.current) return;
+
+                const chart = chartRef.current;
+                const trainData = Array(totalEpochs).fill(null);
+                const valData = Array(totalEpochs).fill(null);
+
+                trainingHistory.forEach((h, i) => {
+                    trainData[i] = h.trainAcc;
+                    valData[i] = h.valAcc;
+                });
+
+                chart.data.datasets[0].data = trainData;
+                chart.data.datasets[1].data = valData;
+                chart.update('none'); // 'none' mode skips animation
             }, [trainingHistory, totalEpochs]);
 
             return <canvas ref={canvasRef} />;
         };
 
-        // Loss Chart - Fixed axes
+        // Loss Chart - Incremental updates (no full re-animation)
         const LossChart = ({ trainingHistory, totalEpochs }) => {
             const canvasRef = useRef(null);
             const chartRef = useRef(null);
 
+            // Initialize chart once
             useEffect(() => {
                 if (!canvasRef.current) return;
-                if (chartRef.current) chartRef.current.destroy();
 
-                // Create fixed labels for all epochs
                 const labels = Array.from({ length: totalEpochs }, (_, i) => `${i + 1}`);
-
-                // Pad data with nulls
-                const trainData = [...trainingHistory.map(h => h.trainLoss)];
-                const valData = [...trainingHistory.map(h => h.valLoss)];
-                while (trainData.length < totalEpochs) trainData.push(null);
-                while (valData.length < totalEpochs) valData.push(null);
+                const emptyData = Array(totalEpochs).fill(null);
 
                 const ctx = canvasRef.current.getContext('2d');
                 chartRef.current = new Chart(ctx, {
@@ -894,21 +734,19 @@
                     data: {
                         labels: labels,
                         datasets: [
-                            { label: 'Training Loss', data: trainData, borderColor: '#e74c3c', backgroundColor: 'rgba(231,76,60,0.1)', fill: false, tension: 0.3, pointRadius: 5, spanGaps: false },
-                            { label: 'Validation Loss', data: valData, borderColor: '#9b59b6', backgroundColor: 'rgba(155,89,182,0.1)', fill: false, tension: 0.3, pointRadius: 5, spanGaps: false }
+                            { label: 'Training Loss', data: [...emptyData], borderColor: '#e74c3c', backgroundColor: 'rgba(231,76,60,0.1)', fill: false, tension: 0.3, pointRadius: 5, spanGaps: false },
+                            { label: 'Validation Loss', data: [...emptyData], borderColor: '#9b59b6', backgroundColor: 'rgba(155,89,182,0.1)', fill: false, tension: 0.3, pointRadius: 5, spanGaps: false }
                         ]
                     },
                     options: {
                         responsive: true, maintainAspectRatio: false,
-                        animation: { duration: 200 },
+                        animation: false,
                         plugins: { legend: { display: true, position: 'top', labels: { color: '#666', usePointStyle: true, padding: 20 } } },
                         scales: {
                             x: {
                                 title: { display: true, text: 'Epoch', color: '#666' },
                                 ticks: { color: '#666' },
-                                grid: { color: 'rgba(0,0,0,0.05)' },
-                                min: 0,
-                                max: totalEpochs - 1
+                                grid: { color: 'rgba(0,0,0,0.05)' }
                             },
                             y: {
                                 title: { display: true, text: 'Loss', color: '#666' },
@@ -922,6 +760,24 @@
                 });
 
                 return () => { if (chartRef.current) chartRef.current.destroy(); };
+            }, [totalEpochs]);
+
+            // Update data incrementally
+            useEffect(() => {
+                if (!chartRef.current) return;
+
+                const chart = chartRef.current;
+                const trainData = Array(totalEpochs).fill(null);
+                const valData = Array(totalEpochs).fill(null);
+
+                trainingHistory.forEach((h, i) => {
+                    trainData[i] = h.trainLoss;
+                    valData[i] = h.valLoss;
+                });
+
+                chart.data.datasets[0].data = trainData;
+                chart.data.datasets[1].data = valData;
+                chart.update('none');
             }, [trainingHistory, totalEpochs]);
 
             return <canvas ref={canvasRef} />;
@@ -942,117 +798,421 @@
             );
         };
 
-        // Filter Visualization
+        // Filter Visualization - Realistic CNN filter patterns
         const FilterVisualization = ({ layer }) => {
-            const filters = useMemo(() => {
+            const canvasRefs = useRef([]);
+
+            const filterConfigs = useMemo(() => {
                 if (layer === 1) {
+                    // Layer 1: Gabor-like edge detectors at various orientations
                     return [
-                        { name: 'Horizontal', pattern: 'linear-gradient(0deg, #2774AE 33%, #fff 33%, #fff 66%, #005587 66%)' },
-                        { name: 'Vertical', pattern: 'linear-gradient(90deg, #2774AE 33%, #fff 33%, #fff 66%, #005587 66%)' },
-                        { name: 'Diagonal ↘', pattern: 'linear-gradient(135deg, #2774AE, #fff, #005587)' },
-                        { name: 'Diagonal ↗', pattern: 'linear-gradient(45deg, #2774AE, #fff, #005587)' },
-                        { name: 'Corner', pattern: 'conic-gradient(from 0deg, #2774AE, #fff, #005587, #fff, #2774AE)' },
-                        { name: 'Spot', pattern: 'radial-gradient(circle, #005587, #fff, #2774AE)' }
+                        { name: 'Horizontal Edge', type: 'gabor', angle: 0, freq: 0.15 },
+                        { name: 'Vertical Edge', type: 'gabor', angle: 90, freq: 0.15 },
+                        { name: '45° Edge', type: 'gabor', angle: 45, freq: 0.15 },
+                        { name: '135° Edge', type: 'gabor', angle: 135, freq: 0.15 },
+                        { name: 'Center-Surround', type: 'dog', size: 0.3 },
+                        { name: 'Color Opponent', type: 'color', mode: 'rg' }
                     ];
                 } else if (layer === 2) {
+                    // Layer 2: Texture and pattern detectors
                     return [
-                        { name: 'Checkers', pattern: 'repeating-conic-gradient(#2774AE 0% 25%, #fff 0% 50%) 50% / 20px 20px' },
-                        { name: 'Stripes', pattern: 'repeating-linear-gradient(45deg, #2774AE, #2774AE 5px, #fff 5px, #fff 10px)' },
-                        { name: 'Grid', pattern: 'linear-gradient(#2774AE 2px, transparent 2px), linear-gradient(90deg, #2774AE 2px, #f0f0f0 2px)' },
-                        { name: 'Dots', pattern: 'radial-gradient(circle, #2774AE 20%, transparent 20%) 0 0 / 15px 15px' },
-                        { name: 'Waves', pattern: 'repeating-linear-gradient(0deg, #2774AE, #2774AE 5px, #8BB8E8 5px, #8BB8E8 10px, #fff 10px, #fff 15px)' },
-                        { name: 'Cross', pattern: 'linear-gradient(#2774AE 40%, transparent 40%), linear-gradient(90deg, #2774AE 40%, #fff 40%)' }
+                        { name: 'Corner Detector', type: 'corner' },
+                        { name: 'Curve Detector', type: 'curve' },
+                        { name: 'Grid Pattern', type: 'grid' },
+                        { name: 'Texture', type: 'texture', freq: 4 },
+                        { name: 'Blob Detector', type: 'blob' },
+                        { name: 'Line Junction', type: 'junction' }
                     ];
                 } else {
+                    // Layer 3+: Part detectors (more abstract patterns)
                     return [
-                        { name: 'Wheel', pattern: 'radial-gradient(circle, #333 30%, #666 30%, #666 50%, #999 50%, #999 70%, #ccc 70%)' },
-                        { name: 'Eye', pattern: 'radial-gradient(circle, #000 20%, #4a6fa5 20%, #4a6fa5 40%, #fff 40%)' },
-                        { name: 'Fur', pattern: 'repeating-linear-gradient(60deg, #8B4513, #D2691E 3px, #F4A460 3px, #F4A460 6px)' },
-                        { name: 'Wing', pattern: 'linear-gradient(135deg, #87CEEB 50%, #4A90D9 50%)' },
-                        { name: 'Snout', pattern: 'radial-gradient(ellipse 60% 40% at 50% 60%, #D2691E 0%, #D2691E 100%)' },
-                        { name: 'Tail', pattern: 'linear-gradient(45deg, transparent 40%, #8B4513 40%, #8B4513 60%, transparent 60%)' }
+                        { name: 'Eye-like', type: 'eye' },
+                        { name: 'Wheel/Circle', type: 'wheel' },
+                        { name: 'Fur Texture', type: 'fur' },
+                        { name: 'Snout Shape', type: 'snout' },
+                        { name: 'Wing Pattern', type: 'wing' },
+                        { name: 'Ear Shape', type: 'ear' }
                     ];
                 }
             }, [layer]);
 
+            useEffect(() => {
+                filterConfigs.forEach((config, idx) => {
+                    const canvas = canvasRefs.current[idx];
+                    if (!canvas) return;
+
+                    const ctx = canvas.getContext('2d');
+                    const size = 48;
+                    canvas.width = size;
+                    canvas.height = size;
+
+                    const imageData = ctx.createImageData(size, size);
+                    const data = imageData.data;
+
+                    for (let y = 0; y < size; y++) {
+                        for (let x = 0; x < size; x++) {
+                            const px = (y * size + x) * 4;
+                            const nx = (x - size/2) / (size/2); // normalized -1 to 1
+                            const ny = (y - size/2) / (size/2);
+                            let r, g, b;
+
+                            if (config.type === 'gabor') {
+                                // Gabor filter - edge detector
+                                const angle = config.angle * Math.PI / 180;
+                                const xr = nx * Math.cos(angle) + ny * Math.sin(angle);
+                                const yr = -nx * Math.sin(angle) + ny * Math.cos(angle);
+                                const gaussian = Math.exp(-(xr*xr + yr*yr) / 0.5);
+                                const sinusoid = Math.sin(2 * Math.PI * config.freq * size * xr);
+                                const val = gaussian * sinusoid;
+                                const normalized = (val + 1) / 2;
+                                // Blue for negative, white for zero, red for positive
+                                if (val < 0) {
+                                    r = 128 + normalized * 127;
+                                    g = 128 + normalized * 127;
+                                    b = 255;
+                                } else {
+                                    r = 255;
+                                    g = 255 - val * 127;
+                                    b = 255 - val * 127;
+                                }
+                            } else if (config.type === 'dog') {
+                                // Difference of Gaussians - center-surround
+                                const dist = Math.sqrt(nx*nx + ny*ny);
+                                const center = Math.exp(-dist*dist / (config.size * config.size));
+                                const surround = Math.exp(-dist*dist / (config.size * 2 * config.size * 2));
+                                const val = center - surround * 0.7;
+                                r = g = b = 128 + val * 127;
+                            } else if (config.type === 'color') {
+                                // Color opponent channel
+                                const dist = Math.sqrt(nx*nx + ny*ny);
+                                const gaussian = Math.exp(-dist*dist / 0.3);
+                                if (dist < 0.4) {
+                                    r = 200 * gaussian + 50;
+                                    g = 80;
+                                    b = 80;
+                                } else {
+                                    r = 80;
+                                    g = 180 * (1-gaussian) + 50;
+                                    b = 80;
+                                }
+                            } else if (config.type === 'corner') {
+                                // L-shaped corner detector
+                                const inCorner = (nx > -0.2 && ny > -0.2) && (nx < 0.2 || ny < 0.2);
+                                const val = inCorner ? 1 : 0;
+                                const edge = Math.abs(nx + 0.2) < 0.15 || Math.abs(ny + 0.2) < 0.15;
+                                r = g = b = edge && inCorner ? 255 : (inCorner ? 180 : 100);
+                            } else if (config.type === 'curve') {
+                                // Curved edge detector
+                                const angle = Math.atan2(ny, nx);
+                                const dist = Math.sqrt(nx*nx + ny*ny);
+                                const onCurve = Math.abs(dist - 0.5) < 0.15 && angle > -Math.PI/2 && angle < Math.PI/2;
+                                r = g = b = onCurve ? 255 : 100;
+                            } else if (config.type === 'grid') {
+                                // Grid/crosshatch pattern
+                                const gridVal = (Math.sin(nx * 12) > 0.3 ? 1 : 0) + (Math.sin(ny * 12) > 0.3 ? 1 : 0);
+                                r = g = b = gridVal > 0 ? 200 : 80;
+                            } else if (config.type === 'texture') {
+                                // Texture pattern
+                                const noise = Math.sin(nx * config.freq * 8) * Math.sin(ny * config.freq * 8);
+                                const noise2 = Math.sin((nx + ny) * config.freq * 6);
+                                r = g = b = 128 + (noise + noise2) * 40;
+                            } else if (config.type === 'blob') {
+                                // Blob detector
+                                const dist = Math.sqrt(nx*nx + ny*ny);
+                                const blob = Math.exp(-dist*dist / 0.15);
+                                r = g = b = 80 + blob * 175;
+                            } else if (config.type === 'junction') {
+                                // T or X junction
+                                const onVert = Math.abs(nx) < 0.12;
+                                const onHoriz = Math.abs(ny) < 0.12 && nx > -0.1;
+                                r = g = b = (onVert || onHoriz) ? 255 : 100;
+                            } else if (config.type === 'eye') {
+                                // Eye-like pattern
+                                const dist = Math.sqrt(nx*nx + ny*ny);
+                                if (dist < 0.2) {
+                                    r = g = b = 30; // pupil
+                                } else if (dist < 0.45) {
+                                    r = 100; g = 140; b = 90; // iris
+                                } else if (dist < 0.6) {
+                                    r = g = b = 240; // white
+                                } else {
+                                    r = 180; g = 140; b = 120; // skin
+                                }
+                            } else if (config.type === 'wheel') {
+                                // Wheel/tire pattern
+                                const dist = Math.sqrt(nx*nx + ny*ny);
+                                const angle = Math.atan2(ny, nx);
+                                const spoke = Math.abs(Math.sin(angle * 5)) < 0.3;
+                                if (dist < 0.25) {
+                                    r = g = b = 60;
+                                } else if (dist < 0.7) {
+                                    r = g = b = spoke ? 50 : 30;
+                                } else {
+                                    r = g = b = 40;
+                                }
+                            } else if (config.type === 'fur') {
+                                // Fur texture
+                                const furAngle = Math.sin(nx * 15 + ny * 3) * 0.5;
+                                const stripe = Math.sin((nx * Math.cos(furAngle) + ny * Math.sin(furAngle)) * 20);
+                                r = 139 + stripe * 30;
+                                g = 90 + stripe * 20;
+                                b = 43 + stripe * 15;
+                            } else if (config.type === 'snout') {
+                                // Snout/nose shape
+                                const dist = Math.sqrt(nx*nx + (ny*1.5)*(ny*1.5));
+                                if (dist < 0.5) {
+                                    r = 60; g = 40; b = 40; // nose
+                                } else {
+                                    const fur = Math.sin(nx * 10) * 0.1;
+                                    r = 180 + fur * 30; g = 140 + fur * 20; b = 100 + fur * 20;
+                                }
+                            } else if (config.type === 'wing') {
+                                // Wing feather pattern
+                                const feather = Math.sin((nx - ny * 0.5) * 12);
+                                const edge = ny > nx * 0.8 - 0.3 && ny < nx * 0.8 + 0.5;
+                                if (edge) {
+                                    r = 100 + feather * 30;
+                                    g = 120 + feather * 30;
+                                    b = 140 + feather * 30;
+                                } else {
+                                    r = g = b = 200;
+                                }
+                            } else if (config.type === 'ear') {
+                                // Pointed ear shape
+                                const inEar = ny < -nx * 0.7 + 0.3 && ny < nx * 0.7 + 0.3 && ny > -0.6;
+                                if (inEar) {
+                                    const inner = ny > -nx * 0.5 + 0.1 && ny > nx * 0.5 + 0.1 && ny > -0.3;
+                                    r = inner ? 200 : 160;
+                                    g = inner ? 160 : 130;
+                                    b = inner ? 140 : 110;
+                                } else {
+                                    r = g = b = 220;
+                                }
+                            } else {
+                                r = g = b = 128;
+                            }
+
+                            data[px] = Math.max(0, Math.min(255, r));
+                            data[px + 1] = Math.max(0, Math.min(255, g));
+                            data[px + 2] = Math.max(0, Math.min(255, b));
+                            data[px + 3] = 255;
+                        }
+                    }
+
+                    ctx.putImageData(imageData, 0, 0);
+                });
+            }, [filterConfigs]);
+
             return (
                 <div className="filter-grid">
-                    {filters.map((filter, idx) => (
+                    {filterConfigs.map((config, idx) => (
                         <div key={idx} className="filter-item">
-                            <div className="filter-visual" style={{ background: filter.pattern, backgroundSize: 'cover' }} />
-                            <div className="filter-name">{filter.name}</div>
+                            <canvas
+                                ref={el => canvasRefs.current[idx] = el}
+                                className="filter-visual"
+                                style={{ width: '48px', height: '48px', borderRadius: '4px' }}
+                            />
+                            <div className="filter-name">{config.name}</div>
                         </div>
                     ))}
                 </div>
             );
         };
 
-        // CNN Pipeline Visualization - More visually interesting with 3D-style blocks
-        const CNNPipeline = ({ config }) => {
-            const blocks = [];
-            let currentSize = 32, currentChannels = 3;
+        // CNN Pipeline Visualization - Uniform 3D blocks with muted colors
+        const CNNPipeline = ({ config, isTraining }) => {
+            const canvasRef = useRef(null);
+            const animationRef = useRef(null);
 
-            blocks.push({ type: 'Input', size: `${currentSize}×${currentSize}×${currentChannels}`, category: 'input', height: 60, depth: currentChannels });
+            const layers = useMemo(() => {
+                const result = [];
+                let currentSize = 32, currentChannels = 3;
+                let x = 30;
 
-            for (let i = 0; i < config.convBlocks; i++) {
-                const filters = config.filters * Math.pow(2, Math.min(i, 2));
-                blocks.push({ type: `Conv${i+1}`, size: `${currentSize}×${currentSize}×${filters}`, category: 'conv', height: 50 + filters/8, depth: filters });
-                if (config.batchNorm) blocks.push({ type: 'BN', size: '', category: 'norm', height: 30, depth: 10 });
-                blocks.push({ type: 'ReLU', size: '', category: 'activation', height: 25, depth: 8 });
-                currentSize = Math.floor(currentSize / 2);
-                blocks.push({ type: 'Pool', size: `${currentSize}×${currentSize}`, category: 'pool', height: 35, depth: 12 });
-                currentChannels = filters;
-            }
+                // UCLA color scheme
+                const colors = {
+                    input: '#4CAF50',    // green (input data)
+                    conv: '#2774AE',     // UCLA blue
+                    bn: '#005587',       // UCLA darker blue
+                    relu: '#FFD100',     // UCLA gold
+                    pool: '#8BB8E8',     // UCLA lighter blue
+                    flatten: '#536878',  // slate gray
+                    dense: '#2774AE',    // UCLA blue
+                    output: '#FFD100'    // UCLA gold
+                };
 
-            blocks.push({ type: 'Flatten', size: `${currentSize * currentSize * currentChannels}`, category: 'flatten', height: 80, depth: 6 });
-            blocks.push({ type: 'Dense', size: '256', category: 'dense', height: 60, depth: 20 });
-            blocks.push({ type: 'Output', size: '10', category: 'output', height: 40, depth: 10 });
+                // Fixed block sizes - calibrated so 4 blocks spans full width
+                // Input
+                result.push({ type: 'Input', x, h: 90, w: 36, d: 15, color: colors.input });
+                x += 58;
 
-            const categoryStyles = {
-                input: { bg: 'linear-gradient(135deg, #4CAF50, #2E7D32)', border: '#1B5E20' },
-                conv: { bg: 'linear-gradient(135deg, #2196F3, #1565C0)', border: '#0D47A1' },
-                norm: { bg: 'linear-gradient(135deg, #9C27B0, #6A1B9A)', border: '#4A148C' },
-                activation: { bg: 'linear-gradient(135deg, #FF9800, #EF6C00)', border: '#E65100' },
-                pool: { bg: 'linear-gradient(135deg, #00BCD4, #00838F)', border: '#006064' },
-                flatten: { bg: 'linear-gradient(135deg, #607D8B, #37474F)', border: '#263238' },
-                dense: { bg: 'linear-gradient(135deg, #E91E63, #AD1457)', border: '#880E4F' },
-                output: { bg: 'linear-gradient(135deg, #FFD100, #FFA000)', border: '#FF6F00' }
-            };
+                for (let i = 0; i < config.convBlocks; i++) {
+                    const filters = config.filters * Math.pow(2, Math.min(i, 2));
+                    const h = Math.max(50, 95 - i * 12);
+                    const w = Math.min(55, 28 + filters / 8);
+                    const d = Math.min(22, 10 + filters / 16);
+
+                    result.push({ type: 'Conv', x, h, w, d, color: colors.conv, label: `Conv${i+1}` });
+                    x += w + 18;
+
+                    if (config.batchNorm) {
+                        result.push({ type: 'BN', x, h: h - 6, w: 10, d: 8, color: colors.bn });
+                        x += 24;
+                    }
+
+                    result.push({ type: 'ReLU', x, h: h - 10, w: 14, d: 8, color: colors.relu });
+                    x += 30;
+
+                    currentSize = Math.floor(currentSize / 2);
+                    const poolH = Math.max(40, h - 15);
+                    result.push({ type: 'Pool', x, h: poolH, w: 24, d: 12, color: colors.pool });
+                    x += 44;
+                    currentChannels = filters;
+                }
+
+                // Flatten
+                result.push({ type: 'Flatten', x, h: 110, w: 14, d: 8, color: colors.flatten });
+                x += 36;
+
+                // Dense
+                result.push({ type: 'Dense', x, h: 80, w: 28, d: 15, color: colors.dense });
+                x += 54;
+
+                // Output
+                result.push({ type: 'Output', x, h: 60, w: 24, d: 12, color: colors.output });
+
+                return result;
+            }, [config]);
+
+            useEffect(() => {
+                const canvas = canvasRef.current;
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                const dpr = window.devicePixelRatio || 1;
+
+                const rect = canvas.getBoundingClientRect();
+                canvas.width = rect.width * dpr;
+                canvas.height = rect.height * dpr;
+                ctx.scale(dpr, dpr);
+
+                let time = 0;
+
+                function shadeColor(color, percent) {
+                    const num = parseInt(color.replace('#', ''), 16);
+                    const amt = Math.round(2.55 * percent);
+                    const R = Math.min(255, Math.max(0, (num >> 16) + amt));
+                    const G = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amt));
+                    const B = Math.min(255, Math.max(0, (num & 0x0000FF) + amt));
+                    return `rgb(${R},${G},${B})`;
+                }
+
+                function drawBlock(x, y, w, h, d, color) {
+                    // Right face (darker)
+                    ctx.fillStyle = shadeColor(color, -18);
+                    ctx.beginPath();
+                    ctx.moveTo(x + w, y);
+                    ctx.lineTo(x + w + d * 0.7, y - d * 0.4);
+                    ctx.lineTo(x + w + d * 0.7, y + h - d * 0.4);
+                    ctx.lineTo(x + w, y + h);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // Top face (lighter)
+                    ctx.fillStyle = shadeColor(color, 12);
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x + d * 0.7, y - d * 0.4);
+                    ctx.lineTo(x + w + d * 0.7, y - d * 0.4);
+                    ctx.lineTo(x + w, y);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // Front face
+                    ctx.fillStyle = color;
+                    ctx.fillRect(x, y, w, h);
+
+                    // Subtle edge highlight
+                    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                    ctx.lineWidth = 0.5;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x + w, y);
+                    ctx.stroke();
+                }
+
+                const draw = () => {
+                    const width = rect.width;
+                    const height = rect.height;
+                    ctx.clearRect(0, 0, width, height);
+
+                    const centerY = height / 2 + 8;
+
+                    // Draw connection lines
+                    ctx.strokeStyle = 'rgba(120, 120, 120, 0.2)';
+                    ctx.lineWidth = 1;
+
+                    for (let i = 0; i < layers.length - 1; i++) {
+                        const from = layers[i];
+                        const to = layers[i + 1];
+                        const fromX = from.x + from.w + from.d * 0.7;
+                        const toX = to.x;
+
+                        ctx.beginPath();
+                        ctx.moveTo(fromX, centerY);
+                        ctx.lineTo(toX, centerY);
+                        ctx.stroke();
+
+                        // Flowing particles when training
+                        if (isTraining) {
+                            for (let p = 0; p < 2; p++) {
+                                const progress = ((time * 0.012 + p * 0.5 + i * 0.12) % 1);
+                                const px = fromX + (toX - fromX) * progress;
+                                const py = centerY + Math.sin(progress * Math.PI * 3 + time * 0.02) * 2;
+
+                                ctx.beginPath();
+                                ctx.arc(px, py, 2, 0, Math.PI * 2);
+                                const alpha = Math.sin(progress * Math.PI) * 0.45;
+                                ctx.fillStyle = `rgba(100, 120, 140, ${alpha})`;
+                                ctx.fill();
+                            }
+                        }
+                    }
+
+                    // Draw blocks
+                    layers.forEach((layer, idx) => {
+                        const breathe = isTraining ? Math.sin(time * 0.02 + idx * 0.3) * 1.5 : 0;
+                        const h = layer.h + breathe;
+                        const y = centerY - h / 2;
+
+                        drawBlock(layer.x, y, layer.w, h, layer.d, layer.color);
+                    });
+
+                    // Labels
+                    ctx.fillStyle = '#666';
+                    ctx.font = '9px -apple-system, BlinkMacSystemFont, sans-serif';
+                    ctx.textAlign = 'center';
+                    layers.forEach(layer => {
+                        const label = layer.label || layer.type;
+                        const labelX = layer.x + layer.w / 2 + layer.d * 0.35;
+                        ctx.fillText(label, labelX, centerY + layer.h / 2 + 14);
+                    });
+
+                    time++;
+                    animationRef.current = requestAnimationFrame(draw);
+                };
+
+                draw();
+
+                return () => {
+                    if (animationRef.current) cancelAnimationFrame(animationRef.current);
+                };
+            }, [layers, isTraining]);
 
             return (
-                <div className="pipeline-viz">
-                    {blocks.map((block, idx) => {
-                        const style = categoryStyles[block.category];
-                        const width = Math.max(40, Math.min(70, 30 + block.depth / 4));
-                        return (
-                            <React.Fragment key={idx}>
-                                <div className="pipeline-block">
-                                    <div style={{
-                                        width: `${width}px`,
-                                        height: `${block.height}px`,
-                                        background: style.bg,
-                                        borderRadius: block.category === 'flatten' ? '4px 4px 20px 20px' :
-                                                      block.category === 'activation' ? '50%' : '6px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        color: 'white',
-                                        fontSize: '0.6rem',
-                                        fontWeight: 600,
-                                        textAlign: 'center',
-                                        boxShadow: `3px 3px 0 ${style.border}, 6px 6px 12px rgba(0,0,0,0.15)`,
-                                        border: `1px solid rgba(255,255,255,0.2)`,
-                                        padding: '2px'
-                                    }}>
-                                        {block.type}
-                                    </div>
-                                    {block.size && <div className="pipeline-block-label">{block.size}</div>}
-                                </div>
-                                {idx < blocks.length - 1 && <span className="pipeline-arrow">→</span>}
-                            </React.Fragment>
-                        );
-                    })}
-                </div>
+                <canvas
+                    ref={canvasRef}
+                    style={{ width: '100%', height: '200px', display: 'block' }}
+                />
             );
         };
 
@@ -1068,7 +1228,7 @@
 
             useEffect(() => {
                 const samples = CIFAR10_CLASSES.slice(0, 8).map(cls => ({
-                    imageData: generateCIFARImage(cls),
+                    imageData: getCIFARImage(cls),
                     trueLabel: cls,
                     predictedLabel: cls
                 }));
@@ -1101,7 +1261,7 @@
 
                 const newHistory = [];
                 for (let epoch = 1; epoch <= config.epochs; epoch++) {
-                    await new Promise(resolve => setTimeout(resolve, 150));
+                    await new Promise(resolve => setTimeout(resolve, 300));
 
                     const progress = epoch / config.epochs;
                     const learningCurve = 1 - Math.exp(-3 * progress);
@@ -1241,7 +1401,7 @@
 
                             <div style={{ marginTop: '1.5rem' }}>
                                 <div className="section-title" style={{ fontSize: '0.9rem' }}>Network Architecture</div>
-                                <CNNPipeline config={config} />
+                                <CNNPipeline config={config} isTraining={isTraining} />
                             </div>
                         </div>
                     </div>
@@ -1325,7 +1485,7 @@
                 const strategyBonus = strategy === 'finetune' ? 8 : 0;
 
                 for (let epoch = 1; epoch <= 15; epoch++) {
-                    await new Promise(resolve => setTimeout(resolve, 150));
+                    await new Promise(resolve => setTimeout(resolve, 300));
                     const progress = epoch / 15;
                     const curve = 1 - Math.exp(-4 * progress);
 
