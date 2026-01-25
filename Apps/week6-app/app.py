@@ -11,17 +11,12 @@ import os
 import time
 from collections import deque
 from datetime import datetime, timedelta
-
-# Set TensorFlow to CPU only and reduce logging
-os.environ['CUDA_VISIBLE_DEVICES'] = ''
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-
-import tensorflow as tf
-from tensorflow import keras
-from tensorflow.keras import layers
-from tensorflow.keras.datasets import cifar10
 import threading
 import uuid
+
+# Set TensorFlow to CPU only and reduce logging BEFORE importing
+os.environ['CUDA_VISIBLE_DEVICES'] = ''
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 app = Flask(__name__)
 CORS(app)
@@ -41,19 +36,55 @@ training_queue = deque()  # Queue of session_ids waiting to train
 active_trainings = set()  # Set of session_ids currently training
 state_lock = threading.Lock()  # Thread-safe access to shared state
 
-# ============================================
-# Load CIFAR-10 once at startup
-# ============================================
-print("Loading CIFAR-10 dataset...")
-(X_TRAIN_FULL, Y_TRAIN_FULL), (X_TEST, Y_TEST) = cifar10.load_data()
-X_TRAIN_FULL = X_TRAIN_FULL.astype('float32') / 255.0
-X_TEST = X_TEST.astype('float32') / 255.0
-Y_TRAIN_FULL = Y_TRAIN_FULL.flatten()
-Y_TEST = Y_TEST.flatten()
-print(f"Loaded {len(X_TRAIN_FULL)} training images, {len(X_TEST)} test images")
+# Lazy-loaded data
+_tf_loaded = False
+_cifar_loaded = False
+_X_TRAIN_FULL = None
+_Y_TRAIN_FULL = None
+_X_TEST = None
+_Y_TEST = None
+_tf = None
+_keras = None
+_layers = None
 
 CIFAR10_CLASSES = ['airplane', 'automobile', 'bird', 'cat', 'deer',
                    'dog', 'frog', 'horse', 'ship', 'truck']
+
+
+def load_tensorflow():
+    """Lazy load TensorFlow"""
+    global _tf_loaded, _tf, _keras, _layers
+    if _tf_loaded:
+        return
+
+    print("Loading TensorFlow...")
+    import tensorflow as tf
+    from tensorflow import keras
+    from tensorflow.keras import layers
+    _tf = tf
+    _keras = keras
+    _layers = layers
+    _tf_loaded = True
+    print(f"TensorFlow {tf.__version__} loaded")
+
+
+def load_cifar():
+    """Lazy load CIFAR-10 dataset"""
+    global _cifar_loaded, _X_TRAIN_FULL, _Y_TRAIN_FULL, _X_TEST, _Y_TEST
+    if _cifar_loaded:
+        return
+
+    load_tensorflow()
+
+    print("Loading CIFAR-10 dataset...")
+    from tensorflow.keras.datasets import cifar10
+    (X_train, y_train), (X_test, y_test) = cifar10.load_data()
+    _X_TRAIN_FULL = X_train.astype('float32') / 255.0
+    _X_TEST = X_test.astype('float32') / 255.0
+    _Y_TRAIN_FULL = y_train.flatten()
+    _Y_TEST = y_test.flatten()
+    _cifar_loaded = True
+    print(f"Loaded {len(_X_TRAIN_FULL)} training images, {len(_X_TEST)} test images")
 
 
 # ============================================
@@ -73,23 +104,16 @@ def cleanup_old_sessions():
                     expired.append(session_id)
 
             for session_id in expired:
-                # Remove from all tracking structures
                 if session_id in active_trainings:
                     active_trainings.discard(session_id)
                 if session_id in training_queue:
                     training_queue.remove(session_id)
-
-                # Clear model to free memory
                 if training_sessions[session_id].get('model'):
                     del training_sessions[session_id]['model']
                 del training_sessions[session_id]
 
             if expired:
                 print(f"Cleaned up {len(expired)} expired sessions")
-
-# Start cleanup thread
-cleanup_thread = threading.Thread(target=cleanup_old_sessions, daemon=True)
-cleanup_thread.start()
 
 
 # ============================================
@@ -98,27 +122,23 @@ cleanup_thread.start()
 def process_queue():
     """Process training queue - start jobs when slots available"""
     while True:
-        time.sleep(0.5)  # Check queue every 500ms
+        time.sleep(0.5)
 
         with state_lock:
-            # Start queued jobs if we have capacity
             while len(active_trainings) < MAX_CONCURRENT_TRAININGS and training_queue:
                 session_id = training_queue.popleft()
 
-                # Skip if session was cleaned up
                 if session_id not in training_sessions:
                     continue
 
                 session = training_sessions[session_id]
 
-                # Skip if already started or completed
                 if session['status'] not in ['queued']:
                     continue
 
                 active_trainings.add(session_id)
                 session['status'] = 'starting'
 
-                # Start training in new thread
                 thread = threading.Thread(
                     target=train_model_async,
                     args=(session_id, session['config'])
@@ -126,23 +146,19 @@ def process_queue():
                 thread.daemon = True
                 thread.start()
 
-# Start queue processor thread
-queue_thread = threading.Thread(target=process_queue, daemon=True)
-queue_thread.start()
-
 
 # ============================================
 # Model Building and Training
 # ============================================
 def build_cnn_model(config):
     """Build CNN model based on frontend config"""
-    model = keras.Sequential()
+    model = _keras.Sequential()
 
     for i in range(config['convBlocks']):
         filters = config['filters'] * (2 ** min(i, 2))
 
         if i == 0:
-            model.add(layers.Conv2D(
+            model.add(_layers.Conv2D(
                 filters,
                 (config['kernelSize'], config['kernelSize']),
                 padding='same',
@@ -151,7 +167,7 @@ def build_cnn_model(config):
                 name=f'conv2d_{i}'
             ))
         else:
-            model.add(layers.Conv2D(
+            model.add(_layers.Conv2D(
                 filters,
                 (config['kernelSize'], config['kernelSize']),
                 padding='same',
@@ -160,20 +176,20 @@ def build_cnn_model(config):
             ))
 
         if config.get('batchNorm', False):
-            model.add(layers.BatchNormalization(name=f'bn_{i}'))
+            model.add(_layers.BatchNormalization(name=f'bn_{i}'))
 
-        model.add(layers.MaxPooling2D(pool_size=(2, 2), name=f'pool_{i}'))
+        model.add(_layers.MaxPooling2D(pool_size=(2, 2), name=f'pool_{i}'))
 
         if config.get('dropout', 0) > 0:
-            model.add(layers.Dropout(config['dropout']))
+            model.add(_layers.Dropout(config['dropout']))
 
-    model.add(layers.Flatten())
-    model.add(layers.Dense(128, activation='relu'))
-    model.add(layers.Dropout(0.5))
-    model.add(layers.Dense(10, activation='softmax'))
+    model.add(_layers.Flatten())
+    model.add(_layers.Dense(128, activation='relu'))
+    model.add(_layers.Dropout(0.5))
+    model.add(_layers.Dense(10, activation='softmax'))
 
     model.compile(
-        optimizer=keras.optimizers.Adam(learning_rate=0.001),
+        optimizer=_keras.optimizers.Adam(learning_rate=0.001),
         loss='sparse_categorical_crossentropy',
         metrics=['accuracy']
     )
@@ -188,9 +204,8 @@ def extract_filters(model, num_blocks):
     for i in range(num_blocks):
         try:
             layer = model.get_layer(f'conv2d_{i}')
-            weights = layer.get_weights()[0]  # Shape: [H, W, in_channels, out_filters]
+            weights = layer.get_weights()[0]
 
-            # Reshape to [num_filters][H][W][channels] for frontend
             h, w, in_c, out_f = weights.shape
             layer_filters = []
 
@@ -218,26 +233,26 @@ def train_model_async(session_id, config):
         return
 
     try:
-        # Get training sample size
+        # Ensure data is loaded
+        load_cifar()
+
         num_samples = config.get('numSamples', 1000)
         session['status'] = f'Preparing {num_samples} training samples...'
 
-        # Sample from full training set (balanced across classes)
         samples_per_class = num_samples // 10
         indices = []
         for class_idx in range(10):
-            class_indices = np.where(Y_TRAIN_FULL == class_idx)[0]
+            class_indices = np.where(_Y_TRAIN_FULL == class_idx)[0]
             selected = np.random.choice(class_indices, size=min(samples_per_class, len(class_indices)), replace=False)
             indices.extend(selected)
 
         np.random.shuffle(indices)
-        X_train = X_TRAIN_FULL[indices]
-        y_train = Y_TRAIN_FULL[indices]
+        X_train = _X_TRAIN_FULL[indices]
+        y_train = _Y_TRAIN_FULL[indices]
 
-        # Use subset of test set for faster validation
-        test_indices = np.random.choice(len(X_TEST), size=min(1000, len(X_TEST)), replace=False)
-        X_val = X_TEST[test_indices]
-        y_val = Y_TEST[test_indices]
+        test_indices = np.random.choice(len(_X_TEST), size=min(1000, len(_X_TEST)), replace=False)
+        X_val = _X_TEST[test_indices]
+        y_val = _Y_TEST[test_indices]
 
         session['status'] = 'Building model...'
         model = build_cnn_model(config)
@@ -246,8 +261,7 @@ def train_model_async(session_id, config):
         session['history'] = []
         session['current_epoch'] = 0
 
-        # Custom callback for progress updates
-        class ProgressCallback(keras.callbacks.Callback):
+        class ProgressCallback(_keras.callbacks.Callback):
             def on_epoch_end(self, epoch, logs=None):
                 session['current_epoch'] = epoch + 1
                 session['history'].append({
@@ -258,7 +272,6 @@ def train_model_async(session_id, config):
                 })
                 session['status'] = f"Epoch {epoch + 1}/{config['epochs']}"
 
-        # Train
         model.fit(
             X_train, y_train,
             batch_size=32,
@@ -268,24 +281,21 @@ def train_model_async(session_id, config):
             verbose=0
         )
 
-        # Extract filters
         session['status'] = 'Extracting learned filters...'
         filters = extract_filters(model, config['convBlocks'])
         session['filters'] = filters
 
-        # Final evaluation on full test set
         session['status'] = 'Evaluating...'
-        test_loss, test_acc = model.evaluate(X_TEST, Y_TEST, verbose=0)
+        test_loss, test_acc = model.evaluate(_X_TEST, _Y_TEST, verbose=0)
         session['test_accuracy'] = float(test_acc * 100)
 
-        # Sample predictions
-        sample_indices = [np.where(Y_TEST == i)[0][0] for i in range(10)][:8]
-        sample_images = X_TEST[sample_indices]
+        sample_indices = [np.where(_Y_TEST == i)[0][0] for i in range(10)][:8]
+        sample_images = _X_TEST[sample_indices]
         predictions = model.predict(sample_images, verbose=0)
 
         session['sample_predictions'] = [
             {
-                'true': int(Y_TEST[sample_indices[i]]),
+                'true': int(_Y_TEST[sample_indices[i]]),
                 'predicted': int(np.argmax(predictions[i])),
                 'confidence': float(np.max(predictions[i]))
             }
@@ -302,7 +312,6 @@ def train_model_async(session_id, config):
         print(f"Training error: {traceback.format_exc()}")
 
     finally:
-        # Remove from active trainings
         with state_lock:
             active_trainings.discard(session_id)
 
@@ -312,6 +321,7 @@ def train_model_async(session_id, config):
 # ============================================
 @app.route('/api/health', methods=['GET'])
 def health():
+    """Health check - responds immediately without loading TF/CIFAR"""
     with state_lock:
         queue_length = len(training_queue)
         active_count = len(active_trainings)
@@ -319,12 +329,23 @@ def health():
 
     return jsonify({
         'status': 'ok',
-        'tf_version': tf.__version__,
-        'cifar_loaded': len(X_TRAIN_FULL),
+        'tf_loaded': _tf_loaded,
+        'cifar_loaded': _cifar_loaded,
         'queue_length': queue_length,
         'active_trainings': active_count,
         'max_concurrent': MAX_CONCURRENT_TRAININGS,
         'total_sessions': total_sessions
+    })
+
+
+@app.route('/api/warmup', methods=['POST'])
+def warmup():
+    """Pre-load TensorFlow and CIFAR-10"""
+    load_cifar()
+    return jsonify({
+        'status': 'ok',
+        'tf_version': _tf.__version__,
+        'cifar_samples': len(_X_TRAIN_FULL)
     })
 
 
@@ -335,7 +356,6 @@ def start_training():
     session_id = str(uuid.uuid4())
 
     with state_lock:
-        # Create session
         training_sessions[session_id] = {
             'status': 'queued',
             'config': config,
@@ -349,7 +369,6 @@ def start_training():
             'queue_position': len(training_queue) + 1
         }
 
-        # Add to queue
         training_queue.append(session_id)
         queue_position = len(training_queue)
         active_count = len(active_trainings)
@@ -370,7 +389,6 @@ def get_training_status(session_id):
 
     session = training_sessions[session_id]
 
-    # Calculate current queue position
     with state_lock:
         if session_id in training_queue:
             queue_position = list(training_queue).index(session_id) + 1
@@ -412,7 +430,6 @@ def predict():
     if session.get('model') is None:
         return jsonify({'error': 'Model not trained yet'}), 400
 
-    # Get image data (base64 or array)
     image_data = data.get('image')
 
     if isinstance(image_data, list):
@@ -444,6 +461,14 @@ def get_stats():
             'queued_sessions': [sid for sid in training_queue],
             'active_sessions': list(active_trainings)
         })
+
+
+# Start background threads
+cleanup_thread = threading.Thread(target=cleanup_old_sessions, daemon=True)
+cleanup_thread.start()
+
+queue_thread = threading.Thread(target=process_queue, daemon=True)
+queue_thread.start()
 
 
 if __name__ == '__main__':
