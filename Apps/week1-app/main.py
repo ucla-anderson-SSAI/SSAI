@@ -297,8 +297,16 @@ async def root():
     return {
         "message": "Week 1 Linear Regression API v2.0",
         "status": "running",
+        "data_loaded": df is not None,
+        "categories_count": len(CATEGORIES),
         "endpoints": ["/categories", "/features", "/analyze", "/compare/{product}"]
     }
+
+
+@app.get("/ping")
+async def ping():
+    """Simple ping endpoint for testing connectivity."""
+    return {"pong": True}
 
 
 @app.get("/categories")
