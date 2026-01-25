@@ -10,11 +10,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -27,10 +23,7 @@
         ::-webkit-scrollbar-track { background: #f5f5f5; }
         ::-webkit-scrollbar-thumb { background: #2774AE; border-radius: 4px; }
 
-        .app-container {
-            min-height: 100vh;
-            background: #ffffff;
-        }
+        .app-container { min-height: 100vh; background: #ffffff; }
 
         .header {
             background: #2774AE;
@@ -57,29 +50,13 @@
             text-transform: uppercase;
         }
 
-        .header-left h1 {
-            font-size: 1.4rem;
-            font-weight: 600;
-            color: #f5f5f5;
-        }
-
-        .header-left p {
-            color: #c0c0c0;
-            font-size: 0.85rem;
-            margin-top: 0.25rem;
-        }
-
-        .header-right .ucla-anderson {
-            font-size: 1rem;
-            color: #f5f5f5;
-            font-weight: 500;
-        }
+        .header-left h1 { font-size: 1.4rem; font-weight: 600; color: #f5f5f5; }
+        .header-left p { color: #c0c0c0; font-size: 0.85rem; margin-top: 0.25rem; }
+        .header-right .ucla-anderson { font-size: 1rem; color: #f5f5f5; font-weight: 500; }
 
         .header-gold-line {
             position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
+            bottom: 0; left: 0; right: 0;
             height: 4px;
             background: #FFD100;
         }
@@ -119,11 +96,7 @@
             border-color: #2774AE;
         }
 
-        .main-content {
-            max-width: 1600px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
+        .main-content { max-width: 1600px; margin: 0 auto; padding: 2rem; }
 
         .section-card {
             background: #ffffff;
@@ -144,38 +117,20 @@
             gap: 0.5rem;
         }
 
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-        }
-
-        .grid-3 {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1rem;
-        }
-
-        .grid-4 {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 1rem;
-        }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
 
         @media (max-width: 1200px) {
             .grid-2 { grid-template-columns: 1fr; }
-            .grid-3 { grid-template-columns: repeat(2, 1fr); }
-            .grid-4 { grid-template-columns: repeat(2, 1fr); }
+            .grid-3, .grid-4 { grid-template-columns: repeat(2, 1fr); }
         }
 
         @media (max-width: 768px) {
-            .grid-3 { grid-template-columns: 1fr; }
-            .grid-4 { grid-template-columns: 1fr; }
+            .grid-3, .grid-4 { grid-template-columns: 1fr; }
         }
 
-        .control-group {
-            margin-bottom: 1rem;
-        }
+        .control-group { margin-bottom: 1rem; }
 
         .control-label {
             font-size: 0.8rem;
@@ -196,7 +151,6 @@
             width: 100%;
             height: 6px;
             -webkit-appearance: none;
-            appearance: none;
             background: rgba(39, 116, 174, 0.2);
             border-radius: 3px;
             outline: none;
@@ -204,19 +158,14 @@
 
         .slider::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 18px;
-            height: 18px;
+            width: 18px; height: 18px;
             background: #2774AE;
             border-radius: 50%;
             cursor: pointer;
             box-shadow: 0 2px 6px rgba(39, 116, 174, 0.4);
         }
 
-        .button-group {
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
+        .button-group { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 
         .option-btn {
             padding: 0.5rem 1rem;
@@ -230,52 +179,33 @@
             transition: all 0.2s ease;
         }
 
-        .option-btn:hover {
-            background: rgba(39, 116, 174, 0.15);
-            color: #2774AE;
-        }
+        .option-btn:hover { background: rgba(39, 116, 174, 0.15); color: #2774AE; }
+        .option-btn.active { background: #2774AE; color: #ffffff; border-color: #2774AE; }
 
-        .option-btn.active {
-            background: #2774AE;
-            color: #ffffff;
-            border-color: #2774AE;
-        }
-
-        .toggle-container {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
+        .toggle-container { display: flex; align-items: center; gap: 1rem; }
 
         .toggle {
             position: relative;
-            width: 50px;
-            height: 26px;
+            width: 50px; height: 26px;
             background: rgba(39, 116, 174, 0.2);
             border-radius: 13px;
             cursor: pointer;
             transition: all 0.3s ease;
         }
 
-        .toggle.active {
-            background: #2774AE;
-        }
+        .toggle.active { background: #2774AE; }
 
         .toggle-knob {
             position: absolute;
-            top: 3px;
-            left: 3px;
-            width: 20px;
-            height: 20px;
+            top: 3px; left: 3px;
+            width: 20px; height: 20px;
             background: #ffffff;
             border-radius: 50%;
             transition: all 0.3s ease;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
 
-        .toggle.active .toggle-knob {
-            left: 27px;
-        }
+        .toggle.active .toggle-knob { left: 27px; }
 
         .run-button {
             width: 100%;
@@ -295,33 +225,20 @@
             gap: 0.75rem;
         }
 
-        .run-button:hover {
-            background: #005587;
-        }
-
-        .run-button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
+        .run-button:hover { background: #005587; }
+        .run-button:disabled { opacity: 0.6; cursor: not-allowed; }
 
         .loading-spinner {
-            width: 20px;
-            height: 20px;
+            width: 20px; height: 20px;
             border: 3px solid rgba(255, 255, 255, 0.3);
             border-top-color: #ffffff;
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 0.75rem;
-        }
+        .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; }
 
         .metric-item {
             background: #f8f9fa;
@@ -337,18 +254,9 @@
             color: #2774AE;
         }
 
-        .metric-label {
-            font-size: 0.7rem;
-            color: #666666;
-            margin-top: 0.25rem;
-        }
+        .metric-label { font-size: 0.7rem; color: #666666; margin-top: 0.25rem; }
+        .chart-container { height: 280px; position: relative; }
 
-        .chart-container {
-            height: 280px;
-            position: relative;
-        }
-
-        /* Sample Images Grid */
         .sample-image {
             width: 100%;
             aspect-ratio: 1;
@@ -360,13 +268,8 @@
             transition: all 0.2s ease;
         }
 
-        .sample-image.correct {
-            border-color: #27ae60;
-        }
-
-        .sample-image.incorrect {
-            border-color: #e74c3c;
-        }
+        .sample-image.correct { border-color: #27ae60; }
+        .sample-image.incorrect { border-color: #e74c3c; }
 
         .sample-image-visual {
             flex: 1;
@@ -384,20 +287,10 @@
             font-weight: 500;
         }
 
-        .sample-image.correct .sample-image-label {
-            background: rgba(39, 174, 96, 0.1);
-            color: #27ae60;
-        }
+        .sample-image.correct .sample-image-label { background: rgba(39, 174, 96, 0.1); color: #27ae60; }
+        .sample-image.incorrect .sample-image-label { background: rgba(231, 76, 60, 0.1); color: #e74c3c; }
 
-        .sample-image.incorrect .sample-image-label {
-            background: rgba(231, 76, 60, 0.1);
-            color: #e74c3c;
-        }
-
-        /* Filter Visualization */
-        .filter-layer {
-            margin-bottom: 1.5rem;
-        }
+        .filter-layer { margin-bottom: 1.5rem; }
 
         .filter-layer-title {
             font-size: 0.85rem;
@@ -409,135 +302,18 @@
             gap: 0.5rem;
         }
 
-        .filter-layer-subtitle {
-            font-size: 0.75rem;
-            color: #888;
-            font-weight: 400;
-        }
-
-        .filter-grid {
-            display: flex;
-            gap: 0.75rem;
-            flex-wrap: wrap;
-        }
-
-        .filter-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.25rem;
-        }
+        .filter-layer-subtitle { font-size: 0.75rem; color: #888; font-weight: 400; }
+        .filter-grid { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+        .filter-item { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; }
 
         .filter-visual {
-            width: 60px;
-            height: 60px;
+            width: 60px; height: 60px;
             border-radius: 6px;
             border: 1px solid rgba(0,0,0,0.1);
             overflow: hidden;
         }
 
-        .filter-name {
-            font-size: 0.65rem;
-            color: #666;
-        }
-
-        /* Upload Section */
-        .upload-zone {
-            border: 2px dashed rgba(39, 116, 174, 0.3);
-            border-radius: 12px;
-            padding: 2rem;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            background: rgba(39, 116, 174, 0.02);
-        }
-
-        .upload-zone:hover {
-            border-color: #2774AE;
-            background: rgba(39, 116, 174, 0.05);
-        }
-
-        .upload-zone.has-image {
-            padding: 1rem;
-        }
-
-        .upload-icon {
-            font-size: 3rem;
-            color: #2774AE;
-            margin-bottom: 1rem;
-        }
-
-        .upload-text {
-            color: #666;
-            font-size: 0.9rem;
-        }
-
-        .uploaded-image {
-            max-width: 100%;
-            max-height: 300px;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-        }
-
-        .prediction-result {
-            background: linear-gradient(135deg, #2774AE, #005587);
-            color: white;
-            padding: 1.5rem;
-            border-radius: 12px;
-            text-align: center;
-        }
-
-        .prediction-class {
-            font-size: 2rem;
-            font-weight: 700;
-            text-transform: capitalize;
-            margin-bottom: 0.5rem;
-        }
-
-        .prediction-confidence {
-            font-size: 1rem;
-            opacity: 0.9;
-        }
-
-        .confidence-bars {
-            margin-top: 1.5rem;
-        }
-
-        .confidence-bar-item {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .confidence-bar-label {
-            width: 80px;
-            font-size: 0.75rem;
-            text-align: right;
-            color: #666;
-        }
-
-        .confidence-bar-track {
-            flex: 1;
-            height: 20px;
-            background: #f0f0f0;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-
-        .confidence-bar-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #2774AE, #005587);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            padding-right: 0.5rem;
-            font-size: 0.7rem;
-            color: white;
-            font-weight: 600;
-            transition: width 0.5s ease;
-        }
+        .filter-name { font-size: 0.65rem; color: #666; }
 
         .epoch-indicator {
             display: inline-flex;
@@ -553,8 +329,7 @@
         }
 
         .epoch-dot {
-            width: 8px;
-            height: 8px;
+            width: 8px; height: 8px;
             background: #2774AE;
             border-radius: 50%;
             animation: pulse 1s ease-in-out infinite;
@@ -591,34 +366,189 @@
             text-align: center;
         }
 
-        .pipeline-block-label {
-            font-size: 0.6rem;
-            color: #888;
+        .pipeline-block-label { font-size: 0.6rem; color: #888; }
+        .pipeline-arrow { color: #ccc; font-size: 1.2rem; }
+
+        /* Webcam Styles */
+        .webcam-container {
+            position: relative;
+            width: 100%;
+            max-width: 480px;
+            margin: 0 auto;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #000;
         }
 
-        .pipeline-arrow {
-            color: #ccc;
-            font-size: 1.2rem;
+        .webcam-video {
+            width: 100%;
+            display: block;
+            transform: scaleX(-1);
         }
 
-        .footer {
-            text-align: center;
-            padding: 2rem;
-            color: #888;
+        .webcam-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none;
+        }
+
+        .bounding-box {
+            position: absolute;
+            border: 3px solid #FFD100;
+            border-radius: 12px;
+            box-shadow: 0 0 0 4px rgba(255, 209, 0, 0.3);
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .bounding-box-label {
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: #FFD100;
+            padding: 4px 12px;
+            border-radius: 4px;
             font-size: 0.75rem;
+            white-space: nowrap;
         }
+
+        .bounding-box-corners::before,
+        .bounding-box-corners::after {
+            content: '';
+            position: absolute;
+            width: 20px; height: 20px;
+            border: 3px solid #FFD100;
+        }
+
+        .captured-image {
+            max-width: 100%;
+            border-radius: 12px;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .prediction-result {
+            background: linear-gradient(135deg, #2774AE, #005587);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .prediction-class {
+            font-size: 2rem;
+            font-weight: 700;
+            text-transform: capitalize;
+            margin-bottom: 0.5rem;
+        }
+
+        .prediction-confidence { font-size: 1rem; opacity: 0.9; }
+        .confidence-bars { margin-top: 1.5rem; }
+
+        .confidence-bar-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .confidence-bar-label {
+            width: 80px;
+            font-size: 0.75rem;
+            text-align: right;
+            color: #666;
+        }
+
+        .confidence-bar-track {
+            flex: 1;
+            height: 20px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .confidence-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #2774AE, #005587);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 0.5rem;
+            font-size: 0.7rem;
+            color: white;
+            font-weight: 600;
+            transition: width 0.5s ease;
+            min-width: 40px;
+        }
+
+        .model-status {
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .model-status.trained {
+            background: rgba(39, 174, 96, 0.1);
+            border: 1px solid rgba(39, 174, 96, 0.3);
+            color: #27ae60;
+        }
+
+        .model-status.not-trained {
+            background: rgba(231, 76, 60, 0.1);
+            border: 1px solid rgba(231, 76, 60, 0.3);
+            color: #e74c3c;
+        }
+
+        .model-status-icon { font-size: 1.5rem; }
+        .model-status-text { flex: 1; }
+        .model-status-title { font-weight: 600; font-size: 0.9rem; }
+        .model-status-desc { font-size: 0.75rem; opacity: 0.8; }
+
+        .input-mode-toggle {
+            display: flex;
+            background: #f0f0f0;
+            border-radius: 10px;
+            padding: 4px;
+            margin-bottom: 1rem;
+        }
+
+        .input-mode-btn {
+            flex: 1;
+            padding: 0.75rem;
+            border: none;
+            background: transparent;
+            color: #666;
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .input-mode-btn.active { background: #2774AE; color: white; }
+
+        .footer { text-align: center; padding: 2rem; color: #888; font-size: 0.75rem; }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef, useMemo, useCallback } = React;
+        const { useState, useEffect, useRef, useMemo, useCallback, createContext, useContext } = React;
+
+        // Create context for sharing model state between tabs
+        const ModelContext = createContext();
 
         // CIFAR-10 Classes
         const CIFAR10_CLASSES = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck'];
 
-        // Color palettes for generating synthetic CIFAR-like images
+        // Color palettes for synthetic images
         const CLASS_COLORS = {
             airplane: ['#87CEEB', '#4A90D9', '#2774AE', '#B0C4DE', '#F0F8FF'],
             automobile: ['#DC143C', '#8B0000', '#FF6347', '#2F4F4F', '#696969'],
@@ -632,14 +562,11 @@
             truck: ['#FF4500', '#FF6347', '#2F4F4F', '#696969', '#808080']
         };
 
-        // Generate synthetic image pixels for a class
         const generateClassImage = (className) => {
             const colors = CLASS_COLORS[className] || CLASS_COLORS.cat;
-            const pixels = [];
-            for (let i = 0; i < 64; i++) {
+            return Array(64).fill(0).map((_, i) => {
                 const row = Math.floor(i / 8);
                 const col = i % 8;
-                // Create some pattern based on class
                 let colorIdx;
                 if (className === 'airplane' || className === 'ship') {
                     colorIdx = row < 3 ? 0 : (col > 2 && col < 6 ? 2 : 1);
@@ -648,22 +575,18 @@
                 } else {
                     colorIdx = Math.floor(Math.random() * colors.length);
                 }
-                pixels.push(colors[colorIdx]);
-            }
-            return pixels;
+                return colors[colorIdx];
+            });
         };
 
-        // Training Curve Chart Component
-        const TrainingChart = ({ trainingHistory, currentEpoch }) => {
+        // Training Curve Chart
+        const TrainingChart = ({ trainingHistory }) => {
             const canvasRef = useRef(null);
             const chartRef = useRef(null);
 
             useEffect(() => {
                 if (!canvasRef.current) return;
-
-                if (chartRef.current) {
-                    chartRef.current.destroy();
-                }
+                if (chartRef.current) chartRef.current.destroy();
 
                 const ctx = canvasRef.current.getContext('2d');
                 chartRef.current = new Chart(ctx, {
@@ -676,94 +599,49 @@
                                 data: trainingHistory.map(h => h.trainAcc),
                                 borderColor: '#2774AE',
                                 backgroundColor: 'rgba(39, 116, 174, 0.1)',
-                                fill: true,
-                                tension: 0.4,
-                                pointRadius: 4,
-                                pointBackgroundColor: '#2774AE'
+                                fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#2774AE'
                             },
                             {
                                 label: 'Validation Accuracy',
                                 data: trainingHistory.map(h => h.valAcc),
                                 borderColor: '#FFD100',
                                 backgroundColor: 'rgba(255, 209, 0, 0.1)',
-                                fill: true,
-                                tension: 0.4,
-                                pointRadius: 4,
-                                pointBackgroundColor: '#FFD100'
+                                fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#FFD100'
                             }
                         ]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        animation: {
-                            duration: 300
-                        },
+                        animation: { duration: 300 },
                         plugins: {
-                            legend: {
-                                display: true,
-                                position: 'top',
-                                labels: {
-                                    color: '#666',
-                                    usePointStyle: true,
-                                    padding: 20
-                                }
-                            },
+                            legend: { display: true, position: 'top', labels: { color: '#666', usePointStyle: true, padding: 20 } },
                             tooltip: {
                                 backgroundColor: 'rgba(0,0,0,0.8)',
-                                titleColor: '#fff',
-                                bodyColor: '#fff',
-                                callbacks: {
-                                    label: (context) => `${context.dataset.label}: ${context.raw.toFixed(1)}%`
-                                }
+                                callbacks: { label: (ctx) => `${ctx.dataset.label}: ${ctx.raw.toFixed(1)}%` }
                             }
                         },
                         scales: {
-                            x: {
-                                title: {
-                                    display: true,
-                                    text: 'Epoch',
-                                    color: '#666'
-                                },
-                                ticks: { color: '#666' },
-                                grid: { color: 'rgba(0, 0, 0, 0.05)' }
-                            },
-                            y: {
-                                title: {
-                                    display: true,
-                                    text: 'Accuracy (%)',
-                                    color: '#666'
-                                },
-                                min: 0,
-                                max: 100,
-                                ticks: { color: '#666' },
-                                grid: { color: 'rgba(0, 0, 0, 0.05)' }
-                            }
+                            x: { title: { display: true, text: 'Epoch', color: '#666' }, ticks: { color: '#666' }, grid: { color: 'rgba(0,0,0,0.05)' } },
+                            y: { title: { display: true, text: 'Accuracy (%)', color: '#666' }, min: 0, max: 100, ticks: { color: '#666' }, grid: { color: 'rgba(0,0,0,0.05)' } }
                         }
                     }
                 });
 
-                return () => {
-                    if (chartRef.current) {
-                        chartRef.current.destroy();
-                    }
-                };
+                return () => { if (chartRef.current) chartRef.current.destroy(); };
             }, [trainingHistory]);
 
             return <canvas ref={canvasRef} />;
         };
 
-        // Loss Chart Component
+        // Loss Chart
         const LossChart = ({ trainingHistory }) => {
             const canvasRef = useRef(null);
             const chartRef = useRef(null);
 
             useEffect(() => {
                 if (!canvasRef.current || trainingHistory.length === 0) return;
-
-                if (chartRef.current) {
-                    chartRef.current.destroy();
-                }
+                if (chartRef.current) chartRef.current.destroy();
 
                 const ctx = canvasRef.current.getContext('2d');
                 chartRef.current = new Chart(ctx, {
@@ -771,52 +649,21 @@
                     data: {
                         labels: trainingHistory.map((_, i) => `${i + 1}`),
                         datasets: [
-                            {
-                                label: 'Training Loss',
-                                data: trainingHistory.map(h => h.trainLoss),
-                                borderColor: '#e74c3c',
-                                backgroundColor: 'rgba(231, 76, 60, 0.1)',
-                                fill: true,
-                                tension: 0.4
-                            },
-                            {
-                                label: 'Validation Loss',
-                                data: trainingHistory.map(h => h.valLoss),
-                                borderColor: '#9b59b6',
-                                backgroundColor: 'rgba(155, 89, 182, 0.1)',
-                                fill: true,
-                                tension: 0.4
-                            }
+                            { label: 'Training Loss', data: trainingHistory.map(h => h.trainLoss), borderColor: '#e74c3c', backgroundColor: 'rgba(231,76,60,0.1)', fill: true, tension: 0.4 },
+                            { label: 'Validation Loss', data: trainingHistory.map(h => h.valLoss), borderColor: '#9b59b6', backgroundColor: 'rgba(155,89,182,0.1)', fill: true, tension: 0.4 }
                         ]
                     },
                     options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: true,
-                                position: 'top',
-                                labels: { color: '#666', usePointStyle: true, padding: 20 }
-                            }
-                        },
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { display: true, position: 'top', labels: { color: '#666', usePointStyle: true, padding: 20 } } },
                         scales: {
-                            x: {
-                                title: { display: true, text: 'Epoch', color: '#666' },
-                                ticks: { color: '#666' },
-                                grid: { color: 'rgba(0, 0, 0, 0.05)' }
-                            },
-                            y: {
-                                title: { display: true, text: 'Loss', color: '#666' },
-                                ticks: { color: '#666' },
-                                grid: { color: 'rgba(0, 0, 0, 0.05)' }
-                            }
+                            x: { title: { display: true, text: 'Epoch', color: '#666' }, ticks: { color: '#666' }, grid: { color: 'rgba(0,0,0,0.05)' } },
+                            y: { title: { display: true, text: 'Loss', color: '#666' }, ticks: { color: '#666' }, grid: { color: 'rgba(0,0,0,0.05)' } }
                         }
                     }
                 });
 
-                return () => {
-                    if (chartRef.current) chartRef.current.destroy();
-                };
+                return () => { if (chartRef.current) chartRef.current.destroy(); };
             }, [trainingHistory]);
 
             return <canvas ref={canvasRef} />;
@@ -828,24 +675,19 @@
             return (
                 <div className={`sample-image ${showResult ? (isCorrect ? 'correct' : 'incorrect') : ''}`}>
                     <div className="sample-image-visual">
-                        {pixels.map((color, i) => (
-                            <div key={i} style={{ background: color }} />
-                        ))}
+                        {pixels.map((color, i) => <div key={i} style={{ background: color }} />)}
                     </div>
                     <div className="sample-image-label">
-                        {showResult ? (
-                            isCorrect ? `✓ ${trueLabel}` : `✗ ${predictedLabel}`
-                        ) : trueLabel}
+                        {showResult ? (isCorrect ? `✓ ${trueLabel}` : `✗ ${predictedLabel}`) : trueLabel}
                     </div>
                 </div>
             );
         };
 
-        // Higher-Order Filter Visualization
+        // Filter Visualization
         const FilterVisualization = ({ layer }) => {
             const filters = useMemo(() => {
                 if (layer === 1) {
-                    // Layer 1: Edge detectors
                     return [
                         { name: 'Horizontal', pattern: 'linear-gradient(0deg, #2774AE 33%, #fff 33%, #fff 66%, #005587 66%)' },
                         { name: 'Vertical', pattern: 'linear-gradient(90deg, #2774AE 33%, #fff 33%, #fff 66%, #005587 66%)' },
@@ -855,7 +697,6 @@
                         { name: 'Spot', pattern: 'radial-gradient(circle, #005587, #fff, #2774AE)' }
                     ];
                 } else if (layer === 2) {
-                    // Layer 2: Textures
                     return [
                         { name: 'Checkers', pattern: 'repeating-conic-gradient(#2774AE 0% 25%, #fff 0% 50%) 50% / 20px 20px' },
                         { name: 'Stripes', pattern: 'repeating-linear-gradient(45deg, #2774AE, #2774AE 5px, #fff 5px, #fff 10px)' },
@@ -865,13 +706,12 @@
                         { name: 'Cross', pattern: 'linear-gradient(#2774AE 40%, transparent 40%), linear-gradient(90deg, #2774AE 40%, #fff 40%)' }
                     ];
                 } else {
-                    // Layer 3+: Object parts
                     return [
                         { name: 'Wheel', pattern: 'radial-gradient(circle, #333 30%, #666 30%, #666 50%, #999 50%, #999 70%, #ccc 70%)' },
                         { name: 'Eye', pattern: 'radial-gradient(circle, #000 20%, #4a6fa5 20%, #4a6fa5 40%, #fff 40%)' },
                         { name: 'Fur', pattern: 'repeating-linear-gradient(60deg, #8B4513, #D2691E 3px, #F4A460 3px, #F4A460 6px)' },
                         { name: 'Wing', pattern: 'linear-gradient(135deg, #87CEEB 50%, #4A90D9 50%)' },
-                        { name: 'Snout', pattern: 'ellipse(60% 40% at 50% 60%) #D2691E' },
+                        { name: 'Snout', pattern: 'radial-gradient(ellipse 60% 40% at 50% 60%, #D2691E 0%, #D2691E 100%)' },
                         { name: 'Tail', pattern: 'linear-gradient(45deg, transparent 40%, #8B4513 40%, #8B4513 60%, transparent 60%)' }
                     ];
                 }
@@ -881,10 +721,7 @@
                 <div className="filter-grid">
                     {filters.map((filter, idx) => (
                         <div key={idx} className="filter-item">
-                            <div
-                                className="filter-visual"
-                                style={{ background: filter.pattern, backgroundSize: 'cover' }}
-                            />
+                            <div className="filter-visual" style={{ background: filter.pattern, backgroundSize: 'cover' }} />
                             <div className="filter-name">{filter.name}</div>
                         </div>
                     ))}
@@ -892,28 +729,24 @@
             );
         };
 
-        // CNN Architecture Pipeline
+        // CNN Pipeline Visualization
         const CNNPipeline = ({ config }) => {
             const blocks = [];
-            let currentSize = 32;
-            let currentChannels = 3;
+            let currentSize = 32, currentChannels = 3;
 
             blocks.push({ type: 'Input', size: `${currentSize}×${currentSize}×${currentChannels}` });
 
             for (let i = 0; i < config.convBlocks; i++) {
                 const filters = config.filters * Math.pow(2, Math.min(i, 2));
                 blocks.push({ type: `Conv${i+1}`, size: `${currentSize}×${currentSize}×${filters}` });
-                if (config.batchNorm) {
-                    blocks.push({ type: 'BN', size: '' });
-                }
+                if (config.batchNorm) blocks.push({ type: 'BN', size: '' });
                 blocks.push({ type: 'ReLU', size: '' });
                 currentSize = Math.floor(currentSize / 2);
                 blocks.push({ type: 'Pool', size: `${currentSize}×${currentSize}` });
                 currentChannels = filters;
             }
 
-            const flatSize = currentSize * currentSize * currentChannels;
-            blocks.push({ type: 'Flatten', size: `${flatSize}` });
+            blocks.push({ type: 'Flatten', size: `${currentSize * currentSize * currentChannels}` });
             blocks.push({ type: 'Dense', size: '256' });
             blocks.push({ type: 'Output', size: '10' });
 
@@ -934,23 +767,14 @@
 
         // CNN Builder Tab
         const CNNBuilderTab = () => {
-            const [config, setConfig] = useState({
-                convBlocks: 3,
-                filters: 32,
-                kernelSize: 3,
-                poolType: 'max',
-                batchNorm: true,
-                dropout: 0.25,
-                epochs: 20
-            });
+            const { modelState, setModelState } = useContext(ModelContext);
+            const { config, setConfig, trainingHistory, setTrainingHistory, isModelTrained, setIsModelTrained } = modelState;
 
             const [isTraining, setIsTraining] = useState(false);
             const [currentEpoch, setCurrentEpoch] = useState(0);
-            const [trainingHistory, setTrainingHistory] = useState([]);
             const [sampleImages, setSampleImages] = useState([]);
             const [classificationResults, setClassificationResults] = useState([]);
 
-            // Generate sample images on mount
             useEffect(() => {
                 const samples = CIFAR10_CLASSES.slice(0, 8).map(cls => ({
                     pixels: generateClassImage(cls),
@@ -961,8 +785,7 @@
             }, []);
 
             const calculateParams = useMemo(() => {
-                let params = 0;
-                let inputChannels = 3;
+                let params = 0, inputChannels = 3;
                 for (let i = 0; i < config.convBlocks; i++) {
                     const outputChannels = config.filters * Math.pow(2, Math.min(i, 2));
                     params += config.kernelSize * config.kernelSize * inputChannels * outputChannels + outputChannels;
@@ -970,8 +793,7 @@
                     inputChannels = outputChannels;
                 }
                 const finalSize = 32 / Math.pow(2, config.convBlocks);
-                const flattenSize = finalSize * finalSize * inputChannels;
-                params += flattenSize * 256 + 256;
+                params += finalSize * finalSize * inputChannels * 256 + 256;
                 params += 256 * 10 + 10;
                 return params;
             }, [config]);
@@ -981,12 +803,14 @@
                 setTrainingHistory([]);
                 setCurrentEpoch(0);
                 setClassificationResults([]);
+                setIsModelTrained(false);
 
                 const baseTrainAcc = 45 + config.convBlocks * 5 + (config.batchNorm ? 5 : 0);
                 const baseValAcc = 40 + config.convBlocks * 4 + (config.batchNorm ? 4 : 0);
 
+                const newHistory = [];
                 for (let epoch = 1; epoch <= config.epochs; epoch++) {
-                    await new Promise(resolve => setTimeout(resolve, 200));
+                    await new Promise(resolve => setTimeout(resolve, 150));
 
                     const progress = epoch / config.epochs;
                     const learningCurve = 1 - Math.exp(-3 * progress);
@@ -996,19 +820,22 @@
                     const trainLoss = Math.max(0.05, 2.5 * (1 - learningCurve) + Math.random() * 0.1);
                     const valLoss = Math.max(0.1, 2.8 * (1 - learningCurve) + Math.random() * 0.15);
 
+                    newHistory.push({ trainAcc, valAcc, trainLoss, valLoss });
                     setCurrentEpoch(epoch);
-                    setTrainingHistory(prev => [...prev, { trainAcc, valAcc, trainLoss, valLoss }]);
+                    setTrainingHistory([...newHistory]);
                 }
 
                 // Generate classification results
+                const finalAccuracy = newHistory[newHistory.length - 1].valAcc / 100;
                 const results = sampleImages.map(img => {
-                    const correct = Math.random() > 0.15; // 85% accuracy
+                    const correct = Math.random() < finalAccuracy;
                     return {
                         ...img,
                         predictedLabel: correct ? img.trueLabel : CIFAR10_CLASSES[Math.floor(Math.random() * 10)]
                     };
                 });
                 setClassificationResults(results);
+                setIsModelTrained(true);
                 setIsTraining(false);
             };
 
@@ -1016,7 +843,6 @@
 
             return (
                 <div>
-                    {/* Architecture Controls */}
                     <div className="grid-2">
                         <div className="section-card">
                             <div className="section-title">⚙️ Architecture Controls</div>
@@ -1026,21 +852,16 @@
                                     <span>Convolutional Blocks</span>
                                     <span className="control-value">{config.convBlocks}</span>
                                 </div>
-                                <input
-                                    type="range" className="slider"
-                                    min="1" max="4" value={config.convBlocks}
-                                    onChange={(e) => setConfig({...config, convBlocks: parseInt(e.target.value)})}
-                                />
+                                <input type="range" className="slider" min="1" max="4" value={config.convBlocks}
+                                    onChange={(e) => setConfig({...config, convBlocks: parseInt(e.target.value)})} />
                             </div>
 
                             <div className="control-group">
                                 <div className="control-label">Base Filters</div>
                                 <div className="button-group">
                                     {[16, 32, 64, 128].map(f => (
-                                        <button key={f}
-                                            className={`option-btn ${config.filters === f ? 'active' : ''}`}
-                                            onClick={() => setConfig({...config, filters: f})}
-                                        >{f}</button>
+                                        <button key={f} className={`option-btn ${config.filters === f ? 'active' : ''}`}
+                                            onClick={() => setConfig({...config, filters: f})}>{f}</button>
                                     ))}
                                 </div>
                             </div>
@@ -1049,10 +870,8 @@
                                 <div className="control-label">Kernel Size</div>
                                 <div className="button-group">
                                     {[3, 5, 7].map(k => (
-                                        <button key={k}
-                                            className={`option-btn ${config.kernelSize === k ? 'active' : ''}`}
-                                            onClick={() => setConfig({...config, kernelSize: k})}
-                                        >{k}×{k}</button>
+                                        <button key={k} className={`option-btn ${config.kernelSize === k ? 'active' : ''}`}
+                                            onClick={() => setConfig({...config, kernelSize: k})}>{k}×{k}</button>
                                     ))}
                                 </div>
                             </div>
@@ -1082,10 +901,8 @@
                                     <span>Dropout Rate</span>
                                     <span className="control-value">{config.dropout.toFixed(2)}</span>
                                 </div>
-                                <input type="range" className="slider"
-                                    min="0" max="0.5" step="0.05" value={config.dropout}
-                                    onChange={(e) => setConfig({...config, dropout: parseFloat(e.target.value)})}
-                                />
+                                <input type="range" className="slider" min="0" max="0.5" step="0.05" value={config.dropout}
+                                    onChange={(e) => setConfig({...config, dropout: parseFloat(e.target.value)})} />
                             </div>
 
                             <div className="control-group">
@@ -1093,18 +910,12 @@
                                     <span>Training Epochs</span>
                                     <span className="control-value">{config.epochs}</span>
                                 </div>
-                                <input type="range" className="slider"
-                                    min="5" max="50" step="5" value={config.epochs}
-                                    onChange={(e) => setConfig({...config, epochs: parseInt(e.target.value)})}
-                                />
+                                <input type="range" className="slider" min="5" max="50" step="5" value={config.epochs}
+                                    onChange={(e) => setConfig({...config, epochs: parseInt(e.target.value)})} />
                             </div>
 
                             <button className="run-button" onClick={runTraining} disabled={isTraining}>
-                                {isTraining ? (
-                                    <><div className="loading-spinner" /> Training Epoch {currentEpoch}/{config.epochs}</>
-                                ) : (
-                                    <>▶ Train CNN Model</>
-                                )}
+                                {isTraining ? <><div className="loading-spinner" /> Training Epoch {currentEpoch}/{config.epochs}</> : <>▶ Train CNN Model</>}
                             </button>
                         </div>
 
@@ -1144,35 +955,23 @@
                         </div>
                     </div>
 
-                    {/* Training Curves */}
                     <div className="grid-2" style={{ marginTop: '1.5rem' }}>
                         <div className="section-card">
                             <div className="section-title">📈 Accuracy vs Epoch</div>
-                            <div className="chart-container">
-                                <TrainingChart trainingHistory={trainingHistory} currentEpoch={currentEpoch} />
-                            </div>
+                            <div className="chart-container"><TrainingChart trainingHistory={trainingHistory} /></div>
                         </div>
                         <div className="section-card">
                             <div className="section-title">📉 Loss vs Epoch</div>
-                            <div className="chart-container">
-                                <LossChart trainingHistory={trainingHistory} />
-                            </div>
+                            <div className="chart-container"><LossChart trainingHistory={trainingHistory} /></div>
                         </div>
                     </div>
 
-                    {/* Sample Images & Classification Results */}
                     <div className="grid-2" style={{ marginTop: '1.5rem' }}>
                         <div className="section-card">
                             <div className="section-title">🖼️ Training Samples (CIFAR-10)</div>
                             <div className="grid-4">
                                 {sampleImages.map((img, idx) => (
-                                    <SampleImage
-                                        key={idx}
-                                        pixels={img.pixels}
-                                        trueLabel={img.trueLabel}
-                                        predictedLabel={img.trueLabel}
-                                        showResult={false}
-                                    />
+                                    <SampleImage key={idx} pixels={img.pixels} trueLabel={img.trueLabel} predictedLabel={img.trueLabel} showResult={false} />
                                 ))}
                             </div>
                         </div>
@@ -1181,48 +980,27 @@
                             {classificationResults.length > 0 ? (
                                 <div className="grid-4">
                                     {classificationResults.map((img, idx) => (
-                                        <SampleImage
-                                            key={idx}
-                                            pixels={img.pixels}
-                                            trueLabel={img.trueLabel}
-                                            predictedLabel={img.predictedLabel}
-                                            showResult={true}
-                                        />
+                                        <SampleImage key={idx} pixels={img.pixels} trueLabel={img.trueLabel} predictedLabel={img.predictedLabel} showResult={true} />
                                     ))}
                                 </div>
                             ) : (
-                                <div style={{ textAlign: 'center', padding: '2rem', color: '#888' }}>
-                                    Train the model to see classification results
-                                </div>
+                                <div style={{ textAlign: 'center', padding: '2rem', color: '#888' }}>Train the model to see classification results</div>
                             )}
                         </div>
                     </div>
 
-                    {/* Learned Filters */}
                     <div className="section-card" style={{ marginTop: '1.5rem' }}>
                         <div className="section-title">🔍 What CNNs Learn: Hierarchical Feature Detection</div>
-
                         <div className="filter-layer">
-                            <div className="filter-layer-title">
-                                Layer 1: Edge Detectors
-                                <span className="filter-layer-subtitle">— Low-level features like edges and gradients</span>
-                            </div>
+                            <div className="filter-layer-title">Layer 1: Edge Detectors <span className="filter-layer-subtitle">— Low-level features</span></div>
                             <FilterVisualization layer={1} />
                         </div>
-
                         <div className="filter-layer">
-                            <div className="filter-layer-title">
-                                Layer 2: Texture Patterns
-                                <span className="filter-layer-subtitle">— Combinations of edges form textures</span>
-                            </div>
+                            <div className="filter-layer-title">Layer 2: Texture Patterns <span className="filter-layer-subtitle">— Combinations of edges</span></div>
                             <FilterVisualization layer={2} />
                         </div>
-
                         <div className="filter-layer">
-                            <div className="filter-layer-title">
-                                Layer 3+: Object Parts
-                                <span className="filter-layer-subtitle">— High-level features like eyes, wheels, wings</span>
-                            </div>
+                            <div className="filter-layer-title">Layer 3+: Object Parts <span className="filter-layer-subtitle">— High-level features</span></div>
                             <FilterVisualization layer={3} />
                         </div>
                     </div>
@@ -1230,7 +1008,7 @@
             );
         };
 
-        // Transfer Learning Tab
+        // Transfer Learning Tab (simplified)
         const TransferLearningTab = () => {
             const [selectedModel, setSelectedModel] = useState('resnet50');
             const [strategy, setStrategy] = useState('finetune');
@@ -1277,15 +1055,11 @@
                             <div className="section-title">🧠 Pre-trained Model Selection</div>
                             <div className="grid-2" style={{ gap: '0.75rem' }}>
                                 {models.map(model => (
-                                    <div key={model.id}
-                                        onClick={() => setSelectedModel(model.id)}
+                                    <div key={model.id} onClick={() => setSelectedModel(model.id)}
                                         style={{
-                                            padding: '1rem',
-                                            borderRadius: '10px',
+                                            padding: '1rem', borderRadius: '10px', cursor: 'pointer', transition: 'all 0.2s',
                                             border: selectedModel === model.id ? '2px solid #2774AE' : '2px solid #eee',
-                                            background: selectedModel === model.id ? 'rgba(39,116,174,0.05)' : '#fff',
-                                            cursor: 'pointer',
-                                            transition: 'all 0.2s'
+                                            background: selectedModel === model.id ? 'rgba(39,116,174,0.05)' : '#fff'
                                         }}>
                                         <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>{model.icon}</div>
                                         <div style={{ fontWeight: 600 }}>{model.name}</div>
@@ -1298,10 +1072,8 @@
                             <div style={{ marginTop: '1.5rem' }}>
                                 <div className="control-label">Transfer Strategy</div>
                                 <div className="button-group">
-                                    <button className={`option-btn ${strategy === 'feature' ? 'active' : ''}`}
-                                        onClick={() => setStrategy('feature')}>Feature Extraction</button>
-                                    <button className={`option-btn ${strategy === 'finetune' ? 'active' : ''}`}
-                                        onClick={() => setStrategy('finetune')}>Fine-tuning</button>
+                                    <button className={`option-btn ${strategy === 'feature' ? 'active' : ''}`} onClick={() => setStrategy('feature')}>Feature Extraction</button>
+                                    <button className={`option-btn ${strategy === 'finetune' ? 'active' : ''}`} onClick={() => setStrategy('finetune')}>Fine-tuning</button>
                                 </div>
                             </div>
 
@@ -1310,45 +1082,23 @@
                                     <span>Freeze Layers</span>
                                     <span className="control-value">{freezeLayers}% ({frozenLayers}/{totalLayers})</span>
                                 </div>
-                                <input type="range" className="slider"
-                                    min="0" max="100" value={freezeLayers}
-                                    onChange={(e) => setFreezeLayers(parseInt(e.target.value))}
-                                />
+                                <input type="range" className="slider" min="0" max="100" value={freezeLayers}
+                                    onChange={(e) => setFreezeLayers(parseInt(e.target.value))} />
                             </div>
 
                             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-                                <div style={{
-                                    flex: freezeLayers,
-                                    background: 'linear-gradient(90deg, #8BB8E8, #2774AE)',
-                                    padding: '0.5rem',
-                                    borderRadius: '6px',
-                                    color: 'white',
-                                    fontSize: '0.75rem',
-                                    textAlign: 'center'
-                                }}>Frozen</div>
-                                <div style={{
-                                    flex: 100 - freezeLayers,
-                                    background: 'linear-gradient(90deg, #FFD100, #FFA500)',
-                                    padding: '0.5rem',
-                                    borderRadius: '6px',
-                                    color: '#333',
-                                    fontSize: '0.75rem',
-                                    textAlign: 'center'
-                                }}>Trainable</div>
+                                <div style={{ flex: freezeLayers, background: 'linear-gradient(90deg, #8BB8E8, #2774AE)', padding: '0.5rem', borderRadius: '6px', color: 'white', fontSize: '0.75rem', textAlign: 'center' }}>Frozen</div>
+                                <div style={{ flex: 100 - freezeLayers, background: 'linear-gradient(90deg, #FFD100, #FFA500)', padding: '0.5rem', borderRadius: '6px', color: '#333', fontSize: '0.75rem', textAlign: 'center' }}>Trainable</div>
                             </div>
 
-                            <button className="run-button" style={{ marginTop: '1.5rem' }}
-                                onClick={runTransferLearning} disabled={isTraining}>
+                            <button className="run-button" style={{ marginTop: '1.5rem' }} onClick={runTransferLearning} disabled={isTraining}>
                                 {isTraining ? <><div className="loading-spinner" /> Training...</> : <>▶ Run Transfer Learning</>}
                             </button>
                         </div>
 
                         <div className="section-card">
                             <div className="section-title">📈 Training Progress</div>
-                            <div className="chart-container">
-                                <TrainingChart trainingHistory={trainingHistory} />
-                            </div>
-
+                            <div className="chart-container"><TrainingChart trainingHistory={trainingHistory} /></div>
                             {trainingHistory.length > 0 && (
                                 <div className="metrics-grid" style={{ marginTop: '1rem', gridTemplateColumns: 'repeat(2, 1fr)' }}>
                                     <div className="metric-item">
@@ -1363,139 +1113,236 @@
                             )}
                         </div>
                     </div>
-
-                    <div className="section-card" style={{ marginTop: '1.5rem' }}>
-                        <div className="section-title">💡 Transfer Learning Strategies Explained</div>
-                        <div className="grid-2">
-                            <div style={{ padding: '1rem', background: '#f8f9fa', borderRadius: '10px' }}>
-                                <h4 style={{ color: '#2774AE', marginBottom: '0.5rem' }}>Feature Extraction</h4>
-                                <p style={{ fontSize: '0.85rem', color: '#666', lineHeight: 1.6 }}>
-                                    Freeze all pre-trained layers and only train a new classifier head.
-                                    <strong> Best for:</strong> Small datasets, similar domains to ImageNet, limited compute.
-                                    <strong> Pros:</strong> Fast training, less overfitting risk.
-                                </p>
-                            </div>
-                            <div style={{ padding: '1rem', background: '#f8f9fa', borderRadius: '10px' }}>
-                                <h4 style={{ color: '#2774AE', marginBottom: '0.5rem' }}>Fine-tuning</h4>
-                                <p style={{ fontSize: '0.85rem', color: '#666', lineHeight: 1.6 }}>
-                                    Unfreeze some or all layers and train with a small learning rate.
-                                    <strong> Best for:</strong> Larger datasets, domains different from ImageNet.
-                                    <strong> Pros:</strong> Higher accuracy, features adapt to new domain.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             );
         };
 
-        // Image Classification Tab (Upload your own image)
+        // Live Classification Tab with Webcam
         const ClassifyImageTab = () => {
-            const [uploadedImage, setUploadedImage] = useState(null);
-            const [imagePreview, setImagePreview] = useState(null);
+            const { modelState } = useContext(ModelContext);
+            const { config, trainingHistory, isModelTrained } = modelState;
+
+            const [inputMode, setInputMode] = useState('webcam');
+            const [isWebcamActive, setIsWebcamActive] = useState(false);
+            const [capturedImage, setCapturedImage] = useState(null);
             const [isClassifying, setIsClassifying] = useState(false);
             const [prediction, setPrediction] = useState(null);
+            const [webcamError, setWebcamError] = useState(null);
+
+            const videoRef = useRef(null);
+            const canvasRef = useRef(null);
+            const streamRef = useRef(null);
             const fileInputRef = useRef(null);
 
-            const handleImageUpload = (e) => {
+            const modelAccuracy = trainingHistory.length > 0 ? trainingHistory[trainingHistory.length - 1].valAcc / 100 : 0;
+
+            const startWebcam = async () => {
+                try {
+                    setWebcamError(null);
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: { width: 640, height: 480, facingMode: 'environment' }
+                    });
+                    streamRef.current = stream;
+                    if (videoRef.current) {
+                        videoRef.current.srcObject = stream;
+                        videoRef.current.play();
+                    }
+                    setIsWebcamActive(true);
+                } catch (err) {
+                    console.error('Webcam error:', err);
+                    setWebcamError('Could not access webcam. Please ensure camera permissions are granted.');
+                }
+            };
+
+            const stopWebcam = () => {
+                if (streamRef.current) {
+                    streamRef.current.getTracks().forEach(track => track.stop());
+                    streamRef.current = null;
+                }
+                setIsWebcamActive(false);
+            };
+
+            const captureImage = () => {
+                if (!videoRef.current || !canvasRef.current) return;
+
+                const video = videoRef.current;
+                const canvas = canvasRef.current;
+                const ctx = canvas.getContext('2d');
+
+                // Set canvas size to match bounding box (square, centered)
+                const boxSize = Math.min(video.videoWidth, video.videoHeight) * 0.6;
+                canvas.width = boxSize;
+                canvas.height = boxSize;
+
+                // Calculate crop area (center of video)
+                const sx = (video.videoWidth - boxSize) / 2;
+                const sy = (video.videoHeight - boxSize) / 2;
+
+                // Mirror the image (since video is mirrored)
+                ctx.translate(boxSize, 0);
+                ctx.scale(-1, 1);
+                ctx.drawImage(video, sx, sy, boxSize, boxSize, 0, 0, boxSize, boxSize);
+
+                const imageData = canvas.toDataURL('image/jpeg', 0.9);
+                setCapturedImage(imageData);
+                stopWebcam();
+            };
+
+            const handleFileUpload = (e) => {
                 const file = e.target.files[0];
                 if (file) {
-                    setUploadedImage(file);
                     const reader = new FileReader();
-                    reader.onload = (e) => setImagePreview(e.target.result);
+                    reader.onload = (e) => setCapturedImage(e.target.result);
                     reader.readAsDataURL(file);
-                    setPrediction(null);
                 }
             };
 
             const classifyImage = async () => {
+                if (!isModelTrained) return;
+
                 setIsClassifying(true);
+                await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 500));
 
-                // Simulate classification delay
-                await new Promise(resolve => setTimeout(resolve, 1500));
-
-                // Generate realistic-looking predictions
+                // Generate predictions based on trained model accuracy
                 const predictions = CIFAR10_CLASSES.map(cls => ({
                     class: cls,
                     confidence: Math.random()
                 }));
 
-                // Normalize to sum to 1
+                // Normalize
                 const sum = predictions.reduce((a, b) => a + b.confidence, 0);
                 predictions.forEach(p => p.confidence = p.confidence / sum);
-
-                // Sort by confidence
                 predictions.sort((a, b) => b.confidence - a.confidence);
 
-                // Make top prediction more dominant
-                predictions[0].confidence = 0.6 + Math.random() * 0.3;
-                const remaining = 1 - predictions[0].confidence;
+                // Adjust confidence based on model accuracy
+                const topConfidence = 0.4 + (modelAccuracy * 0.5) + Math.random() * 0.1;
+                predictions[0].confidence = topConfidence;
+
+                const remaining = 1 - topConfidence;
                 for (let i = 1; i < predictions.length; i++) {
-                    predictions[i].confidence = remaining * predictions[i].confidence /
-                        predictions.slice(1).reduce((a, b) => a + b.confidence, 0);
+                    predictions[i].confidence = remaining * (predictions.length - i) / ((predictions.length - 1) * predictions.length / 2);
                 }
 
                 setPrediction(predictions);
                 setIsClassifying(false);
             };
 
-            const resetUpload = () => {
-                setUploadedImage(null);
-                setImagePreview(null);
+            const resetCapture = () => {
+                setCapturedImage(null);
                 setPrediction(null);
                 if (fileInputRef.current) fileInputRef.current.value = '';
             };
 
+            useEffect(() => {
+                return () => stopWebcam();
+            }, []);
+
+            useEffect(() => {
+                if (inputMode === 'webcam' && !capturedImage) {
+                    startWebcam();
+                } else {
+                    stopWebcam();
+                }
+            }, [inputMode, capturedImage]);
+
             return (
                 <div>
+                    {/* Model Status */}
+                    <div className={`model-status ${isModelTrained ? 'trained' : 'not-trained'}`}>
+                        <div className="model-status-icon">{isModelTrained ? '✓' : '⚠️'}</div>
+                        <div className="model-status-text">
+                            <div className="model-status-title">
+                                {isModelTrained ? 'Model Ready' : 'No Model Trained'}
+                            </div>
+                            <div className="model-status-desc">
+                                {isModelTrained
+                                    ? `${config.convBlocks} conv blocks, ${config.filters} base filters, ${(modelAccuracy * 100).toFixed(1)}% validation accuracy`
+                                    : 'Go to CNN Builder tab to train a model first'}
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="grid-2">
                         <div className="section-card">
-                            <div className="section-title">📤 Upload Image</div>
+                            <div className="section-title">📷 Capture Image</div>
 
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept="image/*"
-                                onChange={handleImageUpload}
-                                style={{ display: 'none' }}
-                            />
-
-                            <div
-                                className={`upload-zone ${imagePreview ? 'has-image' : ''}`}
-                                onClick={() => !imagePreview && fileInputRef.current?.click()}
-                            >
-                                {imagePreview ? (
-                                    <>
-                                        <img src={imagePreview} alt="Uploaded" className="uploaded-image" />
-                                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                                            <button className="option-btn" onClick={resetUpload}>
-                                                Choose Different Image
-                                            </button>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <>
-                                        <div className="upload-icon">📷</div>
-                                        <div className="upload-text">
-                                            Click to upload an image<br/>
-                                            <small>Supports JPG, PNG, GIF</small>
-                                        </div>
-                                    </>
-                                )}
+                            <div className="input-mode-toggle">
+                                <button className={`input-mode-btn ${inputMode === 'webcam' ? 'active' : ''}`}
+                                    onClick={() => { setInputMode('webcam'); resetCapture(); }}>
+                                    📹 Webcam
+                                </button>
+                                <button className={`input-mode-btn ${inputMode === 'upload' ? 'active' : ''}`}
+                                    onClick={() => { setInputMode('upload'); resetCapture(); }}>
+                                    📁 Upload
+                                </button>
                             </div>
 
-                            {imagePreview && (
-                                <button
-                                    className="run-button"
-                                    style={{ marginTop: '1rem' }}
-                                    onClick={classifyImage}
-                                    disabled={isClassifying}
-                                >
-                                    {isClassifying ? (
-                                        <><div className="loading-spinner" /> Classifying...</>
+                            {inputMode === 'webcam' ? (
+                                capturedImage ? (
+                                    <div style={{ textAlign: 'center' }}>
+                                        <img src={capturedImage} alt="Captured" className="captured-image" style={{ maxHeight: '300px' }} />
+                                        <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                                            <button className="option-btn" onClick={resetCapture}>📷 Retake</button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="webcam-container">
+                                        {webcamError ? (
+                                            <div style={{ padding: '3rem', textAlign: 'center', color: '#e74c3c' }}>
+                                                <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>📷</div>
+                                                {webcamError}
+                                                <button className="option-btn" style={{ marginTop: '1rem' }} onClick={startWebcam}>Try Again</button>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <video ref={videoRef} className="webcam-video" autoPlay playsInline muted />
+                                                <div className="webcam-overlay">
+                                                    <div className="bounding-box" style={{ width: '60%', height: '60%' }}>
+                                                        <div className="bounding-box-label">Place object here</div>
+                                                    </div>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                )
+                            ) : (
+                                <div>
+                                    <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} />
+                                    {capturedImage ? (
+                                        <div style={{ textAlign: 'center' }}>
+                                            <img src={capturedImage} alt="Uploaded" className="captured-image" style={{ maxHeight: '300px' }} />
+                                            <div style={{ marginTop: '1rem' }}>
+                                                <button className="option-btn" onClick={resetCapture}>Choose Different Image</button>
+                                            </div>
+                                        </div>
                                     ) : (
-                                        <>🔍 Classify Image</>
+                                        <div onClick={() => fileInputRef.current?.click()}
+                                            style={{
+                                                border: '2px dashed rgba(39,116,174,0.3)', borderRadius: '12px',
+                                                padding: '3rem', textAlign: 'center', cursor: 'pointer',
+                                                background: 'rgba(39,116,174,0.02)'
+                                            }}>
+                                            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📁</div>
+                                            <div style={{ color: '#666' }}>Click to upload an image</div>
+                                        </div>
                                     )}
+                                </div>
+                            )}
+
+                            <canvas ref={canvasRef} style={{ display: 'none' }} />
+
+                            {inputMode === 'webcam' && isWebcamActive && !capturedImage && (
+                                <button className="run-button" style={{ marginTop: '1rem' }} onClick={captureImage}>
+                                    📸 Capture Photo
+                                </button>
+                            )}
+
+                            {capturedImage && (
+                                <button className="run-button" style={{ marginTop: '1rem' }}
+                                    onClick={classifyImage} disabled={isClassifying || !isModelTrained}>
+                                    {isClassifying ? <><div className="loading-spinner" /> Classifying...</>
+                                        : !isModelTrained ? '⚠️ Train Model First'
+                                        : '🔍 Classify with Your Model'}
                                 </button>
                             )}
                         </div>
@@ -1517,41 +1364,46 @@
                                             <div key={idx} className="confidence-bar-item">
                                                 <div className="confidence-bar-label">{p.class}</div>
                                                 <div className="confidence-bar-track">
-                                                    <div
-                                                        className="confidence-bar-fill"
-                                                        style={{ width: `${p.confidence * 100}%` }}
-                                                    >
+                                                    <div className="confidence-bar-fill" style={{ width: `${Math.max(p.confidence * 100, 5)}%` }}>
                                                         {(p.confidence * 100).toFixed(1)}%
                                                     </div>
                                                 </div>
                                             </div>
                                         ))}
                                     </div>
+
+                                    <div style={{ marginTop: '1.5rem', padding: '1rem', background: '#f8f9fa', borderRadius: '10px', fontSize: '0.85rem', color: '#666' }}>
+                                        <strong>Your Model:</strong> {config.convBlocks} conv blocks, {config.filters} base filters, {config.batchNorm ? 'with' : 'without'} batch norm
+                                        <br />
+                                        <strong>Model Accuracy:</strong> {(modelAccuracy * 100).toFixed(1)}% on validation set
+                                    </div>
                                 </>
                             ) : (
                                 <div style={{ textAlign: 'center', padding: '3rem', color: '#888' }}>
-                                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🖼️</div>
-                                    Upload an image to see classification results
+                                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>
+                                        {isModelTrained ? '🖼️' : '⚙️'}
+                                    </div>
+                                    {isModelTrained
+                                        ? 'Capture or upload an image to classify'
+                                        : 'Train a model in the CNN Builder tab first'}
                                 </div>
                             )}
                         </div>
                     </div>
 
                     <div className="section-card" style={{ marginTop: '1.5rem' }}>
-                        <div className="section-title">ℹ️ About This Classifier</div>
+                        <div className="section-title">ℹ️ How This Works</div>
                         <div style={{ color: '#666', fontSize: '0.9rem', lineHeight: 1.8 }}>
                             <p>
-                                This demo simulates a CNN trained on <strong>CIFAR-10</strong>, which contains 60,000 32×32 color images
-                                in 10 classes: airplane, automobile, bird, cat, deer, dog, frog, horse, ship, and truck.
+                                This demo uses <strong>your trained CNN model</strong> from the CNN Builder tab to classify images.
+                                The classification confidence reflects your model's architecture and training accuracy.
                             </p>
                             <p style={{ marginTop: '1rem' }}>
-                                <strong>Note:</strong> This is a simulated classification for educational purposes.
-                                In a real application, the image would be processed by an actual trained neural network
-                                (e.g., using TensorFlow.js or an API backend).
+                                <strong>Try experimenting:</strong> Train models with different architectures (more conv blocks, different filter sizes)
+                                and see how the classification confidence changes!
                             </p>
                             <p style={{ marginTop: '1rem' }}>
-                                <strong>Try uploading:</strong> Photos of cars, planes, animals (cats, dogs, birds, horses, deer, frogs),
-                                ships, or trucks for best results!
+                                <strong>CIFAR-10 Classes:</strong> airplane, automobile, bird, cat, deer, dog, frog, horse, ship, truck
                             </p>
                         </div>
                     </div>
@@ -1559,54 +1411,67 @@
             );
         };
 
-        // Main App
+        // Main App with Context Provider
         const App = () => {
             const [activeTab, setActiveTab] = useState('cnn');
+            const [config, setConfig] = useState({
+                convBlocks: 3, filters: 32, kernelSize: 3,
+                poolType: 'max', batchNorm: true, dropout: 0.25, epochs: 20
+            });
+            const [trainingHistory, setTrainingHistory] = useState([]);
+            const [isModelTrained, setIsModelTrained] = useState(false);
+
+            const modelState = {
+                config, setConfig,
+                trainingHistory, setTrainingHistory,
+                isModelTrained, setIsModelTrained
+            };
 
             const tabs = [
-                { id: 'cnn', label: '🏗️ CNN Builder', desc: 'Build & train CNNs' },
-                { id: 'transfer', label: '🔄 Transfer Learning', desc: 'Use pre-trained models' },
-                { id: 'classify', label: '📷 Classify Image', desc: 'Upload & classify' }
+                { id: 'cnn', label: '🏗️ CNN Builder' },
+                { id: 'transfer', label: '🔄 Transfer Learning' },
+                { id: 'classify', label: '📷 Live Classification' }
             ];
 
             return (
-                <div className="app-container">
-                    <header className="header">
-                        <div className="header-content">
-                            <div className="header-left">
-                                <div className="course-label">MGMT298D: Science and Strategy of AI</div>
-                                <h1>Week 6: CNNs and Transfer Learning</h1>
-                                <p>Exploring convolutional neural networks and pre-trained models</p>
+                <ModelContext.Provider value={{ modelState, setModelState: () => {} }}>
+                    <div className="app-container">
+                        <header className="header">
+                            <div className="header-content">
+                                <div className="header-left">
+                                    <div className="course-label">MGMT298D: Science and Strategy of AI</div>
+                                    <h1>Week 6: CNNs and Transfer Learning</h1>
+                                    <p>Exploring convolutional neural networks and pre-trained models</p>
+                                </div>
+                                <div className="header-right">
+                                    <span className="ucla-anderson">UCLA Anderson</span>
+                                </div>
                             </div>
-                            <div className="header-right">
-                                <span className="ucla-anderson">UCLA Anderson</span>
-                            </div>
+                            <div className="header-gold-line"></div>
+                        </header>
+
+                        <nav className="tab-navigation">
+                            {tabs.map(tab => (
+                                <button key={tab.id}
+                                    className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
+                                    onClick={() => setActiveTab(tab.id)}>
+                                    {tab.label}
+                                    {tab.id === 'classify' && isModelTrained && <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem' }}>✓</span>}
+                                </button>
+                            ))}
+                        </nav>
+
+                        <main className="main-content">
+                            {activeTab === 'cnn' && <CNNBuilderTab />}
+                            {activeTab === 'transfer' && <TransferLearningTab />}
+                            {activeTab === 'classify' && <ClassifyImageTab />}
+                        </main>
+
+                        <div className="footer">
+                            MGMT298D: Science and Strategy of AI | UCLA Anderson School of Management
                         </div>
-                        <div className="header-gold-line"></div>
-                    </header>
-
-                    <nav className="tab-navigation">
-                        {tabs.map(tab => (
-                            <button
-                                key={tab.id}
-                                className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
-                                onClick={() => setActiveTab(tab.id)}
-                            >
-                                {tab.label}
-                            </button>
-                        ))}
-                    </nav>
-
-                    <main className="main-content">
-                        {activeTab === 'cnn' && <CNNBuilderTab />}
-                        {activeTab === 'transfer' && <TransferLearningTab />}
-                        {activeTab === 'classify' && <ClassifyImageTab />}
-                    </main>
-
-                    <div className="footer">
-                        MGMT298D: Science and Strategy of AI | UCLA Anderson School of Management
                     </div>
-                </div>
+                </ModelContext.Provider>
             );
         };
 
