@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Week 3: Clustering - Netflix Recommendations | UCLA Anderson</title>
+    <title>Week 3: Clustering & Collaborative Filtering | UCLA Anderson</title>
     <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
@@ -12,24 +12,15 @@
     <style>
         :root {
             --primary: #2774AE;
-            --accent: #2774AE;
             --darkBlue: #005587;
             --lightBlue: #8BB8E8;
-            --positive: #2774AE;
-            --negative: #005587;
-            --darkBg: #111318;
-            --darkCard: #1a1d24;
-            --darkText: #e5e5e5;
-            --darkMuted: #c0c0c0;
+            --gold: #FFD100;
+            --success: #27ae60;
             --lightBg: #f5f5f5;
             --lightCard: #ffffff;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -38,130 +29,133 @@
             color: #1a1a1a;
         }
 
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.05); }
+        ::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 4px; }
 
-        ::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.05);
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: var(--primary);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--darkBlue);
-        }
-
-        .app-container {
-            max-width: 1600px;
-            margin: 0 auto;
-        }
-
-        /* Header */
         .header {
-            background: #ffffff;
+            background: var(--primary);
             padding: 1rem 2rem 1.5rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 2px solid #2774AE;
         }
 
-        .header-left {
+        .header-gold-line {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gold);
+        }
+
+        .main-tabs {
             display: flex;
-            flex-direction: column;
             gap: 4px;
+            background: rgba(0, 0, 0, 0.1);
+            padding: 4px;
+            border-radius: 10px;
+            margin: 20px auto;
+            max-width: 500px;
         }
 
-        .course-code {
-            font-size: 0.65rem;
-            font-weight: 600;
-            color: #2774AE;
-            letter-spacing: 0.2em;
-            text-transform: uppercase;
-        }
-
-        .header h1 {
-            font-size: 1.4rem;
-            font-weight: 600;
-            color: #005587;
-            letter-spacing: -0.01em;
-        }
-
-        .header .subtitle {
-            color: #666666;
-            font-size: 0.85rem;
-            margin-top: 4px;
-        }
-
-        .header-right {
-            text-align: right;
-        }
-
-        .ucla-label {
-            font-size: 0.65rem;
-            font-weight: 500;
-            color: #666666;
-            letter-spacing: 0.15em;
-            text-transform: uppercase;
-            margin-bottom: 2px;
-        }
-
-        .ucla-brand {
+        .main-tab {
+            flex: 1;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
             font-size: 0.9rem;
-            font-weight: 500;
-            color: #2774AE;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: transparent;
+            color: #666;
         }
 
-        /* Controls Section - Light */
+        .main-tab.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 2px 8px rgba(39, 116, 174, 0.3);
+        }
+
+        .main-tab:hover:not(.active) {
+            background: rgba(39, 116, 174, 0.1);
+            color: var(--primary);
+        }
+
+        .data-source-bar {
+            margin-bottom: 20px;
+            background: rgba(39, 116, 174, 0.1);
+            border: 1px solid rgba(39, 116, 174, 0.3);
+            border-radius: 8px;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .data-source-bar.netflix {
+            background: rgba(39, 174, 96, 0.1);
+            border-color: rgba(39, 174, 96, 0.3);
+        }
+
+        .data-toggle-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            background: white;
+            color: #666;
+            font-weight: 400;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+        }
+
+        .data-toggle-btn.active {
+            border-width: 2px;
+            font-weight: 600;
+        }
+
+        .data-toggle-btn.synthetic.active {
+            border-color: var(--primary);
+            background: rgba(39, 116, 174, 0.15);
+            color: var(--primary);
+        }
+
+        .data-toggle-btn.netflix.active {
+            border-color: var(--success);
+            background: rgba(39, 174, 96, 0.15);
+            color: var(--success);
+        }
+
+        .data-toggle-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         .controls-section {
             background: var(--lightBg);
             padding: 20px 40px;
         }
 
-        /* Tab Navigation */
-        .tab-nav {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .tab-btn {
-            padding: 10px 24px;
-            background: #ffffff;
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            border-radius: 8px;
-            color: #666;
-            font-size: 0.95rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-        }
-
-        .tab-btn:hover {
-            background: rgba(39, 116, 174, 0.1);
-            border-color: var(--primary);
-            color: var(--primary);
-        }
-
-        .tab-btn.active {
-            background: var(--primary);
-            border-color: var(--primary);
-            color: #ffffff;
-        }
-
-        /* Control Panel */
         .control-panel {
             background: #ffffff;
             border: 1px solid rgba(0, 0, 0, 0.08);
             border-radius: 12px;
             padding: 20px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
         }
 
         .control-panel h3 {
@@ -193,7 +187,7 @@
         }
 
         .control-group select,
-        .control-group input[type="range"] {
+        .control-group input[type="number"] {
             width: 100%;
             padding: 10px 12px;
             background: #ffffff;
@@ -202,18 +196,12 @@
             color: #1a1a1a;
             font-size: 0.9rem;
             cursor: pointer;
-            transition: all 0.2s ease;
         }
 
-        .control-group select:hover,
-        .control-group select:focus {
+        .control-group select:focus,
+        .control-group input:focus {
             border-color: var(--primary);
             outline: none;
-        }
-
-        .control-group select option {
-            background: #ffffff;
-            color: #1a1a1a;
         }
 
         input[type="range"] {
@@ -221,7 +209,7 @@
             height: 8px;
             background: rgba(0, 0, 0, 0.1);
             border-radius: 4px;
-            padding: 0;
+            width: 100%;
         }
 
         input[type="range"]::-webkit-slider-thumb {
@@ -241,12 +229,121 @@
             text-align: right;
         }
 
-        /* Animation Controls */
-        .animation-controls {
+        .results-section {
+            background: var(--lightBg);
+            padding: 30px 40px;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        @media (max-width: 900px) {
+            .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        .metric-card {
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .metric-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .metric-card .value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        .metric-card .label {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+
+        @media (max-width: 1200px) {
+            .main-grid { grid-template-columns: 1fr; }
+        }
+
+        .chart-card {
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .chart-card.hero {
+            grid-column: 1 / -1;
+        }
+
+        .chart-card h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 15px;
+        }
+
+        .scatter-container {
+            position: relative;
+            width: 100%;
+            height: 450px;
+            background: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .scatter-svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .cluster-point {
+            transition: all 0.5s ease;
+        }
+
+        .centroid {
+            filter: drop-shadow(0 0 10px currentColor);
+        }
+
+        .cluster-legend {
             display: flex;
-            gap: 10px;
             flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 15px;
+            justify-content: center;
+        }
+
+        .legend-item {
+            display: flex;
             align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: #666;
+            cursor: pointer;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
         }
 
         .anim-btn {
@@ -270,17 +367,6 @@
 
         .anim-btn.play:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(39, 116, 174, 0.5);
-        }
-
-        .anim-btn.step {
-            background: linear-gradient(135deg, var(--darkBlue), var(--primary));
-            color: white;
-        }
-
-        .anim-btn.step:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0, 85, 135, 0.4);
         }
 
         .anim-btn.reset {
@@ -289,21 +375,14 @@
             border: 1px solid rgba(0, 0, 0, 0.1);
         }
 
-        .anim-btn.reset:hover {
-            background: #eee;
-            border-color: rgba(0, 0, 0, 0.15);
-        }
-
         .anim-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
-            transform: none !important;
         }
 
         .speed-selector {
             display: flex;
             gap: 5px;
-            margin-left: auto;
         }
 
         .speed-btn {
@@ -314,7 +393,6 @@
             color: #666;
             font-size: 0.8rem;
             cursor: pointer;
-            transition: all 0.2s ease;
         }
 
         .speed-btn.active {
@@ -323,7 +401,6 @@
             color: var(--primary);
         }
 
-        /* Algorithm Status */
         .algorithm-status {
             background: rgba(39, 116, 174, 0.05);
             border: 1px solid rgba(39, 116, 174, 0.2);
@@ -354,268 +431,127 @@
             color: var(--primary);
         }
 
-        .status-value.converged {
-            color: var(--positive);
+        /* Heatmap styles */
+        .heatmap-container {
+            overflow-x: auto;
         }
 
-        /* Results Section - Light */
-        .results-section {
-            background: var(--lightBg);
-            padding: 30px 40px;
+        .heatmap-table {
+            border-collapse: collapse;
+            font-size: 0.75rem;
         }
 
-        /* Metrics Grid */
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
-            margin-bottom: 25px;
-        }
-
-        @media (max-width: 900px) {
-            .metrics-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        .metric-card {
-            background: #ffffff;
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            border-radius: 12px;
-            padding: 20px;
+        .heatmap-table th,
+        .heatmap-table td {
+            padding: 8px;
             text-align: center;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            border: 1px solid #eee;
+            min-width: 60px;
         }
 
-        .metric-card:hover {
-            border-color: var(--primary);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-
-        .metric-card .value {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--primary);
-            margin-bottom: 5px;
-        }
-
-        .metric-card .label {
-            font-size: 0.85rem;
-            color: #666;
-        }
-
-        /* Main Content Grid */
-        .main-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 25px;
-        }
-
-        @media (max-width: 1200px) {
-            .main-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Chart Cards */
-        .chart-card {
-            background: #ffffff;
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            border-radius: 12px;
-            padding: 20px;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        }
-
-        .chart-card:hover {
-            border-color: var(--primary);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-
-        .chart-card.hero {
-            grid-column: 1 / -1;
-            background: #ffffff;
-        }
-
-        .chart-card h3 {
-            font-size: 1rem;
+        .heatmap-table th {
+            background: #f5f5f5;
             font-weight: 600;
-            color: #1a1a1a;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            color: #333;
         }
 
-        .chart-card h3 .icon {
-            width: 28px;
-            height: 28px;
+        .heatmap-cell {
+            font-weight: 500;
+        }
+
+        /* Recommendation list */
+        .recommendation-list {
+            list-style: none;
+        }
+
+        .recommendation-item {
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            justify-content: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid #eee;
+            transition: background 0.2s ease;
+        }
+
+        .recommendation-item:hover {
+            background: rgba(39, 116, 174, 0.05);
+        }
+
+        .recommendation-item:last-child {
+            border-bottom: none;
+        }
+
+        .rec-rank {
+            width: 30px;
+            height: 30px;
             background: var(--primary);
             color: white;
-            border-radius: 6px;
-            font-size: 0.8rem;
-        }
-
-        /* Scatter Plot Styling */
-        .scatter-container {
-            position: relative;
-            width: 100%;
-            height: 500px;
-            background: #ffffff;
-            border-radius: 12px;
-            overflow: hidden;
-        }
-
-        .scatter-svg {
-            width: 100%;
-            height: 100%;
-        }
-
-        .cluster-point {
-            transition: all 0.5s ease;
-        }
-
-        .centroid {
-            filter: drop-shadow(0 0 10px currentColor);
-        }
-
-        .centroid-path {
-            stroke-dasharray: 5, 3;
-            opacity: 0.5;
-        }
-
-        /* Legend */
-        .cluster-legend {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin-top: 15px;
-            justify-content: center;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.85rem;
-            color: #666;
-        }
-
-        .legend-dot {
-            width: 12px;
-            height: 12px;
             border-radius: 50%;
-        }
-
-        .legend-centroid {
-            width: 16px;
-            height: 16px;
-            transform: rotate(45deg);
-        }
-
-        /* Instructions Tab */
-        .instructions-container {
-            max-width: 1000px;
-            margin: 0 auto;
-        }
-
-        .instruction-section {
-            background: #ffffff;
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            border-radius: 12px;
-            padding: 30px;
-            margin-bottom: 25px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        }
-
-        .instruction-section h2 {
-            font-size: 1.4rem;
-            font-weight: 600;
-            margin-bottom: 20px;
-            color: var(--primary);
             display: flex;
             align-items: center;
-            gap: 12px;
-        }
-
-        .instruction-section h3 {
-            font-size: 1.1rem;
+            justify-content: center;
             font-weight: 600;
-            margin: 20px 0 15px;
-            color: var(--darkBlue);
+            font-size: 0.85rem;
         }
 
-        .instruction-section p {
-            color: #666;
-            line-height: 1.7;
-            margin-bottom: 15px;
+        .rec-info {
+            flex: 1;
+            margin-left: 12px;
         }
 
-        .instruction-section ul, .instruction-section ol {
-            color: #666;
-            line-height: 1.8;
-            margin-left: 20px;
-            margin-bottom: 15px;
+        .rec-title {
+            font-weight: 600;
+            color: #333;
         }
 
-        .instruction-section li {
-            margin-bottom: 8px;
+        .rec-subtitle {
+            font-size: 0.8rem;
+            color: #888;
         }
 
-        .instruction-section code {
-            background: rgba(39, 116, 174, 0.1);
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-family: 'Monaco', 'Consolas', monospace;
-            font-size: 0.9em;
+        .rec-rating {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .rec-stars {
+            color: var(--gold);
+        }
+
+        .rec-score {
+            font-weight: 600;
             color: var(--primary);
         }
 
-        .step-box {
+        /* Neighbors list */
+        .neighbors-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .neighbor-card {
             background: rgba(39, 116, 174, 0.05);
             border: 1px solid rgba(39, 116, 174, 0.2);
-            border-radius: 10px;
-            padding: 20px;
-            margin: 15px 0;
-        }
-
-        .step-box h4 {
-            color: var(--primary);
-            font-weight: 600;
-            margin-bottom: 10px;
-        }
-
-        .formula-box {
-            background: rgba(0, 85, 135, 0.05);
-            border: 1px solid rgba(0, 85, 135, 0.2);
-            border-radius: 10px;
-            padding: 20px;
-            margin: 15px 0;
-            font-family: 'Monaco', monospace;
+            border-radius: 8px;
+            padding: 12px;
             text-align: center;
-            color: var(--darkBlue);
         }
 
-        .tip-box {
-            background: rgba(39, 116, 174, 0.3);
-            border-left: 4px solid var(--accent);
-            padding: 15px 20px;
-            margin: 15px 0;
-            border-radius: 0 10px 10px 0;
+        .neighbor-id {
+            font-weight: 600;
+            color: var(--primary);
+            font-size: 0.9rem;
         }
 
-        .tip-box strong {
-            color: #666666;
+        .neighbor-sim {
+            font-size: 0.75rem;
+            color: #666;
+            margin-top: 4px;
         }
 
-        /* Loading State */
-        /* Loading State */
         .loading {
             display: flex;
             flex-direction: column;
@@ -639,64 +575,12 @@
             to { transform: rotate(360deg); }
         }
 
-        /* Pulse Animation for Points */
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.3); }
-        }
-
-        .point-assigning {
-            animation: pulse 0.3s ease;
-        }
-
-        /* Centroid Movement Animation */
-        @keyframes centroidMove {
-            0% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-
-        .centroid-moving {
-            animation: centroidMove 0.5s ease;
-        }
-
-        /* Feature Pills for controls */
-        .feature-pills {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 10px;
-        }
-
-        .feature-pill {
-            padding: 6px 12px;
-            background: #ffffff;
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            border-radius: 20px;
-            color: #666;
-            font-size: 0.8rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .feature-pill.selected {
-            background: rgba(39, 116, 174, 0.1);
-            border-color: var(--primary);
-            color: var(--primary);
-        }
-
-        .feature-pill:hover {
-            border-color: var(--primary);
-        }
-    
-        .header-gold-line {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: #FFD100;
-            margin: 0;
-            padding: 0;
+        .footer {
+            color: #888;
+            font-size: 0.75rem;
+            margin-top: 20px;
+            text-align: center;
+            padding-bottom: 20px;
         }
     </style>
 </head>
@@ -704,24 +588,19 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef, useCallback } = React;
+        const { useState, useEffect, useRef, useCallback, useMemo } = React;
 
         // API Configuration
         const API_BASE = window.location.origin;
 
         // Cluster colors - UCLA themed
         const CLUSTER_COLORS = [
-            '#2774AE', '#005587', '#8BB8E8', '#2774AE', '#2774AE',
-            '#005587', '#8BB8E8', '#2774AE', '#2774AE', '#84cc16'
+            '#2774AE', '#005587', '#8BB8E8', '#27ae60', '#e74c3c',
+            '#9b59b6', '#f39c12', '#1abc9c', '#34495e', '#e91e63'
         ];
 
-        // Data source options
-        const DATA_SOURCES = {
-            synthetic: 'Synthetic Data',
-            netflix: 'Netflix Ratings'
-        };
+        // ==================== CHART COMPONENTS ====================
 
-        // Chart.js Components
         function LineChartComponent({ data, dataKey, xKey, title }) {
             const canvasRef = useRef(null);
             const chartRef = useRef(null);
@@ -743,42 +622,17 @@
                             tension: 0.4,
                             fill: true,
                             pointBackgroundColor: '#2774AE',
-                            pointBorderColor: '#2774AE',
                             pointRadius: 5,
-                            pointHoverRadius: 8,
-                            pointHoverBackgroundColor: '#005587'
+                            pointHoverRadius: 8
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                                backgroundColor: '#ffffff',
-                                borderColor: '#e0e0e0',
-                                borderWidth: 1,
-                                titleColor: '#333',
-                                bodyColor: '#666',
-                                padding: 12,
-                                cornerRadius: 8
-                            }
-                        },
+                        plugins: { legend: { display: false } },
                         scales: {
-                            x: {
-                                grid: {
-                                    color: 'rgba(0, 0, 0, 0.05)',
-                                    drawBorder: false
-                                },
-                                ticks: { color: '#666' }
-                            },
-                            y: {
-                                grid: {
-                                    color: 'rgba(0, 0, 0, 0.05)',
-                                    drawBorder: false
-                                },
-                                ticks: { color: '#666' }
-                            }
+                            x: { grid: { color: 'rgba(0, 0, 0, 0.05)' }, ticks: { color: '#666' } },
+                            y: { grid: { color: 'rgba(0, 0, 0, 0.05)' }, ticks: { color: '#666' } }
                         }
                     }
                 });
@@ -804,44 +658,17 @@
                         datasets: [{
                             label: title,
                             data: data.map(d => d[dataKey]),
-                            backgroundColor: data.map(d => d[xKey] === highlightValue ? '#2774AE' : '#2774AE'),
-                            borderColor: data.map(d => d[xKey] === highlightValue ? '#2774AE' : '#2774AE'),
-                            borderWidth: 1,
+                            backgroundColor: data.map(d => d[xKey] === highlightValue ? '#2774AE' : '#8BB8E8'),
                             borderRadius: 4
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                                backgroundColor: '#ffffff',
-                                borderColor: '#e0e0e0',
-                                borderWidth: 1,
-                                titleColor: '#333',
-                                bodyColor: '#666',
-                                padding: 12,
-                                cornerRadius: 8
-                            }
-                        },
+                        plugins: { legend: { display: false } },
                         scales: {
-                            x: {
-                                grid: {
-                                    color: 'rgba(0, 0, 0, 0.05)',
-                                    drawBorder: false
-                                },
-                                ticks: { color: '#666' }
-                            },
-                            y: {
-                                grid: {
-                                    color: 'rgba(0, 0, 0, 0.05)',
-                                    drawBorder: false
-                                },
-                                ticks: { color: '#666' },
-                                min: -0.2,
-                                max: 1
-                            }
+                            x: { grid: { display: false }, ticks: { color: '#666' } },
+                            y: { grid: { color: 'rgba(0, 0, 0, 0.05)' }, ticks: { color: '#666' }, min: -0.2, max: 1 }
                         }
                     }
                 });
@@ -868,8 +695,7 @@
                             data: data.map(d => d.value),
                             backgroundColor: data.map(d => d.color),
                             borderColor: '#ffffff',
-                            borderWidth: 3,
-                            hoverOffset: 10
+                            borderWidth: 3
                         }]
                     },
                     options: {
@@ -877,33 +703,7 @@
                         maintainAspectRatio: false,
                         cutout: '60%',
                         plugins: {
-                            legend: {
-                                display: true,
-                                position: 'right',
-                                labels: {
-                                    color: '#666',
-                                    padding: 15,
-                                    usePointStyle: true,
-                                    pointStyle: 'circle',
-                                    font: { size: 11 }
-                                }
-                            },
-                            tooltip: {
-                                backgroundColor: '#ffffff',
-                                borderColor: '#e0e0e0',
-                                borderWidth: 1,
-                                titleColor: '#333',
-                                bodyColor: '#666',
-                                padding: 12,
-                                cornerRadius: 8,
-                                callbacks: {
-                                    label: function(context) {
-                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                        const percentage = ((context.parsed / total) * 100).toFixed(0);
-                                        return `${context.label}: ${context.parsed} (${percentage}%)`;
-                                    }
-                                }
-                            }
+                            legend: { display: true, position: 'right', labels: { color: '#666', padding: 15, usePointStyle: true } }
                         }
                     }
                 });
@@ -913,139 +713,63 @@
             return <div style={{height: '250px'}}><canvas ref={canvasRef} /></div>;
         }
 
-        function HorizontalBarChartComponent({ data, genres }) {
-            const canvasRef = useRef(null);
-            const chartRef = useRef(null);
+        // ==================== MOCK DATA GENERATORS ====================
 
-            const genreColors = {
-                'Action': '#2774AE',
-                'Comedy': '#2774AE',
-                'Drama': '#005587',
-                'Horror': '#8BB8E8',
-                'Sci-Fi': '#2774AE',
-                'Romance': '#005587'
-            };
-
-            useEffect(() => {
-                if (!canvasRef.current || !data.length) return;
-                if (chartRef.current) chartRef.current.destroy();
-
-                const ctx = canvasRef.current.getContext('2d');
-                const datasets = genres.map(genre => ({
-                    label: genre,
-                    data: data.map(d => d[genre] || 0),
-                    backgroundColor: genreColors[genre] || '#64748b',
-                    borderColor: genreColors[genre] || '#64748b',
-                    borderWidth: 1,
-                    borderRadius: 2
-                }));
-
-                chartRef.current = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: data.map(d => d.cluster),
-                        datasets: datasets
-                    },
-                    options: {
-                        indexAxis: 'y',
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: true,
-                                position: 'top',
-                                labels: {
-                                    color: '#666',
-                                    padding: 10,
-                                    usePointStyle: true,
-                                    pointStyle: 'rect',
-                                    font: { size: 10 }
-                                }
-                            },
-                            tooltip: {
-                                backgroundColor: '#ffffff',
-                                borderColor: '#e0e0e0',
-                                borderWidth: 1,
-                                titleColor: '#333',
-                                bodyColor: '#666',
-                                padding: 12,
-                                cornerRadius: 8
-                            }
-                        },
-                        scales: {
-                            x: {
-                                grid: {
-                                    color: 'rgba(0, 0, 0, 0.05)',
-                                    drawBorder: false
-                                },
-                                ticks: { color: '#666' },
-                                min: 0,
-                                max: 5
-                            },
-                            y: {
-                                grid: {
-                                    color: 'rgba(0, 0, 0, 0.05)',
-                                    drawBorder: false
-                                },
-                                ticks: { color: '#666' }
-                            }
-                        }
-                    }
-                });
-                return () => { if (chartRef.current) chartRef.current.destroy(); };
-            }, [data, genres]);
-
-            return <div style={{height: '250px'}}><canvas ref={canvasRef} /></div>;
-        }
-
-        // Generate mock data for clustering
-        const generateMockData = (numPoints = 150) => {
+        const generateSyntheticClusterData = (numPoints = 150) => {
             const data = [];
-            const genres = ['Action', 'Comedy', 'Drama', 'Horror', 'Sci-Fi', 'Romance'];
-
-            // Generate clusters
             const clusterCenters = [
-                { x: 0.2, y: 0.8 },  // Action lovers
-                { x: 0.8, y: 0.7 },  // Comedy fans
-                { x: 0.5, y: 0.2 },  // Drama enthusiasts
-                { x: 0.3, y: 0.4 },  // Horror buffs
+                { x: 0.2, y: 0.8, genre: 'Action Lovers' },
+                { x: 0.8, y: 0.7, genre: 'Comedy Fans' },
+                { x: 0.5, y: 0.2, genre: 'Drama Enthusiasts' },
+                { x: 0.3, y: 0.4, genre: 'Horror Buffs' },
             ];
 
             for (let i = 0; i < numPoints; i++) {
                 const clusterIdx = Math.floor(Math.random() * clusterCenters.length);
                 const center = clusterCenters[clusterIdx];
 
-                const ratings = {};
-                genres.forEach(genre => {
-                    ratings[genre] = Math.random() * 5;
-                });
-
                 data.push({
                     id: i,
                     x: center.x + (Math.random() - 0.5) * 0.3,
                     y: center.y + (Math.random() - 0.5) * 0.3,
-                    ratings,
                     cluster: -1,
-                    userId: `User_${1000 + i}`
+                    userId: `User_${1000 + i}`,
+                    trueCluster: clusterIdx
                 });
             }
             return data;
         };
 
-        // K-Means implementation
+        const generateSyntheticCFData = () => {
+            const users = [];
+            const items = ['The Matrix', 'Titanic', 'The Godfather', 'Pulp Fiction', 'Forrest Gump',
+                          'Inception', 'The Dark Knight', 'Fight Club', 'Goodfellas', 'The Shawshank Redemption'];
+
+            for (let i = 0; i < 50; i++) {
+                const ratings = {};
+                items.forEach(item => {
+                    if (Math.random() > 0.3) { // 70% chance of rating
+                        ratings[item] = Math.floor(Math.random() * 5) + 1;
+                    }
+                });
+                users.push({
+                    id: i,
+                    userId: `User_${1000 + i}`,
+                    ratings
+                });
+            }
+            return { users, items };
+        };
+
+        // ==================== K-MEANS ALGORITHMS ====================
+
+        const euclideanDistance = (p1, p2) => Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+
         const initializeCentroids = (data, k) => {
             const shuffled = [...data].sort(() => Math.random() - 0.5);
             return shuffled.slice(0, k).map((d, i) => ({
-                id: i,
-                x: d.x,
-                y: d.y,
-                prevX: d.x,
-                prevY: d.y
+                id: i, x: d.x, y: d.y, prevX: d.x, prevY: d.y
             }));
-        };
-
-        const euclideanDistance = (p1, p2) => {
-            return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
         };
 
         const assignClusters = (data, centroids) => {
@@ -1070,13 +794,7 @@
                 if (clusterPoints.length > 0) {
                     const avgX = clusterPoints.reduce((sum, p) => sum + p.x, 0) / clusterPoints.length;
                     const avgY = clusterPoints.reduce((sum, p) => sum + p.y, 0) / clusterPoints.length;
-                    newCentroids.push({
-                        id: i,
-                        x: avgX,
-                        y: avgY,
-                        prevX: centroids[i].x,
-                        prevY: centroids[i].y
-                    });
+                    newCentroids.push({ id: i, x: avgX, y: avgY, prevX: centroids[i].x, prevY: centroids[i].y });
                 } else {
                     newCentroids.push(centroids[i]);
                 }
@@ -1084,26 +802,19 @@
             return newCentroids;
         };
 
-        const calculateInertia = (data) => {
-            return data.reduce((sum, point) => sum + (point.distance || 0) ** 2, 0);
-        };
+        const calculateInertia = (data) => data.reduce((sum, point) => sum + (point.distance || 0) ** 2, 0);
 
         const calculateSilhouette = (data, k) => {
             if (k <= 1 || data.length === 0) return 0;
-
             let totalSilhouette = 0;
             let validPoints = 0;
 
             data.forEach(point => {
                 const sameCluster = data.filter(d => d.cluster === point.cluster && d.id !== point.id);
                 const otherClusters = [...new Set(data.map(d => d.cluster))].filter(c => c !== point.cluster);
-
                 if (sameCluster.length === 0) return;
 
-                // a: average distance to same cluster
                 const a = sameCluster.reduce((sum, p) => sum + euclideanDistance(point, p), 0) / sameCluster.length;
-
-                // b: minimum average distance to other clusters
                 let b = Infinity;
                 otherClusters.forEach(cluster => {
                     const clusterPoints = data.filter(d => d.cluster === cluster);
@@ -1114,8 +825,7 @@
                 });
 
                 if (b !== Infinity) {
-                    const s = (b - a) / Math.max(a, b);
-                    totalSilhouette += s;
+                    totalSilhouette += (b - a) / Math.max(a, b);
                     validPoints++;
                 }
             });
@@ -1123,55 +833,72 @@
             return validPoints > 0 ? totalSilhouette / validPoints : 0;
         };
 
-        // DBSCAN implementation
-        const dbscan = (data, eps, minSamples) => {
-            const labels = new Array(data.length).fill(-1);
-            let clusterId = 0;
+        // ==================== COLLABORATIVE FILTERING ALGORITHMS ====================
 
-            const getNeighbors = (pointIdx) => {
-                const neighbors = [];
-                data.forEach((p, idx) => {
-                    if (euclideanDistance(data[pointIdx], p) <= eps) {
-                        neighbors.push(idx);
-                    }
-                });
-                return neighbors;
-            };
+        const cosineSimilarity = (ratings1, ratings2, items) => {
+            let dotProduct = 0;
+            let norm1 = 0;
+            let norm2 = 0;
+            let commonItems = 0;
 
-            const expandCluster = (pointIdx, neighbors, cluster) => {
-                labels[pointIdx] = cluster;
-                let i = 0;
-                while (i < neighbors.length) {
-                    const neighborIdx = neighbors[i];
-                    if (labels[neighborIdx] === -1) {
-                        labels[neighborIdx] = cluster;
-                        const newNeighbors = getNeighbors(neighborIdx);
-                        if (newNeighbors.length >= minSamples) {
-                            neighbors.push(...newNeighbors.filter(n => !neighbors.includes(n)));
-                        }
-                    }
-                    i++;
-                }
-            };
-
-            data.forEach((point, idx) => {
-                if (labels[idx] !== -1) return;
-                const neighbors = getNeighbors(idx);
-                if (neighbors.length >= minSamples) {
-                    expandCluster(idx, neighbors, clusterId);
-                    clusterId++;
+            items.forEach(item => {
+                const r1 = ratings1[item];
+                const r2 = ratings2[item];
+                if (r1 !== undefined && r2 !== undefined) {
+                    dotProduct += r1 * r2;
+                    norm1 += r1 * r1;
+                    norm2 += r2 * r2;
+                    commonItems++;
                 }
             });
 
-            return data.map((point, idx) => ({ ...point, cluster: labels[idx] }));
+            if (commonItems < 2 || norm1 === 0 || norm2 === 0) return 0;
+            return dotProduct / (Math.sqrt(norm1) * Math.sqrt(norm2));
         };
 
-        // Animated Scatter Plot Component
+        const findKNearestNeighbors = (targetUser, users, items, k) => {
+            const similarities = users
+                .filter(u => u.id !== targetUser.id)
+                .map(u => ({
+                    user: u,
+                    similarity: cosineSimilarity(targetUser.ratings, u.ratings, items)
+                }))
+                .filter(s => s.similarity > 0)
+                .sort((a, b) => b.similarity - a.similarity)
+                .slice(0, k);
+
+            return similarities;
+        };
+
+        const predictRating = (targetUser, neighbors, item) => {
+            const validNeighbors = neighbors.filter(n => n.user.ratings[item] !== undefined);
+            if (validNeighbors.length === 0) return null;
+
+            const weightedSum = validNeighbors.reduce((sum, n) => sum + n.similarity * n.user.ratings[item], 0);
+            const simSum = validNeighbors.reduce((sum, n) => sum + n.similarity, 0);
+
+            return simSum > 0 ? weightedSum / simSum : null;
+        };
+
+        const getRecommendations = (targetUser, users, items, k) => {
+            const neighbors = findKNearestNeighbors(targetUser, users, items, k);
+            const unratedItems = items.filter(item => targetUser.ratings[item] === undefined);
+
+            const predictions = unratedItems.map(item => {
+                const predicted = predictRating(targetUser, neighbors, item);
+                return { item, predicted };
+            }).filter(p => p.predicted !== null)
+              .sort((a, b) => b.predicted - a.predicted);
+
+            return { recommendations: predictions.slice(0, 5), neighbors };
+        };
+
+        // ==================== SCATTER PLOT COMPONENT ====================
+
         const AnimatedScatterPlot = ({ data, centroids, animationPhase, highlightedCluster }) => {
-            const svgRef = useRef(null);
             const margin = { top: 20, right: 20, bottom: 40, left: 40 };
             const width = 800;
-            const height = 500;
+            const height = 450;
             const plotWidth = width - margin.left - margin.right;
             const plotHeight = height - margin.top - margin.bottom;
 
@@ -1181,96 +908,41 @@
             return (
                 <div className="scatter-container">
                     <svg className="scatter-svg" viewBox={`0 0 ${width} ${height}`}>
-                        {/* Grid */}
                         <defs>
                             <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
                                 <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(0,0,0,0.05)" strokeWidth="1"/>
                             </pattern>
                         </defs>
-                        <rect
-                            x={margin.left}
-                            y={margin.top}
-                            width={plotWidth}
-                            height={plotHeight}
-                            fill="url(#grid)"
-                        />
+                        <rect x={margin.left} y={margin.top} width={plotWidth} height={plotHeight} fill="url(#grid)" />
 
-                        {/* Axes */}
-                        <line
-                            x1={margin.left} y1={height - margin.bottom}
-                            x2={width - margin.right} y2={height - margin.bottom}
-                            stroke="rgba(0,0,0,0.2)" strokeWidth="1"
-                        />
-                        <line
-                            x1={margin.left} y1={margin.top}
-                            x2={margin.left} y2={height - margin.bottom}
-                            stroke="rgba(0,0,0,0.2)" strokeWidth="1"
-                        />
-                        <text x={width / 2} y={height - 5} fill="#666" fontSize="12" textAnchor="middle">
-                            PCA Component 1
-                        </text>
-                        <text x={15} y={height / 2} fill="#666" fontSize="12" textAnchor="middle" transform={`rotate(-90, 15, ${height/2})`}>
-                            PCA Component 2
-                        </text>
+                        <line x1={margin.left} y1={height - margin.bottom} x2={width - margin.right} y2={height - margin.bottom} stroke="rgba(0,0,0,0.2)" />
+                        <line x1={margin.left} y1={margin.top} x2={margin.left} y2={height - margin.bottom} stroke="rgba(0,0,0,0.2)" />
+                        <text x={width / 2} y={height - 5} fill="#666" fontSize="12" textAnchor="middle">PCA Component 1</text>
+                        <text x={15} y={height / 2} fill="#666" fontSize="12" textAnchor="middle" transform={`rotate(-90, 15, ${height/2})`}>PCA Component 2</text>
 
-                        {/* Centroid paths (show movement) */}
                         {centroids.map((centroid, idx) => (
                             centroid.prevX !== centroid.x || centroid.prevY !== centroid.y ? (
-                                <line
-                                    key={`path-${idx}`}
-                                    className="centroid-path"
-                                    x1={xScale(centroid.prevX)}
-                                    y1={yScale(centroid.prevY)}
-                                    x2={xScale(centroid.x)}
-                                    y2={yScale(centroid.y)}
-                                    stroke={CLUSTER_COLORS[idx % CLUSTER_COLORS.length]}
-                                    strokeWidth="2"
-                                />
+                                <line key={`path-${idx}`} x1={xScale(centroid.prevX)} y1={yScale(centroid.prevY)}
+                                    x2={xScale(centroid.x)} y2={yScale(centroid.y)}
+                                    stroke={CLUSTER_COLORS[idx % CLUSTER_COLORS.length]} strokeWidth="2" strokeDasharray="5,3" opacity="0.5" />
                             ) : null
                         ))}
 
-                        {/* Data points */}
-                        {data.map((point, idx) => (
-                            <circle
-                                key={point.id}
-                                className={`cluster-point ${animationPhase === 'assigning' ? 'point-assigning' : ''}`}
-                                cx={xScale(point.x)}
-                                cy={yScale(point.y)}
+                        {data.map((point) => (
+                            <circle key={point.id} className="cluster-point" cx={xScale(point.x)} cy={yScale(point.y)}
                                 r={highlightedCluster !== null && point.cluster === highlightedCluster ? 8 : 5}
                                 fill={point.cluster >= 0 ? CLUSTER_COLORS[point.cluster % CLUSTER_COLORS.length] : '#94a3b8'}
                                 opacity={highlightedCluster !== null && point.cluster !== highlightedCluster ? 0.3 : 0.8}
-                                style={{
-                                    transition: 'all 0.3s ease',
-                                    filter: highlightedCluster !== null && point.cluster === highlightedCluster
-                                        ? `drop-shadow(0 0 5px ${CLUSTER_COLORS[point.cluster % CLUSTER_COLORS.length]})`
-                                        : 'none'
-                                }}
-                            />
+                                style={{ transition: 'all 0.3s ease' }} />
                         ))}
 
-                        {/* Centroids */}
                         {centroids.map((centroid, idx) => (
-                            <g key={`centroid-${idx}`} className={animationPhase === 'updating' ? 'centroid-moving' : ''}>
-                                <rect
-                                    className="centroid"
-                                    x={xScale(centroid.x) - 10}
-                                    y={yScale(centroid.y) - 10}
-                                    width={20}
-                                    height={20}
-                                    fill={CLUSTER_COLORS[idx % CLUSTER_COLORS.length]}
-                                    stroke="white"
-                                    strokeWidth="2"
-                                    transform={`rotate(45, ${xScale(centroid.x)}, ${yScale(centroid.y)})`}
-                                    style={{ transition: 'all 0.5s ease' }}
-                                />
-                                <text
-                                    x={xScale(centroid.x)}
-                                    y={yScale(centroid.y) - 20}
-                                    fill="#333"
-                                    fontSize="12"
-                                    fontWeight="bold"
-                                    textAnchor="middle"
-                                >
+                            <g key={`centroid-${idx}`}>
+                                <rect className="centroid" x={xScale(centroid.x) - 10} y={yScale(centroid.y) - 10}
+                                    width={20} height={20} fill={CLUSTER_COLORS[idx % CLUSTER_COLORS.length]}
+                                    stroke="white" strokeWidth="2" transform={`rotate(45, ${xScale(centroid.x)}, ${yScale(centroid.y)})`}
+                                    style={{ transition: 'all 0.5s ease' }} />
+                                <text x={xScale(centroid.x)} y={yScale(centroid.y) - 20} fill="#333" fontSize="12" fontWeight="bold" textAnchor="middle">
                                     C{idx + 1}
                                 </text>
                             </g>
@@ -1280,15 +952,72 @@
             );
         };
 
-        // Main App Component
-        const App = () => {
-            // Tab state removed - showing only simulator content
-            const [algorithm, setAlgorithm] = useState('kmeans');
-            const [k, setK] = useState(4);
-            const [eps, setEps] = useState(0.15);
-            const [minSamples, setMinSamples] = useState(3);
-            const [speed, setSpeed] = useState('medium');
+        // ==================== SIMILARITY HEATMAP COMPONENT ====================
 
+        const SimilarityHeatmap = ({ users, items, selectedUser }) => {
+            const displayUsers = users.slice(0, 10);
+
+            const getColor = (similarity) => {
+                if (similarity >= 0.8) return '#27ae60';
+                if (similarity >= 0.6) return '#2ecc71';
+                if (similarity >= 0.4) return '#f1c40f';
+                if (similarity >= 0.2) return '#e67e22';
+                return '#e74c3c';
+            };
+
+            return (
+                <div className="heatmap-container">
+                    <table className="heatmap-table">
+                        <thead>
+                            <tr>
+                                <th></th>
+                                {displayUsers.map(u => (
+                                    <th key={u.id} style={{
+                                        background: u.id === selectedUser?.id ? '#2774AE' : '#f5f5f5',
+                                        color: u.id === selectedUser?.id ? 'white' : '#333'
+                                    }}>
+                                        {u.userId.replace('User_', 'U')}
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {displayUsers.map(u1 => (
+                                <tr key={u1.id}>
+                                    <th style={{
+                                        background: u1.id === selectedUser?.id ? '#2774AE' : '#f5f5f5',
+                                        color: u1.id === selectedUser?.id ? 'white' : '#333'
+                                    }}>
+                                        {u1.userId.replace('User_', 'U')}
+                                    </th>
+                                    {displayUsers.map(u2 => {
+                                        const sim = u1.id === u2.id ? 1 : cosineSimilarity(u1.ratings, u2.ratings, items);
+                                        return (
+                                            <td key={u2.id} className="heatmap-cell" style={{
+                                                background: getColor(sim),
+                                                color: sim >= 0.6 ? 'white' : '#333'
+                                            }}>
+                                                {sim.toFixed(2)}
+                                            </td>
+                                        );
+                                    })}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            );
+        };
+
+        // ==================== K-MEANS TAB COMPONENT ====================
+
+        const KMeansTab = () => {
+            const [dataSource, setDataSource] = useState('synthetic');
+            const [apiConnected, setApiConnected] = useState(false);
+            const [isLoading, setIsLoading] = useState(false);
+
+            const [k, setK] = useState(4);
+            const [speed, setSpeed] = useState('medium');
             const [rawData, setRawData] = useState([]);
             const [data, setData] = useState([]);
             const [centroids, setCentroids] = useState([]);
@@ -1298,29 +1027,15 @@
             const [animationPhase, setAnimationPhase] = useState('idle');
             const [highlightedCluster, setHighlightedCluster] = useState(null);
 
-            // Data source state
-            const [dataSource, setDataSource] = useState('synthetic');
-            const [apiConnected, setApiConnected] = useState(false);
-            const [isLoadingData, setIsLoadingData] = useState(false);
-            const [netflixMovies, setNetflixMovies] = useState([]);
-
-            const [metrics, setMetrics] = useState({
-                inertia: 0,
-                silhouette: 0,
-                numClusters: 0,
-                iterations: 0
-            });
-
+            const [metrics, setMetrics] = useState({ inertia: 0, silhouette: 0, numClusters: 0, iterations: 0 });
             const [elbowData, setElbowData] = useState([]);
             const [silhouetteData, setSilhouetteData] = useState([]);
-            const [clusterProfiles, setClusterProfiles] = useState([]);
             const [clusterSizes, setClusterSizes] = useState([]);
 
             const animationRef = useRef(null);
-
             const speedMs = { slow: 1500, medium: 800, fast: 300 };
 
-            // Check API connection on mount
+            // Check API connection
             useEffect(() => {
                 fetch(`${API_BASE}/`)
                     .then(r => r.ok && setApiConnected(true))
@@ -1328,35 +1043,23 @@
             }, []);
 
             // Load data based on source
-            const loadData = useCallback(async (source) => {
-                setIsLoadingData(true);
+            const loadData = useCallback(async () => {
+                setIsLoading(true);
                 setIsPlaying(false);
                 setIsConverged(false);
                 setIteration(0);
+                setCentroids([]);
 
-                if (source === 'netflix' && apiConnected) {
+                if (dataSource === 'netflix' && apiConnected) {
                     try {
-                        // Fetch Netflix data info from API
-                        const infoResponse = await fetch(`${API_BASE}/data_info`);
-                        const info = await infoResponse.json();
-                        setNetflixMovies(info.movie_columns || []);
-
-                        // Fetch elbow data from API
                         const elbowResponse = await fetch(`${API_BASE}/elbow`);
                         const elbowApiData = await elbowResponse.json();
 
                         setElbowData(elbowApiData.k_values.map((kVal, i) => ({
-                            k: kVal,
-                            inertia: elbowApiData.inertia_values[i],
-                            silhouette: elbowApiData.silhouette_scores[i]
+                            k: kVal, inertia: elbowApiData.inertia_values[i], silhouette: elbowApiData.silhouette_scores[i]
                         })));
-                        setSilhouetteData(elbowApiData.k_values.map((kVal, i) => ({
-                            k: kVal,
-                            score: elbowApiData.silhouette_scores[i]
-                        })));
+                        setSilhouetteData(elbowApiData.k_values.map((kVal, i) => ({ k: kVal, score: elbowApiData.silhouette_scores[i] })));
 
-                        // Generate 2D visualization data for Netflix users
-                        // We'll use the cluster endpoint to get assignments
                         const clusterResponse = await fetch(`${API_BASE}/cluster`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -1364,170 +1067,104 @@
                         });
                         const clusterResult = await clusterResponse.json();
 
-                        // Create visualization data points
-                        // Since Netflix data is high-dimensional, we simulate 2D projection
-                        const numUsers = clusterResult.cluster_assignments.length;
-                        const netflixData = clusterResult.cluster_assignments.map((cluster, i) => {
-                            // Create pseudo-2D positions based on cluster
-                            const clusterCenters = [
-                                { x: 0.2, y: 0.8 }, { x: 0.8, y: 0.7 }, { x: 0.5, y: 0.2 },
-                                { x: 0.3, y: 0.5 }, { x: 0.7, y: 0.4 }, { x: 0.5, y: 0.7 },
-                                { x: 0.2, y: 0.3 }, { x: 0.8, y: 0.2 }
-                            ];
-                            const center = clusterCenters[cluster % clusterCenters.length] || { x: 0.5, y: 0.5 };
+                        const clusterCenters = [
+                            { x: 0.2, y: 0.8 }, { x: 0.8, y: 0.7 }, { x: 0.5, y: 0.2 },
+                            { x: 0.3, y: 0.5 }, { x: 0.7, y: 0.4 }, { x: 0.5, y: 0.7 }
+                        ];
 
+                        const netflixData = clusterResult.cluster_assignments.map((cluster, i) => {
+                            const center = clusterCenters[cluster % clusterCenters.length];
                             return {
-                                id: i,
-                                x: center.x + (Math.random() - 0.5) * 0.25,
-                                y: center.y + (Math.random() - 0.5) * 0.25,
-                                cluster: cluster,
-                                userId: `User_${i + 1}`,
-                                ratings: {} // Will be populated with movie preferences
+                                id: i, x: center.x + (Math.random() - 0.5) * 0.25, y: center.y + (Math.random() - 0.5) * 0.25,
+                                cluster, userId: `User_${i + 1}`
                             };
                         });
 
                         setRawData(netflixData);
                         setData(netflixData);
-
-                        // Update metrics from API
                         setMetrics({
-                            inertia: clusterResult.inertia ? clusterResult.inertia.toFixed(2) : 'N/A',
-                            silhouette: clusterResult.silhouette_score ? clusterResult.silhouette_score.toFixed(3) : 'N/A',
+                            inertia: clusterResult.inertia?.toFixed(2) || 'N/A',
+                            silhouette: clusterResult.silhouette_score?.toFixed(3) || 'N/A',
                             numClusters: clusterResult.n_clusters_found,
-                            iterations: 1
+                            iterations: 'API'
                         });
 
-                        // Get cluster profiles from API
-                        const profileResponse = await fetch(`${API_BASE}/cluster_profiles/${k}`);
-                        const profileData = await profileResponse.json();
-
-                        // Convert API profiles to visualization format
-                        const profiles = [];
-                        const sizes = [];
-                        Object.keys(profileData.cluster_sizes).forEach((clusterKey, idx) => {
-                            const clusterNum = parseInt(clusterKey.replace('cluster_', ''));
-                            sizes.push({
-                                name: `Cluster ${clusterNum + 1}`,
-                                value: profileData.cluster_sizes[clusterKey],
-                                color: CLUSTER_COLORS[clusterNum % CLUSTER_COLORS.length]
-                            });
-
-                            const profile = { cluster: `Cluster ${clusterNum + 1}` };
-                            const clusterProfile = profileData.cluster_profiles[clusterKey] || {};
-                            Object.keys(clusterProfile).slice(0, 4).forEach(movie => {
-                                profile[movie] = clusterProfile[movie];
-                            });
-                            profiles.push(profile);
-                        });
-
-                        setClusterProfiles(profiles);
-                        setClusterSizes(sizes);
-
+                        updateClusterSizes(netflixData);
                     } catch (err) {
-                        console.error('Failed to load Netflix data:', err);
-                        // Fall back to synthetic
+                        console.error('Netflix data load failed:', err);
                         loadSyntheticData();
                     }
                 } else {
                     loadSyntheticData();
                 }
 
-                setIsLoadingData(false);
-            }, [apiConnected, k]);
+                setIsLoading(false);
+            }, [dataSource, apiConnected, k]);
 
-            // Load synthetic data
-            const loadSyntheticData = useCallback(() => {
-                const mockData = generateMockData(150);
+            const loadSyntheticData = () => {
+                const mockData = generateSyntheticClusterData(150);
                 setRawData(mockData);
                 setData(mockData);
-                setNetflixMovies([]);
 
-                // Calculate elbow data for synthetic
                 const elbowResults = [];
                 for (let testK = 1; testK <= 10; testK++) {
-                    const testCentroids = initializeCentroids(mockData, testK);
+                    let testCentroids = initializeCentroids(mockData, testK);
                     let testData = mockData;
                     for (let i = 0; i < 10; i++) {
                         testData = assignClusters(testData, testCentroids);
-                        const newCentroids = updateCentroids(testData, testCentroids, testK);
-                        testCentroids.splice(0, testCentroids.length, ...newCentroids);
+                        testCentroids = updateCentroids(testData, testCentroids, testK);
                     }
-                    elbowResults.push({
-                        k: testK,
-                        inertia: calculateInertia(testData),
-                        silhouette: calculateSilhouette(testData, testK)
-                    });
+                    elbowResults.push({ k: testK, inertia: calculateInertia(testData), silhouette: calculateSilhouette(testData, testK) });
                 }
                 setElbowData(elbowResults);
                 setSilhouetteData(elbowResults.map(d => ({ k: d.k, score: d.silhouette })));
-
                 setMetrics({ inertia: 0, silhouette: 0, numClusters: 0, iterations: 0 });
-                setClusterProfiles([]);
                 setClusterSizes([]);
-            }, []);
+            };
 
-            // Initialize with synthetic data
-            useEffect(() => {
-                loadData(dataSource);
-            }, []);
+            const updateClusterSizes = (clusteredData) => {
+                const sizes = [];
+                const uniqueClusters = [...new Set(clusteredData.map(d => d.cluster))].filter(c => c >= 0).sort();
+                uniqueClusters.forEach(c => {
+                    const count = clusteredData.filter(d => d.cluster === c).length;
+                    sizes.push({ name: `Cluster ${c + 1}`, value: count, color: CLUSTER_COLORS[c % CLUSTER_COLORS.length] });
+                });
+                setClusterSizes(sizes);
+            };
 
-            // Handle data source change
-            useEffect(() => {
-                loadData(dataSource);
-            }, [dataSource]);
+            useEffect(() => { loadData(); }, [dataSource]);
 
-            // Reset algorithm
             const handleReset = useCallback(() => {
                 setIsPlaying(false);
                 setIsConverged(false);
                 setIteration(0);
                 setAnimationPhase('idle');
-
-                if (animationRef.current) {
-                    clearTimeout(animationRef.current);
-                }
+                if (animationRef.current) clearTimeout(animationRef.current);
 
                 const resetData = rawData.map(d => ({ ...d, cluster: -1, distance: 0 }));
                 setData(resetData);
-
-                if (algorithm === 'kmeans') {
-                    const newCentroids = initializeCentroids(resetData, k);
-                    setCentroids(newCentroids);
-                } else {
-                    setCentroids([]);
-                }
-
+                const newCentroids = initializeCentroids(resetData, k);
+                setCentroids(newCentroids);
                 setMetrics({ inertia: 0, silhouette: 0, numClusters: 0, iterations: 0 });
-                setClusterProfiles([]);
                 setClusterSizes([]);
-            }, [rawData, algorithm, k]);
+            }, [rawData, k]);
 
-            // Run one step of K-means
             const runStep = useCallback(() => {
-                if (algorithm !== 'kmeans' || isConverged) return;
+                if (isConverged) return;
 
                 setAnimationPhase('assigning');
-
                 setTimeout(() => {
-                    // Assign clusters
                     const newData = assignClusters(data, centroids);
                     setData(newData);
 
                     setTimeout(() => {
                         setAnimationPhase('updating');
-
-                        // Update centroids
                         const newCentroids = updateCentroids(newData, centroids, k);
-
-                        // Check convergence
-                        const movement = newCentroids.reduce((sum, c, i) => {
-                            return sum + euclideanDistance(c, centroids[i]);
-                        }, 0);
+                        const movement = newCentroids.reduce((sum, c, i) => sum + euclideanDistance(c, centroids[i]), 0);
 
                         setCentroids(newCentroids);
                         setIteration(prev => prev + 1);
 
-                        // Update metrics
                         const inertia = calculateInertia(newData);
                         const silhouette = calculateSilhouette(newData, k);
 
@@ -1538,8 +1175,7 @@
                             iterations: iteration + 1
                         });
 
-                        // Update cluster profiles
-                        updateClusterAnalysis(newData, k);
+                        updateClusterSizes(newData);
 
                         if (movement < 0.001) {
                             setIsConverged(true);
@@ -1550,72 +1186,15 @@
                         }
                     }, speedMs[speed] / 3);
                 }, speedMs[speed] / 3);
-            }, [algorithm, data, centroids, k, iteration, isConverged, speed]);
+            }, [data, centroids, k, iteration, isConverged, speed]);
 
-            // Run DBSCAN
-            const runDBSCAN = useCallback(() => {
-                const result = dbscan(rawData, eps, minSamples);
-                setData(result);
-                setCentroids([]);
-
-                const uniqueClusters = [...new Set(result.map(d => d.cluster))].filter(c => c >= 0);
-                const silhouette = calculateSilhouette(result, uniqueClusters.length);
-
-                setMetrics({
-                    inertia: 'N/A',
-                    silhouette: silhouette.toFixed(3),
-                    numClusters: uniqueClusters.length,
-                    iterations: 1
-                });
-
-                updateClusterAnalysis(result, uniqueClusters.length);
-                setIsConverged(true);
-            }, [rawData, eps, minSamples]);
-
-            // Update cluster analysis
-            const updateClusterAnalysis = (clusteredData, numClusters) => {
-                const genres = ['Action', 'Comedy', 'Drama', 'Horror', 'Sci-Fi', 'Romance'];
-                const profiles = [];
-                const sizes = [];
-
-                for (let i = 0; i < numClusters; i++) {
-                    const clusterPoints = clusteredData.filter(d => d.cluster === i);
-                    if (clusterPoints.length === 0) continue;
-
-                    sizes.push({
-                        name: `Cluster ${i + 1}`,
-                        value: clusterPoints.length,
-                        color: CLUSTER_COLORS[i % CLUSTER_COLORS.length]
-                    });
-
-                    const profile = { cluster: `Cluster ${i + 1}` };
-                    genres.forEach(genre => {
-                        const avgRating = clusterPoints.reduce((sum, p) => sum + (p.ratings?.[genre] || 0), 0) / clusterPoints.length;
-                        profile[genre] = parseFloat(avgRating.toFixed(2));
-                    });
-                    profiles.push(profile);
-                }
-
-                setClusterProfiles(profiles);
-                setClusterSizes(sizes);
-            };
-
-            // Auto-play effect
             useEffect(() => {
                 if (isPlaying && !isConverged) {
-                    animationRef.current = setTimeout(() => {
-                        runStep();
-                    }, speedMs[speed]);
+                    animationRef.current = setTimeout(runStep, speedMs[speed]);
                 }
-
-                return () => {
-                    if (animationRef.current) {
-                        clearTimeout(animationRef.current);
-                    }
-                };
+                return () => { if (animationRef.current) clearTimeout(animationRef.current); };
             }, [isPlaying, isConverged, runStep, speed]);
 
-            // Handle play/pause
             const handlePlay = () => {
                 if (iteration === 0) {
                     handleReset();
@@ -1625,355 +1204,413 @@
                 }
             };
 
-            // Handle algorithm change
-            useEffect(() => {
-                handleReset();
-            }, [algorithm]);
-
-            // Run DBSCAN when parameters change
-            useEffect(() => {
-                if (algorithm === 'dbscan') {
-                    runDBSCAN();
-                }
-            }, [algorithm, eps, minSamples]);
-
             return (
-                <div className="app-container">
-                    {/* Header */}
-                    <header style={{
-                        background: '#2774AE',
-                        padding: '1rem 2rem 1.5rem 2rem',
-                        position: 'sticky',
-                        top: 0,
-                        zIndex: 100
-                    }}>
-                        <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div>
-                                <p style={{ fontSize: '0.65rem', color: '#2774AE', fontWeight: 400, marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
-                                    MGMT298D: Science and Strategy of AI
-                                </p>
-                                <h1 style={{ fontSize: '1.4rem', fontWeight: 600, color: '#f5f5f5', letterSpacing: '0' }}>
-                                    Week 3: Clustering
-                                </h1>
-                                <p style={{ fontSize: '0.85rem', color: '#c0c0c0', marginTop: '0.25rem' }}>
-                                    User Segmentation with K-Means and DBSCAN
-                                </p>
-                            </div>
-                            <div style={{ textAlign: 'right' }}>
-                                <span style={{
-                                    fontSize: '1rem',
-                                    fontWeight: 500,
-                                    color: '#f5f5f5'
-                                }}>
-                                    UCLA Anderson
-                                </span>
-                            </div>
-                        </div>
-                        <div className="header-gold-line"></div>
-                    </header>
-
-                    {/* Controls Section */}
+                <div>
                     <div className="controls-section">
-                        {/* Data Source Toggle */}
-                        <div style={{
-                            marginBottom: '20px',
-                            background: apiConnected && dataSource === 'netflix'
-                                ? 'rgba(39, 174, 96, 0.1)'
-                                : 'rgba(39, 116, 174, 0.1)',
-                            border: `1px solid ${apiConnected && dataSource === 'netflix' ? 'rgba(39, 174, 96, 0.3)' : 'rgba(39, 116, 174, 0.3)'}`,
-                            borderRadius: '8px',
-                            padding: '12px 20px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            flexWrap: 'wrap',
-                            gap: '12px'
-                        }}>
+                        <div className={`data-source-bar ${dataSource === 'netflix' ? 'netflix' : ''}`}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <span style={{ fontWeight: '600', color: '#1a1a1a' }}>Data Source:</span>
+                                <span style={{ fontWeight: '600' }}>Data Source:</span>
                                 <div style={{ display: 'flex', gap: '8px' }}>
-                                    <button
-                                        onClick={() => setDataSource('synthetic')}
-                                        disabled={isLoadingData}
-                                        style={{
-                                            padding: '8px 16px',
-                                            borderRadius: '6px',
-                                            border: dataSource === 'synthetic' ? '2px solid #2774AE' : '1px solid #ddd',
-                                            background: dataSource === 'synthetic' ? 'rgba(39, 116, 174, 0.15)' : 'white',
-                                            color: dataSource === 'synthetic' ? '#2774AE' : '#666',
-                                            fontWeight: dataSource === 'synthetic' ? '600' : '400',
-                                            cursor: isLoadingData ? 'not-allowed' : 'pointer',
-                                            fontSize: '0.85rem'
-                                        }}
-                                    >
+                                    <button className={`data-toggle-btn synthetic ${dataSource === 'synthetic' ? 'active' : ''}`}
+                                        onClick={() => setDataSource('synthetic')} disabled={isLoading}>
                                         Synthetic Data
                                     </button>
-                                    <button
-                                        onClick={() => setDataSource('netflix')}
-                                        disabled={isLoadingData || !apiConnected}
-                                        style={{
-                                            padding: '8px 16px',
-                                            borderRadius: '6px',
-                                            border: dataSource === 'netflix' ? '2px solid #27ae60' : '1px solid #ddd',
-                                            background: dataSource === 'netflix' ? 'rgba(39, 174, 96, 0.15)' : 'white',
-                                            color: dataSource === 'netflix' ? '#27ae60' : '#666',
-                                            fontWeight: dataSource === 'netflix' ? '600' : '400',
-                                            cursor: (isLoadingData || !apiConnected) ? 'not-allowed' : 'pointer',
-                                            opacity: apiConnected ? 1 : 0.5,
-                                            fontSize: '0.85rem'
-                                        }}
-                                    >
+                                    <button className={`data-toggle-btn netflix ${dataSource === 'netflix' ? 'active' : ''}`}
+                                        onClick={() => setDataSource('netflix')} disabled={isLoading || !apiConnected}>
                                         Netflix Ratings
                                     </button>
                                 </div>
                             </div>
                             <div style={{ fontSize: '0.8rem', color: '#666' }}>
-                                {isLoadingData ? (
-                                    <span>Loading data...</span>
-                                ) : dataSource === 'netflix' ? (
-                                    <span style={{ color: '#27ae60' }}>
-                                        ✓ {netflixMovies.length} movies, {rawData.length} users
-                                    </span>
-                                ) : (
-                                    <span>150 synthetic user profiles</span>
-                                )}
-                                {!apiConnected && (
-                                    <span style={{ marginLeft: '8px', color: '#999' }}>
-                                        (API offline - Netflix unavailable)
-                                    </span>
-                                )}
+                                {isLoading ? 'Loading data...' : `${rawData.length} user profiles`}
+                                {!apiConnected && <span style={{ marginLeft: '8px', color: '#999' }}>(API offline)</span>}
                             </div>
                         </div>
 
                         <div className="control-panel">
-                                <h3>
-                                    <span style={{color: 'var(--primary)'}}>&#9881;</span>
-                                    Algorithm Configuration
-                                </h3>
-                                <div className="controls-grid">
-                                    <div className="control-group">
-                                        <label>Algorithm</label>
-                                        <select value={algorithm} onChange={(e) => setAlgorithm(e.target.value)}>
-                                            <option value="kmeans">K-Means</option>
-                                            <option value="dbscan">DBSCAN</option>
-                                        </select>
-                                    </div>
-
-                                    {algorithm === 'kmeans' && (
-                                        <div className="control-group">
-                                            <label>Number of Clusters (k)</label>
-                                            <input
-                                                type="range"
-                                                min="2"
-                                                max="10"
-                                                value={k}
-                                                onChange={(e) => setK(parseInt(e.target.value))}
-                                            />
-                                            <div className="slider-value">{k} clusters</div>
-                                        </div>
-                                    )}
-
-                                    {algorithm === 'dbscan' && (
-                                        <>
-                                            <div className="control-group">
-                                                <label>Epsilon (eps)</label>
-                                                <input
-                                                    type="range"
-                                                    min="0.05"
-                                                    max="0.5"
-                                                    step="0.01"
-                                                    value={eps}
-                                                    onChange={(e) => setEps(parseFloat(e.target.value))}
-                                                />
-                                                <div className="slider-value">{eps.toFixed(2)}</div>
-                                            </div>
-                                            <div className="control-group">
-                                                <label>Min Samples</label>
-                                                <input
-                                                    type="range"
-                                                    min="2"
-                                                    max="10"
-                                                    value={minSamples}
-                                                    onChange={(e) => setMinSamples(parseInt(e.target.value))}
-                                                />
-                                                <div className="slider-value">{minSamples} points</div>
-                                            </div>
-                                        </>
-                                    )}
+                            <h3>⚙️ K-Means Configuration</h3>
+                            <div className="controls-grid">
+                                <div className="control-group">
+                                    <label>Number of Clusters (k)</label>
+                                    <input type="range" min="2" max="8" value={k} onChange={(e) => setK(parseInt(e.target.value))} />
+                                    <div className="slider-value">{k} clusters</div>
                                 </div>
+                                <div className="control-group">
+                                    <label>Animation Speed</label>
+                                    <div className="speed-selector">
+                                        {['slow', 'medium', 'fast'].map(s => (
+                                            <button key={s} className={`speed-btn ${speed === s ? 'active' : ''}`} onClick={() => setSpeed(s)}>
+                                                {s.charAt(0).toUpperCase() + s.slice(1)}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
 
-                                {algorithm === 'kmeans' && (
+                            <div style={{ display: 'flex', gap: '10px', marginTop: '20px', flexWrap: 'wrap' }}>
+                                <button className={`anim-btn ${isPlaying ? 'reset' : 'play'}`} onClick={handlePlay} disabled={isConverged || dataSource === 'netflix'}>
+                                    {isPlaying ? '⏸ Pause' : '▶ Play'}
+                                </button>
+                                <button className="anim-btn play" onClick={runStep} disabled={isPlaying || isConverged || dataSource === 'netflix'}>
+                                    ⏭ Step
+                                </button>
+                                <button className="anim-btn reset" onClick={handleReset} disabled={dataSource === 'netflix'}>
+                                    ↺ Reset
+                                </button>
+                            </div>
+
+                            {dataSource === 'synthetic' && (
+                                <div className="algorithm-status">
+                                    <div className="status-item">
+                                        <span className="status-label">Phase:</span>
+                                        <span className="status-value">
+                                            {animationPhase === 'idle' && 'Ready'}
+                                            {animationPhase === 'assigning' && 'Assigning Points...'}
+                                            {animationPhase === 'updating' && 'Moving Centroids...'}
+                                            {animationPhase === 'converged' && '✓ Converged!'}
+                                        </span>
+                                    </div>
+                                    <div className="status-item">
+                                        <span className="status-label">Iteration:</span>
+                                        <span className="status-value">{iteration}</span>
+                                    </div>
+                                    <div className="status-item">
+                                        <span className="status-label">Status:</span>
+                                        <span className="status-value">{isConverged ? '✓ Done' : isPlaying ? 'Running' : 'Paused'}</span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="results-section">
+                        <div className="metrics-grid">
+                            <div className="metric-card"><div className="value">{metrics.inertia}</div><div className="label">Inertia (WCSS)</div></div>
+                            <div className="metric-card"><div className="value">{metrics.silhouette}</div><div className="label">Silhouette Score</div></div>
+                            <div className="metric-card"><div className="value">{metrics.numClusters}</div><div className="label">Clusters</div></div>
+                            <div className="metric-card"><div className="value">{metrics.iterations}</div><div className="label">Iterations</div></div>
+                        </div>
+
+                        <div className="main-grid">
+                            <div className="chart-card hero">
+                                <h3>Clustering Visualization (2D PCA Projection)</h3>
+                                {isLoading ? (
+                                    <div className="loading"><div className="loading-spinner"></div>Loading data...</div>
+                                ) : (
                                     <>
-                                        <div className="animation-controls" style={{marginTop: '20px'}}>
-                                            <button
-                                                className={`anim-btn ${isPlaying ? 'reset' : 'play'}`}
-                                                onClick={handlePlay}
-                                                disabled={isConverged}
-                                            >
-                                                {isPlaying ? '|| Pause' : '> Play'}
-                                            </button>
-                                            <button
-                                                className="anim-btn step"
-                                                onClick={runStep}
-                                                disabled={isPlaying || isConverged}
-                                            >
-                                                >> Step
-                                            </button>
-                                            <button
-                                                className="anim-btn reset"
-                                                onClick={handleReset}
-                                            >
-                                                Reset
-                                            </button>
-
-                                            <div className="speed-selector">
-                                                {['slow', 'medium', 'fast'].map(s => (
-                                                    <button
-                                                        key={s}
-                                                        className={`speed-btn ${speed === s ? 'active' : ''}`}
-                                                        onClick={() => setSpeed(s)}
-                                                    >
-                                                        {s.charAt(0).toUpperCase() + s.slice(1)}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        <div className="algorithm-status">
-                                            <div className="status-item">
-                                                <span className="status-label">Phase:</span>
-                                                <span className="status-value">
-                                                    {animationPhase === 'idle' && 'Ready'}
-                                                    {animationPhase === 'assigning' && 'Assigning Points...'}
-                                                    {animationPhase === 'updating' && 'Moving Centroids...'}
-                                                    {animationPhase === 'converged' && 'Converged!'}
-                                                </span>
-                                            </div>
-                                            <div className="status-item">
-                                                <span className="status-label">Iteration:</span>
-                                                <span className="status-value">{iteration}</span>
-                                            </div>
-                                            <div className="status-item">
-                                                <span className="status-label">Status:</span>
-                                                <span className={`status-value ${isConverged ? 'converged' : ''}`}>
-                                                    {isConverged ? 'Converged' : isPlaying ? 'Running' : 'Paused'}
-                                                </span>
-                                            </div>
+                                        <AnimatedScatterPlot data={data} centroids={centroids} animationPhase={animationPhase} highlightedCluster={highlightedCluster} />
+                                        <div className="cluster-legend">
+                                            {clusterSizes.map((cluster, idx) => (
+                                                <div key={idx} className="legend-item" onMouseEnter={() => setHighlightedCluster(idx)} onMouseLeave={() => setHighlightedCluster(null)}>
+                                                    <div className="legend-dot" style={{ background: cluster.color }}></div>
+                                                    {cluster.name} ({cluster.value})
+                                                </div>
+                                            ))}
                                         </div>
                                     </>
                                 )}
                             </div>
+
+                            <div className="chart-card">
+                                <h3>Elbow Method (Inertia vs k)</h3>
+                                <LineChartComponent data={elbowData} dataKey="inertia" xKey="k" title="Inertia" />
+                            </div>
+
+                            <div className="chart-card">
+                                <h3>Silhouette Score by k</h3>
+                                <BarChartComponent data={silhouetteData} dataKey="score" xKey="k" title="Silhouette" highlightValue={k} />
+                            </div>
+
+                            <div className="chart-card">
+                                <h3>Cluster Size Distribution</h3>
+                                {clusterSizes.length > 0 ? <PieChartComponent data={clusterSizes} /> : (
+                                    <div style={{ height: '250px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888' }}>
+                                        Run clustering to see distribution
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // ==================== COLLABORATIVE FILTERING TAB COMPONENT ====================
+
+        const CollaborativeFilteringTab = () => {
+            const [dataSource, setDataSource] = useState('synthetic');
+            const [apiConnected, setApiConnected] = useState(false);
+            const [isLoading, setIsLoading] = useState(false);
+
+            const [users, setUsers] = useState([]);
+            const [items, setItems] = useState([]);
+            const [selectedUser, setSelectedUser] = useState(null);
+            const [kNeighbors, setKNeighbors] = useState(5);
+            const [recommendations, setRecommendations] = useState([]);
+            const [neighbors, setNeighbors] = useState([]);
+
+            useEffect(() => {
+                fetch(`${API_BASE}/`)
+                    .then(r => r.ok && setApiConnected(true))
+                    .catch(() => setApiConnected(false));
+            }, []);
+
+            const loadData = useCallback(async () => {
+                setIsLoading(true);
+
+                if (dataSource === 'netflix' && apiConnected) {
+                    try {
+                        const usersResponse = await fetch(`${API_BASE}/users`);
+                        const usersData = await usersResponse.json();
+
+                        const moviesResponse = await fetch(`${API_BASE}/movies`);
+                        const moviesData = await moviesResponse.json();
+
+                        // Create user objects with placeholder ratings (API provides aggregated data)
+                        const apiUsers = usersData.user_ids.slice(0, 50).map((userId, i) => ({
+                            id: i,
+                            userId: `User_${userId}`,
+                            ratings: {} // Will be populated when user is selected
+                        }));
+
+                        setUsers(apiUsers);
+                        setItems(moviesData.slice(0, 15));
+                        setSelectedUser(apiUsers[0] || null);
+                    } catch (err) {
+                        console.error('Netflix CF data load failed:', err);
+                        loadSyntheticCF();
+                    }
+                } else {
+                    loadSyntheticCF();
+                }
+
+                setIsLoading(false);
+            }, [dataSource, apiConnected]);
+
+            const loadSyntheticCF = () => {
+                const { users: syntheticUsers, items: syntheticItems } = generateSyntheticCFData();
+                setUsers(syntheticUsers);
+                setItems(syntheticItems);
+                setSelectedUser(syntheticUsers[0] || null);
+            };
+
+            useEffect(() => { loadData(); }, [dataSource]);
+
+            const runRecommendation = useCallback(() => {
+                if (!selectedUser || users.length === 0) return;
+
+                if (dataSource === 'netflix' && apiConnected) {
+                    // For Netflix, use the API's recommend endpoint
+                    fetch(`${API_BASE}/recommend`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            user_id: parseInt(selectedUser.userId.replace('User_', '')),
+                            movie: items[0] || 'Action',
+                            n_neighbors: kNeighbors
+                        })
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        setNeighbors(data.similar_users.map((id, i) => ({
+                            user: { userId: `User_${id}` },
+                            similarity: (1 - i * 0.1).toFixed(2)
+                        })));
+                        setRecommendations([{
+                            item: data.movie,
+                            predicted: data.predicted_rating
+                        }]);
+                    })
+                    .catch(err => console.error('Recommendation failed:', err));
+                } else {
+                    // Use local algorithm for synthetic data
+                    const result = getRecommendations(selectedUser, users, items, kNeighbors);
+                    setRecommendations(result.recommendations);
+                    setNeighbors(result.neighbors);
+                }
+            }, [selectedUser, users, items, kNeighbors, dataSource, apiConnected]);
+
+            useEffect(() => {
+                if (selectedUser && dataSource === 'synthetic') {
+                    runRecommendation();
+                }
+            }, [selectedUser, kNeighbors, runRecommendation]);
+
+            return (
+                <div>
+                    <div className="controls-section">
+                        <div className={`data-source-bar ${dataSource === 'netflix' ? 'netflix' : ''}`}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <span style={{ fontWeight: '600' }}>Data Source:</span>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <button className={`data-toggle-btn synthetic ${dataSource === 'synthetic' ? 'active' : ''}`}
+                                        onClick={() => setDataSource('synthetic')} disabled={isLoading}>
+                                        Synthetic Data
+                                    </button>
+                                    <button className={`data-toggle-btn netflix ${dataSource === 'netflix' ? 'active' : ''}`}
+                                        onClick={() => setDataSource('netflix')} disabled={isLoading || !apiConnected}>
+                                        Netflix Ratings
+                                    </button>
+                                </div>
+                            </div>
+                            <div style={{ fontSize: '0.8rem', color: '#666' }}>
+                                {isLoading ? 'Loading data...' : `${users.length} users, ${items.length} items`}
+                            </div>
+                        </div>
+
+                        <div className="control-panel">
+                            <h3>👥 User-Based Collaborative Filtering</h3>
+                            <div className="controls-grid">
+                                <div className="control-group">
+                                    <label>Select User</label>
+                                    <select value={selectedUser?.id || ''} onChange={(e) => setSelectedUser(users.find(u => u.id === parseInt(e.target.value)))}>
+                                        {users.slice(0, 20).map(u => (
+                                            <option key={u.id} value={u.id}>{u.userId}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="control-group">
+                                    <label>K Nearest Neighbors</label>
+                                    <input type="range" min="3" max="15" value={kNeighbors} onChange={(e) => setKNeighbors(parseInt(e.target.value))} />
+                                    <div className="slider-value">{kNeighbors} neighbors</div>
+                                </div>
+                                <div className="control-group">
+                                    <label>&nbsp;</label>
+                                    <button className="anim-btn play" onClick={runRecommendation} disabled={!selectedUser}>
+                                        🔍 Get Recommendations
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Results Section */}
                     <div className="results-section">
-                                {/* Metrics */}
-                                <div className="metrics-grid">
-                                    <div className="metric-card">
-                                        <div className="value">{metrics.inertia}</div>
-                                        <div className="label">Inertia (WCSS)</div>
-                                    </div>
-                                    <div className="metric-card">
-                                        <div className="value">{metrics.silhouette}</div>
-                                        <div className="label">Silhouette Score</div>
-                                    </div>
-                                    <div className="metric-card">
-                                        <div className="value">{metrics.numClusters}</div>
-                                        <div className="label">Clusters Found</div>
-                                    </div>
-                                    <div className="metric-card">
-                                        <div className="value">{metrics.iterations}</div>
-                                        <div className="label">Iterations</div>
-                                    </div>
-                                </div>
+                        <div className="metrics-grid">
+                            <div className="metric-card"><div className="value">{users.length}</div><div className="label">Total Users</div></div>
+                            <div className="metric-card"><div className="value">{items.length}</div><div className="label">Total Items</div></div>
+                            <div className="metric-card"><div className="value">{kNeighbors}</div><div className="label">K Neighbors</div></div>
+                            <div className="metric-card"><div className="value">{recommendations.length}</div><div className="label">Recommendations</div></div>
+                        </div>
 
-                                {/* Main Visualization */}
+                        <div className="main-grid">
+                            {dataSource === 'synthetic' && (
                                 <div className="chart-card hero">
-                                    <h3>
-                                        Animated Clustering Visualization (2D PCA Projection)
-                                    </h3>
-                                    <AnimatedScatterPlot
-                                        data={data}
-                                        centroids={centroids}
-                                        animationPhase={animationPhase}
-                                        highlightedCluster={highlightedCluster}
-                                    />
-                                    <div className="cluster-legend">
-                                        {clusterSizes.map((cluster, idx) => (
-                                            <div
-                                                key={idx}
-                                                className="legend-item"
-                                                onMouseEnter={() => setHighlightedCluster(idx)}
-                                                onMouseLeave={() => setHighlightedCluster(null)}
-                                                style={{cursor: 'pointer'}}
-                                            >
-                                                <div className="legend-dot" style={{background: cluster.color}}></div>
-                                                {cluster.name} ({cluster.value} users)
+                                    <h3>User Similarity Matrix (Cosine Similarity)</h3>
+                                    {isLoading ? (
+                                        <div className="loading"><div className="loading-spinner"></div>Loading...</div>
+                                    ) : (
+                                        <SimilarityHeatmap users={users} items={items} selectedUser={selectedUser} />
+                                    )}
+                                </div>
+                            )}
+
+                            <div className="chart-card">
+                                <h3>K Nearest Neighbors for {selectedUser?.userId || 'N/A'}</h3>
+                                {neighbors.length > 0 ? (
+                                    <div className="neighbors-grid">
+                                        {neighbors.map((n, i) => (
+                                            <div key={i} className="neighbor-card">
+                                                <div className="neighbor-id">{n.user.userId.replace('User_', 'U')}</div>
+                                                <div className="neighbor-sim">Sim: {typeof n.similarity === 'number' ? n.similarity.toFixed(3) : n.similarity}</div>
                                             </div>
                                         ))}
-                                        {algorithm === 'kmeans' && (
-                                            <div className="legend-item">
-                                                <div className="legend-centroid" style={{background: '#333', border: '2px solid #fff'}}></div>
-                                                Centroid
-                                            </div>
-                                        )}
                                     </div>
+                                ) : (
+                                    <div style={{ padding: '40px', textAlign: 'center', color: '#888' }}>
+                                        Click "Get Recommendations" to find similar users
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="chart-card">
+                                <h3>Top Recommendations</h3>
+                                {recommendations.length > 0 ? (
+                                    <ul className="recommendation-list">
+                                        {recommendations.map((rec, i) => (
+                                            <li key={i} className="recommendation-item">
+                                                <div className="rec-rank">{i + 1}</div>
+                                                <div className="rec-info">
+                                                    <div className="rec-title">{rec.item}</div>
+                                                    <div className="rec-subtitle">Based on similar users' ratings</div>
+                                                </div>
+                                                <div className="rec-rating">
+                                                    <span className="rec-stars">★</span>
+                                                    <span className="rec-score">{rec.predicted.toFixed(2)}</span>
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <div style={{ padding: '40px', textAlign: 'center', color: '#888' }}>
+                                        No recommendations yet
+                                    </div>
+                                )}
+                            </div>
+
+                            {selectedUser && dataSource === 'synthetic' && (
+                                <div className="chart-card">
+                                    <h3>{selectedUser.userId}'s Existing Ratings</h3>
+                                    <ul className="recommendation-list">
+                                        {Object.entries(selectedUser.ratings).slice(0, 5).map(([item, rating], i) => (
+                                            <li key={i} className="recommendation-item">
+                                                <div className="rec-info">
+                                                    <div className="rec-title">{item}</div>
+                                                </div>
+                                                <div className="rec-rating">
+                                                    <span className="rec-stars">{'★'.repeat(rating)}</span>
+                                                    <span className="rec-score">{rating}</span>
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
                                 </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
 
-                                {/* Secondary Charts */}
-                                <div className="main-grid">
-                                    {/* Elbow Plot */}
-                                    <div className="chart-card">
-                                        <h3>
-                                            Elbow Method (Inertia vs k)
-                                        </h3>
-                                        <LineChartComponent
-                                            data={elbowData}
-                                            dataKey="inertia"
-                                            xKey="k"
-                                            title="Inertia"
-                                        />
-                                    </div>
+        // ==================== MAIN APP COMPONENT ====================
 
-                                    {/* Silhouette Scores */}
-                                    <div className="chart-card">
-                                        <h3>
-                                            Silhouette Score by k
-                                        </h3>
-                                        <BarChartComponent
-                                            data={silhouetteData}
-                                            dataKey="score"
-                                            xKey="k"
-                                            title="Silhouette Score"
-                                            highlightValue={k}
-                                        />
-                                    </div>
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('kmeans');
 
-                                    {/* Cluster Sizes */}
-                                    <div className="chart-card">
-                                        <h3>
-                                            Cluster Size Distribution
-                                        </h3>
-                                        <PieChartComponent data={clusterSizes} />
-                                    </div>
+            return (
+                <div>
+                    <header className="header">
+                        <div className="header-content">
+                            <div>
+                                <p style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.7)', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
+                                    MGMT298D: Science and Strategy of AI
+                                </p>
+                                <h1 style={{ fontSize: '1.4rem', fontWeight: 600, color: '#f5f5f5' }}>
+                                    Week 3: Clustering & Collaborative Filtering
+                                </h1>
+                                <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)', marginTop: '0.25rem' }}>
+                                    User Segmentation with K-Means & Recommendations with User-Based CF
+                                </p>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                                <span style={{ fontSize: '1rem', fontWeight: 500, color: '#f5f5f5' }}>UCLA Anderson</span>
+                            </div>
+                        </div>
+                        <div className="header-gold-line"></div>
+                    </header>
 
-                                    {/* Cluster Profiles */}
-                                    <div className="chart-card">
-                                        <h3>
-                                            {dataSource === 'netflix' ? 'Cluster Movie Preferences' : 'Cluster Genre Profiles'}
-                                        </h3>
-                                        <HorizontalBarChartComponent
-                                            data={clusterProfiles}
-                                            genres={dataSource === 'netflix' && clusterProfiles.length > 0
-                                                ? Object.keys(clusterProfiles[0] || {}).filter(k => k !== 'cluster').slice(0, 4)
-                                                : ['Action', 'Comedy', 'Drama', 'Horror']}
-                                        />
-                                    </div>
-                                </div>
+                    <div className="main-tabs">
+                        <button className={`main-tab ${activeTab === 'kmeans' ? 'active' : ''}`} onClick={() => setActiveTab('kmeans')}>
+                            K-Means Clustering
+                        </button>
+                        <button className={`main-tab ${activeTab === 'cf' ? 'active' : ''}`} onClick={() => setActiveTab('cf')}>
+                            Collaborative Filtering
+                        </button>
                     </div>
 
-                    {/* Footer */}
-                    <p style={{ color: '#888', fontSize: '0.75rem', marginTop: '20px', textAlign: 'center' }}>
+                    {activeTab === 'kmeans' && <KMeansTab />}
+                    {activeTab === 'cf' && <CollaborativeFilteringTab />}
+
+                    <p className="footer">
                         MGMT298D: Science and Strategy of AI | UCLA Anderson School of Management
                     </p>
                 </div>
