@@ -798,13 +798,13 @@
             );
         };
 
-        // Filter Visualization - Realistic CNN filter patterns
-        // Filter Visualization - Shows REAL trained filters from the model
+        // Filter Visualization - Shows trained CNN filters
         const FilterVisualization = ({ layer, trainedFilters }) => {
             const canvasRefs = useRef([]);
             const numFiltersToShow = 8;
 
             // Get filter data for this layer
+            // New format: filterData is array of filters, each filter is [h][w][channels]
             const filterData = useMemo(() => {
                 if (!trainedFilters || !trainedFilters[`layer${layer}`]) {
                     return null;
@@ -813,90 +813,77 @@
             }, [trainedFilters, layer]);
 
             useEffect(() => {
-                if (!filterData) return;
+                if (!filterData || !Array.isArray(filterData)) return;
 
-                // filterData shape: [kernelH, kernelW, inChannels, outChannels]
-                const kernelH = filterData.length;
-                const kernelW = filterData[0].length;
-                const inChannels = filterData[0][0].length;
-                const outChannels = filterData[0][0][0].length;
-
-                const numToRender = Math.min(numFiltersToShow, outChannels);
+                const numFilters = filterData.length;
+                const numToRender = Math.min(numFiltersToShow, numFilters);
 
                 for (let filterIdx = 0; filterIdx < numToRender; filterIdx++) {
                     const canvas = canvasRefs.current[filterIdx];
                     if (!canvas) continue;
+
+                    const filter = filterData[filterIdx];
+                    if (!filter) continue;
+
+                    const kernelH = filter.length;
+                    const kernelW = filter[0].length;
+                    const channels = filter[0][0];
+                    const isRGB = layer === 1 && Array.isArray(channels) && channels.length === 3;
 
                     const ctx = canvas.getContext('2d');
                     const displaySize = 48;
                     canvas.width = displaySize;
                     canvas.height = displaySize;
 
-                    // Extract this filter's weights
-                    // For layer 1, we can show RGB channels directly
-                    // For deeper layers, we'll average across input channels
-                    const filterWeights = [];
+                    // Find min/max for normalization
                     let minVal = Infinity, maxVal = -Infinity;
-
                     for (let h = 0; h < kernelH; h++) {
-                        filterWeights[h] = [];
                         for (let w = 0; w < kernelW; w++) {
-                            if (layer === 1 && inChannels === 3) {
-                                // For first layer with RGB input, keep separate channels
-                                filterWeights[h][w] = [
-                                    filterData[h][w][0][filterIdx], // R channel
-                                    filterData[h][w][1][filterIdx], // G channel
-                                    filterData[h][w][2][filterIdx]  // B channel
-                                ];
+                            const val = filter[h][w];
+                            if (isRGB) {
                                 for (let c = 0; c < 3; c++) {
-                                    minVal = Math.min(minVal, filterWeights[h][w][c]);
-                                    maxVal = Math.max(maxVal, filterWeights[h][w][c]);
+                                    minVal = Math.min(minVal, val[c]);
+                                    maxVal = Math.max(maxVal, val[c]);
                                 }
+                            } else if (Array.isArray(val)) {
+                                // Average across channels for deeper layers
+                                const avg = val.reduce((a, b) => a + b, 0) / val.length;
+                                minVal = Math.min(minVal, avg);
+                                maxVal = Math.max(maxVal, avg);
                             } else {
-                                // For deeper layers, average across input channels
-                                let sum = 0;
-                                for (let c = 0; c < inChannels; c++) {
-                                    sum += filterData[h][w][c][filterIdx];
-                                }
-                                filterWeights[h][w] = sum / inChannels;
-                                minVal = Math.min(minVal, filterWeights[h][w]);
-                                maxVal = Math.max(maxVal, filterWeights[h][w]);
+                                minVal = Math.min(minVal, val);
+                                maxVal = Math.max(maxVal, val);
                             }
                         }
                     }
 
-                    // Normalize and render
+                    const range = maxVal - minVal || 1;
                     const imageData = ctx.createImageData(displaySize, displaySize);
                     const data = imageData.data;
-                    const range = maxVal - minVal || 1;
 
                     for (let py = 0; py < displaySize; py++) {
                         for (let px = 0; px < displaySize; px++) {
                             const idx = (py * displaySize + px) * 4;
-
-                            // Map display pixel to kernel position
                             const kh = Math.floor(py / displaySize * kernelH);
                             const kw = Math.floor(px / displaySize * kernelW);
+                            const val = filter[kh][kw];
 
-                            if (layer === 1 && inChannels === 3) {
+                            if (isRGB) {
                                 // RGB visualization for first layer
-                                const weights = filterWeights[kh][kw];
-                                data[idx] = Math.round(((weights[0] - minVal) / range) * 255);     // R
-                                data[idx + 1] = Math.round(((weights[1] - minVal) / range) * 255); // G
-                                data[idx + 2] = Math.round(((weights[2] - minVal) / range) * 255); // B
+                                data[idx] = Math.round(((val[0] - minVal) / range) * 255);
+                                data[idx + 1] = Math.round(((val[1] - minVal) / range) * 255);
+                                data[idx + 2] = Math.round(((val[2] - minVal) / range) * 255);
                             } else {
-                                // Grayscale with diverging colormap (blue-white-red)
-                                const val = filterWeights[kh][kw];
-                                const normalized = (val - minVal) / range; // 0 to 1
-                                const centered = normalized * 2 - 1; // -1 to 1
+                                // Diverging colormap (blue-white-red) for deeper layers
+                                const avgVal = Array.isArray(val) ? val.reduce((a, b) => a + b, 0) / val.length : val;
+                                const normalized = (avgVal - minVal) / range;
+                                const centered = normalized * 2 - 1;
 
                                 if (centered < 0) {
-                                    // Negative: blue
-                                    data[idx] = Math.round(128 + centered * 128 + 127);
-                                    data[idx + 1] = Math.round(128 + centered * 128 + 127);
+                                    data[idx] = Math.round(255 * (1 + centered));
+                                    data[idx + 1] = Math.round(255 * (1 + centered));
                                     data[idx + 2] = 255;
                                 } else {
-                                    // Positive: red
                                     data[idx] = 255;
                                     data[idx + 1] = Math.round(255 - centered * 127);
                                     data[idx + 2] = Math.round(255 - centered * 127);
@@ -922,14 +909,14 @@
                             textAlign: 'center',
                             width: '100%'
                         }}>
-                            Train the model to see actual learned filters
+                            Train the model to see learned filters
                         </div>
                     </div>
                 );
             }
 
-            const outChannels = filterData[0][0][0].length;
-            const numToShow = Math.min(numFiltersToShow, outChannels);
+            const numFilters = filterData.length;
+            const numToShow = Math.min(numFiltersToShow, numFilters);
 
             return (
                 <div className="filter-grid">
@@ -948,14 +935,14 @@
                             <div className="filter-name">Filter {idx + 1}</div>
                         </div>
                     ))}
-                    {outChannels > numFiltersToShow && (
+                    {numFilters > numFiltersToShow && (
                         <div style={{
                             padding: '0.5rem',
                             color: '#888',
                             fontSize: '0.75rem',
                             alignSelf: 'center'
                         }}>
-                            +{outChannels - numFiltersToShow} more
+                            +{numFilters - numFiltersToShow} more
                         </div>
                     )}
                 </div>
@@ -1159,15 +1146,17 @@
             );
         };
 
-        // Backend API URL - change this to your Railway backend URL after deployment
-        const API_BASE_URL = window.location.hostname === 'localhost'
-            ? 'http://localhost:5000'
-            : 'https://week6-cnn-backend.up.railway.app';  // Update this after deploying backend
+        // ============================================
+        // Python Keras Backend for Real CNN Training
+        // ============================================
+
+        // Backend API URL - UPDATE THIS after deploying to Railway
+        const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5000';
 
         // CNN Builder Tab
         const CNNBuilderTab = () => {
             const { modelState, setModelState } = useContext(ModelContext);
-            const { config, setConfig, trainingHistory, setTrainingHistory, isModelTrained, setIsModelTrained, trainedFilters, setTrainedFilters, sessionId, setSessionId } = modelState;
+            const { config, setConfig, trainingHistory, setTrainingHistory, isModelTrained, setIsModelTrained, trainedFilters, setTrainedFilters } = modelState;
 
             const [isTraining, setIsTraining] = useState(false);
             const [currentEpoch, setCurrentEpoch] = useState(0);
@@ -1175,6 +1164,22 @@
             const [classificationResults, setClassificationResults] = useState([]);
             const [trainingStatus, setTrainingStatus] = useState('');
             const [testAccuracy, setTestAccuracy] = useState(null);
+            const [sessionId, setSessionId] = useState(null);
+            const [backendStatus, setBackendStatus] = useState('checking');
+
+            // Check backend health on mount
+            useEffect(() => {
+                fetch(`${API_BASE_URL}/api/health`)
+                    .then(r => r.json())
+                    .then(data => {
+                        setBackendStatus('connected');
+                        console.log('Backend connected:', data);
+                    })
+                    .catch(err => {
+                        setBackendStatus('disconnected');
+                        console.error('Backend not available:', err);
+                    });
+            }, []);
 
             useEffect(() => {
                 const samples = CIFAR10_CLASSES.slice(0, 8).map(cls => ({
@@ -1199,7 +1204,13 @@
                 return params;
             }, [config]);
 
+            // REAL TRAINING via Python Backend
             const runTraining = async () => {
+                if (backendStatus !== 'connected') {
+                    setTrainingStatus('Error: Backend not connected. Start the Python server first.');
+                    return;
+                }
+
                 setIsTraining(true);
                 setTrainingHistory([]);
                 setCurrentEpoch(0);
@@ -1207,33 +1218,37 @@
                 setIsModelTrained(false);
                 setTrainedFilters(null);
                 setTestAccuracy(null);
-                setTrainingStatus('Connecting to training server...');
+                setTrainingStatus('Starting training on Python backend...');
 
                 try {
-                    // Start training on backend
-                    const startResponse = await fetch(`${API_BASE_URL}/api/train`, {
+                    // Start training session
+                    const response = await fetch(`${API_BASE_URL}/api/train`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(config)
                     });
 
-                    if (!startResponse.ok) {
+                    if (!response.ok) {
                         throw new Error('Failed to start training');
                     }
 
-                    const { session_id } = await startResponse.json();
+                    const { session_id } = await response.json();
                     setSessionId(session_id);
 
-                    // Poll for training progress
+                    // Poll for progress
                     let complete = false;
                     while (!complete) {
-                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        await new Promise(r => setTimeout(r, 500));
 
-                        const statusResponse = await fetch(`${API_BASE_URL}/api/train/${session_id}`);
-                        const status = await statusResponse.json();
+                        const statusRes = await fetch(`${API_BASE_URL}/api/train/${session_id}`);
+                        const status = await statusRes.json();
+
+                        if (status.error) {
+                            throw new Error(status.error);
+                        }
 
                         setTrainingStatus(status.status);
-                        setCurrentEpoch(status.current_epoch);
+                        setCurrentEpoch(status.current_epoch || 0);
 
                         if (status.history && status.history.length > 0) {
                             setTrainingHistory([...status.history]);
@@ -1242,7 +1257,7 @@
                         if (status.status === 'complete') {
                             complete = true;
 
-                            // Set trained filters
+                            // Set filters from backend
                             if (status.filters) {
                                 setTrainedFilters(status.filters);
                             }
@@ -1252,7 +1267,7 @@
                                 setTestAccuracy(status.test_accuracy);
                             }
 
-                            // Set classification results
+                            // Set predictions
                             if (status.sample_predictions) {
                                 const results = sampleImages.map((img, idx) => ({
                                     ...img,
@@ -1265,14 +1280,14 @@
                             setTrainingStatus('Training complete!');
                         }
 
-                        if (status.status.startsWith('error')) {
-                            throw new Error(status.error || status.status);
+                        if (status.status === 'error') {
+                            throw new Error(status.error || 'Training failed');
                         }
                     }
 
                 } catch (error) {
                     console.error('Training error:', error);
-                    setTrainingStatus(`Error: ${error.message}. Make sure the backend is running.`);
+                    setTrainingStatus(`Error: ${error.message}`);
                 }
 
                 setIsTraining(false);
@@ -1353,8 +1368,63 @@
                                     onChange={(e) => setConfig({...config, epochs: parseInt(e.target.value)})} />
                             </div>
 
-                            <button className="run-button" onClick={runTraining} disabled={isTraining}>
-                                {isTraining ? <><div className="loading-spinner" /> {trainingStatus || `Training Epoch ${currentEpoch}/${config.epochs}`}</> : <>▶ Train CNN on CIFAR-10 (10,000 images)</>}
+                            <div className="control-group">
+                                <div className="control-label">
+                                    <span>Training Samples (CIFAR-10)</span>
+                                    <span className="control-value">{config.numSamples.toLocaleString()}</span>
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                                    {[100, 1000, 10000].map(n => (
+                                        <button
+                                            key={n}
+                                            onClick={() => setConfig({...config, numSamples: n})}
+                                            style={{
+                                                flex: 1,
+                                                padding: '0.5rem',
+                                                border: config.numSamples === n ? '2px solid #2774AE' : '1px solid #ddd',
+                                                borderRadius: '6px',
+                                                background: config.numSamples === n ? '#2774AE' : '#f5f5f5',
+                                                color: config.numSamples === n ? 'white' : '#333',
+                                                cursor: 'pointer',
+                                                fontWeight: config.numSamples === n ? 'bold' : 'normal',
+                                                fontSize: '0.85rem',
+                                                transition: 'all 0.15s ease'
+                                            }}
+                                        >
+                                            {n.toLocaleString()}
+                                        </button>
+                                    ))}
+                                </div>
+                                <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '0.3rem' }}>
+                                    More samples = better accuracy, slower training
+                                </div>
+                            </div>
+
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                marginBottom: '0.5rem',
+                                padding: '0.5rem',
+                                borderRadius: '6px',
+                                background: backendStatus === 'connected' ? '#e8f5e9' : backendStatus === 'checking' ? '#fff3e0' : '#ffebee',
+                                fontSize: '0.8rem'
+                            }}>
+                                <div style={{
+                                    width: '8px',
+                                    height: '8px',
+                                    borderRadius: '50%',
+                                    background: backendStatus === 'connected' ? '#4CAF50' : backendStatus === 'checking' ? '#FF9800' : '#f44336'
+                                }} />
+                                <span>
+                                    {backendStatus === 'connected' && 'Python backend connected'}
+                                    {backendStatus === 'checking' && 'Checking backend...'}
+                                    {backendStatus === 'disconnected' && 'Backend not connected — start Python server on port 5000'}
+                                </span>
+                            </div>
+
+                            <button className="run-button" onClick={runTraining} disabled={isTraining || backendStatus !== 'connected'}>
+                                {isTraining ? <><div className="loading-spinner" /> {trainingStatus}</> : <>▶ Train CNN (Python/Keras)</>}
                             </button>
                             {isModelTrained && trainedFilters && (
                                 <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#4CAF50' }}>
@@ -1870,19 +1940,17 @@
             const [activeTab, setActiveTab] = useState('cnn');
             const [config, setConfig] = useState({
                 convBlocks: 3, filters: 32, kernelSize: 3,
-                poolType: 'max', batchNorm: true, dropout: 0.25, epochs: 20
+                poolType: 'max', batchNorm: true, dropout: 0.25, epochs: 20, numSamples: 1000
             });
             const [trainingHistory, setTrainingHistory] = useState([]);
             const [isModelTrained, setIsModelTrained] = useState(false);
             const [trainedFilters, setTrainedFilters] = useState(null);
-            const [sessionId, setSessionId] = useState(null);
 
             const modelState = {
                 config, setConfig,
                 trainingHistory, setTrainingHistory,
                 isModelTrained, setIsModelTrained,
-                trainedFilters, setTrainedFilters,
-                sessionId, setSessionId
+                trainedFilters, setTrainedFilters
             };
 
             const tabs = [

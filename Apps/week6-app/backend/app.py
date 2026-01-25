@@ -1,18 +1,24 @@
 """
 Flask backend for Week 6 CNN Training App
-Provides real CNN training on CIFAR-10 with Keras/TensorFlow
+Real CNN training on CIFAR-10 with Keras
 """
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import numpy as np
+import os
+
+# Set TensorFlow to CPU only and reduce logging
+os.environ['CUDA_VISIBLE_DEVICES'] = ''
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
+from tensorflow.keras.datasets import cifar10
 import threading
 import uuid
-import base64
-from io import BytesIO
+import json
 
 app = Flask(__name__)
 CORS(app)
@@ -20,10 +26,22 @@ CORS(app)
 # Store training sessions
 training_sessions = {}
 
+# Load CIFAR-10 once at startup
+print("Loading CIFAR-10 dataset...")
+(X_TRAIN_FULL, Y_TRAIN_FULL), (X_TEST, Y_TEST) = cifar10.load_data()
+X_TRAIN_FULL = X_TRAIN_FULL.astype('float32') / 255.0
+X_TEST = X_TEST.astype('float32') / 255.0
+Y_TRAIN_FULL = Y_TRAIN_FULL.flatten()
+Y_TEST = Y_TEST.flatten()
+print(f"Loaded {len(X_TRAIN_FULL)} training images, {len(X_TEST)} test images")
+
+CIFAR10_CLASSES = ['airplane', 'automobile', 'bird', 'cat', 'deer',
+                   'dog', 'frog', 'horse', 'ship', 'truck']
+
+
 def build_cnn_model(config):
-    """Build CNN model based on config"""
+    """Build CNN model based on frontend config"""
     model = keras.Sequential()
-    input_channels = 3
 
     for i in range(config['convBlocks']):
         filters = config['filters'] * (2 ** min(i, 2))
@@ -31,7 +49,7 @@ def build_cnn_model(config):
         if i == 0:
             model.add(layers.Conv2D(
                 filters,
-                config['kernelSize'],
+                (config['kernelSize'], config['kernelSize']),
                 padding='same',
                 activation='relu',
                 input_shape=(32, 32, 3),
@@ -40,7 +58,7 @@ def build_cnn_model(config):
         else:
             model.add(layers.Conv2D(
                 filters,
-                config['kernelSize'],
+                (config['kernelSize'], config['kernelSize']),
                 padding='same',
                 activation='relu',
                 name=f'conv2d_{i}'
@@ -49,7 +67,7 @@ def build_cnn_model(config):
         if config.get('batchNorm', False):
             model.add(layers.BatchNormalization(name=f'bn_{i}'))
 
-        model.add(layers.MaxPooling2D(pool_size=2, name=f'pool_{i}'))
+        model.add(layers.MaxPooling2D(pool_size=(2, 2), name=f'pool_{i}'))
 
         if config.get('dropout', 0) > 0:
             model.add(layers.Dropout(config['dropout']))
@@ -60,80 +78,78 @@ def build_cnn_model(config):
     model.add(layers.Dense(10, activation='softmax'))
 
     model.compile(
-        optimizer='adam',
-        loss='categorical_crossentropy',
+        optimizer=keras.optimizers.Adam(learning_rate=0.001),
+        loss='sparse_categorical_crossentropy',
         metrics=['accuracy']
     )
 
     return model
 
+
 def extract_filters(model, num_blocks):
     """Extract filter weights from trained model"""
     filters = {}
+
     for i in range(num_blocks):
         try:
-            conv_layer = model.get_layer(f'conv2d_{i}')
-            weights = conv_layer.get_weights()[0]  # [H, W, in_channels, out_channels]
-            filters[f'layer{i+1}'] = weights.tolist()
-        except:
-            pass
+            layer = model.get_layer(f'conv2d_{i}')
+            weights = layer.get_weights()[0]  # Shape: [H, W, in_channels, out_filters]
+
+            # Reshape to [num_filters][H][W][channels] for frontend
+            h, w, in_c, out_f = weights.shape
+            layer_filters = []
+
+            for f in range(out_f):
+                filter_data = []
+                for y in range(h):
+                    row = []
+                    for x in range(w):
+                        channels = [float(weights[y, x, c, f]) for c in range(in_c)]
+                        row.append(channels)
+                    filter_data.append(row)
+                layer_filters.append(filter_data)
+
+            filters[f'layer{i + 1}'] = layer_filters
+        except Exception as e:
+            print(f"Error extracting layer {i}: {e}")
+
     return filters
 
-def filter_to_image(weights, layer_idx):
-    """Convert filter weights to base64 image for visualization"""
-    # weights shape: [H, W, in_channels, out_channels]
-    images = []
-    num_filters = min(8, weights.shape[-1])
-
-    for f in range(num_filters):
-        if layer_idx == 0 and weights.shape[2] == 3:
-            # First layer with RGB - show as color
-            filter_data = weights[:, :, :, f]
-            # Normalize to 0-255
-            filter_data = (filter_data - filter_data.min()) / (filter_data.max() - filter_data.min() + 1e-8)
-            filter_data = (filter_data * 255).astype(np.uint8)
-        else:
-            # Average across input channels for grayscale
-            filter_data = weights[:, :, :, f].mean(axis=2)
-            # Normalize to 0-255
-            filter_data = (filter_data - filter_data.min()) / (filter_data.max() - filter_data.min() + 1e-8)
-            filter_data = (filter_data * 255).astype(np.uint8)
-            filter_data = np.stack([filter_data] * 3, axis=-1)
-
-        images.append(filter_data.tolist())
-
-    return images
 
 def train_model_async(session_id, config):
     """Train model in background thread"""
     session = training_sessions[session_id]
 
     try:
-        # Load CIFAR-10
-        session['status'] = 'Loading CIFAR-10 dataset...'
-        (x_train, y_train), (x_test, y_test) = keras.datasets.cifar10.load_data()
+        # Get training sample size
+        num_samples = config.get('numSamples', 1000)
+        session['status'] = f'Preparing {num_samples} training samples...'
 
-        # Normalize
-        x_train = x_train.astype('float32') / 255.0
-        x_test = x_test.astype('float32') / 255.0
+        # Sample from full training set (balanced across classes)
+        samples_per_class = num_samples // 10
+        indices = []
+        for class_idx in range(10):
+            class_indices = np.where(Y_TRAIN_FULL == class_idx)[0]
+            selected = np.random.choice(class_indices, size=min(samples_per_class, len(class_indices)), replace=False)
+            indices.extend(selected)
 
-        # One-hot encode
-        y_train = keras.utils.to_categorical(y_train, 10)
-        y_test = keras.utils.to_categorical(y_test, 10)
+        np.random.shuffle(indices)
+        X_train = X_TRAIN_FULL[indices]
+        y_train = Y_TRAIN_FULL[indices]
 
-        # Use subset for faster training (still much more than 20 images!)
-        # Use 10,000 training samples for reasonable speed
-        train_size = min(10000, len(x_train))
-        x_train = x_train[:train_size]
-        y_train = y_train[:train_size]
+        # Use subset of test set for faster validation
+        test_indices = np.random.choice(len(X_TEST), size=min(1000, len(X_TEST)), replace=False)
+        X_val = X_TEST[test_indices]
+        y_val = Y_TEST[test_indices]
 
         session['status'] = 'Building model...'
         model = build_cnn_model(config)
 
         session['status'] = 'Training...'
         session['history'] = []
+        session['current_epoch'] = 0
 
-        # Custom callback to update progress
+        # Custom callback for progress updates
         class ProgressCallback(keras.callbacks.Callback):
             def on_epoch_end(self, epoch, logs=None):
                 session['current_epoch'] = epoch + 1
@@ -143,61 +159,60 @@ def train_model_async(session_id, config):
                     'trainLoss': float(logs['loss']),
                     'valLoss': float(logs['val_loss'])
                 })
-                session['status'] = f"Training epoch {epoch + 1}/{config['epochs']}..."
+                session['status'] = f"Epoch {epoch + 1}/{config['epochs']}"
 
         # Train
         model.fit(
-            x_train, y_train,
-            batch_size=64,
+            X_train, y_train,
+            batch_size=32,
             epochs=config['epochs'],
-            validation_split=0.2,
+            validation_data=(X_val, y_val),
             callbacks=[ProgressCallback()],
             verbose=0
         )
 
-        session['status'] = 'Extracting filters...'
-
-        # Extract filter weights
+        # Extract filters
+        session['status'] = 'Extracting learned filters...'
         filters = extract_filters(model, config['convBlocks'])
         session['filters'] = filters
 
-        # Convert filters to images for easy visualization
-        filter_images = {}
-        for i in range(config['convBlocks']):
-            try:
-                conv_layer = model.get_layer(f'conv2d_{i}')
-                weights = conv_layer.get_weights()[0]
-                filter_images[f'layer{i+1}'] = filter_to_image(weights, i)
-            except:
-                pass
-        session['filter_images'] = filter_images
-
-        # Evaluate on test set
+        # Final evaluation on full test set
         session['status'] = 'Evaluating...'
-        test_loss, test_acc = model.evaluate(x_test, y_test, verbose=0)
+        test_loss, test_acc = model.evaluate(X_TEST, Y_TEST, verbose=0)
         session['test_accuracy'] = float(test_acc * 100)
 
-        # Save some predictions for visualization
-        predictions = model.predict(x_test[:8], verbose=0)
+        # Sample predictions
+        sample_indices = [np.where(Y_TEST == i)[0][0] for i in range(10)][:8]
+        sample_images = X_TEST[sample_indices]
+        predictions = model.predict(sample_images, verbose=0)
+
         session['sample_predictions'] = [
             {
-                'true': int(y_test[i].argmax()),
-                'predicted': int(predictions[i].argmax()),
-                'confidence': float(predictions[i].max())
+                'true': int(Y_TEST[sample_indices[i]]),
+                'predicted': int(np.argmax(predictions[i])),
+                'confidence': float(np.max(predictions[i]))
             }
-            for i in range(8)
+            for i in range(len(sample_indices))
         ]
 
         session['status'] = 'complete'
         session['model'] = model
 
     except Exception as e:
-        session['status'] = f'error: {str(e)}'
+        import traceback
+        session['status'] = 'error'
         session['error'] = str(e)
+        print(f"Training error: {traceback.format_exc()}")
+
 
 @app.route('/api/health', methods=['GET'])
 def health():
-    return jsonify({'status': 'ok', 'tf_version': tf.__version__})
+    return jsonify({
+        'status': 'ok',
+        'tf_version': tf.__version__,
+        'cifar_loaded': len(X_TRAIN_FULL)
+    })
+
 
 @app.route('/api/train', methods=['POST'])
 def start_training():
@@ -211,15 +226,18 @@ def start_training():
         'current_epoch': 0,
         'history': [],
         'filters': None,
-        'filter_images': None,
-        'model': None
+        'model': None,
+        'test_accuracy': None,
+        'sample_predictions': None
     }
 
-    # Start training in background
+    # Start training in background thread
     thread = threading.Thread(target=train_model_async, args=(session_id, config))
+    thread.daemon = True
     thread.start()
 
     return jsonify({'session_id': session_id})
+
 
 @app.route('/api/train/<session_id>', methods=['GET'])
 def get_training_status(session_id):
@@ -238,58 +256,48 @@ def get_training_status(session_id):
 
     if session['status'] == 'complete':
         response['filters'] = session['filters']
-        response['filter_images'] = session['filter_images']
-        response['test_accuracy'] = session.get('test_accuracy')
-        response['sample_predictions'] = session.get('sample_predictions')
+        response['test_accuracy'] = session['test_accuracy']
+        response['sample_predictions'] = session['sample_predictions']
 
-    if 'error' in session:
+    if session.get('error'):
         response['error'] = session['error']
 
     return jsonify(response)
+
 
 @app.route('/api/predict', methods=['POST'])
 def predict():
     """Make prediction with trained model"""
     data = request.json
     session_id = data.get('session_id')
-    image_data = data.get('image')  # base64 or array
 
     if session_id not in training_sessions:
         return jsonify({'error': 'Session not found'}), 404
 
     session = training_sessions[session_id]
-    if session['model'] is None:
+    if session.get('model') is None:
         return jsonify({'error': 'Model not trained yet'}), 400
 
-    # Process image
-    if isinstance(image_data, str) and image_data.startswith('data:'):
-        # Base64 image
-        import base64
-        from PIL import Image
-        base64_data = image_data.split(',')[1]
-        img_bytes = base64.b64decode(base64_data)
-        img = Image.open(BytesIO(img_bytes))
-        img = img.resize((32, 32))
-        img_array = np.array(img)[:, :, :3] / 255.0
-    else:
-        # Array
-        img_array = np.array(image_data) / 255.0
+    # Get image data (base64 or array)
+    image_data = data.get('image')
 
-    img_array = img_array.reshape(1, 32, 32, 3)
+    if isinstance(image_data, list):
+        img_array = np.array(image_data).reshape(1, 32, 32, 3) / 255.0
+    else:
+        return jsonify({'error': 'Invalid image format'}), 400
 
     prediction = session['model'].predict(img_array, verbose=0)[0]
 
-    classes = ['airplane', 'automobile', 'bird', 'cat', 'deer',
-               'dog', 'frog', 'horse', 'ship', 'truck']
-
     return jsonify({
         'predictions': [
-            {'class': classes[i], 'probability': float(prediction[i])}
+            {'class': CIFAR10_CLASSES[i], 'probability': float(prediction[i])}
             for i in range(10)
         ],
-        'top_class': classes[int(prediction.argmax())],
-        'confidence': float(prediction.max())
+        'top_class': CIFAR10_CLASSES[int(np.argmax(prediction))],
+        'confidence': float(np.max(prediction))
     })
 
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False, threaded=True)
