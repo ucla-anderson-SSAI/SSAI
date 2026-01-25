@@ -720,24 +720,34 @@
 
             useEffect(() => {
                 // Try to connect to API and fetch categories
-                fetch(`${API_BASE}/categories`)
-                    .then(r => {
-                        if (r.ok) {
-                            setApiConnected(true);
-                            return r.json();
+                const connectToApi = async () => {
+                    try {
+                        console.log('[Week1] Attempting to connect to API at:', API_BASE);
+                        const response = await fetch(`${API_BASE}/categories`);
+                        console.log('[Week1] Categories response status:', response.status);
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                         }
-                        throw new Error('API not available');
-                    })
-                    .then(data => {
-                        setCategories(data.categories || []);
+
+                        const data = await response.json();
+                        console.log('[Week1] Categories loaded:', data.count);
+
                         if (data.categories && data.categories.length > 0) {
+                            setApiConnected(true);
+                            setCategories(data.categories);
                             setSelectedCategory(data.categories[0]);
+                        } else {
+                            throw new Error('No categories returned from API');
                         }
-                    })
-                    .catch(() => {
+                    } catch (err) {
+                        console.warn('[Week1] API connection failed:', err.message);
                         // Fall back to mock data if API not available
                         setData(generateMockData(80));
-                    });
+                    }
+                };
+
+                connectToApi();
             }, []);
 
             const trainModel = useCallback(async () => {

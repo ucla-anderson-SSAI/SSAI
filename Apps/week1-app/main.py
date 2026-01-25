@@ -132,11 +132,18 @@ async def load_data():
     global df, CATEGORIES
     try:
         print(f"[INFO] Loading data from {DATA_URL}")
-        df = pd.read_csv(DATA_URL)
+        # Use requests-style loading with timeout
+        import io
+        import urllib.request
+        with urllib.request.urlopen(DATA_URL, timeout=30) as response:
+            csv_data = response.read().decode('utf-8')
+        df = pd.read_csv(io.StringIO(csv_data))
         CATEGORIES = sorted(df["name"].unique().tolist())
         print(f"[INFO] Loaded {len(df)} rows, {len(CATEGORIES)} categories from {DATA_URL}")
     except Exception as e:
         print(f"[ERROR] Failed to load data from {DATA_URL}: {str(e)}")
+        import traceback
+        traceback.print_exc()
         df = None
         CATEGORIES = []
 
@@ -297,6 +304,24 @@ async def root():
 @app.get("/categories")
 async def get_categories():
     """List all available product categories."""
+    global df, CATEGORIES
+    # If data wasn't loaded at startup, try again
+    if df is None or len(CATEGORIES) == 0:
+        try:
+            import io
+            import urllib.request
+            print(f"[INFO] Lazy-loading data from {DATA_URL}")
+            with urllib.request.urlopen(DATA_URL, timeout=30) as response:
+                csv_data = response.read().decode('utf-8')
+            df = pd.read_csv(io.StringIO(csv_data))
+            CATEGORIES = sorted(df["name"].unique().tolist())
+            print(f"[INFO] Lazy-loaded {len(df)} rows, {len(CATEGORIES)} categories")
+        except Exception as e:
+            print(f"[ERROR] Failed to lazy-load data: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            raise HTTPException(status_code=503, detail=f"Data not available: {str(e)}")
+
     return {
         "categories": CATEGORIES,
         "count": len(CATEGORIES)
