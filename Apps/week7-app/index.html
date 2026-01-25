@@ -3,200 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Week 7: Embeddings | UCLA Anderson</title>
+    <title>Week 7: How LLMs Work | UCLA Anderson</title>
     <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #2774AE;
-            --accent: #2774AE;
             --darkBlue: #005587;
             --lightBlue: #8BB8E8;
-            --positive: #2774AE;
-            --negative: #005587;
-            --darkBg: #111318;
-            --darkCard: #1a1d24;
-            --darkText: #e5e5e5;
-            --darkMuted: #c0c0c0;
-            --lightBg: #f5f5f5;
-            --lightCard: #ffffff;
-            --textPrimary: #1a1a1a;
+            --gold: #FFD100;
+            --bg: #ffffff;
+            --card: #ffffff;
+            --text: #1a1a1a;
             --textMuted: #666;
+            --border: rgba(0,0,0,0.08);
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #ffffff;
+            background: #f8f9fa;
             min-height: 100vh;
-            color: #1a1a1a;
+            color: var(--text);
         }
 
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #e0e0e0;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: var(--primary);
-            border-radius: 4px;
-        }
-
-        .app-container {
-            max-width: 1600px;
-            margin: 0 auto;
-        }
+        .app-container { min-height: 100vh; }
 
         /* Header */
         .header {
-            background: #ffffff;
-            border-bottom: 2px solid #2774AE;
+            background: var(--primary);
             padding: 1rem 2rem 1.5rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
 
         .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            max-width: 1200px;
-            margin: 0 auto;
         }
 
-        .header-left .course-info {
+        .header-left .course-label {
             font-size: 0.65rem;
-            font-weight: 600;
-            color: #2774AE;
+            font-weight: 400;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 0.25rem;
             letter-spacing: 0.2em;
             text-transform: uppercase;
-            margin-bottom: 6px;
         }
 
         .header-left h1 {
             font-size: 1.4rem;
             font-weight: 600;
-            color: #005587;
-            letter-spacing: -0.01em;
+            color: #ffffff;
         }
 
-        .header-left p {
-            color: #c0c0c0;
+        .header-left .subtitle {
+            color: rgba(255,255,255,0.8);
             font-size: 0.85rem;
-            margin-top: 4px;
+            margin-top: 0.25rem;
         }
 
-        .ucla-badge {
+        .header-right {
             text-align: right;
-        }
-
-        .ucla-badge .ucla-text {
-            font-size: 0.65rem;
-            color: #666666;
-            text-transform: uppercase;
-            letter-spacing: 0.15em;
-            margin-bottom: 2px;
-            margin-bottom: 2px;
-        }
-
-        .ucla-badge .school {
-            font-size: 0.9rem;
-            color: #2774AE;
+            color: #ffffff;
             font-weight: 500;
         }
 
-        .ucla-badge .program {
-            display: none;
+        .header-gold-line {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gold);
         }
 
-        /* Controls Section - Light */
-        .controls-section {
+        /* Tabs */
+        .tabs-container {
             background: #ffffff;
-            padding: 16px 40px;
-            border-bottom: 1px solid rgba(0,0,0,0.08);
+            border-bottom: 1px solid var(--border);
+            padding: 0 2rem;
+            position: sticky;
+            top: 72px;
+            z-index: 99;
         }
 
-        .controls-inner {
-            max-width: 1600px;
+        .tabs {
+            max-width: 1400px;
             margin: 0 auto;
-        }
-
-        /* Tab Navigation */
-        .tab-nav {
             display: flex;
-            gap: 8px;
-            background: #ffffff;
-            padding: 6px;
-            border-radius: 10px;
-            width: fit-content;
+            gap: 0;
+            overflow-x: auto;
         }
 
-        .tab-btn {
-            padding: 10px 24px;
-            border: none;
+        .tab {
+            padding: 1rem 1.5rem;
             background: transparent;
+            border: none;
             color: var(--textMuted);
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             font-weight: 500;
             cursor: pointer;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            white-space: nowrap;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
         }
 
-        .tab-btn:hover {
-            color: var(--textPrimary);
-            background: rgba(0, 0, 0, 0.05);
+        .tab:hover { color: var(--primary); }
+
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
         }
 
-        .tab-btn.active {
-            background: var(--primary);
-            color: #ffffff;
-            font-weight: 600;
-        }
-
-        /* Results Section - Light */
-        .results-section {
-            background: var(--lightBg);
-            padding: 24px 40px;
-            min-height: calc(100vh - 180px);
-        }
-
-        .results-inner {
-            max-width: 1600px;
+        /* Main Content */
+        .main-content {
+            max-width: 1400px;
             margin: 0 auto;
+            padding: 2rem;
         }
 
-        /* Cards - Light theme for results */
+        /* Cards */
         .card {
-            background: #ffffff;
-            border: 1px solid rgba(0,0,0,0.08);
+            background: var(--card);
             border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            margin-bottom: 1.5rem;
         }
 
         .card-title {
             font-size: 1.1rem;
             font-weight: 600;
-            color: var(--textPrimary);
-            margin-bottom: 16px;
+            color: var(--text);
+            margin-bottom: 1rem;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 0.5rem;
         }
 
         .card-title svg {
@@ -205,202 +155,173 @@
             color: var(--primary);
         }
 
-        /* Light card variant for control panel (override dark) */
-        .card.dark {
-            background: #ffffff;
-            border: 1px solid rgba(0,0,0,0.08);
-            color: var(--textPrimary);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        /* Grid layouts */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; }
+
+        @media (max-width: 900px) {
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
         }
 
-        .card.dark .card-title {
-            color: var(--textPrimary);
+        /* Input styles */
+        .input-group {
+            margin-bottom: 1rem;
         }
 
-        .card.dark .card-title svg {
-            color: var(--primary);
-        }
-
-        /* Grid Layouts */
-        .main-grid {
-            display: grid;
-            grid-template-columns: 320px 1fr;
-            gap: 24px;
-        }
-
-        .viz-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        .full-width {
-            grid-column: 1 / -1;
-        }
-
-        /* Control Panel - Light */
-        .control-panel .card {
-            background: #ffffff;
-            border: 1px solid rgba(0,0,0,0.08);
-        }
-
-        .control-group {
-            margin-bottom: 20px;
-        }
-
-        .control-label {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
+        .input-label {
+            display: block;
             font-size: 0.85rem;
-            color: var(--textMuted);
-        }
-
-        .control-value {
-            font-family: 'JetBrains Mono', monospace;
-            color: var(--primary);
             font-weight: 500;
-        }
-
-        .button-group {
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
-        }
-
-        .option-btn {
-            padding: 8px 14px;
-            border: 1px solid rgba(39, 116, 174, 0.3);
-            background: rgba(39, 116, 174, 0.05);
             color: var(--textMuted);
-            font-size: 0.85rem;
-            font-family: 'JetBrains Mono', monospace;
-            cursor: pointer;
+            margin-bottom: 0.5rem;
+        }
+
+        .text-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
             border-radius: 8px;
-            transition: all 0.2s ease;
-        }
-
-        .option-btn:hover {
-            border-color: var(--primary);
-            color: var(--textPrimary);
-            background: rgba(39, 116, 174, 0.1);
-        }
-
-        .option-btn.active {
-            background: var(--primary);
-            color: #ffffff;
-            border-color: transparent;
-            font-weight: 600;
-        }
-
-        .slider-container {
-            position: relative;
-        }
-
-        input[type="range"] {
-            width: 100%;
-            height: 6px;
-            border-radius: 3px;
-            background: rgba(39, 116, 174, 0.2);
-            outline: none;
-            -webkit-appearance: none;
-        }
-
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: var(--primary);
-            cursor: pointer;
-            box-shadow: 0 2px 10px rgba(39, 116, 174, 0.3);
-        }
-
-        /* Primary Button */
-        .btn-primary {
-            width: 100%;
-            padding: 14px 24px;
-            background: var(--primary);
-            border: none;
-            border-radius: 10px;
-            color: #ffffff;
             font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 20px;
+            font-family: inherit;
+            transition: border-color 0.2s;
         }
 
-        .btn-primary:hover:not(:disabled) {
-            background: var(--darkBlue);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 30px rgba(39, 116, 174, 0.4);
+        .text-input:focus {
+            outline: none;
+            border-color: var(--primary);
         }
 
-        .btn-primary:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
+        textarea.text-input {
+            min-height: 100px;
+            resize: vertical;
         }
 
-        .btn-secondary {
-            width: 100%;
-            padding: 12px 20px;
-            background: transparent;
-            border: 1px solid var(--primary);
-            border-radius: 10px;
-            color: var(--primary);
+        /* Buttons */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
             font-size: 0.9rem;
             font-weight: 500;
             cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 10px;
+            transition: all 0.2s;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
-        .btn-secondary:hover {
-            background: rgba(39, 116, 174, 0.1);
-            border-color: var(--darkBlue);
-            color: var(--darkBlue);
+        .btn-primary {
+            background: var(--primary);
+            color: white;
         }
 
-        /* Metrics Grid - Light themed */
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            margin-top: 20px;
+        .btn-primary:hover { background: var(--darkBlue); }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: var(--text);
         }
 
-        .metric-card {
-            background: #ffffff;
-            border: 1px solid rgba(0,0,0,0.06);
-            border-radius: 10px;
-            padding: 14px;
-            text-align: center;
+        .btn-secondary:hover { background: #e0e0e0; }
+
+        .btn-group {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
         }
 
-        .metric-value {
-            font-size: 1.4rem;
-            font-weight: 700;
-            font-family: 'JetBrains Mono', monospace;
-            color: var(--primary);
-        }
-
-        .metric-label {
-            font-size: 0.75rem;
+        .btn-option {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: white;
             color: var(--textMuted);
-            margin-top: 4px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.15s;
         }
 
-        /* Attention Heatmap Styles */
+        .btn-option:hover { border-color: var(--primary); }
+
+        .btn-option.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* Token display */
+        .tokens-display {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            min-height: 60px;
+        }
+
+        .token {
+            padding: 0.4rem 0.75rem;
+            background: var(--primary);
+            color: white;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .token-id {
+            background: rgba(255,255,255,0.2);
+            padding: 0.1rem 0.4rem;
+            border-radius: 3px;
+            font-size: 0.75rem;
+        }
+
+        .token.special {
+            background: var(--gold);
+            color: #333;
+        }
+
+        /* Matrix display */
+        .matrix-container {
+            overflow-x: auto;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .matrix {
+            display: inline-block;
+            border-left: 2px solid var(--text);
+            border-right: 2px solid var(--text);
+            padding: 0.5rem;
+        }
+
+        .matrix-row {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .matrix-cell {
+            width: 50px;
+            text-align: right;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            padding: 0.25rem;
+        }
+
+        .matrix-label {
+            font-size: 0.85rem;
+            color: var(--textMuted);
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        /* Attention heatmap */
         .heatmap-container {
-            position: relative;
+            overflow-x: auto;
         }
 
         .attention-head-tabs {
@@ -412,8 +333,8 @@
 
         .head-tab {
             padding: 6px 14px;
-            background: #ffffff;
-            border: 1px solid rgba(0,0,0,0.1);
+            background: #f5f5f5;
+            border: 1px solid var(--border);
             border-radius: 8px;
             color: var(--textMuted);
             font-size: 0.8rem;
@@ -423,23 +344,19 @@
 
         .head-tab:hover {
             border-color: var(--primary);
-            background: rgba(39, 116, 174, 0.05);
         }
 
         .head-tab.active {
             background: var(--primary);
-            color: #ffffff;
-            font-weight: 600;
-            border-color: transparent;
+            color: white;
+            border-color: var(--primary);
         }
 
         .heatmap-grid {
-            display: grid;
-            gap: 2px;
+            display: inline-block;
             padding: 10px;
-            background: #ffffff;
+            background: #f8f9fa;
             border-radius: 12px;
-            border: 1px solid rgba(0,0,0,0.06);
         }
 
         .heatmap-row {
@@ -449,381 +366,301 @@
         }
 
         .heatmap-cell {
+            width: 50px;
+            height: 50px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-family: 'JetBrains Mono', monospace;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .heatmap-cell:hover {
+            transform: scale(1.1);
+            z-index: 10;
+        }
+
+        .heatmap-label {
+            font-size: 0.8rem;
+            color: var(--textMuted);
+            width: 70px;
+            text-align: right;
+            padding-right: 10px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .heatmap-header {
+            display: flex;
+            gap: 2px;
+            margin-left: 70px;
+            margin-bottom: 6px;
+        }
+
+        .heatmap-header-cell {
+            width: 50px;
+            font-size: 0.8rem;
+            color: var(--textMuted);
+            text-align: center;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Positional encoding viz */
+        .pos-encoding-viz {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .pos-row {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .pos-label {
+            width: 80px;
+            font-size: 0.75rem;
+            color: var(--textMuted);
+            text-align: right;
+            padding-right: 8px;
+        }
+
+        .pos-cell {
+            width: 24px;
+            height: 24px;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.6rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Probability bars */
+        .prob-bar-container {
+            margin-bottom: 0.75rem;
+        }
+
+        .prob-bar-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.25rem;
+            font-size: 0.85rem;
+        }
+
+        .prob-bar-token {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+        }
+
+        .prob-bar-value {
+            color: var(--textMuted);
+        }
+
+        .prob-bar {
+            height: 24px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .prob-bar-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+
+        .prob-bar-fill.selected {
+            background: var(--gold);
+        }
+
+        /* Slider */
+        .slider-container {
+            margin: 1rem 0;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #e0e0e0;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+        }
+
+        /* Generated text display */
+        .generated-text {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-family: Georgia, serif;
+        }
+
+        .generated-text .prompt {
+            color: var(--text);
+        }
+
+        .generated-text .completion {
+            color: var(--primary);
+        }
+
+        .generated-text .cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1.2em;
+            background: var(--primary);
+            animation: blink 1s infinite;
+            vertical-align: text-bottom;
+            margin-left: 2px;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        /* Stats/metrics */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--textMuted);
+            margin-top: 0.25rem;
+        }
+
+        /* Explanation boxes */
+        .explanation {
+            background: rgba(39, 116, 174, 0.05);
+            border-left: 3px solid var(--primary);
+            padding: 1rem;
+            border-radius: 0 8px 8px 0;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+            color: var(--textMuted);
+        }
+
+        .explanation strong {
+            color: var(--text);
+        }
+
+        /* Code block */
+        .code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+        }
+
+        .code-block .keyword { color: #569cd6; }
+        .code-block .string { color: #ce9178; }
+        .code-block .number { color: #b5cea8; }
+        .code-block .comment { color: #6a9955; }
+
+        /* Causal mask viz */
+        .mask-grid {
+            display: inline-block;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .mask-row {
+            display: flex;
+            gap: 3px;
+            align-items: center;
+        }
+
+        .mask-cell {
             width: 40px;
             height: 40px;
             border-radius: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.7rem;
-            font-family: 'JetBrains Mono', monospace;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            position: relative;
+            font-size: 0.9rem;
+            font-weight: 500;
         }
 
-        .heatmap-cell:hover {
-            transform: scale(1.15);
-            z-index: 10;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        .mask-cell.allowed {
+            background: rgba(39, 116, 174, 0.2);
+            color: var(--primary);
         }
 
-        .heatmap-label {
-            font-size: 0.75rem;
+        .mask-cell.blocked {
+            background: #f0f0f0;
+            color: #ccc;
+        }
+
+        .mask-label {
+            font-size: 0.8rem;
             color: var(--textMuted);
-            width: 60px;
+            width: 50px;
             text-align: right;
             padding-right: 8px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
 
-        .heatmap-header {
-            display: flex;
-            gap: 2px;
-            margin-left: 60px;
-            margin-bottom: 6px;
-        }
-
-        .heatmap-header-cell {
-            width: 40px;
-            font-size: 0.75rem;
-            color: var(--textMuted);
-            text-align: center;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .attention-tooltip {
-            position: absolute;
-            background: var(--darkBg);
-            border: 1px solid var(--primary);
-            border-radius: 8px;
-            padding: 10px 14px;
-            font-size: 0.85rem;
-            color: var(--darkText);
-            pointer-events: none;
-            z-index: 100;
-            white-space: nowrap;
-        }
-
-        .attention-tooltip .weight {
-            color: var(--accent);
-            font-weight: 600;
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        /* Transformer Block Diagram */
-        .transformer-diagram {
-            background: #ffffff;
-            border-radius: 12px;
-            padding: 20px;
-            overflow-x: auto;
-            border: 1px solid rgba(0,0,0,0.06);
-        }
-
-        .diagram-svg {
-            display: block;
-            margin: 0 auto;
-        }
-
-        /* Color Legend */
-        .color-legend {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin-top: 12px;
-            justify-content: center;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.8rem;
-            color: var(--textMuted);
-        }
-
-        .legend-color {
-            width: 16px;
-            height: 16px;
-            border-radius: 4px;
-        }
-
-        /* Training Progress */
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: #e0e0e0;
-            border-radius: 4px;
-            overflow: hidden;
-            margin-top: 16px;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--primary), var(--lightBlue));
-            border-radius: 4px;
-            transition: width 0.3s ease;
-        }
-
-        /* Comparison Chart */
-        .comparison-bars {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .comparison-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .comparison-label {
-            width: 100px;
-            font-size: 0.85rem;
-            color: var(--textMuted);
-        }
-
-        .comparison-bar-container {
-            flex: 1;
-            height: 28px;
-            background: #ffffff;
-            border-radius: 6px;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .comparison-bar {
-            height: 100%;
-            border-radius: 6px;
-            transition: width 0.5s ease;
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            padding-right: 10px;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-
-        .comparison-bar.transformer {
-            background: linear-gradient(90deg, var(--primary), var(--lightBlue));
-            color: #ffffff;
-        }
-
-        .comparison-bar.lstm {
-            background: linear-gradient(90deg, #2774AE, #2774AE);
-            color: white;
-        }
-
-        /* Instructions Tab */
-        .instructions-content {
-            max-width: 900px;
-            margin: 0 auto;
-        }
-
-        .instruction-section {
-            margin-bottom: 32px;
-        }
-
-        .instruction-section h3 {
-            font-size: 1.3rem;
-            color: var(--textPrimary);
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .instruction-section h3 svg {
-            color: var(--primary);
-        }
-
-        .instruction-section p {
-            color: var(--textMuted);
-            line-height: 1.8;
-            margin-bottom: 12px;
-        }
-
-        .concept-box {
-            background: rgba(39, 116, 174, 0.06);
-            border-left: 3px solid var(--primary);
-            padding: 16px 20px;
-            border-radius: 0 12px 12px 0;
-            margin: 16px 0;
-        }
-
-        .concept-box h4 {
-            color: var(--textPrimary);
-            margin-bottom: 8px;
-        }
-
-        .concept-box p {
-            color: var(--textMuted);
-        }
-
-        .formula-box {
-            background: #ffffff;
-            border: 1px solid rgba(0,0,0,0.1);
-            border-radius: 12px;
-            padding: 20px;
-            text-align: center;
-            margin: 16px 0;
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        .formula-box .formula {
-            font-size: 1.1rem;
-            color: var(--darkBlue);
-        }
-
-        .formula-box .description {
-            font-size: 0.85rem;
-            color: var(--textMuted);
-            margin-top: 10px;
-        }
-
-        .comparison-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 16px 0;
-        }
-
-        .comparison-table th,
-        .comparison-table td {
-            padding: 12px 16px;
-            text-align: left;
-            border-bottom: 1px solid rgba(0,0,0,0.08);
-        }
-
-        .comparison-table th {
-            background: #ffffff;
-            color: var(--textPrimary);
-            font-weight: 600;
-        }
-
-        .comparison-table td {
-            color: var(--textMuted);
-        }
-
-        .comparison-table tr:hover td {
-            background: rgba(39, 116, 174, 0.03);
-        }
-
-        /* Embedding Visualization */
-        .embedding-viz {
-            position: relative;
-            height: 300px;
-            background: #ffffff;
-            border-radius: 12px;
-            overflow: hidden;
-            border: 1px solid rgba(0,0,0,0.06);
-        }
-
-        .embedding-point {
-            position: absolute;
-            width: 10px;
-            height: 10px;
+        /* Loading spinner */
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
             border-radius: 50%;
-            transform: translate(-50%, -50%);
-            cursor: pointer;
-            transition: all 0.3s ease;
+            animation: spin 0.8s linear infinite;
         }
 
-        .embedding-point:hover {
-            transform: translate(-50%, -50%) scale(1.5);
-            z-index: 10;
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
 
-        .embedding-label {
-            position: absolute;
-            font-size: 0.7rem;
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 2rem;
             color: var(--textMuted);
-            white-space: nowrap;
-            pointer-events: none;
-        }
-
-        /* Animation keyframes */
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        @keyframes flow {
-            0% { stroke-dashoffset: 20; }
-            100% { stroke-dashoffset: 0; }
-        }
-
-        .animate-pulse {
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        .data-flow {
-            stroke-dasharray: 5 5;
-            animation: flow 1s linear infinite;
-        }
-
-        /* Responsive */
-        @media (max-width: 1200px) {
-            .main-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .viz-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .header, .controls-section, .results-section {
-                padding-left: 20px;
-                padding-right: 20px;
-            }
-        }
-
-        /* Status Indicator */
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            border-radius: 20px;
             font-size: 0.8rem;
-            font-weight: 500;
-            margin-left: auto;
-        }
-
-        .status-badge.ready {
-            background: rgba(34, 197, 94, 0.12);
-            color: #005587;
-        }
-
-        .status-badge.training {
-            background: rgba(39, 116, 174, 0.12);
-            color: var(--primary);
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: currentColor;
-        }
-
-        .status-badge.training .status-dot {
-            animation: pulse 1s ease-in-out infinite;
-        }
-    
-        .header-gold-line {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: #FFD100;
-            margin: 0;
-            padding: 0;
         }
     </style>
 </head>
@@ -833,924 +670,1779 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
-        // Chart.js Line Chart Component for Training History
-        const TrainingChart = ({ data }) => {
-            const canvasRef = useRef(null);
-            const chartRef = useRef(null);
+        // API Configuration - Update this URL after Railway deployment
+        const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? ''  // Local development
+            : '';  // Will be same-origin when served from Flask
 
-            useEffect(() => {
-                if (!canvasRef.current || !data || data.length === 0) return;
+        // ===========================================
+        // TAB 1: Tokenization
+        // ===========================================
+        const TokenizerTab = () => {
+            const [inputText, setInputText] = useState("The quick brown fox jumps over the lazy dog.");
+            const [tokens, setTokens] = useState([]);
+            const [tokenMethod, setTokenMethod] = useState('bpe');
+            const [isLoading, setIsLoading] = useState(false);
 
-                if (chartRef.current) {
-                    chartRef.current.destroy();
-                }
+            // Simulated BPE tokenization (simplified)
+            const tokenizeBPE = (text) => {
+                // This simulates GPT-style BPE tokenization
+                const bpeTokens = [];
+                const words = text.split(/(\s+)/);
+                let id = 0;
 
-                const ctx = canvasRef.current.getContext('2d');
-                chartRef.current = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: data.map(d => d.epoch),
-                        datasets: [
-                            {
-                                label: 'Train Accuracy',
-                                data: data.map(d => d.train_acc),
-                                borderColor: '#2774AE',
-                                backgroundColor: 'transparent',
-                                borderWidth: 2,
-                                pointRadius: 0,
-                                tension: 0.3
-                            },
-                            {
-                                label: 'Val Accuracy',
-                                data: data.map(d => d.val_acc),
-                                borderColor: '#2774AE',
-                                backgroundColor: 'transparent',
-                                borderWidth: 2,
-                                pointRadius: 0,
-                                tension: 0.3
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: true,
-                                labels: { color: '#666', font: { size: 11 } }
-                            },
-                            tooltip: {
-                                backgroundColor: '#111318',
-                                titleColor: '#e5e5e5',
-                                bodyColor: '#888',
-                                borderColor: '#2774AE',
-                                borderWidth: 1
-                            }
-                        },
-                        scales: {
-                            x: {
-                                ticks: { color: '#666', font: { size: 11 } },
-                                grid: { color: 'rgba(0, 0, 0, 0.06)' }
-                            },
-                            y: {
-                                min: 0,
-                                max: 1,
-                                ticks: { color: '#666', font: { size: 11 } },
-                                grid: { color: 'rgba(0, 0, 0, 0.06)' }
+                words.forEach(word => {
+                    if (word.match(/^\s+$/)) {
+                        // Whitespace token
+                        bpeTokens.push({ text: word.replace(/ /g, '·'), id: id++, type: 'space' });
+                    } else if (word.length <= 3) {
+                        bpeTokens.push({ text: word, id: id++, type: 'word' });
+                    } else {
+                        // Split longer words into subwords (simulated BPE)
+                        const subwords = [];
+                        let remaining = word;
+
+                        // Common prefixes
+                        const prefixes = ['un', 'pre', 're', 'dis'];
+                        for (const prefix of prefixes) {
+                            if (remaining.toLowerCase().startsWith(prefix) && remaining.length > prefix.length + 2) {
+                                subwords.push(prefix);
+                                remaining = remaining.slice(prefix.length);
+                                break;
                             }
                         }
+
+                        // Common suffixes
+                        const suffixes = ['ing', 'tion', 'ed', 'ly', 'er', 'est', 'ness'];
+                        let suffix = '';
+                        for (const suf of suffixes) {
+                            if (remaining.toLowerCase().endsWith(suf) && remaining.length > suf.length + 1) {
+                                suffix = suf;
+                                remaining = remaining.slice(0, -suf.length);
+                                break;
+                            }
+                        }
+
+                        if (remaining.length > 0) subwords.push(remaining);
+                        if (suffix) subwords.push(suffix);
+
+                        subwords.forEach((sub, i) => {
+                            bpeTokens.push({
+                                text: (i > 0 ? '##' : '') + sub,
+                                id: id++,
+                                type: i === 0 ? 'word' : 'subword'
+                            });
+                        });
                     }
                 });
 
-                return () => {
-                    if (chartRef.current) {
-                        chartRef.current.destroy();
+                // Add special tokens
+                return [
+                    { text: '<|start|>', id: 0, type: 'special' },
+                    ...bpeTokens.map((t, i) => ({ ...t, id: i + 1 })),
+                    { text: '<|end|>', id: bpeTokens.length + 1, type: 'special' }
+                ];
+            };
+
+            // Character-level tokenization
+            const tokenizeChar = (text) => {
+                return [
+                    { text: '<SOS>', id: 0, type: 'special' },
+                    ...text.split('').map((char, i) => ({
+                        text: char === ' ' ? '·' : char,
+                        id: i + 1,
+                        type: char === ' ' ? 'space' : 'char'
+                    })),
+                    { text: '<EOS>', id: text.length + 1, type: 'special' }
+                ];
+            };
+
+            // Word-level tokenization
+            const tokenizeWord = (text) => {
+                const words = text.split(/\s+/).filter(w => w.length > 0);
+                return [
+                    { text: '[CLS]', id: 0, type: 'special' },
+                    ...words.map((word, i) => ({ text: word, id: i + 1, type: 'word' })),
+                    { text: '[SEP]', id: words.length + 1, type: 'special' }
+                ];
+            };
+
+            useEffect(() => {
+                if (!inputText.trim()) {
+                    setTokens([]);
+                    return;
+                }
+
+                setIsLoading(true);
+                setTimeout(() => {
+                    let result;
+                    switch (tokenMethod) {
+                        case 'char':
+                            result = tokenizeChar(inputText);
+                            break;
+                        case 'word':
+                            result = tokenizeWord(inputText);
+                            break;
+                        case 'bpe':
+                        default:
+                            result = tokenizeBPE(inputText);
                     }
+                    setTokens(result);
+                    setIsLoading(false);
+                }, 100);
+            }, [inputText, tokenMethod]);
+
+            return (
+                <div>
+                    <div className="grid-2">
+                        <div className="card">
+                            <div className="card-title">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M4 7V4h16v3M9 20h6M12 4v16"/>
+                                </svg>
+                                Tokenization
+                            </div>
+
+                            <div className="explanation">
+                                <strong>What is tokenization?</strong> LLMs don't see text as characters or words—they see <em>tokens</em>.
+                                Tokenization splits text into subword units that balance vocabulary size with meaning preservation.
+                                GPT uses ~50,000 tokens; common words are single tokens, rare words get split.
+                            </div>
+
+                            <div className="input-group">
+                                <label className="input-label">Enter text to tokenize:</label>
+                                <textarea
+                                    className="text-input"
+                                    value={inputText}
+                                    onChange={(e) => setInputText(e.target.value)}
+                                    placeholder="Type any text here..."
+                                />
+                            </div>
+
+                            <div className="input-group">
+                                <label className="input-label">Tokenization method:</label>
+                                <div className="btn-group">
+                                    <button
+                                        className={`btn-option ${tokenMethod === 'bpe' ? 'active' : ''}`}
+                                        onClick={() => setTokenMethod('bpe')}
+                                    >
+                                        BPE (GPT-style)
+                                    </button>
+                                    <button
+                                        className={`btn-option ${tokenMethod === 'word' ? 'active' : ''}`}
+                                        onClick={() => setTokenMethod('word')}
+                                    >
+                                        Word-level
+                                    </button>
+                                    <button
+                                        className={`btn-option ${tokenMethod === 'char' ? 'active' : ''}`}
+                                        onClick={() => setTokenMethod('char')}
+                                    >
+                                        Character-level
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="card">
+                            <div className="card-title">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                    <path d="M3 9h18M9 21V9"/>
+                                </svg>
+                                Tokens ({tokens.length})
+                            </div>
+
+                            <div className="tokens-display">
+                                {isLoading ? (
+                                    <span style={{ color: 'var(--textMuted)' }}>Tokenizing...</span>
+                                ) : tokens.length === 0 ? (
+                                    <span style={{ color: 'var(--textMuted)' }}>Enter text to see tokens</span>
+                                ) : (
+                                    tokens.map((token, i) => (
+                                        <div
+                                            key={i}
+                                            className={`token ${token.type === 'special' ? 'special' : ''}`}
+                                            title={`Token ID: ${token.id}`}
+                                        >
+                                            {token.text}
+                                            <span className="token-id">{token.id}</span>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+
+                            <div style={{ marginTop: '1rem' }}>
+                                <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                                    <div className="stat-card">
+                                        <div className="stat-value">{inputText.length}</div>
+                                        <div className="stat-label">Characters</div>
+                                    </div>
+                                    <div className="stat-card">
+                                        <div className="stat-value">{tokens.length}</div>
+                                        <div className="stat-label">Tokens</div>
+                                    </div>
+                                    <div className="stat-card">
+                                        <div className="stat-value">{tokens.length > 0 ? (inputText.length / tokens.length).toFixed(1) : 0}</div>
+                                        <div className="stat-label">Chars/Token</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="explanation" style={{ marginTop: '1rem' }}>
+                                <strong>Why BPE?</strong> Byte-Pair Encoding finds a balance: common words like "the" stay whole,
+                                while rare words like "tokenization" get split into "token" + "ization". This keeps the vocabulary
+                                manageable (~50K tokens) while handling any text.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // ===========================================
+        // TAB 2: Attention Mechanism
+        // ===========================================
+        const AttentionTab = () => {
+            const [sentence, setSentence] = useState("The cat sat on the mat");
+            const [tokens, setTokens] = useState([]);
+            const [step, setStep] = useState(0);
+            const [embedDim, setEmbedDim] = useState(4);
+            const [numHeads, setNumHeads] = useState(2);
+            const [activeHead, setActiveHead] = useState(0);
+
+            // Generate random but reproducible embeddings
+            const generateEmbeddings = useCallback((toks, dim) => {
+                const seededRandom = (seed) => {
+                    const x = Math.sin(seed) * 10000;
+                    return x - Math.floor(x);
                 };
-            }, [data]);
 
-            return <canvas ref={canvasRef} style={{ height: '100%', width: '100%' }} />;
-        };
+                return toks.map((tok, i) =>
+                    Array(dim).fill(0).map((_, j) =>
+                        (seededRandom(i * dim + j + tok.charCodeAt(0)) * 2 - 1).toFixed(2)
+                    )
+                );
+            }, []);
 
-        // API Configuration
-        const API_BASE = 'http://localhost:8006';
+            useEffect(() => {
+                const toks = sentence.split(' ').filter(t => t.length > 0);
+                setTokens(toks);
+            }, [sentence]);
 
-        // Icons
-        const Icons = {
-            Brain: () => (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 2a9 9 0 0 1 9 9c0 3.6-2.4 6.6-5.7 7.7M12 2a9 9 0 0 0-9 9c0 3.6 2.4 6.6 5.7 7.7M12 2v20M8 12h8"/>
-                    <circle cx="12" cy="9" r="2"/>
-                </svg>
-            ),
-            Grid: () => (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-                    <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
-                </svg>
-            ),
-            Layers: () => (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polygon points="12 2 2 7 12 12 22 7 12 2"/>
-                    <polyline points="2 17 12 22 22 17"/>
-                    <polyline points="2 12 12 17 22 12"/>
-                </svg>
-            ),
-            Play: () => (
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <polygon points="5 3 19 12 5 21 5 3"/>
-                </svg>
-            ),
-            Chart: () => (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
-                    <line x1="6" y1="20" x2="6" y2="14"/>
-                </svg>
-            ),
-            Book: () => (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-                </svg>
-            ),
-            Zap: () => (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-                </svg>
-            ),
-            Eye: () => (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                    <circle cx="12" cy="12" r="3"/>
-                </svg>
-            ),
-            Compare: () => (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
-                    <line x1="6" y1="20" x2="6" y2="14"/><line x1="3" y1="20" x2="21" y2="20"/>
-                </svg>
-            )
-        };
+            const embeddings = useMemo(() => generateEmbeddings(tokens, embedDim), [tokens, embedDim]);
 
-        // Attention Heatmap Component
-        const AttentionHeatmap = ({ attentionWeights, tokens, numHeads, activeHead, onHeadChange }) => {
-            const [tooltip, setTooltip] = useState(null);
+            // Generate Q, K, V matrices (simulated linear projections)
+            const { Q, K, V } = useMemo(() => {
+                if (tokens.length === 0) return { Q: [], K: [], V: [] };
+
+                const seededRandom = (seed) => {
+                    const x = Math.sin(seed * 9999) * 10000;
+                    return x - Math.floor(x);
+                };
+
+                const headDim = Math.floor(embedDim / numHeads);
+
+                const Q = embeddings.map((emb, i) =>
+                    emb.slice(0, headDim).map((v, j) => (parseFloat(v) * 0.8 + seededRandom(i + j + 1) * 0.4 - 0.2).toFixed(2))
+                );
+                const K = embeddings.map((emb, i) =>
+                    emb.slice(0, headDim).map((v, j) => (parseFloat(v) * 0.7 + seededRandom(i + j + 100) * 0.5 - 0.25).toFixed(2))
+                );
+                const V = embeddings.map((emb, i) =>
+                    emb.slice(0, headDim).map((v, j) => (parseFloat(v) * 0.9 + seededRandom(i + j + 200) * 0.3 - 0.15).toFixed(2))
+                );
+
+                return { Q, K, V };
+            }, [embeddings, numHeads, embedDim]);
+
+            // Compute attention scores
+            const attentionScores = useMemo(() => {
+                if (Q.length === 0 || K.length === 0) return [];
+
+                // QK^T / sqrt(d_k)
+                const headDim = Q[0]?.length || 1;
+                const scale = Math.sqrt(headDim);
+
+                return Q.map((q, i) =>
+                    K.map((k, j) => {
+                        const dot = q.reduce((sum, qi, idx) => sum + parseFloat(qi) * parseFloat(k[idx]), 0);
+                        return dot / scale;
+                    })
+                );
+            }, [Q, K]);
+
+            // Apply softmax to get attention weights
+            const attentionWeights = useMemo(() => {
+                return attentionScores.map(row => {
+                    const maxVal = Math.max(...row);
+                    const expRow = row.map(x => Math.exp(x - maxVal));
+                    const sum = expRow.reduce((a, b) => a + b, 0);
+                    return expRow.map(x => x / sum);
+                });
+            }, [attentionScores]);
 
             const getColor = (weight) => {
-                const intensity = Math.pow(weight, 0.7);
-                // UCLA Blue to Gold gradient
+                const intensity = Math.pow(weight, 0.6);
                 const r = Math.round(39 + (255 - 39) * intensity);
                 const g = Math.round(116 + (209 - 116) * intensity);
                 const b = Math.round(174 + (0 - 174) * intensity);
                 return `rgba(${r}, ${g}, ${b}, ${0.3 + intensity * 0.7})`;
             };
 
-            const currentWeights = attentionWeights[activeHead] || [];
+            const steps = [
+                { name: 'Input Embeddings', desc: 'Each token is converted to a dense vector representation' },
+                { name: 'Query (Q)', desc: 'Linear projection of embeddings to create queries - "what am I looking for?"' },
+                { name: 'Key (K)', desc: 'Linear projection to create keys - "what do I contain?"' },
+                { name: 'Value (V)', desc: 'Linear projection to create values - "what information do I carry?"' },
+                { name: 'Attention Scores', desc: 'QK^T / √d_k - How much should each token attend to others?' },
+                { name: 'Softmax → Weights', desc: 'Normalize scores to get attention weights (sum to 1 per row)' },
+            ];
+
+            const renderMatrix = (matrix, label, highlight = false) => (
+                <div style={{ marginBottom: '1rem' }}>
+                    <div className="matrix-label">{label}</div>
+                    <div className="matrix-container">
+                        <div className="matrix" style={{ opacity: highlight ? 1 : 0.5 }}>
+                            {matrix.map((row, i) => (
+                                <div key={i} className="matrix-row">
+                                    {row.map((val, j) => (
+                                        <div key={j} className="matrix-cell">
+                                            {typeof val === 'number' ? val.toFixed(2) : val}
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
 
             return (
-                <div className="heatmap-container">
-                    <div className="attention-head-tabs">
-                        {Array.from({ length: numHeads }, (_, i) => (
-                            <button
-                                key={i}
-                                className={`head-tab ${activeHead === i ? 'active' : ''}`}
-                                onClick={() => onHeadChange(i)}
-                            >
-                                Head {i + 1}
-                            </button>
-                        ))}
-                    </div>
+                <div>
+                    <div className="card">
+                        <div className="card-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M12 6v6l4 2"/>
+                            </svg>
+                            Self-Attention Step by Step
+                        </div>
 
-                    <div className="heatmap-header">
-                        {tokens.map((token, i) => (
-                            <div key={i} className="heatmap-header-cell" title={token}>
-                                {token}
+                        <div className="explanation">
+                            <strong>Self-attention</strong> is the core mechanism of transformers. It allows each token to look at
+                            all other tokens and decide which ones are relevant. The formula is: <code>Attention(Q,K,V) = softmax(QK^T/√d_k)V</code>
+                        </div>
+
+                        <div className="grid-2">
+                            <div>
+                                <div className="input-group">
+                                    <label className="input-label">Input sentence:</label>
+                                    <input
+                                        type="text"
+                                        className="text-input"
+                                        value={sentence}
+                                        onChange={(e) => setSentence(e.target.value)}
+                                    />
+                                </div>
+
+                                <div className="input-group">
+                                    <label className="input-label">Embedding dimension:</label>
+                                    <div className="btn-group">
+                                        {[4, 8].map(d => (
+                                            <button
+                                                key={d}
+                                                className={`btn-option ${embedDim === d ? 'active' : ''}`}
+                                                onClick={() => setEmbedDim(d)}
+                                            >
+                                                {d}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
-                        ))}
+
+                            <div>
+                                <div className="input-group">
+                                    <label className="input-label">Walk through the steps:</label>
+                                    <div className="btn-group">
+                                        {steps.map((s, i) => (
+                                            <button
+                                                key={i}
+                                                className={`btn-option ${step === i ? 'active' : ''}`}
+                                                onClick={() => setStep(i)}
+                                                style={{ fontSize: '0.75rem', padding: '0.4rem 0.8rem' }}
+                                            >
+                                                {i + 1}. {s.name}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="explanation">
+                                    <strong>Step {step + 1}:</strong> {steps[step].desc}
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="heatmap-grid">
-                        {currentWeights.map((row, i) => (
-                            <div key={i} className="heatmap-row">
-                                <div className="heatmap-label" title={tokens[i]}>{tokens[i]}</div>
-                                {row.map((weight, j) => (
-                                    <div
-                                        key={j}
-                                        className="heatmap-cell"
-                                        style={{
-                                            backgroundColor: getColor(weight),
-                                            color: weight > 0.5 ? '#111318' : '#333'
-                                        }}
-                                        onMouseEnter={(e) => setTooltip({
-                                            x: e.clientX,
-                                            y: e.clientY,
-                                            query: tokens[i],
-                                            key: tokens[j],
-                                            weight: weight
-                                        })}
-                                        onMouseLeave={() => setTooltip(null)}
+                    <div className="grid-2">
+                        <div className="card">
+                            <div className="card-title">Matrices</div>
+
+                            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                                {tokens.map((tok, i) => (
+                                    <div key={i} className="token">{tok}</div>
+                                ))}
+                            </div>
+
+                            {step >= 0 && renderMatrix(embeddings, 'Input Embeddings (X)', step === 0)}
+                            {step >= 1 && renderMatrix(Q, 'Query (Q = X·W_Q)', step === 1)}
+                            {step >= 2 && renderMatrix(K, 'Key (K = X·W_K)', step === 2)}
+                            {step >= 3 && renderMatrix(V, 'Value (V = X·W_V)', step === 3)}
+                            {step >= 4 && renderMatrix(attentionScores.map(row => row.map(v => v.toFixed(2))), 'Attention Scores (QK^T/√d)', step === 4)}
+                        </div>
+
+                        <div className="card">
+                            <div className="card-title">Attention Weights (after Softmax)</div>
+
+                            {step >= 5 && attentionWeights.length > 0 && (
+                                <div className="heatmap-container">
+                                    <div className="heatmap-header">
+                                        {tokens.map((tok, i) => (
+                                            <div key={i} className="heatmap-header-cell">{tok}</div>
+                                        ))}
+                                    </div>
+                                    <div className="heatmap-grid">
+                                        {attentionWeights.map((row, i) => (
+                                            <div key={i} className="heatmap-row">
+                                                <div className="heatmap-label">{tokens[i]}</div>
+                                                {row.map((weight, j) => (
+                                                    <div
+                                                        key={j}
+                                                        className="heatmap-cell"
+                                                        style={{
+                                                            backgroundColor: getColor(weight),
+                                                            color: weight > 0.4 ? '#111' : '#333'
+                                                        }}
+                                                    >
+                                                        {weight.toFixed(2)}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {step < 5 && (
+                                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--textMuted)' }}>
+                                    Complete steps 1-5 to see attention weights
+                                </div>
+                            )}
+
+                            <div className="explanation" style={{ marginTop: '1rem' }}>
+                                <strong>Reading the heatmap:</strong> Each row shows how much one token "attends" to all other tokens.
+                                Higher values (yellow) mean stronger attention. Notice how related words attend to each other.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // ===========================================
+        // TAB 3: Positional Encoding
+        // ===========================================
+        const PositionalEncodingTab = () => {
+            const [seqLength, setSeqLength] = useState(8);
+            const [embedDim, setEmbedDim] = useState(16);
+            const [encodingType, setEncodingType] = useState('sinusoidal');
+
+            // Generate positional encodings
+            const positionalEncodings = useMemo(() => {
+                const encodings = [];
+
+                for (let pos = 0; pos < seqLength; pos++) {
+                    const encoding = [];
+                    for (let i = 0; i < embedDim; i++) {
+                        if (encodingType === 'sinusoidal') {
+                            const denominator = Math.pow(10000, (2 * Math.floor(i / 2)) / embedDim);
+                            if (i % 2 === 0) {
+                                encoding.push(Math.sin(pos / denominator));
+                            } else {
+                                encoding.push(Math.cos(pos / denominator));
+                            }
+                        } else {
+                            // Learned (simulated)
+                            const seededRandom = (seed) => {
+                                const x = Math.sin(seed * 12345) * 10000;
+                                return (x - Math.floor(x)) * 2 - 1;
+                            };
+                            encoding.push(seededRandom(pos * embedDim + i));
+                        }
+                    }
+                    encodings.push(encoding);
+                }
+
+                return encodings;
+            }, [seqLength, embedDim, encodingType]);
+
+            const getColor = (value) => {
+                // value is between -1 and 1
+                const normalized = (value + 1) / 2; // 0 to 1
+                const r = Math.round(39 + (255 - 39) * normalized);
+                const g = Math.round(116 + (209 - 116) * normalized);
+                const b = Math.round(174 * (1 - normalized));
+                return `rgb(${r}, ${g}, ${b})`;
+            };
+
+            return (
+                <div>
+                    <div className="card">
+                        <div className="card-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <line x1="12" y1="20" x2="12" y2="4"/>
+                                <polyline points="6 10 12 4 18 10"/>
+                            </svg>
+                            Positional Encoding
+                        </div>
+
+                        <div className="explanation">
+                            <strong>Why positional encoding?</strong> Unlike RNNs, transformers process all tokens in parallel.
+                            Without position information, "The cat sat on the mat" would be the same as "mat the on sat cat The"!
+                            Positional encodings add position information to each token's embedding.
+                        </div>
+
+                        <div className="grid-3">
+                            <div className="input-group">
+                                <label className="input-label">Sequence length:</label>
+                                <div className="btn-group">
+                                    {[4, 8, 12, 16].map(n => (
+                                        <button
+                                            key={n}
+                                            className={`btn-option ${seqLength === n ? 'active' : ''}`}
+                                            onClick={() => setSeqLength(n)}
+                                        >
+                                            {n}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="input-group">
+                                <label className="input-label">Embedding dimension:</label>
+                                <div className="btn-group">
+                                    {[8, 16, 32].map(n => (
+                                        <button
+                                            key={n}
+                                            className={`btn-option ${embedDim === n ? 'active' : ''}`}
+                                            onClick={() => setEmbedDim(n)}
+                                        >
+                                            {n}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="input-group">
+                                <label className="input-label">Encoding type:</label>
+                                <div className="btn-group">
+                                    <button
+                                        className={`btn-option ${encodingType === 'sinusoidal' ? 'active' : ''}`}
+                                        onClick={() => setEncodingType('sinusoidal')}
                                     >
-                                        {weight.toFixed(2)}
+                                        Sinusoidal (GPT-2)
+                                    </button>
+                                    <button
+                                        className={`btn-option ${encodingType === 'learned' ? 'active' : ''}`}
+                                        onClick={() => setEncodingType('learned')}
+                                    >
+                                        Learned
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid-2">
+                        <div className="card">
+                            <div className="card-title">Positional Encoding Matrix</div>
+                            <div style={{ overflowX: 'auto' }}>
+                                <div className="pos-encoding-viz">
+                                    <div className="pos-row">
+                                        <div className="pos-label">dim →</div>
+                                        {Array(Math.min(embedDim, 24)).fill(0).map((_, i) => (
+                                            <div key={i} className="pos-cell" style={{ background: '#f0f0f0', fontSize: '0.6rem', color: '#888' }}>
+                                                {i}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {positionalEncodings.map((row, pos) => (
+                                        <div key={pos} className="pos-row">
+                                            <div className="pos-label">pos {pos}</div>
+                                            {row.slice(0, 24).map((val, i) => (
+                                                <div
+                                                    key={i}
+                                                    className="pos-cell"
+                                                    style={{ background: getColor(val) }}
+                                                    title={val.toFixed(3)}
+                                                />
+                                            ))}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', marginTop: '1rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem' }}>
+                                    <div style={{ width: 16, height: 16, background: 'rgb(39, 116, 174)', borderRadius: 2 }}/>
+                                    <span>-1</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem' }}>
+                                    <div style={{ width: 16, height: 16, background: 'rgb(147, 162, 87)', borderRadius: 2 }}/>
+                                    <span>0</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem' }}>
+                                    <div style={{ width: 16, height: 16, background: 'rgb(255, 209, 0)', borderRadius: 2 }}/>
+                                    <span>+1</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="card">
+                            <div className="card-title">The Formula</div>
+
+                            {encodingType === 'sinusoidal' ? (
+                                <>
+                                    <div className="code-block">
+                                        <span className="comment"># Sinusoidal Positional Encoding</span><br/>
+                                        PE(pos, 2i) = <span className="keyword">sin</span>(pos / 10000^(2i/d_model))<br/>
+                                        PE(pos, 2i+1) = <span className="keyword">cos</span>(pos / 10000^(2i/d_model))
+                                    </div>
+
+                                    <div className="explanation" style={{ marginTop: '1rem' }}>
+                                        <strong>Why sine and cosine?</strong>
+                                        <ul style={{ marginTop: '0.5rem', paddingLeft: '1.5rem' }}>
+                                            <li>Different frequencies capture different position scales</li>
+                                            <li>Any position can attend to relative positions (PE(pos+k) can be expressed as a linear function of PE(pos))</li>
+                                            <li>Smooth, continuous representation</li>
+                                            <li>Can generalize to longer sequences than seen in training</li>
+                                        </ul>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="code-block">
+                                        <span className="comment"># Learned Positional Encoding</span><br/>
+                                        PE = nn.Embedding(max_seq_len, d_model)<br/>
+                                        positions = PE(torch.arange(seq_len))
+                                    </div>
+
+                                    <div className="explanation" style={{ marginTop: '1rem' }}>
+                                        <strong>Learned vs Sinusoidal:</strong>
+                                        <ul style={{ marginTop: '0.5rem', paddingLeft: '1.5rem' }}>
+                                            <li>Learned: More flexible, can adapt to data patterns</li>
+                                            <li>Learned: Cannot generalize beyond training sequence length</li>
+                                            <li>Modern LLMs (GPT-3+) often use learned positional encodings</li>
+                                            <li>Some use Rotary Position Embedding (RoPE) for better extrapolation</li>
+                                        </ul>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // ===========================================
+        // TAB 4: Causal Masking
+        // ===========================================
+        const CausalMaskingTab = () => {
+            const [tokens] = useState(['The', 'quick', 'brown', 'fox', 'jumps']);
+            const [highlightToken, setHighlightToken] = useState(null);
+
+            return (
+                <div>
+                    <div className="card">
+                        <div className="card-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <rect x="3" y="11" width="18" height="11" rx="2"/>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                            Causal (Autoregressive) Masking
+                        </div>
+
+                        <div className="explanation">
+                            <strong>Why causal masking?</strong> LLMs are trained to predict the next token. During training,
+                            they shouldn't be able to "peek" at future tokens—that would be cheating! Causal masking ensures each
+                            position can only attend to previous positions (and itself).
+                        </div>
+                    </div>
+
+                    <div className="grid-2">
+                        <div className="card">
+                            <div className="card-title">Attention Mask</div>
+
+                            <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                {tokens.map((tok, i) => (
+                                    <button
+                                        key={i}
+                                        className={`btn-option ${highlightToken === i ? 'active' : ''}`}
+                                        onClick={() => setHighlightToken(highlightToken === i ? null : i)}
+                                    >
+                                        {tok}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div style={{ overflowX: 'auto' }}>
+                                <div style={{ marginLeft: '50px', display: 'flex', gap: '3px', marginBottom: '6px' }}>
+                                    {tokens.map((tok, i) => (
+                                        <div key={i} style={{ width: 40, textAlign: 'center', fontSize: '0.75rem', color: 'var(--textMuted)' }}>
+                                            {tok}
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="mask-grid">
+                                    {tokens.map((tok, i) => (
+                                        <div key={i} className="mask-row">
+                                            <div className="mask-label">{tok}</div>
+                                            {tokens.map((_, j) => {
+                                                const allowed = j <= i;
+                                                const highlighted = highlightToken !== null && i === highlightToken;
+                                                return (
+                                                    <div
+                                                        key={j}
+                                                        className={`mask-cell ${allowed ? 'allowed' : 'blocked'}`}
+                                                        style={{
+                                                            opacity: highlighted ? 1 : 0.7,
+                                                            transform: highlighted && allowed ? 'scale(1.1)' : 'none',
+                                                            transition: 'all 0.2s'
+                                                        }}
+                                                    >
+                                                        {allowed ? '✓' : '✗'}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="explanation" style={{ marginTop: '1rem' }}>
+                                <strong>Reading the mask:</strong> Row = current token being processed. Column = tokens it can see.
+                                ✓ means attention is allowed, ✗ means it's blocked (set to -∞ before softmax).
+                            </div>
+                        </div>
+
+                        <div className="card">
+                            <div className="card-title">Encoder vs Decoder</div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div style={{ padding: '1rem', background: '#f8f9fa', borderRadius: 8 }}>
+                                    <h4 style={{ marginBottom: '0.5rem', color: 'var(--primary)' }}>Encoder (BERT)</h4>
+                                    <p style={{ fontSize: '0.85rem', color: 'var(--textMuted)' }}>
+                                        • Bidirectional attention<br/>
+                                        • Each token sees ALL other tokens<br/>
+                                        • Good for understanding/classification<br/>
+                                        • Cannot generate text autoregressively
+                                    </p>
+                                </div>
+                                <div style={{ padding: '1rem', background: 'rgba(39, 116, 174, 0.1)', borderRadius: 8 }}>
+                                    <h4 style={{ marginBottom: '0.5rem', color: 'var(--primary)' }}>Decoder (GPT)</h4>
+                                    <p style={{ fontSize: '0.85rem', color: 'var(--textMuted)' }}>
+                                        • Causal (unidirectional) attention<br/>
+                                        • Each token only sees PAST tokens<br/>
+                                        • Good for generation<br/>
+                                        • Used by ChatGPT, Claude, etc.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="code-block" style={{ marginTop: '1rem' }}>
+                                <span className="comment"># Creating a causal mask</span><br/>
+                                mask = torch.triu(torch.ones(seq_len, seq_len), diagonal=<span className="number">1</span>)<br/>
+                                mask = mask.masked_fill(mask == <span className="number">1</span>, <span className="keyword">float</span>(<span className="string">'-inf'</span>))<br/><br/>
+                                <span className="comment"># Apply to attention scores</span><br/>
+                                attention = softmax(QK^T / sqrt(d_k) + mask)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // ===========================================
+        // TAB 5: Text Generation
+        // ===========================================
+        const TextGenerationTab = () => {
+            const [prompt, setPrompt] = useState("The future of artificial intelligence");
+            const [temperature, setTemperature] = useState(0.7);
+            const [topP, setTopP] = useState(0.9);
+            const [maxTokens, setMaxTokens] = useState(50);
+            const [samplingMethod, setSamplingMethod] = useState('temperature');
+            const [isGenerating, setIsGenerating] = useState(false);
+            const [generatedText, setGeneratedText] = useState('');
+            const [tokenProbs, setTokenProbs] = useState([]);
+            const [currentStep, setCurrentStep] = useState(0);
+
+            // Simulated next-token probabilities
+            const generateNextTokenProbs = (context) => {
+                // This would come from real API, simulating for demo
+                const probs = [
+                    { token: 'is', prob: 0.25 },
+                    { token: 'will', prob: 0.20 },
+                    { token: 'has', prob: 0.15 },
+                    { token: 'represents', prob: 0.12 },
+                    { token: 'holds', prob: 0.08 },
+                    { token: 'remains', prob: 0.06 },
+                    { token: 'seems', prob: 0.05 },
+                    { token: 'brings', prob: 0.04 },
+                    { token: 'offers', prob: 0.03 },
+                    { token: 'continues', prob: 0.02 },
+                ];
+
+                // Apply temperature
+                if (samplingMethod === 'temperature') {
+                    const tempProbs = probs.map(p => ({
+                        ...p,
+                        prob: Math.pow(p.prob, 1 / temperature)
+                    }));
+                    const sum = tempProbs.reduce((a, b) => a + b.prob, 0);
+                    return tempProbs.map(p => ({ ...p, prob: p.prob / sum }));
+                }
+
+                return probs;
+            };
+
+            const handleGenerate = async () => {
+                setIsGenerating(true);
+                setGeneratedText('');
+                setTokenProbs([]);
+                setCurrentStep(0);
+
+                try {
+                    const response = await fetch(`${API_BASE}/api/generate`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            prompt,
+                            temperature,
+                            top_p: topP,
+                            max_tokens: maxTokens,
+                            stream: true
+                        })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        // Animate the generation
+                        const words = data.text.split(' ');
+                        for (let i = 0; i < words.length; i++) {
+                            await new Promise(r => setTimeout(r, 50));
+                            setGeneratedText(prev => prev + (prev ? ' ' : '') + words[i]);
+                            setCurrentStep(i + 1);
+                        }
+                        if (data.token_probs) {
+                            setTokenProbs(data.token_probs);
+                        }
+                    } else {
+                        // Simulate generation
+                        const simulated = "is both exciting and uncertain. As we develop more sophisticated systems, we must carefully consider the ethical implications and ensure that AI benefits all of humanity.";
+                        const words = simulated.split(' ');
+                        for (let i = 0; i < Math.min(words.length, maxTokens / 2); i++) {
+                            await new Promise(r => setTimeout(r, 80));
+                            setGeneratedText(prev => prev + (prev ? ' ' : '') + words[i]);
+                            setCurrentStep(i + 1);
+                            setTokenProbs(generateNextTokenProbs(prompt + ' ' + words.slice(0, i + 1).join(' ')));
+                        }
+                    }
+                } catch (error) {
+                    // Fallback simulation
+                    const simulated = "is both exciting and uncertain. As we develop more sophisticated systems, we must carefully consider the ethical implications.";
+                    const words = simulated.split(' ');
+                    for (let i = 0; i < Math.min(words.length, maxTokens / 2); i++) {
+                        await new Promise(r => setTimeout(r, 80));
+                        setGeneratedText(prev => prev + (prev ? ' ' : '') + words[i]);
+                        setCurrentStep(i + 1);
+                        setTokenProbs(generateNextTokenProbs(prompt));
+                    }
+                }
+
+                setIsGenerating(false);
+            };
+
+            return (
+                <div>
+                    <div className="card">
+                        <div className="card-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M12 20h9"/>
+                                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                            </svg>
+                            Next-Token Prediction & Text Generation
+                        </div>
+
+                        <div className="explanation">
+                            <strong>How LLMs generate text:</strong> They predict one token at a time. Given all previous tokens,
+                            the model outputs a probability distribution over the vocabulary. We sample from this distribution
+                            (controlled by temperature) to pick the next token, then repeat.
+                        </div>
+                    </div>
+
+                    <div className="grid-2">
+                        <div className="card">
+                            <div className="card-title">Controls</div>
+
+                            <div className="input-group">
+                                <label className="input-label">Prompt:</label>
+                                <textarea
+                                    className="text-input"
+                                    value={prompt}
+                                    onChange={(e) => setPrompt(e.target.value)}
+                                    placeholder="Enter your prompt..."
+                                />
+                            </div>
+
+                            <div className="slider-container">
+                                <div className="slider-label">
+                                    <span>Temperature</span>
+                                    <span>{temperature.toFixed(2)}</span>
+                                </div>
+                                <input
+                                    type="range"
+                                    className="slider"
+                                    min="0.1"
+                                    max="2"
+                                    step="0.1"
+                                    value={temperature}
+                                    onChange={(e) => setTemperature(parseFloat(e.target.value))}
+                                />
+                                <div style={{ fontSize: '0.75rem', color: 'var(--textMuted)', display: 'flex', justifyContent: 'space-between' }}>
+                                    <span>Focused</span>
+                                    <span>Creative</span>
+                                </div>
+                            </div>
+
+                            <div className="slider-container">
+                                <div className="slider-label">
+                                    <span>Max Tokens</span>
+                                    <span>{maxTokens}</span>
+                                </div>
+                                <input
+                                    type="range"
+                                    className="slider"
+                                    min="10"
+                                    max="100"
+                                    step="10"
+                                    value={maxTokens}
+                                    onChange={(e) => setMaxTokens(parseInt(e.target.value))}
+                                />
+                            </div>
+
+                            <div className="input-group">
+                                <label className="input-label">Sampling method:</label>
+                                <div className="btn-group">
+                                    <button
+                                        className={`btn-option ${samplingMethod === 'greedy' ? 'active' : ''}`}
+                                        onClick={() => setSamplingMethod('greedy')}
+                                    >
+                                        Greedy
+                                    </button>
+                                    <button
+                                        className={`btn-option ${samplingMethod === 'temperature' ? 'active' : ''}`}
+                                        onClick={() => setSamplingMethod('temperature')}
+                                    >
+                                        Temperature
+                                    </button>
+                                    <button
+                                        className={`btn-option ${samplingMethod === 'top_p' ? 'active' : ''}`}
+                                        onClick={() => setSamplingMethod('top_p')}
+                                    >
+                                        Top-p (Nucleus)
+                                    </button>
+                                </div>
+                            </div>
+
+                            <button
+                                className="btn btn-primary"
+                                onClick={handleGenerate}
+                                disabled={isGenerating}
+                                style={{ width: '100%', marginTop: '1rem' }}
+                            >
+                                {isGenerating ? (
+                                    <>
+                                        <div className="spinner" />
+                                        Generating...
+                                    </>
+                                ) : (
+                                    'Generate Text'
+                                )}
+                            </button>
+                        </div>
+
+                        <div className="card">
+                            <div className="card-title">Generated Output</div>
+
+                            <div className="generated-text">
+                                <span className="prompt">{prompt}</span>
+                                {generatedText && (
+                                    <span className="completion"> {generatedText}</span>
+                                )}
+                                {isGenerating && <span className="cursor" />}
+                            </div>
+
+                            {tokenProbs.length > 0 && (
+                                <div style={{ marginTop: '1.5rem' }}>
+                                    <h4 style={{ fontSize: '0.9rem', marginBottom: '0.75rem' }}>Token Probabilities (last step)</h4>
+                                    {tokenProbs.slice(0, 5).map((tp, i) => (
+                                        <div key={i} className="prob-bar-container">
+                                            <div className="prob-bar-label">
+                                                <span className="prob-bar-token">{tp.token}</span>
+                                                <span className="prob-bar-value">{(tp.prob * 100).toFixed(1)}%</span>
+                                            </div>
+                                            <div className="prob-bar">
+                                                <div
+                                                    className={`prob-bar-fill ${i === 0 ? 'selected' : ''}`}
+                                                    style={{ width: `${tp.prob * 100}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="card">
+                        <div className="card-title">Understanding Sampling Methods</div>
+                        <div className="grid-3">
+                            <div style={{ padding: '1rem', background: samplingMethod === 'greedy' ? 'rgba(39, 116, 174, 0.1)' : '#f8f9fa', borderRadius: 8 }}>
+                                <h4 style={{ marginBottom: '0.5rem' }}>Greedy (T=0)</h4>
+                                <p style={{ fontSize: '0.85rem', color: 'var(--textMuted)' }}>
+                                    Always pick the highest probability token. Deterministic but can be repetitive and boring.
+                                </p>
+                            </div>
+                            <div style={{ padding: '1rem', background: samplingMethod === 'temperature' ? 'rgba(39, 116, 174, 0.1)' : '#f8f9fa', borderRadius: 8 }}>
+                                <h4 style={{ marginBottom: '0.5rem' }}>Temperature</h4>
+                                <p style={{ fontSize: '0.85rem', color: 'var(--textMuted)' }}>
+                                    Divide logits by T before softmax. T{'<'}1 = more focused, T{'>'}1 = more random. Common default: 0.7
+                                </p>
+                            </div>
+                            <div style={{ padding: '1rem', background: samplingMethod === 'top_p' ? 'rgba(39, 116, 174, 0.1)' : '#f8f9fa', borderRadius: 8 }}>
+                                <h4 style={{ marginBottom: '0.5rem' }}>Top-p (Nucleus)</h4>
+                                <p style={{ fontSize: '0.85rem', color: 'var(--textMuted)' }}>
+                                    Sample from smallest set of tokens whose cumulative probability ≥ p. Adaptive vocabulary per step.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // ===========================================
+        // TAB 6: Architecture Overview
+        // ===========================================
+        const ArchitectureTab = () => {
+            const [numBlocks, setNumBlocks] = useState(2);
+            const [embedDim, setEmbedDim] = useState(64);
+            const [numHeads, setNumHeads] = useState(4);
+            const [ffDim, setFfDim] = useState(256);
+
+            const calculateParams = () => {
+                const vocabSize = 50000;
+                const seqLen = 2048;
+
+                const embedding = vocabSize * embedDim;
+                const positional = seqLen * embedDim;
+                const attention = numBlocks * (4 * embedDim * embedDim); // Q, K, V, O projections
+                const ffn = numBlocks * (2 * embedDim * ffDim);
+                const layernorm = numBlocks * 4 * embedDim;
+                const output = vocabSize * embedDim;
+
+                return {
+                    embedding,
+                    positional,
+                    attention,
+                    ffn,
+                    layernorm,
+                    output,
+                    total: embedding + positional + attention + ffn + layernorm + output
+                };
+            };
+
+            const params = calculateParams();
+
+            return (
+                <div>
+                    <div className="card">
+                        <div className="card-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+                                <polyline points="2 17 12 22 22 17"/>
+                                <polyline points="2 12 12 17 22 12"/>
+                            </svg>
+                            Transformer Architecture (Decoder-Only)
+                        </div>
+
+                        <div className="grid-3">
+                            <div className="input-group">
+                                <label className="input-label">Transformer Blocks:</label>
+                                <div className="btn-group">
+                                    {[1, 2, 4, 6].map(n => (
+                                        <button key={n} className={`btn-option ${numBlocks === n ? 'active' : ''}`} onClick={() => setNumBlocks(n)}>
+                                            {n}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="input-group">
+                                <label className="input-label">Embedding Dim:</label>
+                                <div className="btn-group">
+                                    {[64, 128, 256, 512].map(n => (
+                                        <button key={n} className={`btn-option ${embedDim === n ? 'active' : ''}`} onClick={() => setEmbedDim(n)}>
+                                            {n}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="input-group">
+                                <label className="input-label">Attention Heads:</label>
+                                <div className="btn-group">
+                                    {[2, 4, 8, 16].map(n => (
+                                        <button key={n} className={`btn-option ${numHeads === n ? 'active' : ''}`} onClick={() => setNumHeads(n)}>
+                                            {n}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid-2">
+                        <div className="card">
+                            <div className="card-title">Architecture Diagram</div>
+                            <svg width="100%" height={200 + numBlocks * 80} viewBox={`0 0 300 ${200 + numBlocks * 80}`}>
+                                {/* Input */}
+                                <rect x="100" y="10" width="100" height="30" rx="4" fill="rgba(39, 116, 174, 0.2)" stroke="#2774AE" strokeWidth="1.5"/>
+                                <text x="150" y="30" textAnchor="middle" fontSize="11" fill="#333">Input Tokens</text>
+
+                                {/* Arrow */}
+                                <line x1="150" y1="40" x2="150" y2="55" stroke="#666" strokeWidth="1.5"/>
+                                <polygon points="145,55 155,55 150,62" fill="#666"/>
+
+                                {/* Embedding */}
+                                <rect x="75" y="65" width="150" height="35" rx="4" fill="rgba(255, 209, 0, 0.3)" stroke="#FFD100" strokeWidth="1.5"/>
+                                <text x="150" y="80" textAnchor="middle" fontSize="10" fill="#333">Token Embedding</text>
+                                <text x="150" y="92" textAnchor="middle" fontSize="8" fill="#666">+ Positional Encoding</text>
+
+                                {/* Transformer blocks */}
+                                {Array(numBlocks).fill(0).map((_, i) => {
+                                    const y = 115 + i * 80;
+                                    return (
+                                        <g key={i}>
+                                            <line x1="150" y1={y - 10} x2="150" y2={y} stroke="#666" strokeWidth="1.5"/>
+                                            <polygon points={`145,${y} 155,${y} 150,${y + 7}`} fill="#666"/>
+
+                                            <rect x="50" y={y + 10} width="200" height="60" rx="6" fill="rgba(39, 116, 174, 0.1)" stroke="#2774AE" strokeWidth="1.5"/>
+                                            <text x="150" y={y + 28} textAnchor="middle" fontSize="10" fontWeight="600" fill="#005587">Transformer Block {i + 1}</text>
+
+                                            <rect x="60" y={y + 35} width="80" height="25" rx="3" fill="rgba(39, 116, 174, 0.3)"/>
+                                            <text x="100" y={y + 52} textAnchor="middle" fontSize="8" fill="#333">Multi-Head Attn</text>
+
+                                            <rect x="160" y={y + 35} width="80" height="25" rx="3" fill="rgba(255, 209, 0, 0.4)"/>
+                                            <text x="200" y={y + 52} textAnchor="middle" fontSize="8" fill="#333">Feed-Forward</text>
+                                        </g>
+                                    );
+                                })}
+
+                                {/* Output */}
+                                <line x1="150" y1={115 + numBlocks * 80} x2="150" y2={130 + numBlocks * 80} stroke="#666" strokeWidth="1.5"/>
+                                <polygon points={`145,${130 + numBlocks * 80} 155,${130 + numBlocks * 80} 150,${137 + numBlocks * 80}`} fill="#666"/>
+
+                                <rect x="75" y={140 + numBlocks * 80} width="150" height="30" rx="4" fill="rgba(39, 116, 174, 0.2)" stroke="#2774AE" strokeWidth="1.5"/>
+                                <text x="150" y={160 + numBlocks * 80} textAnchor="middle" fontSize="11" fill="#333">Output Probabilities</text>
+                            </svg>
+                        </div>
+
+                        <div className="card">
+                            <div className="card-title">Parameter Count</div>
+
+                            <div className="stats-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                                <div className="stat-card">
+                                    <div className="stat-value">{(params.total / 1e6).toFixed(1)}M</div>
+                                    <div className="stat-label">Total Parameters</div>
+                                </div>
+                                <div className="stat-card">
+                                    <div className="stat-value">{numBlocks}</div>
+                                    <div className="stat-label">Layers</div>
+                                </div>
+                            </div>
+
+                            <div style={{ marginTop: '1rem' }}>
+                                <h4 style={{ fontSize: '0.9rem', marginBottom: '0.75rem' }}>Parameter Breakdown</h4>
+                                {[
+                                    { name: 'Token Embeddings', value: params.embedding, color: '#FFD100' },
+                                    { name: 'Attention Layers', value: params.attention, color: '#2774AE' },
+                                    { name: 'Feed-Forward', value: params.ffn, color: '#8BB8E8' },
+                                    { name: 'Output Layer', value: params.output, color: '#005587' },
+                                ].map((item, i) => (
+                                    <div key={i} className="prob-bar-container">
+                                        <div className="prob-bar-label">
+                                            <span>{item.name}</span>
+                                            <span style={{ color: 'var(--textMuted)' }}>{(item.value / 1e6).toFixed(2)}M</span>
+                                        </div>
+                                        <div className="prob-bar">
+                                            <div style={{ height: '100%', width: `${(item.value / params.total) * 100}%`, background: item.color, borderRadius: 4 }} />
+                                        </div>
                                     </div>
                                 ))}
                             </div>
-                        ))}
-                    </div>
 
-                    {tooltip && (
-                        <div
-                            className="attention-tooltip"
-                            style={{
-                                left: tooltip.x + 15,
-                                top: tooltip.y + 15,
-                                position: 'fixed'
-                            }}
-                        >
-                            <div>Query: <strong>{tooltip.query}</strong></div>
-                            <div>Key: <strong>{tooltip.key}</strong></div>
-                            <div>Weight: <span className="weight">{tooltip.weight.toFixed(4)}</span></div>
+                            <div className="explanation" style={{ marginTop: '1rem' }}>
+                                <strong>Scale comparison:</strong><br/>
+                                GPT-2: 1.5B params, 48 layers<br/>
+                                GPT-3: 175B params, 96 layers<br/>
+                                GPT-4: ~1.8T params (estimated)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // ===========================================
+        // TAB 7: Train Real Transformer
+        // ===========================================
+        const TrainTransformerTab = () => {
+            const [config, setConfig] = useState({
+                numSamples: 2000,
+                epochs: 8,
+                embed_dim: 64,
+                num_heads: 4,
+                ff_dim: 128,
+                num_blocks: 2,
+                dropout: 0.1
+            });
+            const [sessionId, setSessionId] = useState(null);
+            const [status, setStatus] = useState('idle');
+            const [progress, setProgress] = useState(null);
+            const [results, setResults] = useState(null);
+            const [error, setError] = useState(null);
+            const [serverStatus, setServerStatus] = useState(null);
+            const [activeHead, setActiveHead] = useState(0);
+            const [activeBlock, setActiveBlock] = useState(0);
+
+            // Check server health on mount
+            useEffect(() => {
+                fetch(`${API_BASE}/api/health`)
+                    .then(res => res.json())
+                    .then(data => setServerStatus(data))
+                    .catch(err => setServerStatus({ error: 'Server not reachable' }));
+            }, []);
+
+            // Poll for training progress
+            useEffect(() => {
+                if (!sessionId || status === 'complete' || status === 'error') return;
+
+                const interval = setInterval(() => {
+                    fetch(`${API_BASE}/api/train/${sessionId}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            setProgress(data);
+                            if (data.status === 'complete') {
+                                setStatus('complete');
+                                setResults(data);
+                            } else if (data.status === 'error') {
+                                setStatus('error');
+                                setError(data.error);
+                            }
+                        })
+                        .catch(err => {
+                            setError(err.message);
+                            setStatus('error');
+                        });
+                }, 1000);
+
+                return () => clearInterval(interval);
+            }, [sessionId, status]);
+
+            const startTraining = async () => {
+                setStatus('starting');
+                setError(null);
+                setResults(null);
+                setProgress(null);
+
+                try {
+                    const response = await fetch(`${API_BASE}/api/train`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(config)
+                    });
+
+                    const data = await response.json();
+                    setSessionId(data.session_id);
+                    setStatus('training');
+                } catch (err) {
+                    setError(err.message);
+                    setStatus('error');
+                }
+            };
+
+            const getColor = (weight) => {
+                const intensity = Math.pow(weight, 0.5);
+                return `rgba(39, 116, 174, ${0.1 + intensity * 0.9})`;
+            };
+
+            return (
+                <div>
+                    {/* Server Status Banner */}
+                    {serverStatus && (
+                        <div className="card" style={{
+                            background: serverStatus.error ? 'rgba(220, 53, 69, 0.1)' : 'rgba(40, 167, 69, 0.1)',
+                            borderColor: serverStatus.error ? '#dc3545' : '#28a745'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                <div style={{
+                                    width: 12,
+                                    height: 12,
+                                    borderRadius: '50%',
+                                    background: serverStatus.error ? '#dc3545' : '#28a745'
+                                }} />
+                                <div>
+                                    {serverStatus.error ? (
+                                        <span>Backend server not available. Please deploy to Railway first.</span>
+                                    ) : (
+                                        <span>
+                                            Server ready • TensorFlow {serverStatus.tf_loaded ? 'loaded' : 'not loaded'} •
+                                            {serverStatus.active_trainings}/{serverStatus.max_concurrent} active trainings
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     )}
 
-                    <div className="color-legend">
-                        <div className="legend-item">
-                            <div className="legend-color" style={{ background: 'rgba(39, 116, 174, 0.3)' }}></div>
-                            <span>Low Attention</span>
-                        </div>
-                        <div className="legend-item">
-                            <div className="legend-color" style={{ background: 'rgba(39, 116, 174, 0.3)' }}></div>
-                            <span>High Attention</span>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        // Transformer Block Diagram Component
-        const TransformerBlockDiagram = ({ embedDim, numHeads, numBlocks, ffDim }) => {
-            const blockHeight = 280;
-            const totalHeight = 120 + numBlocks * blockHeight + 80;
-            const headWidth = Math.max(20, 160 / numHeads);
-
-            const renderBlock = (index, yOffset) => {
-                const y = yOffset;
-
-                return (
-                    <g key={index}>
-                        {/* Block Label */}
-                        <text x="20" y={y + 20} fill="#666" fontSize="12">
-                            Block {index + 1}
-                        </text>
-
-                        {/* Multi-Head Attention */}
-                        <rect x="60" y={y} width="200" height="70" rx="8"
-                            fill="url(#attentionGradient)" stroke="#2774AE" strokeWidth="2"/>
-                        <text x="160" y={y + 25} textAnchor="middle" fill="#333" fontSize="12" fontWeight="600">
-                            Multi-Head Attention
-                        </text>
-
-                        {/* Attention Heads Visualization */}
-                        <g transform={`translate(80, ${y + 35})`}>
-                            {Array.from({ length: numHeads }, (_, i) => (
-                                <rect
-                                    key={i}
-                                    x={i * (headWidth + 4)}
-                                    y="0"
-                                    width={headWidth}
-                                    height="25"
-                                    rx="3"
-                                    fill={`rgba(39, 116, 174, ${0.4 + (i * 0.15)})`}
-                                    stroke="#2774AE"
-                                    strokeWidth="1"
-                                />
-                            ))}
-                        </g>
-                        <text x="270" y={y + 50} fill="#2774AE" fontSize="10">
-                            {numHeads} heads
-                        </text>
-
-                        {/* Arrow */}
-                        <line x1="160" y1={y + 70} x2="160" y2={y + 90} stroke="#2774AE" strokeWidth="2" className="data-flow"/>
-                        <polygon points={`155,${y + 85} 165,${y + 85} 160,${y + 95}`} fill="#2774AE"/>
-
-                        {/* Add & Norm 1 */}
-                        <rect x="80" y={y + 95} width="160" height="35" rx="6"
-                            fill="rgba(39, 116, 174, 0.3)" stroke="#2774AE" strokeWidth="1.5"/>
-                        <text x="160" y={y + 117} textAnchor="middle" fill="#997d00" fontSize="11">
-                            Add & LayerNorm
-                        </text>
-
-                        {/* Skip Connection 1 */}
-                        <path d={`M 55 ${y + 35} L 40 ${y + 35} L 40 ${y + 112} L 75 ${y + 112}`}
-                            fill="none" stroke="#2774AE" strokeWidth="1.5" strokeDasharray="4 2"/>
-
-                        {/* Arrow */}
-                        <line x1="160" y1={y + 130} x2="160" y2={y + 150} stroke="#2774AE" strokeWidth="2" className="data-flow"/>
-                        <polygon points={`155,${y + 145} 165,${y + 145} 160,${y + 155}`} fill="#2774AE"/>
-
-                        {/* Feed-Forward Network */}
-                        <rect x="60" y={y + 155} width="200" height="55" rx="8"
-                            fill="url(#ffnGradient)" stroke="#005587" strokeWidth="2"/>
-                        <text x="160" y={y + 178} textAnchor="middle" fill="#333" fontSize="12" fontWeight="600">
-                            Feed-Forward Network
-                        </text>
-                        <text x="160" y={y + 198} textAnchor="middle" fill="#666" fontSize="10">
-                            {embedDim} {'>'} {ffDim} {'>'} {embedDim}
-                        </text>
-
-                        {/* Arrow */}
-                        <line x1="160" y1={y + 210} x2="160" y2={y + 230} stroke="#2774AE" strokeWidth="2" className="data-flow"/>
-                        <polygon points={`155,${y + 225} 165,${y + 225} 160,${y + 235}`} fill="#2774AE"/>
-
-                        {/* Add & Norm 2 */}
-                        <rect x="80" y={y + 235} width="160" height="35" rx="6"
-                            fill="rgba(39, 116, 174, 0.3)" stroke="#2774AE" strokeWidth="1.5"/>
-                        <text x="160" y={y + 257} textAnchor="middle" fill="#997d00" fontSize="11">
-                            Add & LayerNorm
-                        </text>
-
-                        {/* Skip Connection 2 */}
-                        <path d={`M 55 ${y + 182} L 30 ${y + 182} L 30 ${y + 252} L 75 ${y + 252}`}
-                            fill="none" stroke="#2774AE" strokeWidth="1.5" strokeDasharray="4 2"/>
-                    </g>
-                );
-            };
-
-            return (
-                <div className="transformer-diagram">
-                    <svg width="340" height={totalHeight} className="diagram-svg">
-                        <defs>
-                            <linearGradient id="attentionGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stopColor="rgba(39, 116, 174, 0.3)"/>
-                                <stop offset="100%" stopColor="rgba(139, 184, 232, 0.2)"/>
-                            </linearGradient>
-                            <linearGradient id="ffnGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stopColor="rgba(0, 85, 135, 0.3)"/>
-                                <stop offset="100%" stopColor="rgba(39, 116, 174, 0.2)"/>
-                            </linearGradient>
-                            <linearGradient id="embedGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stopColor="rgba(39, 116, 174, 0.3)"/>
-                                <stop offset="100%" stopColor="rgba(39, 116, 174, 0.3)"/>
-                            </linearGradient>
-                        </defs>
-
-                        {/* Input Embeddings */}
-                        <rect x="60" y="20" width="200" height="60" rx="10"
-                            fill="url(#embedGradient)" stroke="#2774AE" strokeWidth="2"/>
-                        <text x="160" y="45" textAnchor="middle" fill="#333" fontSize="12" fontWeight="600">
-                            Token Embeddings
-                        </text>
-                        <text x="160" y="63" textAnchor="middle" fill="#666" fontSize="10">
-                            + Positional Encoding
-                        </text>
-                        <text x="270" y="55" fill="#997d00" fontSize="10">
-                            dim={embedDim}
-                        </text>
-
-                        {/* Arrow from embeddings */}
-                        <line x1="160" y1="80" x2="160" y2="115" stroke="#2774AE" strokeWidth="2" className="data-flow"/>
-                        <polygon points="155,110 165,110 160,120" fill="#2774AE"/>
-
-                        {/* Transformer Blocks */}
-                        {Array.from({ length: numBlocks }, (_, i) => renderBlock(i, 120 + i * blockHeight))}
-
-                        {/* Output Arrow */}
-                        <line x1="160" y1={120 + numBlocks * blockHeight - 10} x2="160" y2={120 + numBlocks * blockHeight + 20}
-                            stroke="#2774AE" strokeWidth="2" className="data-flow"/>
-                        <polygon points={`155,${120 + numBlocks * blockHeight + 15} 165,${120 + numBlocks * blockHeight + 15} 160,${120 + numBlocks * blockHeight + 25}`} fill="#2774AE"/>
-
-                        {/* Output */}
-                        <rect x="80" y={120 + numBlocks * blockHeight + 25} width="160" height="40" rx="8"
-                            fill="rgba(39, 116, 174, 0.3)" stroke="#2774AE" strokeWidth="2"/>
-                        <text x="160" y={120 + numBlocks * blockHeight + 50} textAnchor="middle" fill="#005587" fontSize="12" fontWeight="600">
-                            Output Logits
-                        </text>
-                    </svg>
-                </div>
-            );
-        };
-
-        // Embedding Visualization Component
-        const EmbeddingVisualization = ({ embeddings }) => {
-            const colors = ['#2774AE', '#005587', '#8BB8E8', '#2774AE', '#2774AE', '#005587'];
-
-            return (
-                <div className="embedding-viz">
-                    {embeddings.map((point, i) => (
-                        <React.Fragment key={i}>
-                            <div
-                                className="embedding-point"
-                                style={{
-                                    left: `${point.x}%`,
-                                    top: `${point.y}%`,
-                                    backgroundColor: colors[point.cluster % colors.length],
-                                    boxShadow: `0 0 10px ${colors[point.cluster % colors.length]}`
-                                }}
-                                title={point.word}
-                            />
-                            <div
-                                className="embedding-label"
-                                style={{
-                                    left: `${point.x + 2}%`,
-                                    top: `${point.y - 3}%`
-                                }}
-                            >
-                                {point.word}
-                            </div>
-                        </React.Fragment>
-                    ))}
-                </div>
-            );
-        };
-
-        // Main App Component
-        const App = () => {
-            // Tab state removed - showing only simulator
-            const [isTraining, setIsTraining] = useState(false);
-            const [trainingProgress, setTrainingProgress] = useState(0);
-
-            // Model parameters
-            const [embedDim, setEmbedDim] = useState(64);
-            const [numHeads, setNumHeads] = useState(4);
-            const [numBlocks, setNumBlocks] = useState(2);
-            const [ffDim, setFfDim] = useState(128);
-            const [epochs, setEpochs] = useState(20);
-
-            // Attention state
-            const [activeHead, setActiveHead] = useState(0);
-            const [attentionWeights, setAttentionWeights] = useState({});
-            const [tokens, setTokens] = useState(['The', 'cat', 'sat', 'on', 'mat']);
-
-            // Results
-            const [trainingHistory, setTrainingHistory] = useState([]);
-            const [metrics, setMetrics] = useState({
-                accuracy: null,
-                parameters: null,
-                trainingTime: null,
-                attentionEntropy: null
-            });
-            const [comparison, setComparison] = useState(null);
-            const [embeddings, setEmbeddings] = useState([]);
-
-            // Generate sample attention weights
-            const generateSampleAttention = useCallback(() => {
-                const weights = {};
-                for (let h = 0; h < numHeads; h++) {
-                    weights[h] = tokens.map((_, i) =>
-                        tokens.map((_, j) => {
-                            // Create interesting patterns per head
-                            let base = Math.random() * 0.3;
-                            if (h === 0 && j === i) base += 0.5; // Head 0: self-attention
-                            if (h === 1 && j < i) base += 0.3; // Head 1: look back
-                            if (h === 2 && Math.abs(i - j) <= 1) base += 0.4; // Head 2: local
-                            if (h === 3) base = 1 / tokens.length; // Head 3: uniform
-                            return Math.min(base, 1);
-                        })
-                    );
-                    // Normalize rows to sum to 1
-                    weights[h] = weights[h].map(row => {
-                        const sum = row.reduce((a, b) => a + b, 0);
-                        return row.map(v => v / sum);
-                    });
-                }
-                return weights;
-            }, [numHeads, tokens]);
-
-            // Generate sample embeddings
-            const generateSampleEmbeddings = useCallback(() => {
-                const words = ['king', 'queen', 'man', 'woman', 'prince', 'princess',
-                             'cat', 'dog', 'bird', 'fish', 'run', 'walk', 'jump'];
-                return words.map((word, i) => ({
-                    word,
-                    x: 10 + Math.random() * 80,
-                    y: 10 + Math.random() * 80,
-                    cluster: Math.floor(i / 4)
-                }));
-            }, []);
-
-            // Initialize
-            useEffect(() => {
-                setAttentionWeights(generateSampleAttention());
-                setEmbeddings(generateSampleEmbeddings());
-            }, [numHeads]);
-
-            // Train model
-            const handleTrain = async () => {
-                setIsTraining(true);
-                setTrainingProgress(0);
-                setTrainingHistory([]);
-
-                try {
-                    const response = await fetch(`${API_BASE}/train`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            embed_dim: embedDim,
-                            num_heads: numHeads,
-                            num_blocks: numBlocks,
-                            ff_dim: ffDim,
-                            epochs: epochs
-                        })
-                    });
-
-                    if (response.ok) {
-                        const data = await response.json();
-
-                        // Animate training history
-                        const history = data.history || [];
-                        for (let i = 0; i < history.length; i++) {
-                            await new Promise(resolve => setTimeout(resolve, 50));
-                            setTrainingHistory(prev => [...prev, history[i]]);
-                            setTrainingProgress((i + 1) / history.length * 100);
-                        }
-
-                        setMetrics({
-                            accuracy: data.test_accuracy || 0.89,
-                            parameters: data.parameters || calculateParams(),
-                            trainingTime: data.training_time || 12.5,
-                            attentionEntropy: data.attention_entropy || 1.42
-                        });
-
-                        if (data.attention_weights) {
-                            setAttentionWeights(data.attention_weights);
-                        }
-                        if (data.embeddings) {
-                            setEmbeddings(data.embeddings);
-                        }
-                    } else {
-                        // Simulate training
-                        await simulateTraining();
-                    }
-                } catch (error) {
-                    console.log('Simulating training...');
-                    await simulateTraining();
-                }
-
-                setIsTraining(false);
-            };
-
-            // Simulate training
-            const simulateTraining = async () => {
-                const history = [];
-                for (let i = 1; i <= epochs; i++) {
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    const progress = i / epochs;
-                    history.push({
-                        epoch: i,
-                        train_loss: 2.5 * Math.exp(-3 * progress) + 0.3 + Math.random() * 0.1,
-                        val_loss: 2.5 * Math.exp(-2.8 * progress) + 0.35 + Math.random() * 0.12,
-                        train_acc: 0.5 + 0.45 * (1 - Math.exp(-4 * progress)) + Math.random() * 0.02,
-                        val_acc: 0.48 + 0.42 * (1 - Math.exp(-3.5 * progress)) + Math.random() * 0.03
-                    });
-                    setTrainingHistory([...history]);
-                    setTrainingProgress(i / epochs * 100);
-                }
-
-                setMetrics({
-                    accuracy: 0.89 + Math.random() * 0.05,
-                    parameters: calculateParams(),
-                    trainingTime: 8 + Math.random() * 10,
-                    attentionEntropy: 1.2 + Math.random() * 0.5
-                });
-
-                setAttentionWeights(generateSampleAttention());
-                setEmbeddings(generateSampleEmbeddings());
-            };
-
-            // Calculate parameters
-            const calculateParams = () => {
-                const vocabSize = 10000;
-                const seqLen = 128;
-                const embedding = vocabSize * embedDim + seqLen * embedDim;
-                const attention = numBlocks * (4 * embedDim * embedDim + 4 * embedDim);
-                const ffn = numBlocks * (2 * embedDim * ffDim + embedDim + ffDim);
-                const layernorm = numBlocks * 4 * embedDim;
-                return embedding + attention + ffn + layernorm;
-            };
-
-            // Compare with LSTM
-            const handleCompare = async () => {
-                try {
-                    const response = await fetch(`${API_BASE}/compare_lstm`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            embed_dim: embedDim,
-                            num_heads: numHeads,
-                            num_blocks: numBlocks,
-                            ff_dim: ffDim
-                        })
-                    });
-
-                    if (response.ok) {
-                        const data = await response.json();
-                        setComparison(data);
-                    } else {
-                        setComparison({
-                            transformer: { accuracy: 0.91, time: 15.2, params: calculateParams() },
-                            lstm: { accuracy: 0.85, time: 22.5, params: Math.floor(calculateParams() * 0.7) }
-                        });
-                    }
-                } catch (error) {
-                    setComparison({
-                        transformer: { accuracy: 0.91, time: 15.2, params: calculateParams() },
-                        lstm: { accuracy: 0.85, time: 22.5, params: Math.floor(calculateParams() * 0.7) }
-                    });
-                }
-            };
-
-            // Render Simulator Tab
-            const renderSimulator = () => (
-                <div className="main-grid">
-                    {/* Control Panel */}
-                    <div className="control-panel">
-                        <div className="card dark">
+                    <div className="grid-2">
+                        {/* Configuration */}
+                        <div className="card">
                             <div className="card-title">
-                                <Icons.Layers /> Model Architecture
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <circle cx="12" cy="12" r="3"/>
+                                    <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+                                </svg>
+                                Training Configuration
                             </div>
 
-                            <div className="control-group">
-                                <div className="control-label">
-                                    <span>Embedding Dimension</span>
-                                    <span className="control-value">{embedDim}</span>
-                                </div>
-                                <div className="button-group">
-                                    {[32, 64, 128, 256].map(v => (
-                                        <button
-                                            key={v}
-                                            className={`option-btn ${embedDim === v ? 'active' : ''}`}
-                                            onClick={() => setEmbedDim(v)}
-                                        >
-                                            {v}
-                                        </button>
+                            <div className="explanation">
+                                <strong>Train a Real Transformer!</strong> This uses Keras to train a transformer classifier on the Reuters news dataset (46 categories of news articles). Adjust the architecture parameters to see how they affect training.
+                            </div>
+
+                            <div className="input-group">
+                                <label className="input-label">Training Samples:</label>
+                                <div className="btn-group">
+                                    {[1000, 2000, 4000, 8000].map(n => (
+                                        <button key={n} className={`btn-option ${config.numSamples === n ? 'active' : ''}`}
+                                            onClick={() => setConfig({...config, numSamples: n})}
+                                            disabled={status === 'training'}
+                                        >{n}</button>
                                     ))}
                                 </div>
                             </div>
 
-                            <div className="control-group">
-                                <div className="control-label">
-                                    <span>Attention Heads</span>
-                                    <span className="control-value">{numHeads}</span>
-                                </div>
-                                <div className="button-group">
-                                    {[1, 2, 4, 8].map(v => (
-                                        <button
-                                            key={v}
-                                            className={`option-btn ${numHeads === v ? 'active' : ''}`}
-                                            onClick={() => { setNumHeads(v); setActiveHead(0); }}
-                                        >
-                                            {v}
-                                        </button>
+                            <div className="input-group">
+                                <label className="input-label">Epochs:</label>
+                                <div className="btn-group">
+                                    {[4, 6, 8, 10].map(n => (
+                                        <button key={n} className={`btn-option ${config.epochs === n ? 'active' : ''}`}
+                                            onClick={() => setConfig({...config, epochs: n})}
+                                            disabled={status === 'training'}
+                                        >{n}</button>
                                     ))}
                                 </div>
                             </div>
 
-                            <div className="control-group">
-                                <div className="control-label">
-                                    <span>Transformer Blocks</span>
-                                    <span className="control-value">{numBlocks}</span>
-                                </div>
-                                <div className="button-group">
-                                    {[1, 2, 3, 4].map(v => (
-                                        <button
-                                            key={v}
-                                            className={`option-btn ${numBlocks === v ? 'active' : ''}`}
-                                            onClick={() => setNumBlocks(v)}
-                                        >
-                                            {v}
-                                        </button>
+                            <div className="input-group">
+                                <label className="input-label">Embedding Dimension:</label>
+                                <div className="btn-group">
+                                    {[32, 64, 128].map(n => (
+                                        <button key={n} className={`btn-option ${config.embed_dim === n ? 'active' : ''}`}
+                                            onClick={() => setConfig({...config, embed_dim: n})}
+                                            disabled={status === 'training'}
+                                        >{n}</button>
                                     ))}
                                 </div>
                             </div>
 
-                            <div className="control-group">
-                                <div className="control-label">
-                                    <span>Feed-Forward Dimension</span>
-                                    <span className="control-value">{ffDim}</span>
-                                </div>
-                                <div className="button-group">
-                                    {[64, 128, 256, 512].map(v => (
-                                        <button
-                                            key={v}
-                                            className={`option-btn ${ffDim === v ? 'active' : ''}`}
-                                            onClick={() => setFfDim(v)}
-                                        >
-                                            {v}
-                                        </button>
+                            <div className="input-group">
+                                <label className="input-label">Attention Heads:</label>
+                                <div className="btn-group">
+                                    {[2, 4, 8].map(n => (
+                                        <button key={n} className={`btn-option ${config.num_heads === n ? 'active' : ''}`}
+                                            onClick={() => setConfig({...config, num_heads: n})}
+                                            disabled={status === 'training'}
+                                        >{n}</button>
                                     ))}
                                 </div>
                             </div>
 
-                            <div className="control-group">
-                                <div className="control-label">
-                                    <span>Training Epochs</span>
-                                    <span className="control-value">{epochs}</span>
-                                </div>
-                                <div className="slider-container">
-                                    <input
-                                        type="range"
-                                        min="5"
-                                        max="50"
-                                        value={epochs}
-                                        onChange={(e) => setEpochs(parseInt(e.target.value))}
-                                    />
+                            <div className="input-group">
+                                <label className="input-label">Transformer Blocks:</label>
+                                <div className="btn-group">
+                                    {[1, 2, 3, 4].map(n => (
+                                        <button key={n} className={`btn-option ${config.num_blocks === n ? 'active' : ''}`}
+                                            onClick={() => setConfig({...config, num_blocks: n})}
+                                            disabled={status === 'training'}
+                                        >{n}</button>
+                                    ))}
                                 </div>
                             </div>
 
                             <button
-                                className="btn-primary"
-                                onClick={handleTrain}
-                                disabled={isTraining}
+                                className="btn btn-primary"
+                                onClick={startTraining}
+                                disabled={status === 'training' || status === 'starting' || serverStatus?.error}
+                                style={{ width: '100%', marginTop: '1rem', justifyContent: 'center' }}
                             >
-                                {isTraining ? (
-                                    <>Training... {trainingProgress.toFixed(0)}%</>
-                                ) : (
-                                    <><Icons.Play /> Train Transformer</>
+                                {status === 'training' || status === 'starting' ? (
+                                    <>
+                                        <div className="spinner" style={{
+                                            width: 16,
+                                            height: 16,
+                                            border: '2px solid rgba(255,255,255,0.3)',
+                                            borderTopColor: 'white'
+                                        }} />
+                                        Training...
+                                    </>
+                                ) : '🚀 Start Training'}
+                            </button>
+
+                            {error && (
+                                <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(220, 53, 69, 0.1)', borderRadius: 8, color: '#dc3545' }}>
+                                    Error: {error}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Training Progress */}
+                        <div className="card">
+                            <div className="card-title">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                                </svg>
+                                Training Progress
+                            </div>
+
+                            {status === 'idle' && (
+                                <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--textMuted)' }}>
+                                    Configure parameters and click "Start Training" to begin
+                                </div>
+                            )}
+
+                            {(status === 'training' || status === 'starting') && progress && (
+                                <>
+                                    <div style={{ marginBottom: '1rem' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                            <span>{progress.status}</span>
+                                            <span>{progress.current_epoch}/{progress.total_epochs} epochs</span>
+                                        </div>
+                                        <div style={{ height: 8, background: '#e0e0e0', borderRadius: 4, overflow: 'hidden' }}>
+                                            <div style={{
+                                                height: '100%',
+                                                width: `${(progress.current_epoch / progress.total_epochs) * 100}%`,
+                                                background: 'var(--primary)',
+                                                transition: 'width 0.3s'
+                                            }} />
+                                        </div>
+                                    </div>
+
+                                    {progress.queue_position > 0 && (
+                                        <div className="explanation">
+                                            ⏳ Your job is in queue. Position: {progress.queue_position}
+                                        </div>
+                                    )}
+
+                                    {progress.history && progress.history.length > 0 && (
+                                        <div style={{ marginTop: '1rem' }}>
+                                            <svg width="100%" height="200" viewBox="0 0 400 200">
+                                                {/* Axes */}
+                                                <line x1="50" y1="170" x2="380" y2="170" stroke="#ccc" strokeWidth="1"/>
+                                                <line x1="50" y1="20" x2="50" y2="170" stroke="#ccc" strokeWidth="1"/>
+                                                <text x="215" y="195" textAnchor="middle" fontSize="12" fill="#666">Epoch</text>
+                                                <text x="20" y="95" textAnchor="middle" fontSize="12" fill="#666" transform="rotate(-90, 20, 95)">Accuracy %</text>
+
+                                                {/* Grid lines */}
+                                                {[0, 25, 50, 75, 100].map((v, i) => (
+                                                    <g key={i}>
+                                                        <line x1="50" y1={170 - v * 1.5} x2="380" y2={170 - v * 1.5} stroke="#eee" strokeWidth="1"/>
+                                                        <text x="45" y={175 - v * 1.5} textAnchor="end" fontSize="10" fill="#999">{v}</text>
+                                                    </g>
+                                                ))}
+
+                                                {/* Training accuracy line */}
+                                                <polyline
+                                                    fill="none"
+                                                    stroke="var(--primary)"
+                                                    strokeWidth="2"
+                                                    points={progress.history.map((h, i) =>
+                                                        `${50 + (i + 1) * (330 / (progress.total_epochs || 10))},${170 - h.trainAcc * 1.5}`
+                                                    ).join(' ')}
+                                                />
+
+                                                {/* Validation accuracy line */}
+                                                <polyline
+                                                    fill="none"
+                                                    stroke="var(--gold)"
+                                                    strokeWidth="2"
+                                                    points={progress.history.map((h, i) =>
+                                                        `${50 + (i + 1) * (330 / (progress.total_epochs || 10))},${170 - h.valAcc * 1.5}`
+                                                    ).join(' ')}
+                                                />
+
+                                                {/* Legend */}
+                                                <rect x="280" y="25" width="12" height="12" fill="var(--primary)"/>
+                                                <text x="297" y="35" fontSize="10" fill="#666">Train</text>
+                                                <rect x="330" y="25" width="12" height="12" fill="var(--gold)"/>
+                                                <text x="347" y="35" fontSize="10" fill="#666">Val</text>
+                                            </svg>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+
+                            {status === 'complete' && results && (
+                                <div>
+                                    <div className="stats-grid" style={{ gridTemplateColumns: '1fr 1fr', marginBottom: '1rem' }}>
+                                        <div className="stat-card">
+                                            <div className="stat-value">{results.test_accuracy?.toFixed(1)}%</div>
+                                            <div className="stat-label">Test Accuracy</div>
+                                        </div>
+                                        <div className="stat-card">
+                                            <div className="stat-value">{results.num_params ? (results.num_params / 1000).toFixed(0) + 'K' : '-'}</div>
+                                            <div className="stat-label">Parameters</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Final accuracy plot */}
+                                    {results.history && (
+                                        <div style={{ marginBottom: '1.5rem' }}>
+                                            <h4 style={{ fontSize: '0.9rem', marginBottom: '0.75rem' }}>Training History</h4>
+                                            <svg width="100%" height="200" viewBox="0 0 400 200">
+                                                <line x1="50" y1="170" x2="380" y2="170" stroke="#ccc" strokeWidth="1"/>
+                                                <line x1="50" y1="20" x2="50" y2="170" stroke="#ccc" strokeWidth="1"/>
+                                                {[0, 25, 50, 75, 100].map((v, i) => (
+                                                    <g key={i}>
+                                                        <line x1="50" y1={170 - v * 1.5} x2="380" y2={170 - v * 1.5} stroke="#eee" strokeWidth="1"/>
+                                                        <text x="45" y={175 - v * 1.5} textAnchor="end" fontSize="10" fill="#999">{v}</text>
+                                                    </g>
+                                                ))}
+                                                <polyline
+                                                    fill="none"
+                                                    stroke="var(--primary)"
+                                                    strokeWidth="2"
+                                                    points={results.history.map((h, i) =>
+                                                        `${50 + (i + 1) * (330 / results.history.length)},${170 - h.trainAcc * 1.5}`
+                                                    ).join(' ')}
+                                                />
+                                                <polyline
+                                                    fill="none"
+                                                    stroke="var(--gold)"
+                                                    strokeWidth="2"
+                                                    points={results.history.map((h, i) =>
+                                                        `${50 + (i + 1) * (330 / results.history.length)},${170 - h.valAcc * 1.5}`
+                                                    ).join(' ')}
+                                                />
+                                                <rect x="280" y="25" width="12" height="12" fill="var(--primary)"/>
+                                                <text x="297" y="35" fontSize="10" fill="#666">Train</text>
+                                                <rect x="330" y="25" width="12" height="12" fill="var(--gold)"/>
+                                                <text x="347" y="35" fontSize="10" fill="#666">Val</text>
+                                            </svg>
+                                        </div>
+                                    )}
+
+                                    {/* Sample predictions */}
+                                    {results.sample_predictions && (
+                                        <div>
+                                            <h4 style={{ fontSize: '0.9rem', marginBottom: '0.75rem' }}>Sample Predictions</h4>
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                                {results.sample_predictions.map((pred, i) => (
+                                                    <div key={i} style={{
+                                                        padding: '0.5rem 1rem',
+                                                        background: pred.correct ? 'rgba(40, 167, 69, 0.1)' : 'rgba(220, 53, 69, 0.1)',
+                                                        borderRadius: 8,
+                                                        border: `1px solid ${pred.correct ? '#28a745' : '#dc3545'}`,
+                                                        fontSize: '0.8rem'
+                                                    }}>
+                                                        <div>True: {pred.true} → Pred: {pred.predicted}</div>
+                                                        <div style={{ color: 'var(--textMuted)' }}>{(pred.confidence * 100).toFixed(0)}% conf</div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Attention Weights Visualization */}
+                    {status === 'complete' && results && results.attention_weights && (
+                        <div className="card">
+                            <div className="card-title">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                                Learned Attention Weights
+                            </div>
+
+                            <div className="explanation">
+                                These are the actual attention patterns learned by your trained transformer. Each head learns different patterns - some focus on nearby tokens, others on specific relationships.
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                                <div>
+                                    <label className="input-label">Block:</label>
+                                    <div className="btn-group">
+                                        {Object.keys(results.attention_weights).map((block, i) => (
+                                            <button key={i}
+                                                className={`btn-option ${activeBlock === i ? 'active' : ''}`}
+                                                onClick={() => setActiveBlock(i)}
+                                            >
+                                                Block {i + 1}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="input-label">Head:</label>
+                                    <div className="btn-group">
+                                        {results.attention_weights[`block_${activeBlock}`] &&
+                                            Object.keys(results.attention_weights[`block_${activeBlock}`]).map((head, i) => (
+                                                <button key={i}
+                                                    className={`btn-option ${activeHead === i ? 'active' : ''}`}
+                                                    onClick={() => setActiveHead(i)}
+                                                >
+                                                    Head {i + 1}
+                                                </button>
+                                            ))
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="heatmap-container">
+                                {results.attention_tokens && (
+                                    <div className="heatmap-header">
+                                        {results.attention_tokens.slice(0, 8).map((tok, i) => (
+                                            <div key={i} className="heatmap-header-cell">{tok}</div>
+                                        ))}
+                                    </div>
                                 )}
-                            </button>
-
-                            {isTraining && (
-                                <div className="progress-bar">
-                                    <div className="progress-fill" style={{ width: `${trainingProgress}%` }}></div>
-                                </div>
-                            )}
-
-                            <button className="btn-secondary" onClick={handleCompare}>
-                                Compare with LSTM
-                            </button>
-
-                            {/* Metrics */}
-                            {metrics.accuracy && (
-                                <div className="metrics-grid">
-                                    <div className="metric-card">
-                                        <div className="metric-value">{(metrics.accuracy * 100).toFixed(1)}%</div>
-                                        <div className="metric-label">Test Accuracy</div>
-                                    </div>
-                                    <div className="metric-card">
-                                        <div className="metric-value">{(metrics.parameters / 1000).toFixed(0)}K</div>
-                                        <div className="metric-label">Parameters</div>
-                                    </div>
-                                    <div className="metric-card">
-                                        <div className="metric-value">{metrics.trainingTime.toFixed(1)}s</div>
-                                        <div className="metric-label">Training Time</div>
-                                    </div>
-                                    <div className="metric-card">
-                                        <div className="metric-value">{metrics.attentionEntropy.toFixed(2)}</div>
-                                        <div className="metric-label">Attn Entropy</div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Visualization Area */}
-                    <div className="viz-area">
-                        <div className="viz-grid">
-                            {/* Attention Heatmap - Hero Feature */}
-                            <div className="card">
-                                <div className="card-title">
-                                    <Icons.Grid /> Attention Heatmap Visualization
-                                    <span className="status-badge ready">
-                                        <span className="status-dot"></span>
-                                        Interactive
-                                    </span>
-                                </div>
-                                <AttentionHeatmap
-                                    attentionWeights={attentionWeights}
-                                    tokens={tokens}
-                                    numHeads={numHeads}
-                                    activeHead={activeHead}
-                                    onHeadChange={setActiveHead}
-                                />
-                            </div>
-
-                            {/* Transformer Block Diagram - Hero Feature */}
-                            <div className="card">
-                                <div className="card-title">
-                                    <Icons.Layers /> Transformer Architecture
-                                    <span className="status-badge ready">
-                                        <span className="status-dot"></span>
-                                        Dynamic
-                                    </span>
-                                </div>
-                                <TransformerBlockDiagram
-                                    embedDim={embedDim}
-                                    numHeads={numHeads}
-                                    numBlocks={numBlocks}
-                                    ffDim={ffDim}
-                                />
-                            </div>
-
-                            {/* Training Curves */}
-                            <div className="card">
-                                <div className="card-title">
-                                    <Icons.Chart /> Training Progress
-                                </div>
-                                <div style={{ height: '250px' }}>
-                                    <TrainingChart data={trainingHistory} />
-                                </div>
-                            </div>
-
-                            {/* Embedding Visualization */}
-                            <div className="card">
-                                <div className="card-title">
-                                    <Icons.Eye /> Embedding Space (2D Projection)
-                                </div>
-                                <EmbeddingVisualization embeddings={embeddings} />
-                            </div>
-
-                            {/* Comparison Chart */}
-                            {comparison && (
-                                <div className="card full-width">
-                                    <div className="card-title">
-                                        <Icons.Compare /> Transformer vs LSTM Comparison
-                                    </div>
-                                    <div className="comparison-bars">
-                                        <div className="comparison-item">
-                                            <div className="comparison-label">Accuracy</div>
-                                            <div className="comparison-bar-container">
-                                                <div
-                                                    className="comparison-bar transformer"
-                                                    style={{ width: `${comparison.transformer.accuracy * 100}%` }}
-                                                >
-                                                    Transformer: {(comparison.transformer.accuracy * 100).toFixed(1)}%
+                                <div className="heatmap-grid">
+                                    {results.attention_weights[`block_${activeBlock}`] &&
+                                     results.attention_weights[`block_${activeBlock}`][activeHead] &&
+                                        results.attention_weights[`block_${activeBlock}`][activeHead].slice(0, 8).map((row, i) => (
+                                            <div key={i} className="heatmap-row">
+                                                <div className="heatmap-label">
+                                                    {results.attention_tokens ? results.attention_tokens[i] : `pos ${i}`}
                                                 </div>
+                                                {row.slice(0, 8).map((weight, j) => (
+                                                    <div
+                                                        key={j}
+                                                        className="heatmap-cell"
+                                                        style={{
+                                                            background: getColor(weight),
+                                                            color: weight > 0.4 ? 'white' : '#333'
+                                                        }}
+                                                        title={`${(weight * 100).toFixed(1)}%`}
+                                                    >
+                                                        {(weight * 100).toFixed(0)}
+                                                    </div>
+                                                ))}
                                             </div>
-                                        </div>
-                                        <div className="comparison-item">
-                                            <div className="comparison-label"></div>
-                                            <div className="comparison-bar-container">
-                                                <div
-                                                    className="comparison-bar lstm"
-                                                    style={{ width: `${comparison.lstm.accuracy * 100}%` }}
-                                                >
-                                                    LSTM: {(comparison.lstm.accuracy * 100).toFixed(1)}%
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="comparison-item">
-                                            <div className="comparison-label">Speed</div>
-                                            <div className="comparison-bar-container">
-                                                <div
-                                                    className="comparison-bar transformer"
-                                                    style={{ width: `${Math.min(100, (30 / comparison.transformer.time) * 100)}%` }}
-                                                >
-                                                    {comparison.transformer.time.toFixed(1)}s
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="comparison-item">
-                                            <div className="comparison-label"></div>
-                                            <div className="comparison-bar-container">
-                                                <div
-                                                    className="comparison-bar lstm"
-                                                    style={{ width: `${Math.min(100, (30 / comparison.lstm.time) * 100)}%` }}
-                                                >
-                                                    {comparison.lstm.time.toFixed(1)}s
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                        ))
+                                    }
                                 </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            );
-
-            // Instructions tab removed - simulator only
-
-            return (
-                <div className="app-container">
-                    {/* Header - Blue background with gold accent */}
-                    <header style={{
-                        background: '#2774AE',
-                        padding: '1rem 2rem 1.5rem 2rem',
-                        position: 'sticky',
-                        top: 0,
-                        zIndex: 100
-                    }}>
-                        <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div>
-                                <p style={{ fontSize: '0.65rem', color: '#2774AE', fontWeight: 400, marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
-                                    MGMT298D: Science and Strategy of AI
-                                </p>
-                                <h1 style={{ fontSize: '1.4rem', fontWeight: 600, color: '#f5f5f5', letterSpacing: '0' }}>
-                                    Week 7: Embeddings
-                                </h1>
-                                <p style={{ fontSize: '0.85rem', color: '#c0c0c0', marginTop: '0.25rem' }}>
-                                    Interactive exploration of word embeddings and vector representations
-                                </p>
-                            </div>
-                            <div style={{ textAlign: 'right' }}>
-                                <span style={{
-                                    fontSize: '1rem',
-                                    fontWeight: 500,
-                                    color: '#f5f5f5'
-                                }}>
-                                    UCLA Anderson
-                                </span>
                             </div>
                         </div>
-                        <div className="header-gold-line"></div>
-                    </header>
-
-                    {/* Results Section - Light (Simulator only, tabs removed) */}
-                    <div className="results-section">
-                        <div className="results-inner">
-                            {renderSimulator()}
-                        </div>
-                    </div>
-
-                    {/* Footer */}
-                    <p style={{ color: '#888', fontSize: '0.75rem', marginTop: '20px', textAlign: 'center' }}>
-                        MGMT298D: Science and Strategy of AI | UCLA Anderson School of Management
-                    </p>
+                    )}
                 </div>
             );
         };
 
-        // Render the app
+        // ===========================================
+        // Main App
+        // ===========================================
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('tokenizer');
+
+            const tabs = [
+                { id: 'tokenizer', label: '🔤 Tokenization' },
+                { id: 'attention', label: '🎯 Attention' },
+                { id: 'positional', label: '📍 Positional Encoding' },
+                { id: 'masking', label: '🔒 Causal Masking' },
+                { id: 'generation', label: '✨ Text Generation' },
+                { id: 'architecture', label: '🏗️ Architecture' },
+                { id: 'training', label: '🚀 Train Transformer' },
+            ];
+
+            const renderTab = () => {
+                switch (activeTab) {
+                    case 'tokenizer': return <TokenizerTab />;
+                    case 'attention': return <AttentionTab />;
+                    case 'positional': return <PositionalEncodingTab />;
+                    case 'masking': return <CausalMaskingTab />;
+                    case 'generation': return <TextGenerationTab />;
+                    case 'architecture': return <ArchitectureTab />;
+                    case 'training': return <TrainTransformerTab />;
+                    default: return <TokenizerTab />;
+                }
+            };
+
+            return (
+                <div className="app-container">
+                    <header className="header">
+                        <div className="header-content">
+                            <div className="header-left">
+                                <p className="course-label">MGMT298D: Science and Strategy of AI</p>
+                                <h1>Week 7: How LLMs Work</h1>
+                                <p className="subtitle">Interactive exploration of transformer architecture and text generation</p>
+                            </div>
+                            <div className="header-right">
+                                UCLA Anderson
+                            </div>
+                        </div>
+                        <div className="header-gold-line" />
+                    </header>
+
+                    <div className="tabs-container">
+                        <div className="tabs">
+                            {tabs.map(tab => (
+                                <button
+                                    key={tab.id}
+                                    className={`tab ${activeTab === tab.id ? 'active' : ''}`}
+                                    onClick={() => setActiveTab(tab.id)}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <main className="main-content">
+                        {renderTab()}
+                    </main>
+
+                    <footer className="footer">
+                        MGMT298D: Science and Strategy of AI | UCLA Anderson School of Management
+                    </footer>
+                </div>
+            );
+        };
+
         ReactDOM.render(<App />, document.getElementById('root'));
     </script>
 </body>
