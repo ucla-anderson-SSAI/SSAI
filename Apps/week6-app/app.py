@@ -463,6 +463,16 @@ def get_stats():
         })
 
 
+@app.route('/', methods=['GET'])
+def root():
+    """Root endpoint"""
+    return jsonify({
+        'app': 'Week 6 CNN Training Backend',
+        'status': 'running',
+        'endpoints': ['/api/health', '/api/train', '/api/stats']
+    })
+
+
 # Start background threads
 cleanup_thread = threading.Thread(target=cleanup_old_sessions, daemon=True)
 cleanup_thread.start()
