@@ -105,7 +105,6 @@
         /* Controls Section - Light */
         .controls-section {
             background: #ffffff;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
         }
 
         .controls-content {
@@ -150,6 +149,7 @@
             display: grid;
             grid-template-columns: 340px 1fr;
             gap: 24px;
+            align-items: start;
         }
 
         .control-panel {
@@ -417,7 +417,6 @@
         /* Light Results Section */
         .results-section {
             background: #ffffff;
-            min-height: 100vh;
         }
 
         .results-content {
@@ -863,94 +862,160 @@
             return patterns;
         };
 
-        // Chart.js-based Training Curve Chart Component
-        function TrainingCurveChart({ data, lines }) {
+        // Accuracy Chart - Incremental updates (Week 6 style)
+        const AccuracyChart = ({ trainingHistory, totalEpochs }) => {
             const canvasRef = useRef(null);
             const chartRef = useRef(null);
 
+            // Initialize chart once
             useEffect(() => {
-                if (!canvasRef.current || !data.length) return;
-                if (chartRef.current) chartRef.current.destroy();
+                if (!canvasRef.current) return;
+
+                const labels = Array.from({ length: totalEpochs }, (_, i) => `${i + 1}`);
+                const emptyData = Array(totalEpochs).fill(null);
 
                 const ctx = canvasRef.current.getContext('2d');
                 chartRef.current = new Chart(ctx, {
                     type: 'line',
                     data: {
-                        labels: data.map(d => d.epoch),
-                        datasets: lines.map(line => ({
-                            label: line.label,
-                            data: data.map(d => d[line.key]),
-                            borderColor: line.color,
-                            backgroundColor: line.color,
-                            fill: false,
-                            tension: 0.4,
-                            pointRadius: 0,
-                            borderWidth: 2
-                        }))
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Training Accuracy',
+                                data: [...emptyData],
+                                borderColor: '#2774AE',
+                                backgroundColor: 'rgba(39, 116, 174, 0.1)',
+                                fill: false, tension: 0.3, pointRadius: 3, pointBackgroundColor: '#2774AE',
+                                spanGaps: false
+                            },
+                            {
+                                label: 'Validation Accuracy',
+                                data: [...emptyData],
+                                borderColor: '#FFD100',
+                                backgroundColor: 'rgba(255, 209, 0, 0.1)',
+                                fill: false, tension: 0.3, pointRadius: 3, pointBackgroundColor: '#FFD100',
+                                spanGaps: false
+                            }
+                        ]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        animation: false,
                         plugins: {
-                            legend: {
-                                display: true,
-                                position: 'top',
-                                labels: {
-                                    color: colors.lightMuted,
-                                    font: { size: 12 },
-                                    usePointStyle: true,
-                                    pointStyle: 'circle'
-                                }
-                            },
+                            legend: { display: true, position: 'top', labels: { color: '#666', usePointStyle: true, padding: 20 } },
                             tooltip: {
-                                backgroundColor: colors.darkCard,
-                                titleColor: colors.darkText,
-                                bodyColor: colors.darkMuted,
-                                borderColor: 'rgba(39, 116, 174, 0.3)',
-                                borderWidth: 1,
-                                cornerRadius: 8,
-                                padding: 10,
-                                callbacks: {
-                                    title: (items) => `Epoch ${items[0].label}`,
-                                    label: (context) => `${context.dataset.label}: ${context.parsed.y.toFixed(4)}`
-                                }
+                                backgroundColor: 'rgba(0,0,0,0.8)',
+                                callbacks: { label: (ctx) => ctx.raw !== null ? `${ctx.dataset.label}: ${(ctx.raw * 100).toFixed(1)}%` : '' }
                             }
                         },
                         scales: {
                             x: {
-                                grid: {
-                                    color: 'rgba(0, 0, 0, 0.06)',
-                                    drawBorder: false
-                                },
-                                ticks: {
-                                    color: colors.lightMuted,
-                                    font: { size: 11 }
-                                },
-                                title: {
-                                    display: false
-                                }
+                                title: { display: true, text: 'Epoch', color: '#666' },
+                                ticks: { color: '#666' },
+                                grid: { color: 'rgba(0,0,0,0.05)' }
                             },
                             y: {
-                                grid: {
-                                    color: 'rgba(0, 0, 0, 0.06)',
-                                    drawBorder: false
-                                },
-                                ticks: {
-                                    color: colors.lightMuted,
-                                    font: { size: 11 }
-                                },
-                                title: {
-                                    display: false
-                                }
+                                title: { display: true, text: 'Accuracy', color: '#666' },
+                                min: 0,
+                                max: 1,
+                                ticks: { color: '#666', stepSize: 0.2, callback: (v) => (v * 100) + '%' },
+                                grid: { color: 'rgba(0,0,0,0.05)' }
                             }
                         }
                     }
                 });
-                return () => { if (chartRef.current) chartRef.current.destroy(); };
-            }, [data, lines]);
 
-            return <div style={{height: '250px'}}><canvas ref={canvasRef} /></div>;
-        }
+                return () => { if (chartRef.current) chartRef.current.destroy(); };
+            }, [totalEpochs]);
+
+            // Update data incrementally
+            useEffect(() => {
+                if (!chartRef.current) return;
+
+                const chart = chartRef.current;
+                const trainData = Array(totalEpochs).fill(null);
+                const valData = Array(totalEpochs).fill(null);
+
+                trainingHistory.forEach((h, i) => {
+                    trainData[i] = h.trainAcc;
+                    valData[i] = h.valAcc;
+                });
+
+                chart.data.datasets[0].data = trainData;
+                chart.data.datasets[1].data = valData;
+                chart.update('none');
+            }, [trainingHistory, totalEpochs]);
+
+            return <canvas ref={canvasRef} />;
+        };
+
+        // Loss Chart - Incremental updates (Week 6 style)
+        const LossChart = ({ trainingHistory, totalEpochs }) => {
+            const canvasRef = useRef(null);
+            const chartRef = useRef(null);
+
+            // Initialize chart once
+            useEffect(() => {
+                if (!canvasRef.current) return;
+
+                const labels = Array.from({ length: totalEpochs }, (_, i) => `${i + 1}`);
+                const emptyData = Array(totalEpochs).fill(null);
+
+                const ctx = canvasRef.current.getContext('2d');
+                chartRef.current = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            { label: 'Training Loss', data: [...emptyData], borderColor: '#e74c3c', backgroundColor: 'rgba(231,76,60,0.1)', fill: false, tension: 0.3, pointRadius: 3, pointBackgroundColor: '#e74c3c', spanGaps: false },
+                            { label: 'Validation Loss', data: [...emptyData], borderColor: '#9b59b6', backgroundColor: 'rgba(155,89,182,0.1)', fill: false, tension: 0.3, pointRadius: 3, pointBackgroundColor: '#9b59b6', spanGaps: false }
+                        ]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        animation: false,
+                        plugins: { legend: { display: true, position: 'top', labels: { color: '#666', usePointStyle: true, padding: 20 } } },
+                        scales: {
+                            x: {
+                                title: { display: true, text: 'Epoch', color: '#666' },
+                                ticks: { color: '#666' },
+                                grid: { color: 'rgba(0,0,0,0.05)' }
+                            },
+                            y: {
+                                title: { display: true, text: 'Loss', color: '#666' },
+                                min: 0,
+                                max: 2.5,
+                                ticks: { color: '#666', stepSize: 0.5 },
+                                grid: { color: 'rgba(0,0,0,0.05)' }
+                            }
+                        }
+                    }
+                });
+
+                return () => { if (chartRef.current) chartRef.current.destroy(); };
+            }, [totalEpochs]);
+
+            // Update data incrementally
+            useEffect(() => {
+                if (!chartRef.current) return;
+
+                const chart = chartRef.current;
+                const trainData = Array(totalEpochs).fill(null);
+                const valData = Array(totalEpochs).fill(null);
+
+                trainingHistory.forEach((h, i) => {
+                    trainData[i] = h.trainLoss;
+                    valData[i] = h.valLoss;
+                });
+
+                chart.data.datasets[0].data = trainData;
+                chart.data.datasets[1].data = valData;
+                chart.update('none');
+            }, [trainingHistory, totalEpochs]);
+
+            return <canvas ref={canvasRef} />;
+        };
 
         // Neural Network Visualization Component
         const NeuralNetworkViz = ({ layers, activation, dropout, batchNorm, isTraining, currentEpoch }) => {
@@ -1334,8 +1399,8 @@
                                     style={{
                                         height: `${gradients[idx] * 100}%`,
                                         background: `linear-gradient(180deg,
-                                            ${gradients[idx] > 0.7 ? colors.positive :
-                                              gradients[idx] > 0.3 ? colors.primary : colors.negative},
+                                            ${gradients[idx] > 0.7 ? '#22c55e' :
+                                              gradients[idx] > 0.3 ? '#eab308' : '#ef4444'},
                                             transparent)`
                                     }}
                                 />
@@ -1526,7 +1591,7 @@
                         <div className="header-gold-line"></div>
                     </header>
 
-                    {/* DARK CONTROLS SECTION */}
+                    {/* MAIN CONTENT SECTION */}
                     <div className="controls-section">
                         <div className="controls-content">
                                 <div className="simulator-layout">
@@ -1652,7 +1717,7 @@
                                                 <input
                                                     type="range"
                                                     min="5"
-                                                    max="50"
+                                                    max="200"
                                                     step="5"
                                                     value={epochs}
                                                     onChange={(e) => setEpochs(parseInt(e.target.value))}
@@ -1682,120 +1747,118 @@
                                             </div>
                                         )}
                                     </aside>
+
+                                    {/* Right side - Network viz + charts stacked */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                        {/* Neural Network Visualization */}
+                                        <div className="network-viz-card" style={{ margin: 0 }}>
+                                            <div className="card-header">
+                                                <h3 className="card-title">
+                                                    Network Architecture
+                                                </h3>
+                                                <span className="param-count">
+                                                    {paramCount.toLocaleString()} parameters
+                                                </span>
+                                            </div>
+                                            <div className="network-svg-container">
+                                                <NeuralNetworkViz
+                                                    layers={hiddenLayers}
+                                                    activation={activation}
+                                                    dropout={dropout}
+                                                    batchNorm={batchNorm}
+                                                    isTraining={isTraining}
+                                                    currentEpoch={currentEpoch}
+                                                />
+                                            </div>
+                                            <div className="network-legend">
+                                                <div className="legend-item">
+                                                    <div className="legend-dot" style={{ background: '#6b7280' }}></div>
+                                                    Input Layer
+                                                </div>
+                                                <div className="legend-item">
+                                                    <div className="legend-dot" style={{ background: ACTIVATION_COLORS[activation] }}></div>
+                                                    Hidden ({activation.toUpperCase()})
+                                                </div>
+                                                <div className="legend-item">
+                                                    <div className="legend-dot" style={{ background: colors.positive }}></div>
+                                                    Output Layer
+                                                </div>
+                                                {dropout > 0 && (
+                                                    <div className="legend-item">
+                                                        <div className="legend-dot" style={{
+                                                            background: 'transparent',
+                                                            border: `2px dashed ${colors.primary}`
+                                                        }}></div>
+                                                        Dropout Nodes
+                                                    </div>
+                                                )}
+                                                {batchNorm && (
+                                                    <div className="legend-item">
+                                                        <div className="legend-bar" style={{ background: colors.lightBlue }}></div>
+                                                        Batch Norm
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Training Charts - side by side below network */}
+                                        <div className="charts-grid" style={{ marginBottom: 0 }}>
+                                            <div className="chart-card">
+                                                <h3 className="card-title">Accuracy Over Epochs</h3>
+                                                <div className="chart-container">
+                                                    <AccuracyChart
+                                                        trainingHistory={trainingHistory}
+                                                        totalEpochs={epochs}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="chart-card">
+                                                <h3 className="card-title">Loss Over Epochs</h3>
+                                                <div className="chart-container">
+                                                    <LossChart
+                                                        trainingHistory={trainingHistory}
+                                                        totalEpochs={epochs}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Metrics row - below charts */}
+                                        <div className="metrics-grid" style={{ marginBottom: 0 }}>
+                                            <div className="metric-card">
+                                                <div className="metric-value">
+                                                    {(metrics.trainAcc * 100).toFixed(1)}%
+                                                </div>
+                                                <div className="metric-label">Train Accuracy</div>
+                                            </div>
+                                            <div className="metric-card">
+                                                <div className="metric-value positive">
+                                                    {(metrics.valAcc * 100).toFixed(1)}%
+                                                </div>
+                                                <div className="metric-label">Val Accuracy</div>
+                                            </div>
+                                            <div className="metric-card">
+                                                <div className="metric-value neutral">
+                                                    {metrics.valLoss.toFixed(3)}
+                                                </div>
+                                                <div className="metric-label">Val Loss</div>
+                                            </div>
+                                            <div className="metric-card">
+                                                <div className="metric-value" style={{ color: colors.text }}>
+                                                    {metrics.trainTime.toFixed(1)}s
+                                                </div>
+                                                <div className="metric-label">Training Time</div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                         </div>
                     </div>
 
-                    {/* LIGHT RESULTS SECTION */}
+                    {/* RESULTS SECTION */}
                         <div className="results-section">
                             <div className="results-content">
-                                {/* Neural Network Visualization */}
-                                <div className="network-viz-card">
-                                    <div className="card-header">
-                                        <h3 className="card-title">
-                                            Network Architecture
-                                        </h3>
-                                        <span className="param-count">
-                                            {paramCount.toLocaleString()} parameters
-                                        </span>
-                                    </div>
-                                    <div className="network-svg-container">
-                                        <NeuralNetworkViz
-                                            layers={hiddenLayers}
-                                            activation={activation}
-                                            dropout={dropout}
-                                            batchNorm={batchNorm}
-                                            isTraining={isTraining}
-                                            currentEpoch={currentEpoch}
-                                        />
-                                    </div>
-                                    <div className="network-legend">
-                                        <div className="legend-item">
-                                            <div className="legend-dot" style={{ background: '#6b7280' }}></div>
-                                            Input Layer
-                                        </div>
-                                        <div className="legend-item">
-                                            <div className="legend-dot" style={{ background: ACTIVATION_COLORS[activation] }}></div>
-                                            Hidden ({activation.toUpperCase()})
-                                        </div>
-                                        <div className="legend-item">
-                                            <div className="legend-dot" style={{ background: colors.positive }}></div>
-                                            Output Layer
-                                        </div>
-                                        {dropout > 0 && (
-                                            <div className="legend-item">
-                                                <div className="legend-dot" style={{
-                                                    background: 'transparent',
-                                                    border: `2px dashed ${colors.primary}`
-                                                }}></div>
-                                                Dropout Nodes
-                                            </div>
-                                        )}
-                                        {batchNorm && (
-                                            <div className="legend-item">
-                                                <div className="legend-bar" style={{ background: colors.lightBlue }}></div>
-                                                Batch Norm
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Metrics */}
-                                <div className="metrics-grid">
-                                    <div className="metric-card">
-                                        <div className="metric-value">
-                                            {(metrics.trainAcc * 100).toFixed(1)}%
-                                        </div>
-                                        <div className="metric-label">Train Accuracy</div>
-                                    </div>
-                                    <div className="metric-card">
-                                        <div className="metric-value positive">
-                                            {(metrics.valAcc * 100).toFixed(1)}%
-                                        </div>
-                                        <div className="metric-label">Val Accuracy</div>
-                                    </div>
-                                    <div className="metric-card">
-                                        <div className="metric-value neutral">
-                                            {metrics.valLoss.toFixed(3)}
-                                        </div>
-                                        <div className="metric-label">Val Loss</div>
-                                    </div>
-                                    <div className="metric-card">
-                                        <div className="metric-value" style={{ color: colors.text }}>
-                                            {metrics.trainTime.toFixed(1)}s
-                                        </div>
-                                        <div className="metric-label">Training Time</div>
-                                    </div>
-                                </div>
-
-                                {/* Training Charts */}
-                                <div className="charts-grid">
-                                    <div className="chart-card">
-                                        <h3 className="card-title">Loss Over Epochs</h3>
-                                        <div className="chart-container">
-                                            <TrainingCurveChart
-                                                data={trainingHistory}
-                                                lines={[
-                                                    { key: 'trainLoss', label: 'Train Loss', color: colors.text },
-                                                    { key: 'valLoss', label: 'Val Loss', color: colors.text }
-                                                ]}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="chart-card">
-                                        <h3 className="card-title">Accuracy Over Epochs</h3>
-                                        <div className="chart-container">
-                                            <TrainingCurveChart
-                                                data={trainingHistory}
-                                                lines={[
-                                                    { key: 'trainAcc', label: 'Train Acc', color: colors.text },
-                                                    { key: 'valAcc', label: 'Val Acc', color: colors.text }
-                                                ]}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
 
                                 {/* Confusion Matrix and Predictions */}
                                 {trainingHistory.length > 0 && (
