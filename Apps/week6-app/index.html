@@ -799,222 +799,165 @@
         };
 
         // Filter Visualization - Realistic CNN filter patterns
-        const FilterVisualization = ({ layer }) => {
+        // Filter Visualization - Shows REAL trained filters from the model
+        const FilterVisualization = ({ layer, trainedFilters }) => {
             const canvasRefs = useRef([]);
+            const numFiltersToShow = 8;
 
-            const filterConfigs = useMemo(() => {
-                if (layer === 1) {
-                    // Layer 1: Gabor-like edge detectors at various orientations
-                    return [
-                        { name: 'Horizontal Edge', type: 'gabor', angle: 0, freq: 0.15 },
-                        { name: 'Vertical Edge', type: 'gabor', angle: 90, freq: 0.15 },
-                        { name: '45° Edge', type: 'gabor', angle: 45, freq: 0.15 },
-                        { name: '135° Edge', type: 'gabor', angle: 135, freq: 0.15 },
-                        { name: 'Center-Surround', type: 'dog', size: 0.3 },
-                        { name: 'Color Opponent', type: 'color', mode: 'rg' }
-                    ];
-                } else if (layer === 2) {
-                    // Layer 2: Texture and pattern detectors
-                    return [
-                        { name: 'Corner Detector', type: 'corner' },
-                        { name: 'Curve Detector', type: 'curve' },
-                        { name: 'Grid Pattern', type: 'grid' },
-                        { name: 'Texture', type: 'texture', freq: 4 },
-                        { name: 'Blob Detector', type: 'blob' },
-                        { name: 'Line Junction', type: 'junction' }
-                    ];
-                } else {
-                    // Layer 3+: Part detectors (more abstract patterns)
-                    return [
-                        { name: 'Eye-like', type: 'eye' },
-                        { name: 'Wheel/Circle', type: 'wheel' },
-                        { name: 'Fur Texture', type: 'fur' },
-                        { name: 'Snout Shape', type: 'snout' },
-                        { name: 'Wing Pattern', type: 'wing' },
-                        { name: 'Ear Shape', type: 'ear' }
-                    ];
+            // Get filter data for this layer
+            const filterData = useMemo(() => {
+                if (!trainedFilters || !trainedFilters[`layer${layer}`]) {
+                    return null;
                 }
-            }, [layer]);
+                return trainedFilters[`layer${layer}`];
+            }, [trainedFilters, layer]);
 
             useEffect(() => {
-                filterConfigs.forEach((config, idx) => {
-                    const canvas = canvasRefs.current[idx];
-                    if (!canvas) return;
+                if (!filterData) return;
+
+                // filterData shape: [kernelH, kernelW, inChannels, outChannels]
+                const kernelH = filterData.length;
+                const kernelW = filterData[0].length;
+                const inChannels = filterData[0][0].length;
+                const outChannels = filterData[0][0][0].length;
+
+                const numToRender = Math.min(numFiltersToShow, outChannels);
+
+                for (let filterIdx = 0; filterIdx < numToRender; filterIdx++) {
+                    const canvas = canvasRefs.current[filterIdx];
+                    if (!canvas) continue;
 
                     const ctx = canvas.getContext('2d');
-                    const size = 48;
-                    canvas.width = size;
-                    canvas.height = size;
+                    const displaySize = 48;
+                    canvas.width = displaySize;
+                    canvas.height = displaySize;
 
-                    const imageData = ctx.createImageData(size, size);
-                    const data = imageData.data;
+                    // Extract this filter's weights
+                    // For layer 1, we can show RGB channels directly
+                    // For deeper layers, we'll average across input channels
+                    const filterWeights = [];
+                    let minVal = Infinity, maxVal = -Infinity;
 
-                    for (let y = 0; y < size; y++) {
-                        for (let x = 0; x < size; x++) {
-                            const px = (y * size + x) * 4;
-                            const nx = (x - size/2) / (size/2); // normalized -1 to 1
-                            const ny = (y - size/2) / (size/2);
-                            let r, g, b;
-
-                            if (config.type === 'gabor') {
-                                // Gabor filter - edge detector
-                                const angle = config.angle * Math.PI / 180;
-                                const xr = nx * Math.cos(angle) + ny * Math.sin(angle);
-                                const yr = -nx * Math.sin(angle) + ny * Math.cos(angle);
-                                const gaussian = Math.exp(-(xr*xr + yr*yr) / 0.5);
-                                const sinusoid = Math.sin(2 * Math.PI * config.freq * size * xr);
-                                const val = gaussian * sinusoid;
-                                const normalized = (val + 1) / 2;
-                                // Blue for negative, white for zero, red for positive
-                                if (val < 0) {
-                                    r = 128 + normalized * 127;
-                                    g = 128 + normalized * 127;
-                                    b = 255;
-                                } else {
-                                    r = 255;
-                                    g = 255 - val * 127;
-                                    b = 255 - val * 127;
-                                }
-                            } else if (config.type === 'dog') {
-                                // Difference of Gaussians - center-surround
-                                const dist = Math.sqrt(nx*nx + ny*ny);
-                                const center = Math.exp(-dist*dist / (config.size * config.size));
-                                const surround = Math.exp(-dist*dist / (config.size * 2 * config.size * 2));
-                                const val = center - surround * 0.7;
-                                r = g = b = 128 + val * 127;
-                            } else if (config.type === 'color') {
-                                // Color opponent channel
-                                const dist = Math.sqrt(nx*nx + ny*ny);
-                                const gaussian = Math.exp(-dist*dist / 0.3);
-                                if (dist < 0.4) {
-                                    r = 200 * gaussian + 50;
-                                    g = 80;
-                                    b = 80;
-                                } else {
-                                    r = 80;
-                                    g = 180 * (1-gaussian) + 50;
-                                    b = 80;
-                                }
-                            } else if (config.type === 'corner') {
-                                // L-shaped corner detector
-                                const inCorner = (nx > -0.2 && ny > -0.2) && (nx < 0.2 || ny < 0.2);
-                                const val = inCorner ? 1 : 0;
-                                const edge = Math.abs(nx + 0.2) < 0.15 || Math.abs(ny + 0.2) < 0.15;
-                                r = g = b = edge && inCorner ? 255 : (inCorner ? 180 : 100);
-                            } else if (config.type === 'curve') {
-                                // Curved edge detector
-                                const angle = Math.atan2(ny, nx);
-                                const dist = Math.sqrt(nx*nx + ny*ny);
-                                const onCurve = Math.abs(dist - 0.5) < 0.15 && angle > -Math.PI/2 && angle < Math.PI/2;
-                                r = g = b = onCurve ? 255 : 100;
-                            } else if (config.type === 'grid') {
-                                // Grid/crosshatch pattern
-                                const gridVal = (Math.sin(nx * 12) > 0.3 ? 1 : 0) + (Math.sin(ny * 12) > 0.3 ? 1 : 0);
-                                r = g = b = gridVal > 0 ? 200 : 80;
-                            } else if (config.type === 'texture') {
-                                // Texture pattern
-                                const noise = Math.sin(nx * config.freq * 8) * Math.sin(ny * config.freq * 8);
-                                const noise2 = Math.sin((nx + ny) * config.freq * 6);
-                                r = g = b = 128 + (noise + noise2) * 40;
-                            } else if (config.type === 'blob') {
-                                // Blob detector
-                                const dist = Math.sqrt(nx*nx + ny*ny);
-                                const blob = Math.exp(-dist*dist / 0.15);
-                                r = g = b = 80 + blob * 175;
-                            } else if (config.type === 'junction') {
-                                // T or X junction
-                                const onVert = Math.abs(nx) < 0.12;
-                                const onHoriz = Math.abs(ny) < 0.12 && nx > -0.1;
-                                r = g = b = (onVert || onHoriz) ? 255 : 100;
-                            } else if (config.type === 'eye') {
-                                // Eye-like pattern
-                                const dist = Math.sqrt(nx*nx + ny*ny);
-                                if (dist < 0.2) {
-                                    r = g = b = 30; // pupil
-                                } else if (dist < 0.45) {
-                                    r = 100; g = 140; b = 90; // iris
-                                } else if (dist < 0.6) {
-                                    r = g = b = 240; // white
-                                } else {
-                                    r = 180; g = 140; b = 120; // skin
-                                }
-                            } else if (config.type === 'wheel') {
-                                // Wheel/tire pattern
-                                const dist = Math.sqrt(nx*nx + ny*ny);
-                                const angle = Math.atan2(ny, nx);
-                                const spoke = Math.abs(Math.sin(angle * 5)) < 0.3;
-                                if (dist < 0.25) {
-                                    r = g = b = 60;
-                                } else if (dist < 0.7) {
-                                    r = g = b = spoke ? 50 : 30;
-                                } else {
-                                    r = g = b = 40;
-                                }
-                            } else if (config.type === 'fur') {
-                                // Fur texture
-                                const furAngle = Math.sin(nx * 15 + ny * 3) * 0.5;
-                                const stripe = Math.sin((nx * Math.cos(furAngle) + ny * Math.sin(furAngle)) * 20);
-                                r = 139 + stripe * 30;
-                                g = 90 + stripe * 20;
-                                b = 43 + stripe * 15;
-                            } else if (config.type === 'snout') {
-                                // Snout/nose shape
-                                const dist = Math.sqrt(nx*nx + (ny*1.5)*(ny*1.5));
-                                if (dist < 0.5) {
-                                    r = 60; g = 40; b = 40; // nose
-                                } else {
-                                    const fur = Math.sin(nx * 10) * 0.1;
-                                    r = 180 + fur * 30; g = 140 + fur * 20; b = 100 + fur * 20;
-                                }
-                            } else if (config.type === 'wing') {
-                                // Wing feather pattern
-                                const feather = Math.sin((nx - ny * 0.5) * 12);
-                                const edge = ny > nx * 0.8 - 0.3 && ny < nx * 0.8 + 0.5;
-                                if (edge) {
-                                    r = 100 + feather * 30;
-                                    g = 120 + feather * 30;
-                                    b = 140 + feather * 30;
-                                } else {
-                                    r = g = b = 200;
-                                }
-                            } else if (config.type === 'ear') {
-                                // Pointed ear shape
-                                const inEar = ny < -nx * 0.7 + 0.3 && ny < nx * 0.7 + 0.3 && ny > -0.6;
-                                if (inEar) {
-                                    const inner = ny > -nx * 0.5 + 0.1 && ny > nx * 0.5 + 0.1 && ny > -0.3;
-                                    r = inner ? 200 : 160;
-                                    g = inner ? 160 : 130;
-                                    b = inner ? 140 : 110;
-                                } else {
-                                    r = g = b = 220;
+                    for (let h = 0; h < kernelH; h++) {
+                        filterWeights[h] = [];
+                        for (let w = 0; w < kernelW; w++) {
+                            if (layer === 1 && inChannels === 3) {
+                                // For first layer with RGB input, keep separate channels
+                                filterWeights[h][w] = [
+                                    filterData[h][w][0][filterIdx], // R channel
+                                    filterData[h][w][1][filterIdx], // G channel
+                                    filterData[h][w][2][filterIdx]  // B channel
+                                ];
+                                for (let c = 0; c < 3; c++) {
+                                    minVal = Math.min(minVal, filterWeights[h][w][c]);
+                                    maxVal = Math.max(maxVal, filterWeights[h][w][c]);
                                 }
                             } else {
-                                r = g = b = 128;
+                                // For deeper layers, average across input channels
+                                let sum = 0;
+                                for (let c = 0; c < inChannels; c++) {
+                                    sum += filterData[h][w][c][filterIdx];
+                                }
+                                filterWeights[h][w] = sum / inChannels;
+                                minVal = Math.min(minVal, filterWeights[h][w]);
+                                maxVal = Math.max(maxVal, filterWeights[h][w]);
                             }
+                        }
+                    }
 
-                            data[px] = Math.max(0, Math.min(255, r));
-                            data[px + 1] = Math.max(0, Math.min(255, g));
-                            data[px + 2] = Math.max(0, Math.min(255, b));
-                            data[px + 3] = 255;
+                    // Normalize and render
+                    const imageData = ctx.createImageData(displaySize, displaySize);
+                    const data = imageData.data;
+                    const range = maxVal - minVal || 1;
+
+                    for (let py = 0; py < displaySize; py++) {
+                        for (let px = 0; px < displaySize; px++) {
+                            const idx = (py * displaySize + px) * 4;
+
+                            // Map display pixel to kernel position
+                            const kh = Math.floor(py / displaySize * kernelH);
+                            const kw = Math.floor(px / displaySize * kernelW);
+
+                            if (layer === 1 && inChannels === 3) {
+                                // RGB visualization for first layer
+                                const weights = filterWeights[kh][kw];
+                                data[idx] = Math.round(((weights[0] - minVal) / range) * 255);     // R
+                                data[idx + 1] = Math.round(((weights[1] - minVal) / range) * 255); // G
+                                data[idx + 2] = Math.round(((weights[2] - minVal) / range) * 255); // B
+                            } else {
+                                // Grayscale with diverging colormap (blue-white-red)
+                                const val = filterWeights[kh][kw];
+                                const normalized = (val - minVal) / range; // 0 to 1
+                                const centered = normalized * 2 - 1; // -1 to 1
+
+                                if (centered < 0) {
+                                    // Negative: blue
+                                    data[idx] = Math.round(128 + centered * 128 + 127);
+                                    data[idx + 1] = Math.round(128 + centered * 128 + 127);
+                                    data[idx + 2] = 255;
+                                } else {
+                                    // Positive: red
+                                    data[idx] = 255;
+                                    data[idx + 1] = Math.round(255 - centered * 127);
+                                    data[idx + 2] = Math.round(255 - centered * 127);
+                                }
+                            }
+                            data[idx + 3] = 255;
                         }
                     }
 
                     ctx.putImageData(imageData, 0, 0);
-                });
-            }, [filterConfigs]);
+                }
+            }, [filterData, layer]);
+
+            // If no trained filters yet, show placeholder
+            if (!filterData) {
+                return (
+                    <div className="filter-grid">
+                        <div style={{
+                            padding: '1rem',
+                            color: '#888',
+                            fontSize: '0.85rem',
+                            fontStyle: 'italic',
+                            textAlign: 'center',
+                            width: '100%'
+                        }}>
+                            Train the model to see actual learned filters
+                        </div>
+                    </div>
+                );
+            }
+
+            const outChannels = filterData[0][0][0].length;
+            const numToShow = Math.min(numFiltersToShow, outChannels);
 
             return (
                 <div className="filter-grid">
-                    {filterConfigs.map((config, idx) => (
+                    {Array.from({ length: numToShow }, (_, idx) => (
                         <div key={idx} className="filter-item">
                             <canvas
                                 ref={el => canvasRefs.current[idx] = el}
                                 className="filter-visual"
-                                style={{ width: '48px', height: '48px', borderRadius: '4px' }}
+                                style={{
+                                    width: '48px',
+                                    height: '48px',
+                                    borderRadius: '4px',
+                                    imageRendering: 'pixelated'
+                                }}
                             />
-                            <div className="filter-name">{config.name}</div>
+                            <div className="filter-name">Filter {idx + 1}</div>
                         </div>
                     ))}
+                    {outChannels > numFiltersToShow && (
+                        <div style={{
+                            padding: '0.5rem',
+                            color: '#888',
+                            fontSize: '0.75rem',
+                            alignSelf: 'center'
+                        }}>
+                            +{outChannels - numFiltersToShow} more
+                        </div>
+                    )}
                 </div>
             );
         };
@@ -1216,15 +1159,22 @@
             );
         };
 
+        // Backend API URL - change this to your Railway backend URL after deployment
+        const API_BASE_URL = window.location.hostname === 'localhost'
+            ? 'http://localhost:5000'
+            : 'https://week6-cnn-backend.up.railway.app';  // Update this after deploying backend
+
         // CNN Builder Tab
         const CNNBuilderTab = () => {
             const { modelState, setModelState } = useContext(ModelContext);
-            const { config, setConfig, trainingHistory, setTrainingHistory, isModelTrained, setIsModelTrained } = modelState;
+            const { config, setConfig, trainingHistory, setTrainingHistory, isModelTrained, setIsModelTrained, trainedFilters, setTrainedFilters, sessionId, setSessionId } = modelState;
 
             const [isTraining, setIsTraining] = useState(false);
             const [currentEpoch, setCurrentEpoch] = useState(0);
             const [sampleImages, setSampleImages] = useState([]);
             const [classificationResults, setClassificationResults] = useState([]);
+            const [trainingStatus, setTrainingStatus] = useState('');
+            const [testAccuracy, setTestAccuracy] = useState(null);
 
             useEffect(() => {
                 const samples = CIFAR10_CLASSES.slice(0, 8).map(cls => ({
@@ -1255,38 +1205,76 @@
                 setCurrentEpoch(0);
                 setClassificationResults([]);
                 setIsModelTrained(false);
+                setTrainedFilters(null);
+                setTestAccuracy(null);
+                setTrainingStatus('Connecting to training server...');
 
-                const baseTrainAcc = 45 + config.convBlocks * 5 + (config.batchNorm ? 5 : 0);
-                const baseValAcc = 40 + config.convBlocks * 4 + (config.batchNorm ? 4 : 0);
+                try {
+                    // Start training on backend
+                    const startResponse = await fetch(`${API_BASE_URL}/api/train`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(config)
+                    });
 
-                const newHistory = [];
-                for (let epoch = 1; epoch <= config.epochs; epoch++) {
-                    await new Promise(resolve => setTimeout(resolve, 300));
+                    if (!startResponse.ok) {
+                        throw new Error('Failed to start training');
+                    }
 
-                    const progress = epoch / config.epochs;
-                    const learningCurve = 1 - Math.exp(-3 * progress);
+                    const { session_id } = await startResponse.json();
+                    setSessionId(session_id);
 
-                    const trainAcc = Math.min(98, baseTrainAcc + learningCurve * 45 + Math.random() * 3);
-                    const valAcc = Math.min(92, baseValAcc + learningCurve * 40 + Math.random() * 4);
-                    const trainLoss = Math.max(0.05, 2.5 * (1 - learningCurve) + Math.random() * 0.1);
-                    const valLoss = Math.max(0.1, 2.8 * (1 - learningCurve) + Math.random() * 0.15);
+                    // Poll for training progress
+                    let complete = false;
+                    while (!complete) {
+                        await new Promise(resolve => setTimeout(resolve, 1000));
 
-                    newHistory.push({ trainAcc, valAcc, trainLoss, valLoss });
-                    setCurrentEpoch(epoch);
-                    setTrainingHistory([...newHistory]);
+                        const statusResponse = await fetch(`${API_BASE_URL}/api/train/${session_id}`);
+                        const status = await statusResponse.json();
+
+                        setTrainingStatus(status.status);
+                        setCurrentEpoch(status.current_epoch);
+
+                        if (status.history && status.history.length > 0) {
+                            setTrainingHistory([...status.history]);
+                        }
+
+                        if (status.status === 'complete') {
+                            complete = true;
+
+                            // Set trained filters
+                            if (status.filters) {
+                                setTrainedFilters(status.filters);
+                            }
+
+                            // Set test accuracy
+                            if (status.test_accuracy) {
+                                setTestAccuracy(status.test_accuracy);
+                            }
+
+                            // Set classification results
+                            if (status.sample_predictions) {
+                                const results = sampleImages.map((img, idx) => ({
+                                    ...img,
+                                    predictedLabel: CIFAR10_CLASSES[status.sample_predictions[idx]?.predicted || 0]
+                                }));
+                                setClassificationResults(results);
+                            }
+
+                            setIsModelTrained(true);
+                            setTrainingStatus('Training complete!');
+                        }
+
+                        if (status.status.startsWith('error')) {
+                            throw new Error(status.error || status.status);
+                        }
+                    }
+
+                } catch (error) {
+                    console.error('Training error:', error);
+                    setTrainingStatus(`Error: ${error.message}. Make sure the backend is running.`);
                 }
 
-                // Generate classification results
-                const finalAccuracy = newHistory[newHistory.length - 1].valAcc / 100;
-                const results = sampleImages.map(img => {
-                    const correct = Math.random() < finalAccuracy;
-                    return {
-                        ...img,
-                        predictedLabel: correct ? img.trueLabel : CIFAR10_CLASSES[Math.floor(Math.random() * 10)]
-                    };
-                });
-                setClassificationResults(results);
-                setIsModelTrained(true);
                 setIsTraining(false);
             };
 
@@ -1366,8 +1354,13 @@
                             </div>
 
                             <button className="run-button" onClick={runTraining} disabled={isTraining}>
-                                {isTraining ? <><div className="loading-spinner" /> Training Epoch {currentEpoch}/{config.epochs}</> : <>▶ Train CNN Model</>}
+                                {isTraining ? <><div className="loading-spinner" /> {trainingStatus || `Training Epoch ${currentEpoch}/${config.epochs}`}</> : <>▶ Train CNN on CIFAR-10 (10,000 images)</>}
                             </button>
+                            {isModelTrained && trainedFilters && (
+                                <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#4CAF50' }}>
+                                    ✓ Model trained{testAccuracy ? ` — Test Accuracy: ${testAccuracy.toFixed(1)}%` : ''} — scroll down to see actual learned filters
+                                </div>
+                            )}
                         </div>
 
                         <div className="section-card">
@@ -1441,19 +1434,29 @@
                     </div>
 
                     <div className="section-card" style={{ marginTop: '1.5rem' }}>
-                        <div className="section-title">🔍 What CNNs Learn: Hierarchical Feature Detection</div>
+                        <div className="section-title">🔍 What CNNs Learn: Actual Trained Filters</div>
                         <div className="filter-layer">
-                            <div className="filter-layer-title">Layer 1: Edge Detectors <span className="filter-layer-subtitle">— Low-level features</span></div>
-                            <FilterVisualization layer={1} />
+                            <div className="filter-layer-title">Layer 1: Edge Detectors <span className="filter-layer-subtitle">— Low-level features (RGB weights)</span></div>
+                            <FilterVisualization layer={1} trainedFilters={trainedFilters} />
                         </div>
-                        <div className="filter-layer">
-                            <div className="filter-layer-title">Layer 2: Texture Patterns <span className="filter-layer-subtitle">— Combinations of edges</span></div>
-                            <FilterVisualization layer={2} />
-                        </div>
-                        <div className="filter-layer">
-                            <div className="filter-layer-title">Layer 3+: Object Parts <span className="filter-layer-subtitle">— High-level features</span></div>
-                            <FilterVisualization layer={3} />
-                        </div>
+                        {config.convBlocks >= 2 && (
+                            <div className="filter-layer">
+                                <div className="filter-layer-title">Layer 2: Texture Patterns <span className="filter-layer-subtitle">— Combinations of edges</span></div>
+                                <FilterVisualization layer={2} trainedFilters={trainedFilters} />
+                            </div>
+                        )}
+                        {config.convBlocks >= 3 && (
+                            <div className="filter-layer">
+                                <div className="filter-layer-title">Layer 3: Object Parts <span className="filter-layer-subtitle">— Higher-level features</span></div>
+                                <FilterVisualization layer={3} trainedFilters={trainedFilters} />
+                            </div>
+                        )}
+                        {config.convBlocks >= 4 && (
+                            <div className="filter-layer">
+                                <div className="filter-layer-title">Layer 4: Complex Features <span className="filter-layer-subtitle">— Abstract representations</span></div>
+                                <FilterVisualization layer={4} trainedFilters={trainedFilters} />
+                            </div>
+                        )}
                     </div>
                 </div>
             );
@@ -1871,11 +1874,15 @@
             });
             const [trainingHistory, setTrainingHistory] = useState([]);
             const [isModelTrained, setIsModelTrained] = useState(false);
+            const [trainedFilters, setTrainedFilters] = useState(null);
+            const [sessionId, setSessionId] = useState(null);
 
             const modelState = {
                 config, setConfig,
                 trainingHistory, setTrainingHistory,
-                isModelTrained, setIsModelTrained
+                isModelTrained, setIsModelTrained,
+                trainedFilters, setTrainedFilters,
+                sessionId, setSessionId
             };
 
             const tabs = [
