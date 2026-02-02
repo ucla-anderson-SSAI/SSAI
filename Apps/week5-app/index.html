@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Week 5: Neural Networks - Fashion-MNIST Classification | UCLA Anderson</title>
+    <title>Week 5: Neural Networks - Breast Cancer Diagnosis | UCLA Anderson</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -569,74 +569,21 @@
             width: 100%;
             border-collapse: collapse;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.75rem;
+            font-size: 0.85rem;
         }
 
         .matrix-table th {
-            padding: 0.5rem 0.25rem;
+            padding: 0.75rem 1rem;
             color: #666;
             font-weight: 500;
-            font-size: 0.65rem;
+            font-size: 0.75rem;
         }
 
         .matrix-table td {
-            padding: 0.4rem;
+            padding: 1rem 1.5rem;
             text-align: center;
             border-radius: 4px;
-        }
-
-        .predictions-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 0.75rem;
-        }
-
-        .prediction-item {
-            background: #ffffff;
-            border-radius: 10px;
-            padding: 0.75rem;
-            text-align: center;
-            border: 2px solid transparent;
-            transition: all 0.3s ease;
-        }
-
-        .prediction-item.correct {
-            border-color: rgba(34, 197, 94, 0.4);
-        }
-
-        .prediction-item.incorrect {
-            border-color: rgba(239, 68, 68, 0.4);
-        }
-
-        .prediction-image {
-            width: 56px;
-            height: 56px;
-            margin: 0 auto 0.5rem;
-            background: rgba(0, 0, 0, 0.8);
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            image-rendering: pixelated;
-        }
-
-        .prediction-label {
-            font-size: 0.7rem;
-            color: #666;
-        }
-
-        .prediction-result {
-            font-size: 0.75rem;
-            font-weight: 600;
-            margin-top: 0.25rem;
-        }
-
-        .prediction-result.correct {
-            color: #2774AE;
-        }
-
-        .prediction-result.incorrect {
-            color: #005587;
+            font-size: 1rem;
         }
 
         .gradient-flow-container {
@@ -669,6 +616,34 @@
             color: #666;
             text-align: center;
             margin-top: 0.5rem;
+        }
+
+        .feature-importance {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+
+        .feature-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.7rem;
+        }
+
+        .feature-name {
+            width: 100px;
+            text-align: right;
+            color: #666;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .feature-bar-fill {
+            height: 12px;
+            background: linear-gradient(90deg, #2774AE, #8BB8E8);
+            border-radius: 2px;
         }
 
         @keyframes pulse {
@@ -737,7 +712,7 @@
                 grid-template-columns: 1fr;
             }
         }
-    
+
         .header-gold-line {
             position: absolute;
             bottom: 0;
@@ -785,11 +760,8 @@
             lightMuted: '#666666',
         };
 
-        // Fashion-MNIST class labels
-        const FASHION_CLASSES = [
-            'T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat',
-            'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot'
-        ];
+        // Breast Cancer class labels
+        const CANCER_CLASSES = ['Benign', 'Malignant'];
 
         // Activation function colors - using UCLA theme
         const ACTIVATION_COLORS = {
@@ -798,71 +770,13 @@
             tanh: colors.lightBlue
         };
 
-        // Generate mock Fashion-MNIST image data (28x28 grayscale patterns)
-        const generateMockImage = (classIdx) => {
-            const patterns = [];
-            const size = 28;
-            for (let i = 0; i < size; i++) {
-                const row = [];
-                for (let j = 0; j < size; j++) {
-                    // Create class-specific patterns
-                    let value = 0;
-                    const centerX = size / 2;
-                    const centerY = size / 2;
-                    const dist = Math.sqrt((i - centerY) ** 2 + (j - centerX) ** 2);
+        // Feature names (subset for display)
+        const KEY_FEATURES = [
+            'radius_mean', 'texture_mean', 'perimeter_mean', 'area_mean',
+            'smoothness_mean', 'compactness_mean', 'concavity_mean', 'symmetry_mean'
+        ];
 
-                    switch (classIdx) {
-                        case 0: // T-shirt - rectangle with arms
-                            if ((i > 5 && i < 22 && j > 8 && j < 20) ||
-                                (i > 8 && i < 14 && (j < 8 || j > 20))) value = 200 + Math.random() * 55;
-                            break;
-                        case 1: // Trouser - two vertical rectangles
-                            if (i > 4 && i < 24 && ((j > 6 && j < 13) || (j > 15 && j < 22)))
-                                value = 180 + Math.random() * 75;
-                            break;
-                        case 2: // Pullover - like t-shirt but fuller
-                            if ((i > 4 && i < 24 && j > 6 && j < 22) ||
-                                (i > 6 && i < 12 && (j < 6 || j > 22))) value = 150 + Math.random() * 105;
-                            break;
-                        case 3: // Dress - trapezoid shape
-                            const dressWidth = 6 + (i / 28) * 10;
-                            if (i > 3 && i < 25 && Math.abs(j - centerX) < dressWidth)
-                                value = 190 + Math.random() * 65;
-                            break;
-                        case 4: // Coat - wider rectangle
-                            if (i > 3 && i < 25 && j > 4 && j < 24) value = 160 + Math.random() * 95;
-                            break;
-                        case 5: // Sandal - foot shape
-                            if (dist < 10 && i > 10) value = 200 + Math.random() * 55;
-                            break;
-                        case 6: // Shirt - detailed t-shirt
-                            if ((i > 5 && i < 23 && j > 7 && j < 21) ||
-                                (i > 7 && i < 13 && (j < 7 || j > 21))) {
-                                value = 170 + Math.random() * 85;
-                                if (j > 12 && j < 16 && i < 12) value = 100; // collar
-                            }
-                            break;
-                        case 7: // Sneaker - shoe shape
-                            if ((i > 12 && i < 22 && j > 4 && j < 24) ||
-                                (i > 8 && i < 16 && j > 14 && j < 22)) value = 180 + Math.random() * 75;
-                            break;
-                        case 8: // Bag - rectangle with handle
-                            if ((i > 6 && i < 24 && j > 6 && j < 22) ||
-                                (i > 2 && i < 8 && j > 10 && j < 18)) value = 200 + Math.random() * 55;
-                            break;
-                        case 9: // Ankle boot - boot shape
-                            if ((i > 10 && i < 24 && j > 6 && j < 22) ||
-                                (i > 4 && i < 14 && j > 12 && j < 20)) value = 160 + Math.random() * 95;
-                            break;
-                    }
-                    row.push(Math.min(255, Math.max(0, value)));
-                }
-                patterns.push(row);
-            }
-            return patterns;
-        };
-
-        // Accuracy Chart - Incremental updates (Week 6 style)
+        // Accuracy Chart - Incremental updates
         const AccuracyChart = ({ trainingHistory, totalEpochs }) => {
             const canvasRef = useRef(null);
             const chartRef = useRef(null);
@@ -950,7 +864,7 @@
             return <canvas ref={canvasRef} />;
         };
 
-        // Loss Chart - Incremental updates (Week 6 style)
+        // Loss Chart - Incremental updates
         const LossChart = ({ trainingHistory, totalEpochs }) => {
             const canvasRef = useRef(null);
             const chartRef = useRef(null);
@@ -985,8 +899,8 @@
                             y: {
                                 title: { display: true, text: 'Loss', color: '#666' },
                                 min: 0,
-                                max: 2.5,
-                                ticks: { color: '#666', stepSize: 0.5 },
+                                max: 1.0,
+                                ticks: { color: '#666', stepSize: 0.2 },
                                 grid: { color: 'rgba(0,0,0,0.05)' }
                             }
                         }
@@ -1018,7 +932,7 @@
         };
 
         // Neural Network Visualization Component
-        const NeuralNetworkViz = ({ layers, activation, dropout, batchNorm, isTraining, currentEpoch }) => {
+        const NeuralNetworkViz = ({ layers, activation, dropout, batchNorm, isTraining, currentEpoch, nFeatures = 30 }) => {
             const svgRef = useRef(null);
             const [animationPhase, setAnimationPhase] = useState(0);
 
@@ -1034,17 +948,17 @@
 
             const networkLayout = useMemo(() => {
                 const allLayers = [
-                    { type: 'input', nodes: 784, display: 28, label: 'Input (28x28)' },
+                    { type: 'input', nodes: nFeatures, display: Math.min(nFeatures, 15), label: `Input (${nFeatures} features)` },
                     ...layers.map((nodes, i) => ({
                         type: 'hidden',
                         nodes,
                         display: Math.min(nodes, 12),
                         label: `Hidden ${i + 1} (${nodes})`
                     })),
-                    { type: 'output', nodes: 10, display: 10, label: 'Output (10)' }
+                    { type: 'output', nodes: 2, display: 2, label: 'Output (2)' }
                 ];
                 return allLayers;
-            }, [layers]);
+            }, [layers, nFeatures]);
 
             const svgWidth = 800;
             const svgHeight = 380;
@@ -1060,7 +974,7 @@
                     const x = padding.left + layerIdx * layerSpacing;
                     const layerPositions = [];
                     const nodeCount = layer.display;
-                    const nodeSpacing = Math.min(28, (svgHeight - padding.top - padding.bottom) / (nodeCount + 1));
+                    const nodeSpacing = Math.min(22, (svgHeight - padding.top - padding.bottom) / (nodeCount + 1));
                     const startY = (svgHeight - (nodeCount - 1) * nodeSpacing) / 2;
 
                     for (let i = 0; i < nodeCount; i++) {
@@ -1082,7 +996,9 @@
             // Get node color based on layer type and activation
             const getNodeColor = (layerType, nodeIdx) => {
                 if (layerType === 'input') return '#6b7280';
-                if (layerType === 'output') return colors.positive;
+                if (layerType === 'output') {
+                    return nodeIdx === 0 ? '#22c55e' : '#ef4444'; // Benign green, Malignant red
+                }
                 return ACTIVATION_COLORS[activation] || colors.primary;
             };
 
@@ -1186,7 +1102,7 @@
                         layerNodes.map((node, nodeIdx) => {
                             const color = getNodeColor(node.layerType, nodeIdx);
                             const firingIntensity = getFiringIntensity(layerIdx, nodeIdx);
-                            const radius = node.layerType === 'input' ? 4 : (node.layerType === 'output' ? 10 : 8);
+                            const radius = node.layerType === 'input' ? 4 : (node.layerType === 'output' ? 14 : 8);
 
                             return (
                                 <g key={`node-${layerIdx}-${nodeIdx}`}>
@@ -1204,13 +1120,13 @@
                                     {node.layerType === 'output' && (
                                         <text
                                             x={node.x}
-                                            y={node.y + 3}
+                                            y={node.y + 4}
                                             textAnchor="middle"
                                             fill="white"
-                                            fontSize="7"
+                                            fontSize="8"
                                             fontWeight="600"
                                         >
-                                            {nodeIdx}
+                                            {nodeIdx === 0 ? 'B' : 'M'}
                                         </text>
                                     )}
                                 </g>
@@ -1218,36 +1134,36 @@
                         })
                     )}
 
-                    {/* Draw input grid representation */}
-                    <g transform={`translate(${padding.left - 30}, ${svgHeight / 2 - 30})`}>
+                    {/* Draw feature list representation */}
+                    <g transform={`translate(${padding.left - 40}, ${svgHeight / 2 - 50})`}>
                         <rect
-                            width={24}
-                            height={24}
+                            width={30}
+                            height={80}
                             fill="none"
                             stroke="#6b7280"
                             strokeWidth={1}
                             opacity={0.5}
+                            rx={4}
                         />
-                        {[0, 1, 2].map(row =>
-                            [0, 1, 2].map(col => (
-                                <rect
-                                    key={`grid-${row}-${col}`}
-                                    x={col * 8}
-                                    y={row * 8}
-                                    width={8}
-                                    height={8}
-                                    fill={`rgba(107, 114, 128, ${0.3 + Math.random() * 0.5})`}
-                                />
-                            ))
-                        )}
+                        {[0, 1, 2, 3, 4].map(row => (
+                            <rect
+                                key={`feature-${row}`}
+                                x={4}
+                                y={4 + row * 15}
+                                width={22}
+                                height={12}
+                                fill={`rgba(107, 114, 128, ${0.3 + Math.random() * 0.5})`}
+                                rx={2}
+                            />
+                        ))}
                         <text
-                            x={12}
-                            y={38}
+                            x={15}
+                            y={95}
                             textAnchor="middle"
                             fill="#6b7280"
-                            fontSize="8"
+                            fontSize="7"
                         >
-                            28x28
+                            30 features
                         </text>
                     </g>
 
@@ -1265,6 +1181,26 @@
                             {layer.label}
                         </text>
                     ))}
+
+                    {/* Output labels */}
+                    <text
+                        x={padding.left + (networkLayout.length - 1) * layerSpacing + 35}
+                        y={nodePositions[nodePositions.length - 1][0].y + 4}
+                        fill="#22c55e"
+                        fontSize="9"
+                        fontWeight="500"
+                    >
+                        Benign
+                    </text>
+                    <text
+                        x={padding.left + (networkLayout.length - 1) * layerSpacing + 35}
+                        y={nodePositions[nodePositions.length - 1][1].y + 4}
+                        fill="#ef4444"
+                        fontSize="9"
+                        fontWeight="500"
+                    >
+                        Malignant
+                    </text>
 
                     {/* Training indicator */}
                     {isTraining && (
@@ -1292,94 +1228,54 @@
             );
         };
 
-        // Confusion Matrix Component
+        // Confusion Matrix Component (2x2 for binary classification)
         const ConfusionMatrix = ({ matrix }) => {
-            const maxVal = Math.max(...matrix.flat());
+            const total = matrix.flat().reduce((a, b) => a + b, 0);
+            const tn = matrix[0][0];
+            const fp = matrix[0][1];
+            const fn = matrix[1][0];
+            const tp = matrix[1][1];
 
-            const getColor = (value) => {
-                const intensity = value / maxVal;
-                if (intensity > 0.8) return `rgba(39, 116, 174, ${intensity})`;
-                if (intensity > 0.5) return `rgba(0, 85, 135, ${intensity})`;
-                if (intensity > 0.2) return `rgba(139, 184, 232, ${intensity})`;
-                return `rgba(150, 150, 170, ${intensity * 0.5})`;
-            };
+            const accuracy = ((tp + tn) / total * 100).toFixed(1);
+            const precision = (tp / (tp + fp) * 100).toFixed(1);
+            const recall = (tp / (tp + fn) * 100).toFixed(1);
 
             return (
                 <div className="confusion-matrix">
-                    <table className="matrix-table">
+                    <table className="matrix-table" style={{ marginBottom: '1rem' }}>
                         <thead>
                             <tr>
                                 <th></th>
-                                {FASHION_CLASSES.map((cls, i) => (
-                                    <th key={i} title={cls}>{i}</th>
-                                ))}
+                                <th style={{ color: '#22c55e' }}>Pred: Benign</th>
+                                <th style={{ color: '#ef4444' }}>Pred: Malignant</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {matrix.map((row, i) => (
-                                <tr key={i}>
-                                    <th title={FASHION_CLASSES[i]}>{i}</th>
-                                    {row.map((val, j) => (
-                                        <td
-                                            key={j}
-                                            style={{
-                                                backgroundColor: getColor(val),
-                                                color: val / maxVal > 0.5 ? 'white' : colors.lightMuted
-                                            }}
-                                            title={`True: ${FASHION_CLASSES[i]}, Pred: ${FASHION_CLASSES[j]}`}
-                                        >
-                                            {val}
-                                        </td>
-                                    ))}
-                                </tr>
-                            ))}
+                            <tr>
+                                <th style={{ color: '#22c55e' }}>Actual: Benign</th>
+                                <td style={{ backgroundColor: 'rgba(34, 197, 94, 0.3)', color: '#166534', fontWeight: 600 }}>
+                                    {tn} (TN)
+                                </td>
+                                <td style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#991b1b' }}>
+                                    {fp} (FP)
+                                </td>
+                            </tr>
+                            <tr>
+                                <th style={{ color: '#ef4444' }}>Actual: Malignant</th>
+                                <td style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#991b1b' }}>
+                                    {fn} (FN)
+                                </td>
+                                <td style={{ backgroundColor: 'rgba(34, 197, 94, 0.3)', color: '#166534', fontWeight: 600 }}>
+                                    {tp} (TP)
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
-                </div>
-            );
-        };
-
-        // Sample Predictions Component
-        const SamplePredictions = ({ predictions }) => {
-            return (
-                <div className="predictions-grid">
-                    {predictions.map((pred, idx) => (
-                        <div
-                            key={idx}
-                            className={`prediction-item ${pred.correct ? 'correct' : 'incorrect'}`}
-                        >
-                            <div className="prediction-image">
-                                <canvas
-                                    ref={el => {
-                                        if (el) {
-                                            const ctx = el.getContext('2d');
-                                            el.width = 28;
-                                            el.height = 28;
-                                            const imageData = ctx.createImageData(28, 28);
-                                            for (let i = 0; i < 28; i++) {
-                                                for (let j = 0; j < 28; j++) {
-                                                    const idx = (i * 28 + j) * 4;
-                                                    const val = pred.image[i][j];
-                                                    imageData.data[idx] = val;
-                                                    imageData.data[idx + 1] = val;
-                                                    imageData.data[idx + 2] = val;
-                                                    imageData.data[idx + 3] = 255;
-                                                }
-                                            }
-                                            ctx.putImageData(imageData, 0, 0);
-                                        }
-                                    }}
-                                    style={{ width: '56px', height: '56px' }}
-                                />
-                            </div>
-                            <div className="prediction-label">
-                                True: {FASHION_CLASSES[pred.true]}
-                            </div>
-                            <div className={`prediction-result ${pred.correct ? 'correct' : 'incorrect'}`}>
-                                Pred: {FASHION_CLASSES[pred.predicted]}
-                            </div>
-                        </div>
-                    ))}
+                    <div style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center', fontSize: '0.8rem' }}>
+                        <div><strong>Accuracy:</strong> {accuracy}%</div>
+                        <div><strong>Precision:</strong> {precision}%</div>
+                        <div><strong>Recall:</strong> {recall}%</div>
+                    </div>
                 </div>
             );
         };
@@ -1412,27 +1308,46 @@
             );
         };
 
+        // Feature Importance visualization
+        const FeatureImportance = ({ importance }) => {
+            const maxVal = Math.max(...importance.map(f => f.value));
+            return (
+                <div className="feature-importance">
+                    {importance.slice(0, 10).map((feature, idx) => (
+                        <div key={idx} className="feature-bar">
+                            <span className="feature-name" title={feature.name}>{feature.name}</span>
+                            <div
+                                className="feature-bar-fill"
+                                style={{ width: `${(feature.value / maxVal) * 80}px` }}
+                            />
+                            <span style={{ fontSize: '0.65rem', color: '#666' }}>
+                                {(feature.value * 100).toFixed(0)}%
+                            </span>
+                        </div>
+                    ))}
+                </div>
+            );
+        };
+
         // Main App Component
         const App = () => {
             const [isTraining, setIsTraining] = useState(false);
             const [currentEpoch, setCurrentEpoch] = useState(0);
 
             // Network configuration
-            const [hiddenLayers, setHiddenLayers] = useState([128, 64]);
+            const [hiddenLayers, setHiddenLayers] = useState([64, 32]);
             const [activation, setActivation] = useState('relu');
             const [dropout, setDropout] = useState(0.2);
             const [batchNorm, setBatchNorm] = useState(true);
             const [learningRate, setLearningRate] = useState(0.001);
-            const [batchSize, setBatchSize] = useState(64);
-            const [epochs, setEpochs] = useState(20);
+            const [batchSize, setBatchSize] = useState(32);
+            const [epochs, setEpochs] = useState(50);
 
             // Training results
             const [trainingHistory, setTrainingHistory] = useState([]);
-            const [confusionMatrix, setConfusionMatrix] = useState(
-                Array(10).fill(null).map(() => Array(10).fill(0))
-            );
-            const [samplePredictions, setSamplePredictions] = useState([]);
+            const [confusionMatrix, setConfusionMatrix] = useState([[0, 0], [0, 0]]);
             const [gradientFlow, setGradientFlow] = useState([]);
+            const [featureImportance, setFeatureImportance] = useState([]);
             const [metrics, setMetrics] = useState({
                 trainAcc: 0,
                 valAcc: 0,
@@ -1445,20 +1360,20 @@
             // Calculate parameter count
             const paramCount = useMemo(() => {
                 let params = 0;
-                let prevSize = 784;
+                let prevSize = 30; // 30 features
                 hiddenLayers.forEach(size => {
                     params += prevSize * size + size; // weights + biases
                     if (batchNorm) params += size * 4; // gamma, beta, running mean, var
                     prevSize = size;
                 });
-                params += prevSize * 10 + 10; // output layer
+                params += prevSize * 1 + 1; // output layer (binary)
                 return params;
             }, [hiddenLayers, batchNorm]);
 
             // Add hidden layer
             const addLayer = () => {
                 if (hiddenLayers.length < 5) {
-                    setHiddenLayers([...hiddenLayers, 64]);
+                    setHiddenLayers([...hiddenLayers, 32]);
                 }
             };
 
@@ -1486,25 +1401,25 @@
                 const startTime = Date.now();
 
                 for (let epoch = 1; epoch <= epochs; epoch++) {
-                    await new Promise(resolve => setTimeout(resolve, 200));
+                    await new Promise(resolve => setTimeout(resolve, 100));
 
                     setCurrentEpoch(epoch);
 
-                    // Simulate training metrics with realistic curves
+                    // Simulate training metrics with realistic curves for cancer classification
                     const progress = epoch / epochs;
                     const noise = () => (Math.random() - 0.5) * 0.02;
 
-                    const trainLoss = 2.3 * Math.exp(-3 * progress) + 0.1 + noise();
-                    const valLoss = 2.3 * Math.exp(-2.5 * progress) + 0.15 + noise();
-                    const trainAcc = 0.1 + 0.85 * (1 - Math.exp(-4 * progress)) + noise();
-                    const valAcc = 0.1 + 0.80 * (1 - Math.exp(-3.5 * progress)) + noise();
+                    const trainLoss = 0.7 * Math.exp(-4 * progress) + 0.05 + noise();
+                    const valLoss = 0.7 * Math.exp(-3.5 * progress) + 0.08 + noise();
+                    const trainAcc = 0.5 + 0.48 * (1 - Math.exp(-5 * progress)) + noise();
+                    const valAcc = 0.5 + 0.45 * (1 - Math.exp(-4 * progress)) + noise();
 
                     const epochData = {
                         epoch,
-                        trainLoss: Math.max(0.05, trainLoss),
-                        valLoss: Math.max(0.1, valLoss),
-                        trainAcc: Math.min(0.99, Math.max(0, trainAcc)),
-                        valAcc: Math.min(0.95, Math.max(0, valAcc))
+                        trainLoss: Math.max(0.02, trainLoss),
+                        valLoss: Math.max(0.05, valLoss),
+                        trainAcc: Math.min(0.99, Math.max(0.5, trainAcc)),
+                        valAcc: Math.min(0.97, Math.max(0.5, valAcc))
                     };
 
                     history.push(epochData);
@@ -1512,35 +1427,30 @@
 
                     // Update gradient flow
                     setGradientFlow([
-                        0.9 - epoch * 0.02 + Math.random() * 0.1,
+                        0.9 - epoch * 0.005 + Math.random() * 0.1,
                         ...hiddenLayers.map((_, i) =>
-                            0.8 - i * 0.1 - epoch * 0.01 + Math.random() * 0.15
+                            0.85 - i * 0.08 - epoch * 0.003 + Math.random() * 0.15
                         ),
-                        0.7 + Math.random() * 0.2
+                        0.8 + Math.random() * 0.15
                     ]);
                 }
 
-                // Generate final confusion matrix
-                const finalMatrix = Array(10).fill(null).map((_, i) =>
-                    Array(10).fill(null).map((_, j) => {
-                        if (i === j) return Math.floor(80 + Math.random() * 20);
-                        return Math.floor(Math.random() * 10);
-                    })
-                );
-                setConfusionMatrix(finalMatrix);
+                // Generate final confusion matrix for binary classification
+                // Simulating ~95% accuracy
+                const total = 114; // Test set size
+                const tp = Math.floor(40 + Math.random() * 5); // True positives (Malignant correctly identified)
+                const tn = Math.floor(65 + Math.random() * 5); // True negatives (Benign correctly identified)
+                const fp = Math.floor(2 + Math.random() * 3);  // False positives
+                const fn = Math.floor(2 + Math.random() * 3);  // False negatives
 
-                // Generate sample predictions
-                const predictions = Array(10).fill(null).map((_, idx) => {
-                    const trueClass = idx;
-                    const correct = Math.random() > 0.15;
-                    return {
-                        image: generateMockImage(trueClass),
-                        true: trueClass,
-                        predicted: correct ? trueClass : (trueClass + Math.floor(Math.random() * 9) + 1) % 10,
-                        correct
-                    };
-                });
-                setSamplePredictions(predictions);
+                setConfusionMatrix([[tn, fp], [fn, tp]]);
+
+                // Generate feature importance
+                const importance = KEY_FEATURES.map(name => ({
+                    name,
+                    value: 0.5 + Math.random() * 0.5
+                })).sort((a, b) => b.value - a.value);
+                setFeatureImportance(importance);
 
                 // Update final metrics
                 const lastEpoch = history[history.length - 1];
@@ -1575,7 +1485,7 @@
                                     Week 5: Neural Networks
                                 </h1>
                                 <p style={{ fontSize: '0.85rem', color: '#c0c0c0', marginTop: '0.25rem' }}>
-                                    Fashion-MNIST Deep Learning Classification
+                                    Breast Cancer Diagnosis Classification
                                 </p>
                             </div>
                             <div style={{ textAlign: 'right' }}>
@@ -1610,12 +1520,11 @@
                                                             value={nodes}
                                                             onChange={(e) => updateLayerSize(idx, e.target.value)}
                                                         >
+                                                            <option value={8}>8 nodes</option>
                                                             <option value={16}>16 nodes</option>
                                                             <option value={32}>32 nodes</option>
                                                             <option value={64}>64 nodes</option>
                                                             <option value={128}>128 nodes</option>
-                                                            <option value={256}>256 nodes</option>
-                                                            <option value={512}>512 nodes</option>
                                                         </select>
                                                         {hiddenLayers.length > 1 && (
                                                             <button
@@ -1702,10 +1611,10 @@
                                                     value={batchSize}
                                                     onChange={(e) => setBatchSize(parseInt(e.target.value))}
                                                 >
+                                                    <option value={16}>16</option>
                                                     <option value={32}>32</option>
                                                     <option value={64}>64</option>
                                                     <option value={128}>128</option>
-                                                    <option value={256}>256</option>
                                                 </select>
                                             </div>
 
@@ -1716,9 +1625,9 @@
                                                 </label>
                                                 <input
                                                     type="range"
-                                                    min="5"
+                                                    min="10"
                                                     max="200"
-                                                    step="5"
+                                                    step="10"
                                                     value={epochs}
                                                     onChange={(e) => setEpochs(parseInt(e.target.value))}
                                                 />
@@ -1768,20 +1677,25 @@
                                                     batchNorm={batchNorm}
                                                     isTraining={isTraining}
                                                     currentEpoch={currentEpoch}
+                                                    nFeatures={30}
                                                 />
                                             </div>
                                             <div className="network-legend">
                                                 <div className="legend-item">
                                                     <div className="legend-dot" style={{ background: '#6b7280' }}></div>
-                                                    Input Layer
+                                                    Input (30 features)
                                                 </div>
                                                 <div className="legend-item">
                                                     <div className="legend-dot" style={{ background: ACTIVATION_COLORS[activation] }}></div>
                                                     Hidden ({activation.toUpperCase()})
                                                 </div>
                                                 <div className="legend-item">
-                                                    <div className="legend-dot" style={{ background: colors.positive }}></div>
-                                                    Output Layer
+                                                    <div className="legend-dot" style={{ background: '#22c55e' }}></div>
+                                                    Benign
+                                                </div>
+                                                <div className="legend-item">
+                                                    <div className="legend-dot" style={{ background: '#ef4444' }}></div>
+                                                    Malignant
                                                 </div>
                                                 {dropout > 0 && (
                                                     <div className="legend-item">
@@ -1860,7 +1774,7 @@
                         <div className="results-section">
                             <div className="results-content">
 
-                                {/* Confusion Matrix and Predictions */}
+                                {/* Confusion Matrix and Gradient Flow */}
                                 {trainingHistory.length > 0 && (
                                     <div className="charts-grid">
                                         <div className="chart-card">
@@ -1891,13 +1805,23 @@
                                     </div>
                                 )}
 
-                                {/* Sample Predictions */}
-                                {samplePredictions.length > 0 && (
+                                {/* Feature Importance */}
+                                {featureImportance.length > 0 && (
                                     <div className="chart-card">
                                         <h3 className="card-title">
-                                            Sample Predictions
+                                            Top Feature Importance (Approximate)
                                         </h3>
-                                        <SamplePredictions predictions={samplePredictions} />
+                                        <div style={{ marginTop: '1rem' }}>
+                                            <FeatureImportance importance={featureImportance} />
+                                        </div>
+                                        <div style={{
+                                            marginTop: '1rem',
+                                            fontSize: '0.75rem',
+                                            color: colors.lightMuted,
+                                            textAlign: 'center'
+                                        }}>
+                                            Features like radius, perimeter, and area are often most predictive for tumor classification
+                                        </div>
                                     </div>
                                 )}
 
