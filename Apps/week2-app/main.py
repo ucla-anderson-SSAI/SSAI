@@ -3,13 +3,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
+from typing import Optional
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
-from sklearn.model_selection import cross_val_score, cross_val_predict
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeRegressor, export_text
+from sklearn.ensemble import RandomForestRegressor
 from xgboost import XGBRegressor
+from sklearn.metrics import mean_absolute_error, r2_score
 import warnings
 import os
+import json
+
 warnings.filterwarnings('ignore')
 
 app = FastAPI()
@@ -22,219 +28,266 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Global variables to store data
+# Global variables
 df = None
-X = None
-y = None
+X_train = None
+X_test = None
+y_train = None
+y_test = None
+feature_names = []
 encoders = {}
 
-def generate_sample_data():
-    """Generate realistic Range Rover pricing data"""
-    np.random.seed(42)
-    n_samples = 500
-
-    # Years from 2015 to 2024
-    years = np.random.choice(range(2015, 2025), n_samples)
-
-    # Mileage (correlated with year - older cars have more miles)
-    base_mileage = (2024 - years) * 12000  # ~12k miles per year
-    mileage = base_mileage + np.random.normal(0, 5000, n_samples)
-    mileage = np.maximum(mileage, 1000).astype(int)
-
-    # Trims with different base prices
-    trims = np.random.choice(['Base', 'HSE', 'Autobiography', 'SVR', 'Sport'], n_samples,
-                             p=[0.2, 0.3, 0.15, 0.1, 0.25])
-    trim_price_effect = {'Base': 0, 'HSE': 8000, 'Autobiography': 25000, 'SVR': 35000, 'Sport': 5000}
-
-    # States
-    states = np.random.choice(['CA', 'TX', 'FL', 'NY', 'NJ', 'AZ', 'GA', 'WA', 'IL', 'PA'], n_samples)
-    state_price_effect = {'CA': 2000, 'TX': 0, 'FL': 1000, 'NY': 3000, 'NJ': 2500,
-                          'AZ': -500, 'GA': -1000, 'WA': 1500, 'IL': 500, 'PA': 0}
-
-    # Colors
-    colors = np.random.choice(['Black', 'White', 'Silver', 'Blue', 'Red', 'Gray', 'Green'], n_samples,
-                              p=[0.25, 0.25, 0.15, 0.1, 0.1, 0.1, 0.05])
-    color_price_effect = {'Black': 1000, 'White': 500, 'Silver': 0, 'Blue': 200,
-                          'Red': 500, 'Gray': 0, 'Green': -200}
-
-    # Calculate prices
-    base_price = 45000  # Base MSRP
-    prices = []
-    for i in range(n_samples):
-        price = base_price
-        # Year effect (newer = more expensive)
-        price += (years[i] - 2015) * 5000
-        # Mileage effect (more miles = cheaper)
-        price -= mileage[i] * 0.15
-        # Trim effect
-        price += trim_price_effect[trims[i]]
-        # State effect
-        price += state_price_effect[states[i]]
-        # Color effect
-        price += color_price_effect[colors[i]]
-        # Add some noise
-        price += np.random.normal(0, 3000)
-        prices.append(max(price, 20000))
-
-    data = pd.DataFrame({
-        'year': years,
-        'mileage': mileage,
-        'trim': trims,
-        'state': states,
-        'color': colors,
-        'price': np.array(prices).astype(int)
-    })
-
-    return data
 
 def load_and_prepare_data():
-    global df, X, y, encoders
+    global df, X_train, X_test, y_train, y_test, feature_names, encoders
 
-    # Load from GitHub URL
-    try:
-        url = "https://raw.githubusercontent.com/ucla-anderson-SSAI/SSAI/main/range_rover.csv"
-        print(f"Loading data from {url}")
-        df = pd.read_csv(url)
-    except Exception as e:
-        print(f"Could not load remote data: {e}")
-        print("Generating sample Range Rover data...")
-        df = generate_sample_data()
+    # Load from local CSV file (bundled with the app)
+    csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "range_rover.csv")
+    print(f"Loading data from {csv_path}")
+    df = pd.read_csv(csv_path)
+    print(f"Loaded {len(df)} rows")
 
-    # Encode categorical variables
-    categorical_cols = ['trim', 'state', 'color']
+    # Encode categorical variables — include 'interior' if present in real data
+    categorical_cols = ['trim', 'state', 'color', 'interior']
     for col in categorical_cols:
         if col in df.columns:
             encoders[col] = LabelEncoder()
             df[f'{col}_enc'] = encoders[col].fit_transform(df[col].astype(str))
 
-    # Features and target
-    feature_cols = ['year', 'mileage', 'trim_enc', 'state_enc', 'color_enc']
-    X = df[feature_cols].values
-    # Use sellingprice if it exists, otherwise fall back to price
+    # Build feature list from what's available
+    possible_features = ['year', 'mileage', 'trim_enc', 'state_enc', 'color_enc', 'interior_enc']
+    feature_names = [f for f in possible_features if f in df.columns]
+    X = df[feature_names].values
+
+    # Use sellingprice if it exists (real data), otherwise fall back to price (sample data)
     price_col = 'sellingprice' if 'sellingprice' in df.columns else 'price'
     y = df[price_col].values
 
+    # Fixed train/test split for reproducibility
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+
+    print(f"Features: {feature_names}")
+    print(f"Target: {price_col}")
+    print(f"Train size: {len(X_train)}, Test size: {len(X_test)}")
     return df
 
-# Load data on startup
+
 @app.on_event("startup")
 async def startup_event():
     load_and_prepare_data()
 
-class AnalyzeRequest(BaseModel):
-    n_estimators: int
-    learning_rate: float
 
-class GridSearchRequest(BaseModel):
-    pass
+class TrainRequest(BaseModel):
+    model_type: str  # 'decision_tree', 'random_forest', 'xgboost'
+    max_depth: int = 6
+    n_estimators: int = 100
+    learning_rate: float = 0.1
+    min_child_weight: int = 1
+    subsample: float = 0.8
+    max_features: Optional[float] = None  # For RF: fraction of features per split
 
-@app.post("/grid_search")
-async def grid_search():
-    """Run grid search over learning_rate and n_estimators"""
-    learning_rates = [0.01, 0.05, 0.1, 0.2, 0.3]
-    n_estimators_list = [25, 50, 75, 100, 150, 200]
 
-    results = []
+def build_tree_structure(tree, feature_names, node_id=0, depth=0, max_display_depth=4):
+    """Recursively extract tree structure for visualization"""
+    if depth > max_display_depth:
+        return None
 
-    for lr in learning_rates:
-        row = []
-        for n_est in n_estimators_list:
-            model = XGBRegressor(
-                learning_rate=lr,
-                n_estimators=n_est,
-                random_state=42,
-                n_jobs=-1
-            )
-            scores = cross_val_score(model, X, y, cv=5, scoring='neg_mean_absolute_error')
-            mae = -scores.mean()
-            row.append(round(mae, 2))
-        results.append(row)
+    t = tree.tree_
+    if node_id >= t.node_count:
+        return None
 
-    # Find best combination
-    min_mae = float('inf')
-    best_lr = learning_rates[0]
-    best_n_est = n_estimators_list[0]
-
-    for i, lr in enumerate(learning_rates):
-        for j, n_est in enumerate(n_estimators_list):
-            if results[i][j] < min_mae:
-                min_mae = results[i][j]
-                best_lr = lr
-                best_n_est = n_est
-
-    # Get default model performance
-    default_model = XGBRegressor(random_state=42, n_jobs=-1)
-    default_scores = cross_val_score(default_model, X, y, cv=5, scoring='neg_mean_absolute_error')
-    default_mae = -default_scores.mean()
-
-    return {
-        "heatmap_data": results,
-        "learning_rates": learning_rates,
-        "n_estimators_list": n_estimators_list,
-        "best_lr": best_lr,
-        "best_n_estimators": best_n_est,
-        "best_mae": round(min_mae, 2),
-        "default_mae": round(default_mae, 2),
-        "default_params": {
-            "learning_rate": 0.3,
-            "n_estimators": 100
-        }
+    node = {
+        'id': int(node_id),
+        'depth': depth,
+        'n_samples': int(t.n_node_samples[node_id]),
+        'value': round(float(t.value[node_id][0][0]), 0),
     }
 
-@app.post("/analyze")
-async def analyze(request: AnalyzeRequest):
-    """Analyze model with specific hyperparameters"""
-    model = XGBRegressor(
-        learning_rate=request.learning_rate,
-        n_estimators=request.n_estimators,
-        random_state=42,
-        n_jobs=-1
-    )
+    if t.children_left[node_id] == t.children_right[node_id]:
+        # Leaf node
+        node['is_leaf'] = True
+    else:
+        node['is_leaf'] = False
+        feat_idx = t.feature[node_id]
+        node['feature'] = feature_names[feat_idx] if feat_idx < len(feature_names) else f'feature_{feat_idx}'
+        node['threshold'] = round(float(t.threshold[node_id]), 1)
 
-    # Cross-validation scores
-    scores = cross_val_score(model, X, y, cv=5, scoring='neg_mean_absolute_error')
-    mae = -scores.mean()
-    std = scores.std()
+        left = build_tree_structure(tree, feature_names, t.children_left[node_id], depth + 1, max_display_depth)
+        right = build_tree_structure(tree, feature_names, t.children_right[node_id], depth + 1, max_display_depth)
 
-    # Get predictions using cross_val_predict
-    predictions = cross_val_predict(model, X, y, cv=5)
+        if left:
+            node['left'] = left
+        if right:
+            node['right'] = right
 
-    # Fit model for feature importances
-    model.fit(X, y)
-    feature_names = ['year', 'mileage', 'trim_enc', 'state_enc', 'color_enc']
-    feature_importances = dict(zip(feature_names, model.feature_importances_.tolist()))
+    return node
 
-    # Sample data for visualization (limit to 200 points for performance)
-    sample_size = min(200, len(y))
-    indices = np.random.choice(len(y), sample_size, replace=False)
 
-    return {
-        "mae": round(mae, 2),
-        "std": round(std, 2),
-        "predictions": [round(p, 2) for p in predictions[indices].tolist()],
-        "actuals": [round(a, 2) for a in y[indices].tolist()],
-        "feature_importances": {k: round(v, 4) for k, v in feature_importances.items()},
-        "n_samples": len(y)
+@app.post("/train")
+async def train_model(request: TrainRequest):
+    """Train a model and return results"""
+
+    # Build the model
+    if request.model_type == 'decision_tree':
+        model = DecisionTreeRegressor(
+            max_depth=request.max_depth,
+            random_state=42
+        )
+    elif request.model_type == 'random_forest':
+        max_feat = request.max_features if request.max_features else 1.0
+        model = RandomForestRegressor(
+            n_estimators=request.n_estimators,
+            max_depth=request.max_depth,
+            max_features=max_feat,
+            random_state=42,
+            n_jobs=-1
+        )
+    else:  # xgboost
+        model = XGBRegressor(
+            n_estimators=request.n_estimators,
+            max_depth=request.max_depth,
+            learning_rate=request.learning_rate,
+            min_child_weight=request.min_child_weight,
+            subsample=request.subsample,
+            random_state=42,
+            n_jobs=-1
+        )
+
+    # Train
+    model.fit(X_train, y_train)
+
+    # Predictions
+    train_preds = model.predict(X_train)
+    test_preds = model.predict(X_test)
+
+    train_mae = mean_absolute_error(y_train, train_preds)
+    test_mae = mean_absolute_error(y_test, test_preds)
+    train_r2 = r2_score(y_train, train_preds)
+    test_r2 = r2_score(y_test, test_preds)
+
+    # Feature importances
+    if hasattr(model, 'feature_importances_'):
+        importances = dict(zip(feature_names, model.feature_importances_.tolist()))
+    else:
+        importances = {}
+
+    # Sample predictions for scatter plot (limit to 200)
+    sample_size = min(200, len(y_test))
+    indices = np.random.RandomState(42).choice(len(y_test), sample_size, replace=False)
+
+    # Tree structure (for decision tree visualization)
+    tree_structure = None
+    if request.model_type == 'decision_tree':
+        tree_structure = build_tree_structure(model, feature_names, max_display_depth=4)
+    elif request.model_type == 'random_forest':
+        # Return structure of first tree for visualization
+        tree_structure = build_tree_structure(model.estimators_[0], feature_names, max_display_depth=3)
+
+    # Learning curve: train models with increasing n_estimators (for ensemble methods)
+    learning_curve = None
+    if request.model_type in ('random_forest', 'xgboost'):
+        learning_curve = []
+        steps = list(range(10, request.n_estimators + 1, max(10, request.n_estimators // 20)))
+        if steps[-1] != request.n_estimators:
+            steps.append(request.n_estimators)
+
+        for n_est in steps:
+            if request.model_type == 'random_forest':
+                m = RandomForestRegressor(
+                    n_estimators=n_est,
+                    max_depth=request.max_depth,
+                    max_features=request.max_features if request.max_features else 1.0,
+                    random_state=42,
+                    n_jobs=-1
+                )
+            else:
+                m = XGBRegressor(
+                    n_estimators=n_est,
+                    max_depth=request.max_depth,
+                    learning_rate=request.learning_rate,
+                    min_child_weight=request.min_child_weight,
+                    subsample=request.subsample,
+                    random_state=42,
+                    n_jobs=-1
+                )
+            m.fit(X_train, y_train)
+            lc_train_mae = mean_absolute_error(y_train, m.predict(X_train))
+            lc_test_mae = mean_absolute_error(y_test, m.predict(X_test))
+            learning_curve.append({
+                'n_estimators': n_est,
+                'train_mae': round(lc_train_mae, 2),
+                'test_mae': round(lc_test_mae, 2)
+            })
+
+    # Depth curve: for decision tree, show MAE at different depths
+    depth_curve = None
+    if request.model_type == 'decision_tree':
+        depth_curve = []
+        for d in range(1, min(request.max_depth + 1, 21)):
+            m = DecisionTreeRegressor(max_depth=d, random_state=42)
+            m.fit(X_train, y_train)
+            dc_train_mae = mean_absolute_error(y_train, m.predict(X_train))
+            dc_test_mae = mean_absolute_error(y_test, m.predict(X_test))
+            depth_curve.append({
+                'depth': d,
+                'train_mae': round(dc_train_mae, 2),
+                'test_mae': round(dc_test_mae, 2)
+            })
+
+    response = {
+        "model_type": request.model_type,
+        "train_mae": round(train_mae, 2),
+        "test_mae": round(test_mae, 2),
+        "train_r2": round(train_r2, 4),
+        "test_r2": round(test_r2, 4),
+        "n_train": len(X_train),
+        "n_test": len(X_test),
+        "feature_importances": {k: round(v, 4) for k, v in importances.items()},
+        "predictions": [round(float(p), 2) for p in test_preds[indices]],
+        "actuals": [round(float(a), 2) for a in y_test[indices]],
+        "tree_structure": tree_structure,
+        "learning_curve": learning_curve,
+        "depth_curve": depth_curve,
     }
+
+    return response
+
 
 @app.get("/data_info")
 async def data_info():
     """Get information about the loaded data"""
+    price_col = 'sellingprice' if 'sellingprice' in df.columns else 'price'
     return {
         "n_samples": len(df),
-        "n_features": 5,
-        "features": ['year', 'mileage', 'trim_enc', 'state_enc', 'color_enc'],
-        "target": "price",
-        "price_range": [float(df['price'].min()), float(df['price'].max())],
-        "price_mean": round(float(df['price'].mean()), 2)
+        "n_train": len(X_train),
+        "n_test": len(X_test),
+        "n_features": len(feature_names),
+        "features": feature_names,
+        "feature_display_names": {
+            'year': 'Year',
+            'mileage': 'Mileage',
+            'trim_enc': 'Trim',
+            'state_enc': 'State',
+            'color_enc': 'Color',
+            'interior_enc': 'Interior'
+        },
+        "target": price_col,
+        "price_range": [float(df[price_col].min()), float(df[price_col].max())],
+        "price_mean": round(float(df[price_col].mean()), 2),
+        "price_median": round(float(df[price_col].median()), 2)
     }
+
 
 # Serve static files
 app.mount("/static", StaticFiles(directory="."), name="static")
 
+
 @app.get("/")
 async def root():
     return FileResponse("index.html")
+
 
 if __name__ == "__main__":
     import uvicorn
