@@ -392,7 +392,7 @@ def compute_reg_path(
 
 # API Endpoints
 
-@app.get("/")
+@app.get("/api")
 async def root():
     """Health check endpoint."""
     return {
@@ -727,7 +727,7 @@ async def health_check():
 # Serve frontend
 app.mount("/static", StaticFiles(directory="."), name="static")
 
-@app.get("/app")
+@app.get("/")
 async def serve_frontend():
     """Serve the frontend application."""
     return FileResponse("index.html")

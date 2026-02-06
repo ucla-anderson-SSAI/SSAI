@@ -252,7 +252,7 @@
         };
 
         // Compute regression with separate L1/L2 parameters
-        const computeRegression = (data, features, modelType, l1Ratio, l2Ratio, runCV, cvFolds) => {
+        const computeRegression = (data, features, modelType, lambdaVal, alphaVal, runCV, cvFolds) => {
             if (!data || data.length === 0 || features.length === 0) {
                 return {
                     predictions: [],
@@ -308,30 +308,30 @@
 
             // Apply regularization effects
             let cvResults = null;
-            let bestL1 = l1Ratio;
-            let bestL2 = l2Ratio;
+            let bestLambda = lambdaVal;
+            let bestAlpha = alphaVal;
 
             if (runCV && modelType !== 'ols') {
                 // Simulate cross-validation
                 const cvScores = [];
-                const l1Values = modelType === 'ridge' ? [0] : [0.01, 0.1, 0.5, 1.0, 2.0, 5.0];
-                const l2Values = modelType === 'lasso' ? [0] : [0.01, 0.1, 0.5, 1.0, 2.0, 5.0];
+                const lambdaValues = [0.01, 0.1, 0.5, 1.0, 2.0, 5.0];
+                const alphaValues = modelType === 'elasticnet' ? [0.1, 0.3, 0.5, 0.7, 0.9, 1.0] : [null];
 
-                l1Values.forEach(l1 => {
-                    l2Values.forEach(l2 => {
+                lambdaValues.forEach(lam => {
+                    alphaValues.forEach(alp => {
                         // Simulate CV score (lower is better)
                         const baseScore = 15 + Math.random() * 5;
-                        const penaltyEffect = Math.abs(l1 - 0.5) * 2 + Math.abs(l2 - 0.5) * 2;
+                        const penaltyEffect = Math.abs(lam - 0.5) * 2 + (alp != null ? Math.abs(alp - 0.5) * 2 : 0);
                         const score = baseScore + penaltyEffect + (features.length > 8 ? -2 : 0);
-                        cvScores.push({ l1, l2, score: score.toFixed(2), std: (Math.random() * 2).toFixed(2) });
+                        cvScores.push({ lambda: lam, alpha: alp, score: score.toFixed(2), std: (Math.random() * 2).toFixed(2) });
                     });
                 });
 
                 // Find best
                 const best = cvScores.reduce((a, b) => parseFloat(a.score) < parseFloat(b.score) ? a : b);
-                bestL1 = best.l1;
-                bestL2 = best.l2;
-                cvResults = { scores: cvScores.slice(0, 6), bestL1, bestL2, folds: cvFolds };
+                bestLambda = best.lambda;
+                bestAlpha = best.alpha != null ? best.alpha : alphaVal;
+                cvResults = { lambda: bestLambda, alpha: bestAlpha, folds: cvFolds, modelType: modelType, nCombinations: cvScores.length };
             }
 
             // Apply regularization
@@ -340,7 +340,7 @@
 
                 if (modelType === 'lasso' || modelType === 'elasticnet') {
                     // L1: can shrink to zero
-                    const l1Effect = bestL1 * 0.15;
+                    const l1Effect = bestLambda * (modelType === 'elasticnet' ? bestAlpha : 1) * 0.15;
                     if (Math.abs(coeff) < l1Effect * 2) {
                         coeff = 0;
                     } else {
@@ -350,7 +350,8 @@
 
                 if (modelType === 'ridge' || modelType === 'elasticnet') {
                     // L2: shrink toward zero
-                    coeff = coeff / (1 + bestL2 * 0.1);
+                    const l2Effect = bestLambda * (modelType === 'elasticnet' ? (1 - bestAlpha) : 1);
+                    coeff = coeff / (1 + l2Effect * 0.1);
                 }
 
                 coefficients[f] = coeff;
@@ -850,7 +851,7 @@
                         drawCtx.fillStyle = '#e74c3c';
                         drawCtx.font = '10px Inter, sans-serif';
                         drawCtx.textAlign = 'center';
-                        drawCtx.fillText('best α', xPixel, yScale.top - 4);
+                        drawCtx.fillText('best λ', xPixel, yScale.top - 4);
                         drawCtx.restore();
                     }
                 };
@@ -878,7 +879,7 @@
                         scales: {
                             x: {
                                 type: 'logarithmic',
-                                title: { display: true, text: 'α (log scale)', color: '#666', font: { size: 11 } },
+                                title: { display: true, text: 'λ (log scale)', color: '#666', font: { size: 11 } },
                                 grid: { color: 'rgba(0,0,0,0.06)' },
                                 ticks: {
                                     color: '#666',
@@ -911,8 +912,8 @@
         function LinearRegressionApp() {
             // Tabs removed - showing simulator only
             const [modelType, setModelType] = useState('lasso');
-            const [l1Ratio, setL1Ratio] = useState(1.0);
-            const [l2Ratio, setL2Ratio] = useState(1.0);
+            const [lambdaVal, setLambdaVal] = useState(1.0);  // λ: total regularization weight (sklearn alpha)
+            const [alphaVal, setAlphaVal] = useState(0.5);    // α: lasso weight / L1 ratio (sklearn l1_ratio), only for elasticnet
             const [runCV, setRunCV] = useState(false);
             const [cvFolds, setCvFolds] = useState(5);
             const [selectedFeatures, setSelectedFeatures] = useState(['price', 'lag_1', 'lag_2', 'ma_3', 'std_3']);
@@ -970,8 +971,8 @@
                                 product: selectedCategory,
                                 model_type: modelType,
                                 features: selectedFeatures,
-                                alpha: runCV ? null : (modelType === 'lasso' || modelType === 'elasticnet' ? l1Ratio : l2Ratio),
-                                l1_ratio: modelType === 'elasticnet' ? 0.5 : undefined
+                                alpha: runCV ? null : lambdaVal,  // λ → sklearn alpha
+                                l1_ratio: modelType === 'elasticnet' ? (runCV ? undefined : alphaVal) : undefined  // α → sklearn l1_ratio
                             })
                         });
 
@@ -1003,7 +1004,7 @@
                 }
 
                 setTimeout(() => setIsAnimating(false), 600);
-            }, [apiConnected, selectedCategory, modelType, selectedFeatures, l1Ratio, l2Ratio, runCV]);
+            }, [apiConnected, selectedCategory, modelType, selectedFeatures, lambdaVal, alphaVal, runCV]);
 
             // Compute results - use API results if available, otherwise compute locally
             const { predictions, coefficients, metrics, cvResults, regPath } = useMemo(() => {
@@ -1013,6 +1014,16 @@
                     apiResults.coefficients.forEach(c => {
                         coeffs[c.feature] = c.coefficient;
                     });
+
+                    // Determine number of hyperparameter combinations tested
+                    let nCombinations = 0;
+                    if (apiResults.model_type === 'lasso') {
+                        nCombinations = 100; // LassoCV default
+                    } else if (apiResults.model_type === 'ridge') {
+                        nCombinations = 50; // RidgeCV with 50 alphas
+                    } else if (apiResults.model_type === 'elasticnet') {
+                        nCombinations = 7 * 30; // 7 l1_ratios × 30 alphas
+                    }
 
                     return {
                         predictions: data,
@@ -1029,17 +1040,17 @@
                         },
                         cvResults: apiResults.alpha_source === 'cv_selected' ? {
                             folds: 5,
-                            alpha: apiResults.alpha,
-                            l1_ratio: apiResults.l1_ratio,
+                            lambda: apiResults.alpha,           // λ = total regularization (sklearn alpha)
+                            alpha: apiResults.l1_ratio,          // α = lasso weight (sklearn l1_ratio)
                             modelType: apiResults.model_type,
-                            scores: []
+                            nCombinations: nCombinations
                         } : null,
                         regPath: apiResults.reg_path || null
                     };
                 }
-                const result = computeRegression(data, selectedFeatures, modelType, l1Ratio, l2Ratio, runCV, cvFolds);
+                const result = computeRegression(data, selectedFeatures, modelType, lambdaVal, alphaVal, runCV, cvFolds);
                 return { ...result, regPath: null };
-            }, [data, selectedFeatures, modelType, l1Ratio, l2Ratio, runCV, cvFolds, apiResults, apiConnected]);
+            }, [data, selectedFeatures, modelType, lambdaVal, alphaVal, runCV, cvFolds, apiResults, apiConnected]);
 
             const toggleFeature = (feature) => {
                 setSelectedFeatures(prev => {
@@ -1051,11 +1062,24 @@
                 });
             };
 
+            // Update sliders to show CV-selected optimal values
+            useEffect(() => {
+                if (cvResults && cvResults.lambda != null) {
+                    // Clamp to slider range [0.01, 5]
+                    const clampedLambda = Math.min(5, Math.max(0.01, cvResults.lambda));
+                    setLambdaVal(clampedLambda);
+                }
+                if (cvResults && cvResults.alpha != null && modelType === 'elasticnet') {
+                    const clampedAlpha = Math.min(1, Math.max(0, cvResults.alpha));
+                    setAlphaVal(clampedAlpha);
+                }
+            }, [cvResults]);
+
             const residualsData = predictions.map(p => ({ predicted: p.predicted, residual: p.residual }));
 
             // Check which hyperparameters apply
-            const showL1 = modelType === 'lasso' || modelType === 'elasticnet';
-            const showL2 = modelType === 'ridge' || modelType === 'elasticnet';
+            const showLambda = modelType === 'lasso' || modelType === 'ridge' || modelType === 'elasticnet';
+            const showAlpha = modelType === 'elasticnet';
 
             return (
                 <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -1191,23 +1215,23 @@
                                                 </select>
                                             </div>
 
-                                            <div style={{ opacity: showL1 ? 1 : 0.4 }}>
+                                            <div style={{ opacity: showLambda ? 1 : 0.4 }}>
                                                 <label style={{ display: 'block', fontSize: '0.7rem', color: colors.lightMuted, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: '600' }}>
-                                                    L1 (α): <span style={{ color: colors.text }}>{l1Ratio.toFixed(2)}</span>
+                                                    λ (regularization): <span style={{ color: colors.text }}>{lambdaVal.toFixed(2)}</span>
                                                 </label>
-                                                <input type="range" min="0.01" max="5" step="0.01" value={l1Ratio}
-                                                    onChange={(e) => setL1Ratio(parseFloat(e.target.value))}
-                                                    disabled={!showL1}
+                                                <input type="range" min="0.01" max="5" step="0.01" value={lambdaVal}
+                                                    onChange={(e) => setLambdaVal(parseFloat(e.target.value))}
+                                                    disabled={!showLambda}
                                                     style={{ width: '100%', marginTop: '8px' }} />
                                             </div>
 
-                                            <div style={{ opacity: showL2 ? 1 : 0.4 }}>
+                                            <div style={{ opacity: showAlpha ? 1 : 0.4 }}>
                                                 <label style={{ display: 'block', fontSize: '0.7rem', color: colors.lightMuted, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: '600' }}>
-                                                    L2 (λ): <span style={{ color: colors.darkBlue }}>{l2Ratio.toFixed(2)}</span>
+                                                    α (lasso weight): <span style={{ color: colors.darkBlue }}>{alphaVal.toFixed(2)}</span>
                                                 </label>
-                                                <input type="range" min="0.01" max="5" step="0.01" value={l2Ratio}
-                                                    onChange={(e) => setL2Ratio(parseFloat(e.target.value))}
-                                                    disabled={!showL2}
+                                                <input type="range" min="0" max="1" step="0.01" value={alphaVal}
+                                                    onChange={(e) => setAlphaVal(parseFloat(e.target.value))}
+                                                    disabled={!showAlpha}
                                                     style={{ width: '100%', marginTop: '8px' }} />
                                             </div>
 
@@ -1291,21 +1315,21 @@
                                                         {cvResults.folds}-Fold Cross-Validation Results
                                                     </span>
                                                     <div style={{ marginTop: '4px', fontSize: '0.9rem', color: colors.lightText }}>
-                                                        {cvResults.alpha != null ? (
+                                                        {cvResults.lambda != null ? (
                                                             <>
-                                                                Best parameters: <strong style={{ color: colors.text }}>α = {typeof cvResults.alpha === 'number' ? cvResults.alpha.toFixed(4) : cvResults.alpha}</strong>
-                                                                {cvResults.l1_ratio != null && <>, <strong style={{ color: colors.darkBlue }}>L1 ratio = {typeof cvResults.l1_ratio === 'number' ? cvResults.l1_ratio.toFixed(2) : cvResults.l1_ratio}</strong></>}
+                                                                Best parameters: <strong style={{ color: colors.text }}>λ = {typeof cvResults.lambda === 'number' ? cvResults.lambda.toFixed(4) : cvResults.lambda}</strong>
+                                                                {cvResults.alpha != null && cvResults.modelType === 'elasticnet' && <>, <strong style={{ color: colors.darkBlue }}>α = {typeof cvResults.alpha === 'number' ? cvResults.alpha.toFixed(2) : cvResults.alpha}</strong></>}
                                                             </>
                                                         ) : (
                                                             <>
-                                                                Best parameters: <strong style={{ color: colors.text }}>L1 = {cvResults.bestL1}</strong>
-                                                                {showL2 && <>, <strong style={{ color: colors.darkBlue }}>L2 = {cvResults.bestL2}</strong></>}
+                                                                Best parameters: <strong style={{ color: colors.text }}>λ = {cvResults.bestL1}</strong>
+                                                                {showAlpha && <>, <strong style={{ color: colors.darkBlue }}>α = {cvResults.bestL2}</strong></>}
                                                             </>
                                                         )}
                                                     </div>
                                                 </div>
                                                 <div style={{ fontSize: '0.8rem', color: colors.lightMuted }}>
-                                                    Tested {cvResults.scores.length}+ hyperparameter combinations
+                                                    Tested {cvResults.nCombinations || '~100'} hyperparameter combinations
                                                 </div>
                                             </div>
                                         </div>
@@ -1404,7 +1428,7 @@
                                                 Regularization Path
                                             </h3>
                                             <p style={{ marginBottom: '20px', fontSize: '0.75rem', color: colors.lightMuted }}>
-                                                How cross-validated error and feature count change as regularization strength (α) increases
+                                                How cross-validated error and feature count change as regularization strength (λ) increases
                                             </p>
                                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                                                 <div>
@@ -1414,7 +1438,7 @@
                                                     <div style={{ height: '260px' }}>
                                                         <RegPathChart
                                                             regPath={regPath}
-                                                            bestAlpha={cvResults?.alpha}
+                                                            bestAlpha={cvResults?.lambda}
                                                             yKey="cv_mae"
                                                             yLabel="CV MAE"
                                                             title="CV Error"
@@ -1429,7 +1453,7 @@
                                                     <div style={{ height: '260px' }}>
                                                         <RegPathChart
                                                             regPath={regPath}
-                                                            bestAlpha={cvResults?.alpha}
+                                                            bestAlpha={cvResults?.lambda}
                                                             yKey="n_nonzero"
                                                             yLabel="Non-Zero Features"
                                                             title="Feature Selection"
