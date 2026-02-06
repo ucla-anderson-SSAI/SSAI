@@ -49,7 +49,7 @@ AVAILABLE_FEATURES = {
     "ma_3": "3-month moving average of sales",
     "std_3": "3-month rolling std dev of sales",
     # ── Price features ──
-    "price_change": "Absolute change in price from previous month",
+    "price_pct_change": "Percentage change in price from previous month",
     "price_sq": "Price squared (non-linear effect)",
     # ── Interaction terms ──
     "price_x_lag_1": "Price × Lag 1 interaction",
@@ -237,7 +237,7 @@ def prepare_data(selected_product: str) -> pd.DataFrame:
     )
 
     # --- Price features ---
-    df_sub["price_change"] = df_sub.groupby("id")["price"].diff()
+    df_sub["price_pct_change"] = df_sub.groupby("id")["price"].pct_change()
 
     # --- Squared terms ---
     df_sub["price_sq"] = df_sub["price"] ** 2
@@ -633,7 +633,7 @@ async def compare_models(product: str):
 
     - Model A: Price only
     - Model B: Price + Last Month's Sales
-    - Model C: All features (price, price_change, lag_1, lag_2, lag_3, ma_3)
+    - Model C: All features (price, price_pct_change, lag_1, lag_2, lag_3, ma_3)
     - Split: 80/20 by product ID (held-out products)
     """
     if product not in CATEGORIES:
@@ -665,7 +665,7 @@ async def compare_models(product: str):
     model_configs = [
         ("Model A: Price Only", ["price"]),
         ("Model B: Price + Lag", ["price", "lag_1"]),
-        ("Model C: All Features", ["price", "price_change", "lag_1", "lag_2", "lag_3", "ma_3"])
+        ("Model C: All Features", ["price", "price_pct_change", "lag_1", "lag_2", "lag_3", "ma_3"])
     ]
 
     for model_name, features in model_configs:

@@ -109,7 +109,7 @@
         const ALL_FEATURES = [
             // Base + Engineered
             'price', 'lag_1', 'lag_2', 'lag_3',
-            'ma_3', 'std_3', 'price_change', 'price_sq',
+            'ma_3', 'std_3', 'price_pct_change', 'price_sq',
             'price_x_lag_1', 'lag1_x_lag2',
             // Colors
             'color_black', 'color_dark_blue', 'color_white', 'color_blue',
@@ -124,7 +124,7 @@
         const FEATURE_LABELS = {
             price: 'Price', lag_1: 'Lag 1', lag_2: 'Lag 2', lag_3: 'Lag 3',
             ma_3: '3-Mo MA', std_3: '3-Mo Std',
-            price_change: 'Price Δ', price_sq: 'Price²',
+            price_pct_change: 'Price Δ%', price_sq: 'Price²',
             price_x_lag_1: 'Price×Lag1', lag1_x_lag2: 'Lag1×Lag2',
             // Colors
             color_black: 'Black', color_dark_blue: 'Dark Blue', color_white: 'White',
@@ -144,7 +144,7 @@
             price: 'Current price',
             lag_1: 'Sales from 1 month ago', lag_2: 'Sales from 2 months ago', lag_3: 'Sales from 3 months ago',
             ma_3: '3-month moving average of sales', std_3: '3-month rolling std dev of sales',
-            price_change: 'Absolute price change from previous month',
+            price_pct_change: 'Percentage price change from previous month',
             price_sq: 'Price squared (non-linear effect)',
             price_x_lag_1: 'Price × Lag 1 interaction', lag1_x_lag2: 'Lag 1 × Lag 2 interaction',
             // Colors
@@ -164,7 +164,7 @@
 
         // Feature grouping for display
         const FEATURE_GROUPS = {
-            'Engineered': ['price', 'lag_1', 'lag_2', 'lag_3', 'ma_3', 'std_3', 'price_change', 'price_sq', 'price_x_lag_1', 'lag1_x_lag2'],
+            'Engineered': ['price', 'lag_1', 'lag_2', 'lag_3', 'ma_3', 'std_3', 'price_pct_change', 'price_sq', 'price_x_lag_1', 'lag1_x_lag2'],
             'Colors': ['color_black', 'color_dark_blue', 'color_white', 'color_blue', 'color_dark_grey', 'color_grey', 'color_light_beige', 'color_light_blue', 'color_light_pink', 'color_beige', 'color_dark_red', 'color_greenish_khaki', 'color_light_grey', 'color_off_white', 'color_red', 'color_pink'],
             'Patterns': ['pattern_solid', 'pattern_denim', 'pattern_allover', 'pattern_melange', 'pattern_stripe', 'pattern_lace']
         };
@@ -188,7 +188,7 @@
                     id: i, price,
                     lag_1: lag1, lag_2: lag2, lag_3: lag3,
                     ma_3: (lag1 + lag2 + lag3) / 3, std_3: std3,
-                    price_change: (Math.random() - 0.5) * 20,
+                    price_pct_change: (Math.random() - 0.5) * 0.2,
                     price_sq: price * price,
                     price_x_lag_1: price * lag1, lag1_x_lag2: lag1 * lag2,
                     // Colors (random indicators)
@@ -227,7 +227,7 @@
             // Base coefficients (ground truth + noise)
             const baseCoeffs = {
                 price: -1.4, lag_1: 0.55, lag_2: 0.28, lag_3: 0.12,
-                ma_3: 0.45, std_3: -0.5, price_change: -0.8, price_sq: 0.002,
+                ma_3: 0.45, std_3: -0.5, price_pct_change: -25.0, price_sq: 0.002,
                 price_x_lag_1: -0.005, lag1_x_lag2: 0.0002,
                 // Colors (small effects, some noise)
                 color_black: 8.0, color_dark_blue: 2.0, color_white: 3.0, color_blue: 1.5,
@@ -478,7 +478,7 @@
                 actual_sales: colors.primary,
                 price: colors.darkBlue, lag_1: colors.positive, lag_2: colors.positive, lag_3: colors.positive,
                 ma_3: colors.darkBlue, std_3: colors.lightBlue,
-                price_change: colors.text, price_sq: colors.darkBlue,
+                price_pct_change: colors.text, price_sq: colors.darkBlue,
                 price_x_lag_1: '#8B5CF6', lag1_x_lag2: '#059669',
                 // Colors get a warm palette
                 color_black: '#1a1a1a', color_dark_blue: '#1e3a5f', color_white: '#666',
