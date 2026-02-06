@@ -236,6 +236,21 @@ async def train_model(request: TrainRequest):
                 'test_mae': round(dc_test_mae, 2)
             })
 
+    # Boosting residuals: track real test MAE after each of the first N trees (XGBoost only)
+    boosting_residuals = None
+    if request.model_type == 'xgboost':
+        num_shown = min(request.n_estimators, 5)
+        # Sample rounds: first N trees shown in the diagram
+        rounds = list(range(1, num_shown + 1))
+        boosting_residuals = []
+        for n in rounds:
+            preds_at_n = model.predict(X_test, iteration_range=(0, n))
+            mae_at_n = float(np.mean(np.abs(y_test - preds_at_n)))
+            boosting_residuals.append({
+                'tree': n,
+                'test_mae': round(mae_at_n, 2)
+            })
+
     response = {
         "model_type": request.model_type,
         "train_mae": round(train_mae, 2),
@@ -250,6 +265,7 @@ async def train_model(request: TrainRequest):
         "tree_structure": tree_structure,
         "learning_curve": learning_curve,
         "depth_curve": depth_curve,
+        "boosting_residuals": boosting_residuals,
     }
 
     return response
