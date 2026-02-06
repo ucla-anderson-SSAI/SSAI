@@ -98,7 +98,7 @@ class FeatureInfo(BaseModel):
 class AnalyzeRequest(BaseModel):
     product: str = Field(..., description="Product category to analyze")
     model_type: str = Field(default="lasso", description="Model type: ols, lasso, ridge, elasticnet")
-    features: List[str] = Field(default=["price", "lag_m1"], description="Features to include in model")
+    features: List[str] = Field(default=["price", "lag_1"], description="Features to include in model")
     alpha: Optional[float] = Field(default=None, description="Regularization strength (auto-select via CV if not provided)")
     l1_ratio: Optional[float] = Field(default=0.5, description="ElasticNet mixing parameter (0=Ridge, 1=Lasso)")
     test_month: Optional[int] = Field(default=None, description="Month number to use as test set (1-12, default=last available)")
@@ -116,6 +116,12 @@ class ModelMetrics(BaseModel):
     r2: float
 
 
+class RegPathPoint(BaseModel):
+    alpha: float
+    cv_mae: float
+    n_nonzero: int
+
+
 class AnalyzeResponse(BaseModel):
     product: str
     model_type: str
@@ -126,12 +132,14 @@ class AnalyzeResponse(BaseModel):
     test_month: str
     n_train: int
     n_test: int
-    metrics: ModelMetrics
+    train_metrics: ModelMetrics
+    test_metrics: ModelMetrics
     coefficients: List[CoefficientInfo]
     intercept: float
     predictions: List[float]
     actuals: List[float]
     residuals: List[float]
+    reg_path: Optional[List[RegPathPoint]]  # regularization path for CV plots
 
 
 class CompareModelResult(BaseModel):
@@ -344,6 +352,44 @@ def extract_coefficients(model, feature_names: List[str]) -> List[CoefficientInf
     ]
 
 
+def compute_reg_path(
+    X_train: np.ndarray,
+    y_train: np.ndarray,
+    model_type: str,
+    l1_ratio: float = 0.5,
+    cv: int = 5
+) -> List[RegPathPoint]:
+    """Sweep alpha values and return CV MAE + number of nonzero coefficients at each."""
+    from sklearn.model_selection import cross_val_score
+
+    alphas = np.logspace(-3, 3, 25)
+    path = []
+
+    for a in alphas:
+        if model_type == "lasso":
+            m = Lasso(alpha=a, random_state=42, max_iter=10000)
+        elif model_type == "ridge":
+            m = Ridge(alpha=a, random_state=42, max_iter=10000)
+        elif model_type == "elasticnet":
+            m = ElasticNet(alpha=a, l1_ratio=l1_ratio, random_state=42, max_iter=10000)
+        else:
+            continue
+
+        scores = cross_val_score(m, X_train, y_train, cv=cv, scoring="neg_mean_absolute_error")
+        cv_mae = -scores.mean()
+
+        m.fit(X_train, y_train)
+        n_nonzero = int(np.sum(m.coef_ != 0))
+
+        path.append(RegPathPoint(
+            alpha=round(float(a), 6),
+            cv_mae=round(float(cv_mae), 4),
+            n_nonzero=n_nonzero
+        ))
+
+    return path
+
+
 # API Endpoints
 
 @app.get("/")
@@ -494,14 +540,28 @@ async def analyze_custom(request: AnalyzeRequest):
         request.l1_ratio or 0.5
     )
 
-    # Calculate metrics
-    metrics = calculate_metrics(y_test, predictions)
+    # Calculate test metrics (out-of-sample)
+    test_metrics = calculate_metrics(y_test, predictions)
+
+    # Calculate train metrics (in-sample)
+    train_predictions = model.predict(X_train_scaled)
+    train_metrics = calculate_metrics(y_train, train_predictions)
 
     # Extract coefficients
     coefficients = extract_coefficients(model, request.features)
 
     # Calculate residuals
     residuals = (y_test - predictions).tolist()
+
+    # Compute regularization path if CV was used
+    reg_path = None
+    if alpha_source == "cv_selected" and request.model_type != "ols":
+        reg_path = compute_reg_path(
+            X_train_scaled, y_train,
+            request.model_type,
+            l1_ratio=l1_ratio_used or 0.5,
+            cv=5
+        )
 
     return AnalyzeResponse(
         product=request.product,
@@ -513,12 +573,14 @@ async def analyze_custom(request: AnalyzeRequest):
         test_month=test_month_name,
         n_train=len(train),
         n_test=len(test),
-        metrics=metrics,
+        train_metrics=train_metrics,
+        test_metrics=test_metrics,
         coefficients=coefficients,
         intercept=round(float(model.intercept_), 6),
         predictions=[round(float(p), 2) for p in predictions],
         actuals=[round(float(a), 2) for a in y_test],
-        residuals=[round(float(r), 2) for r in residuals]
+        residuals=[round(float(r), 2) for r in residuals],
+        reg_path=reg_path
     )
 
 
@@ -529,7 +591,7 @@ async def compare_models(product: str, test_month: Optional[int] = None):
 
     - Model A: Price only
     - Model B: Price + Last Month's Sales
-    - Model C: All features (price, price_change, lag_m1, lag_m2, lag_m3, ma_3)
+    - Model C: All features (price, price_change, lag_1, lag_2, lag_3, ma_3)
     """
     if product not in CATEGORIES:
         raise HTTPException(
