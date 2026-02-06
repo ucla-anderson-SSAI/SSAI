@@ -134,6 +134,7 @@ class AnalyzeResponse(BaseModel):
     n_test: int
     train_metrics: ModelMetrics
     test_metrics: ModelMetrics
+    cv_mae: Optional[float]  # CV MAE from training set (only when CV is used)
     coefficients: List[CoefficientInfo]
     intercept: float
     predictions: List[float]
@@ -175,8 +176,9 @@ async def load_data():
         with urllib.request.urlopen(DATA_URL, timeout=30) as response:
             csv_data = response.read().decode('utf-8')
         df = pd.read_csv(io.StringIO(csv_data))
-        CATEGORIES = sorted(df["name"].unique().tolist())
-        print(f"[INFO] Loaded {len(df)} rows, {len(CATEGORIES)} categories from {DATA_URL}")
+        category_counts = df["name"].value_counts()
+        CATEGORIES = sorted(category_counts[category_counts >= 300].index.tolist())
+        print(f"[INFO] Loaded {len(df)} rows, {len(CATEGORIES)} categories (≥300 obs) from {DATA_URL}")
     except Exception as e:
         print(f"[ERROR] Failed to load data from {DATA_URL}: {str(e)}")
         import traceback
@@ -276,12 +278,12 @@ def train_model(
 ) -> tuple:
     """
     Train a linear model with specified hyperparameters.
-    Returns: (model, predictions, alpha_used, alpha_source, l1_ratio_used)
+    Returns: (model, predictions, alpha_used, alpha_source, l1_ratio_used, cv_mae)
     """
     if model_type == "ols":
         model = LinearRegression()
         model.fit(X_train, y_train)
-        return model, model.predict(X_test), None, "not_applicable", None
+        return model, model.predict(X_test), None, "not_applicable", None, None
 
     elif model_type == "lasso":
         if alpha is not None:
@@ -292,18 +294,30 @@ def train_model(
             alpha_source = "cv_selected"
         model.fit(X_train, y_train)
         alpha_used = alpha if alpha is not None else model.alpha_
-        return model, model.predict(X_test), alpha_used, alpha_source, None
+        # Extract CV MAE: LassoCV stores mse_path_ (shape: n_alphas x n_folds)
+        cv_mae = None
+        if alpha_source == "cv_selected" and hasattr(model, 'mse_path_'):
+            # mse_path_ contains MSE; convert to MAE approximation via sqrt isn't right,
+            # so instead use cross_val_score at the best alpha
+            from sklearn.model_selection import cross_val_score
+            best_model = Lasso(alpha=model.alpha_, random_state=42, max_iter=10000)
+            scores = cross_val_score(best_model, X_train, y_train, cv=5, scoring='neg_mean_absolute_error')
+            cv_mae = round(float(-scores.mean()), 4)
+        return model, model.predict(X_test), alpha_used, alpha_source, None, cv_mae
 
     elif model_type == "ridge":
         if alpha is not None:
             model = Ridge(alpha=alpha, random_state=42, max_iter=10000)
             alpha_source = "user_specified"
         else:
-            model = RidgeCV(cv=5, alphas=np.logspace(-3, 3, 50))
+            model = RidgeCV(cv=5, alphas=np.logspace(-3, 3, 50), scoring='neg_mean_absolute_error')
             alpha_source = "cv_selected"
         model.fit(X_train, y_train)
         alpha_used = alpha if alpha is not None else model.alpha_
-        return model, model.predict(X_test), alpha_used, alpha_source, None
+        cv_mae = None
+        if alpha_source == "cv_selected" and hasattr(model, 'best_score_'):
+            cv_mae = round(float(-model.best_score_), 4)
+        return model, model.predict(X_test), alpha_used, alpha_source, None, cv_mae
 
     elif model_type == "elasticnet":
         if alpha is not None:
@@ -321,7 +335,13 @@ def train_model(
         model.fit(X_train, y_train)
         alpha_used = alpha if alpha is not None else model.alpha_
         l1_ratio_used = l1_ratio if alpha is not None else model.l1_ratio_
-        return model, model.predict(X_test), alpha_used, alpha_source, l1_ratio_used
+        cv_mae = None
+        if alpha_source == "cv_selected":
+            from sklearn.model_selection import cross_val_score
+            best_model = ElasticNet(alpha=model.alpha_, l1_ratio=model.l1_ratio_, random_state=42, max_iter=10000)
+            scores = cross_val_score(best_model, X_train, y_train, cv=5, scoring='neg_mean_absolute_error')
+            cv_mae = round(float(-scores.mean()), 4)
+        return model, model.predict(X_test), alpha_used, alpha_source, l1_ratio_used, cv_mae
 
     else:
         raise ValueError(f"Unknown model type: {model_type}")
@@ -423,8 +443,9 @@ async def get_categories():
             with urllib.request.urlopen(DATA_URL, timeout=30) as response:
                 csv_data = response.read().decode('utf-8')
             df = pd.read_csv(io.StringIO(csv_data))
-            CATEGORIES = sorted(df["name"].unique().tolist())
-            print(f"[INFO] Lazy-loaded {len(df)} rows, {len(CATEGORIES)} categories")
+            category_counts = df["name"].value_counts()
+            CATEGORIES = sorted(category_counts[category_counts >= 300].index.tolist())
+            print(f"[INFO] Lazy-loaded {len(df)} rows, {len(CATEGORIES)} categories (≥300 obs)")
         except Exception as e:
             print(f"[ERROR] Failed to lazy-load data: {str(e)}")
             import traceback
@@ -533,7 +554,7 @@ async def analyze_custom(request: AnalyzeRequest):
     X_test_scaled = scaler.transform(X_test)
 
     # Train model
-    model, predictions, alpha_used, alpha_source, l1_ratio_used = train_model(
+    model, predictions, alpha_used, alpha_source, l1_ratio_used, cv_mae = train_model(
         X_train_scaled, y_train, X_test_scaled,
         request.model_type,
         request.alpha,
@@ -575,6 +596,7 @@ async def analyze_custom(request: AnalyzeRequest):
         n_test=len(test),
         train_metrics=train_metrics,
         test_metrics=test_metrics,
+        cv_mae=cv_mae,
         coefficients=coefficients,
         intercept=round(float(model.intercept_), 6),
         predictions=[round(float(p), 2) for p in predictions],
@@ -643,7 +665,7 @@ async def compare_models(product: str, test_month: Optional[int] = None):
         X_test_scaled = scaler.transform(X_test)
 
         # Train with LassoCV (auto alpha selection)
-        model, predictions, alpha_used, _, _ = train_model(
+        model, predictions, alpha_used, _, _, _ = train_model(
             X_train_scaled, y_train, X_test_scaled,
             "lasso", None, 0.5
         )
