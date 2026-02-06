@@ -6,6 +6,73 @@ This style guide ensures consistency across all case documents for MGMT298D: Sci
 
 ---
 
+## Writing Style
+
+### Tone and Voice
+
+Write in plain, clear prose with a balanced, academic tone. Sentences should be well-structured, with subordinate clauses that connect ideas and build on one another logically. Weave concrete details and specific numbers into flowing prose rather than isolating them in short declarative statements. Let the facts carry the weight, but give the reader enough syntactic connective tissue to follow the argument without effort.
+
+Avoid both marketing buzzwords and telegraphic, staccato sentences. A sequence of three or more short declarative sentences in a row reads like a slide deck, not a case study. When listing related facts, combine them into a single sentence with appropriate conjunctions or semicolons.
+
+Good: "Pricing is typically viewed as a business decision: set a margin, adjust for competitors, and hope for the best. But at scale, this approach fails because the optimal price for any product depends on a web of interrelated factors that shift continuously. Inventory levels, competitor prices, seasonal demand, and customer browsing behavior all influence willingness to pay, and they interact in ways that change by the hour. No pricing team, however large, can evaluate millions of products continuously while accounting for these interdependencies."
+
+Bad (buzzy): "H&M faces a massive challenge: predicting what millions of customers will want across a sprawling global empire of stores."
+
+Bad (staccato): "The optimal price depends on many factors. Inventory levels change. Competitor prices move. Demand fluctuates. No team can track all of this."
+
+### Key principles
+
+- Use American English spelling (colors, behavior, standardized)
+- Prefer short, declarative sentences. Vary sentence length for readability but default to concise.
+- Avoid rhetorical questions in the narrative. Reserve questions for the Discussion Questions section.
+- Do not use bullet points or numbered lists in the narrative. Write in paragraphs.
+- Each case should motivate why ML/AI unlocks value for the firm in question. Frame the business problem first, then the AI response.
+- Keep hard numbers grounded in sources. Every statistic in the narrative should have a corresponding entry in the Sources section.
+- Do not give away answers to discussion questions in the narrative. Present the facts and let students draw conclusions. For example, if a question asks why Company A survived and Company B didn't, the narrative should describe both outcomes without explaining the reason.
+- Use no more than 2 em dashes per document. Prefer commas, periods, or semicolons.
+
+### Narrative length
+
+Target approximately 600-750 words of narrative text. The case should be readable in 3-4 minutes. With questions and sources, the full document should fit on 2 pages.
+
+---
+
+## Content Structure
+
+### Purpose
+
+Each case maps to a specific week's lecture topic. The case should serve as motivation for the ML/AI concepts covered that week. The narrative should make students feel why the problem matters before revealing the technical response.
+
+### Narrative arc
+
+Structure the narrative in two sections:
+
+1. **The Problem** — What business challenge does the company face? Why does prediction (or classification, or optimization, etc.) matter for this specific business model? What went wrong or what opportunity exists? Use a descriptive heading that captures the core tension (e.g., "The Fast Fashion Prediction Problem").
+
+2. **The Company's Response** — What did the company build? What data do they use? What were the results? Keep this concise and strategic — students need to understand what inputs the system uses and what outputs it produces, not the technical architecture. Use a heading like "[Company]'s Response."
+
+### Discussion Questions
+
+- Exactly 4 questions, each one or two sentences long
+- Use "Question 1", "Question 2", etc. as subheadings
+- Keep questions focused on ML/AI concepts and business strategy — not organizational politics or change management
+- Questions should scaffold from foundational to more challenging:
+  - Q1: Why does prediction/ML matter for this specific business? (the "so what")
+  - Q2: What should the model predict, and at what level of detail? (outputs)
+  - Q3: What data should the company collect? (inputs/features)
+  - Q4: What are the limits or risks of this approach? (challenges)
+- The question order above is a guideline — adjust to fit the case. But each case should cover these four themes.
+
+### Sources
+
+- 4-5 sources maximum
+- Every hard number in the narrative must have a corresponding source
+- Remove redundant sources that cover the same fact
+- Format: "Title." Publication, Date. url
+- Font: Arial, 10pt, regular, gray (#666666)
+
+---
+
 ## Color Palette
 
 | Name | Hex | Usage |
@@ -42,10 +109,11 @@ If Whitney is unavailable, use:
 
 ## Page Layout
 
-- **Page size**: US Letter (8.5" × 11")
+- **Page size**: US Letter (8.5" x 11")
 - **Margins**: 1" all sides
 - **Line spacing**: 1.15 for body text
 - **Paragraph spacing**: 10pt after paragraphs
+- **Target length**: 2 pages maximum
 
 ---
 
@@ -67,7 +135,7 @@ If Whitney is unavailable, use:
 - Spacing: 3pt before, 18pt after
 
 ### 4. Section Headings
-- Examples: "The Situation", "Key Insights", "Discussion Questions", "Sources"
+- Use descriptive headings (e.g., "The Fast Fashion Prediction Problem", "H&M's Response")
 - Font: Whitney, 14pt, bold, dark blue (#005587)
 - Spacing: 15pt before, 9pt after
 
@@ -85,71 +153,6 @@ If Whitney is unavailable, use:
 - Font: Arial, 10pt, regular, gray (#666666)
 - Spacing: 6pt after each source
 - Format: "Title." Publication, Date. url
-
----
-
-## Standard Sections
-
-Every case document should include these sections in order:
-
-1. **Header line** — Course identifier with gold underline
-2. **Title** — Case name
-3. **Week subtitle** — Week number and topic
-4. **Narrative sections** — Typically 2-4 sections describing the situation
-   - Use descriptive headings (e.g., "The Situation", "Company Name's Approach", "Key Insights")
-5. **Discussion Questions** — Section heading followed by numbered questions
-   - Use "Question 1", "Question 2" format for subheadings
-   - Each question as its own paragraph
-6. **Sources** — Citations in consistent format
-
----
-
-## Formatting Examples
-
-### Header Block
-```
-MGMT298D: Science and Strategy of AI | UCLA Anderson
-────────────────────────────────────────────────────── (gold line)
-
-H&M: AI-Powered Demand Forecasting
-
-Week 1: Linear Regression
-```
-
-### Section with Body Text
-```
-The Situation
-
-H&M, one of the world's largest fashion retailers, faced a crisis 
-familiar to the industry: billions of dollars in unsold inventory...
-```
-
-### Discussion Questions
-```
-Discussion Questions
-
-Question 1
-
-H&M trains on years of historical data but retrains frequently. 
-Why is this combination of long history and frequent updates 
-important for demand forecasting?
-
-Question 2
-
-H&M forecasts demand at the item-store-size-color level. What are 
-the trade-offs between granular and aggregate forecasting?
-```
-
-### Sources
-```
-Sources
-
-"H&M Leaves $4.3 Billion In Unsold Inventory On The Racks." NPR, 
-March 28, 2018. npr.org
-
-"H&M's AI operation helps make its supply chain more sustainable." 
-Retail Dive, January 15, 2020. retaildive.com
-```
 
 ---
 
@@ -191,11 +194,14 @@ Before finalizing a case document, verify:
 - [ ] Header line with course name and gold underline
 - [ ] Title in Whitney, 20pt, bold, dark blue
 - [ ] Week subtitle in italic gray
+- [ ] Narrative in plain, direct prose (~600-750 words)
+- [ ] Two narrative sections with descriptive headings
 - [ ] All section headings in Whitney, 14pt, bold, dark blue
 - [ ] Question headings in Arial, 12pt, bold, dark blue
 - [ ] Body text in Arial, 12pt, regular, #333333
+- [ ] 4 discussion questions, each one sentence, focused on ML/AI
 - [ ] Sources in Arial, 10pt, gray
+- [ ] 4-5 sources, each backing a specific claim
 - [ ] US Letter page size with 1" margins
-- [ ] Consistent spacing throughout
-- [ ] 4 discussion questions included
-- [ ] Sources section with proper citations
+- [ ] Total document fits on 2 pages
+- [ ] American English spelling throughout

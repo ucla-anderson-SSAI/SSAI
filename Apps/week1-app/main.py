@@ -37,20 +37,48 @@ DATA_URL = "https://raw.githubusercontent.com/ucla-anderson-SSAI/SSAI/main/HMDat
 MONTH_COLS = ["January", "February", "March", "April", "May", "June",
               "July", "August", "September", "October", "November", "December"]
 
-# Available features with descriptions
+# Available features with descriptions (matches Week 1 notebook)
 AVAILABLE_FEATURES = {
+    # Base
     "price": "Current price of the product",
-    "log_price": "Natural log of price",
-    "price_squared": "Price squared (non-linear effect)",
-    "lag_m1": "Sales from 1 month ago",
-    "lag_m2": "Sales from 2 months ago",
-    "lag_m3": "Sales from 3 months ago",
-    "lag_m6": "Sales from 6 months ago",
+    # Lag features
+    "lag_1": "Sales from 1 month ago",
+    "lag_2": "Sales from 2 months ago",
+    "lag_3": "Sales from 3 months ago",
+    "lag_4": "Sales from 4 months ago",
+    "lag_5": "Sales from 5 months ago",
+    "lag_6": "Sales from 6 months ago",
+    # Rolling statistics
     "ma_3": "3-month moving average of sales",
-    "ma_6": "6-month moving average of sales",
+    "ma_5": "5-month moving average of sales",
+    "ma_7": "7-month moving average of sales",
+    "std_3": "3-month rolling std dev of sales",
+    "std_5": "5-month rolling std dev of sales",
+    "std_7": "7-month rolling std dev of sales",
+    # Price features
     "price_change": "Absolute change in price from previous month",
-    "price_change_pct": "Percentage change in price from previous month",
-    "price_volatility": "Rolling standard deviation of price (volatility)"
+    "price_pct_change": "Percentage change in price from previous month",
+    # Squared terms
+    "price_sq": "Price squared (non-linear effect)",
+    "lag_1_sq": "Lag 1 squared",
+    "lag_2_sq": "Lag 2 squared",
+    "lag_3_sq": "Lag 3 squared",
+    # Price × lag interactions
+    "price_x_lag_1": "Price × Lag 1 interaction",
+    "price_x_lag_2": "Price × Lag 2 interaction",
+    "price_x_lag_3": "Price × Lag 3 interaction",
+    "price_x_lag_4": "Price × Lag 4 interaction",
+    # Price × rolling interactions
+    "price_x_ma_3": "Price × 3-month MA interaction",
+    "price_x_ma_5": "Price × 5-month MA interaction",
+    "price_x_ma_7": "Price × 7-month MA interaction",
+    # Cross-lag interactions
+    "lag1_x_lag2": "Lag 1 × Lag 2 interaction",
+    "lag1_x_lag3": "Lag 1 × Lag 3 interaction",
+    "lag2_x_lag3": "Lag 2 × Lag 3 interaction",
+    # Momentum ratios
+    "lag1_over_lag2": "Lag 1 / Lag 2 momentum ratio",
+    "lag1_over_ma3": "Lag 1 / 3-month MA momentum ratio",
 }
 
 # Model types
@@ -93,6 +121,7 @@ class AnalyzeResponse(BaseModel):
     model_type: str
     alpha: Optional[float]
     alpha_source: str  # "user_specified" or "cv_selected"
+    l1_ratio: Optional[float]  # ElasticNet mixing parameter (CV-selected or user-specified)
     features_used: List[str]
     test_month: str
     n_train: int
@@ -149,7 +178,8 @@ async def load_data():
 
 
 def prepare_data(selected_product: str) -> pd.DataFrame:
-    """Prepare dataset for a selected product category with all engineered features."""
+    """Prepare dataset for a selected product category with all engineered features.
+    Matches the feature engineering in the Week 1 notebook."""
     df_sub = df[df["name"] == selected_product].copy()
 
     # Create month_num column
@@ -157,31 +187,49 @@ def prepare_data(selected_product: str) -> pd.DataFrame:
         {m: i+1 for i, m in enumerate(MONTH_COLS)}
     )
 
-    # Price transformations
-    df_sub["log_price"] = np.log(df_sub["price"].clip(lower=0.01))
-    df_sub["price_squared"] = (df_sub["price"] ** 2) / 1000  # Scale down for numerical stability
+    # --- Lag features (lag_1 through lag_6) ---
+    for i in range(1, 7):
+        df_sub[f"lag_{i}"] = df_sub.groupby("id")["sales"].shift(i)
 
-    # Create lag features (sales)
-    for i in [1, 2, 3, 6]:
-        df_sub[f"lag_m{i}"] = df_sub.groupby("id")["sales"].shift(i)
+    # --- Rolling statistics (shifted by 1 to avoid leakage) ---
+    for w in [3, 5, 7]:
+        df_sub[f"ma_{w}"] = df_sub.groupby("id")["sales"].transform(
+            lambda x: x.rolling(w).mean().shift(1)
+        )
+        df_sub[f"std_{w}"] = df_sub.groupby("id")["sales"].transform(
+            lambda x: x.rolling(w).std().shift(1)
+        )
 
-    # Create moving averages
-    df_sub["ma_3"] = df_sub.groupby("id")["sales"].shift(1).rolling(3, min_periods=1).mean().values
-    df_sub["ma_6"] = df_sub.groupby("id")["sales"].shift(1).rolling(6, min_periods=1).mean().values
-
-    # Price change features
+    # --- Price features ---
     df_sub["price_change"] = df_sub.groupby("id")["price"].diff()
-    df_sub["price_change_pct"] = df_sub.groupby("id")["price"].pct_change()
+    df_sub["price_pct_change"] = df_sub.groupby("id")["price"].pct_change()
 
-    # Price volatility (rolling std of price)
-    df_sub["price_volatility"] = df_sub.groupby("id")["price"].transform(
-        lambda x: x.rolling(3, min_periods=1).std()
-    )
+    # --- Squared terms ---
+    df_sub["price_sq"] = df_sub["price"] ** 2
+    for i in range(1, 4):
+        df_sub[f"lag_{i}_sq"] = df_sub[f"lag_{i}"] ** 2
 
-    # Fill NaN values
-    feature_cols = ["lag_m1", "lag_m2", "lag_m3", "lag_m6", "ma_3", "ma_6",
-                    "price_change", "price_change_pct", "price_volatility"]
+    # --- Interaction terms: price × lags ---
+    for i in range(1, 5):
+        df_sub[f"price_x_lag_{i}"] = df_sub["price"] * df_sub[f"lag_{i}"]
+
+    # --- Interaction terms: price × rolling ---
+    for w in [3, 5, 7]:
+        df_sub[f"price_x_ma_{w}"] = df_sub["price"] * df_sub[f"ma_{w}"]
+
+    # --- Cross-lag interactions ---
+    df_sub["lag1_x_lag2"] = df_sub["lag_1"] * df_sub["lag_2"]
+    df_sub["lag1_x_lag3"] = df_sub["lag_1"] * df_sub["lag_3"]
+    df_sub["lag2_x_lag3"] = df_sub["lag_2"] * df_sub["lag_3"]
+
+    # --- Momentum ratios (safe division) ---
+    df_sub["lag1_over_lag2"] = df_sub["lag_1"] / df_sub["lag_2"].replace(0, np.nan)
+    df_sub["lag1_over_ma3"] = df_sub["lag_1"] / df_sub["ma_3"].replace(0, np.nan)
+
+    # --- Fill NaN from shifts, rolling windows, and division ---
+    feature_cols = [c for c in AVAILABLE_FEATURES.keys() if c != "price"]
     df_sub[feature_cols] = df_sub[feature_cols].fillna(0)
+    df_sub.replace([np.inf, -np.inf], 0, inplace=True)
 
     return df_sub
 
@@ -220,12 +268,12 @@ def train_model(
 ) -> tuple:
     """
     Train a linear model with specified hyperparameters.
-    Returns: (model, predictions, alpha_used, alpha_source)
+    Returns: (model, predictions, alpha_used, alpha_source, l1_ratio_used)
     """
     if model_type == "ols":
         model = LinearRegression()
         model.fit(X_train, y_train)
-        return model, model.predict(X_test), None, "not_applicable"
+        return model, model.predict(X_test), None, "not_applicable", None
 
     elif model_type == "lasso":
         if alpha is not None:
@@ -236,29 +284,36 @@ def train_model(
             alpha_source = "cv_selected"
         model.fit(X_train, y_train)
         alpha_used = alpha if alpha is not None else model.alpha_
-        return model, model.predict(X_test), alpha_used, alpha_source
+        return model, model.predict(X_test), alpha_used, alpha_source, None
 
     elif model_type == "ridge":
         if alpha is not None:
             model = Ridge(alpha=alpha, random_state=42, max_iter=10000)
             alpha_source = "user_specified"
         else:
-            model = RidgeCV(cv=5)
+            model = RidgeCV(cv=5, alphas=np.logspace(-3, 3, 50))
             alpha_source = "cv_selected"
         model.fit(X_train, y_train)
         alpha_used = alpha if alpha is not None else model.alpha_
-        return model, model.predict(X_test), alpha_used, alpha_source
+        return model, model.predict(X_test), alpha_used, alpha_source, None
 
     elif model_type == "elasticnet":
         if alpha is not None:
             model = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, random_state=42, max_iter=10000)
             alpha_source = "user_specified"
         else:
-            model = ElasticNetCV(cv=5, l1_ratio=[0.1, 0.5, 0.7, 0.9, 0.95, 0.99, 1.0], random_state=42, max_iter=10000)
+            model = ElasticNetCV(
+                cv=5,
+                l1_ratio=[0.1, 0.5, 0.7, 0.9, 0.95, 0.99, 1.0],
+                alphas=np.logspace(-3, 2, 30),
+                random_state=42,
+                max_iter=10000
+            )
             alpha_source = "cv_selected"
         model.fit(X_train, y_train)
         alpha_used = alpha if alpha is not None else model.alpha_
-        return model, model.predict(X_test), alpha_used, alpha_source
+        l1_ratio_used = l1_ratio if alpha is not None else model.l1_ratio_
+        return model, model.predict(X_test), alpha_used, alpha_source, l1_ratio_used
 
     else:
         raise ValueError(f"Unknown model type: {model_type}")
@@ -432,7 +487,7 @@ async def analyze_custom(request: AnalyzeRequest):
     X_test_scaled = scaler.transform(X_test)
 
     # Train model
-    model, predictions, alpha_used, alpha_source = train_model(
+    model, predictions, alpha_used, alpha_source, l1_ratio_used = train_model(
         X_train_scaled, y_train, X_test_scaled,
         request.model_type,
         request.alpha,
@@ -453,6 +508,7 @@ async def analyze_custom(request: AnalyzeRequest):
         model_type=request.model_type,
         alpha=alpha_used,
         alpha_source=alpha_source,
+        l1_ratio=l1_ratio_used,
         features_used=request.features,
         test_month=test_month_name,
         n_train=len(train),
@@ -510,8 +566,8 @@ async def compare_models(product: str, test_month: Optional[int] = None):
     # Model configurations
     model_configs = [
         ("Model A: Price Only", ["price"]),
-        ("Model B: Price + Lag", ["price", "lag_m1"]),
-        ("Model C: All Features", ["price", "price_change", "lag_m1", "lag_m2", "lag_m3", "ma_3"])
+        ("Model B: Price + Lag", ["price", "lag_1"]),
+        ("Model C: All Features", ["price", "price_change", "lag_1", "lag_2", "lag_3", "ma_3"])
     ]
 
     for model_name, features in model_configs:
@@ -525,7 +581,7 @@ async def compare_models(product: str, test_month: Optional[int] = None):
         X_test_scaled = scaler.transform(X_test)
 
         # Train with LassoCV (auto alpha selection)
-        model, predictions, alpha_used, _ = train_model(
+        model, predictions, alpha_used, _, _ = train_model(
             X_train_scaled, y_train, X_test_scaled,
             "lasso", None, 0.5
         )

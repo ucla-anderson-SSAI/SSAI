@@ -105,43 +105,94 @@
 
         const API_BASE = window.location.origin;
 
-        // Extended feature set (12 features for meaningful Lasso)
+        // Extended feature set (matches Week 1 notebook)
         const ALL_FEATURES = [
-            'price', 'log_price', 'price_squared',
-            'lag_m1', 'lag_m2', 'lag_m3', 'lag_m6',
-            'ma_3', 'ma_6',
-            'price_change', 'price_change_pct',
-            'price_volatility'
+            // Base
+            'price',
+            // Lags
+            'lag_1', 'lag_2', 'lag_3', 'lag_4', 'lag_5', 'lag_6',
+            // Rolling stats
+            'ma_3', 'ma_5', 'ma_7', 'std_3', 'std_5', 'std_7',
+            // Price features
+            'price_change', 'price_pct_change',
+            // Squared terms
+            'price_sq', 'lag_1_sq', 'lag_2_sq', 'lag_3_sq',
+            // Price × lag interactions
+            'price_x_lag_1', 'price_x_lag_2', 'price_x_lag_3', 'price_x_lag_4',
+            // Price × rolling interactions
+            'price_x_ma_3', 'price_x_ma_5', 'price_x_ma_7',
+            // Cross-lag interactions
+            'lag1_x_lag2', 'lag1_x_lag3', 'lag2_x_lag3',
+            // Momentum ratios
+            'lag1_over_lag2', 'lag1_over_ma3'
         ];
 
         const FEATURE_LABELS = {
             price: 'Price',
-            log_price: 'Log(Price)',
-            price_squared: 'Price²',
-            lag_m1: 'Lag 1 Month',
-            lag_m2: 'Lag 2 Months',
-            lag_m3: 'Lag 3 Months',
-            lag_m6: 'Lag 6 Months',
-            ma_3: '3-Month MA',
-            ma_6: '6-Month MA',
+            lag_1: 'Lag 1',
+            lag_2: 'Lag 2',
+            lag_3: 'Lag 3',
+            lag_4: 'Lag 4',
+            lag_5: 'Lag 5',
+            lag_6: 'Lag 6',
+            ma_3: '3-Mo MA',
+            ma_5: '5-Mo MA',
+            ma_7: '7-Mo MA',
+            std_3: '3-Mo Std',
+            std_5: '5-Mo Std',
+            std_7: '7-Mo Std',
             price_change: 'Price Δ',
-            price_change_pct: 'Price Δ%',
-            price_volatility: 'Price Volatility'
+            price_pct_change: 'Price Δ%',
+            price_sq: 'Price²',
+            lag_1_sq: 'Lag 1²',
+            lag_2_sq: 'Lag 2²',
+            lag_3_sq: 'Lag 3²',
+            price_x_lag_1: 'Price×Lag1',
+            price_x_lag_2: 'Price×Lag2',
+            price_x_lag_3: 'Price×Lag3',
+            price_x_lag_4: 'Price×Lag4',
+            price_x_ma_3: 'Price×MA3',
+            price_x_ma_5: 'Price×MA5',
+            price_x_ma_7: 'Price×MA7',
+            lag1_x_lag2: 'Lag1×Lag2',
+            lag1_x_lag3: 'Lag1×Lag3',
+            lag2_x_lag3: 'Lag2×Lag3',
+            lag1_over_lag2: 'Lag1/Lag2',
+            lag1_over_ma3: 'Lag1/MA3'
         };
 
         const FEATURE_DESCRIPTIONS = {
             price: 'Current price',
-            log_price: 'Natural log of price',
-            price_squared: 'Price squared (non-linear)',
-            lag_m1: 'Sales from 1 month ago',
-            lag_m2: 'Sales from 2 months ago',
-            lag_m3: 'Sales from 3 months ago',
-            lag_m6: 'Sales from 6 months ago',
+            lag_1: 'Sales from 1 month ago',
+            lag_2: 'Sales from 2 months ago',
+            lag_3: 'Sales from 3 months ago',
+            lag_4: 'Sales from 4 months ago',
+            lag_5: 'Sales from 5 months ago',
+            lag_6: 'Sales from 6 months ago',
             ma_3: '3-month moving average of sales',
-            ma_6: '6-month moving average of sales',
+            ma_5: '5-month moving average of sales',
+            ma_7: '7-month moving average of sales',
+            std_3: '3-month rolling std dev of sales',
+            std_5: '5-month rolling std dev of sales',
+            std_7: '7-month rolling std dev of sales',
             price_change: 'Absolute price change',
-            price_change_pct: 'Percentage price change',
-            price_volatility: 'Rolling std dev of price'
+            price_pct_change: 'Percentage price change',
+            price_sq: 'Price squared (non-linear)',
+            lag_1_sq: 'Lag 1 squared',
+            lag_2_sq: 'Lag 2 squared',
+            lag_3_sq: 'Lag 3 squared',
+            price_x_lag_1: 'Price × Lag 1 interaction',
+            price_x_lag_2: 'Price × Lag 2 interaction',
+            price_x_lag_3: 'Price × Lag 3 interaction',
+            price_x_lag_4: 'Price × Lag 4 interaction',
+            price_x_ma_3: 'Price × 3-month MA interaction',
+            price_x_ma_5: 'Price × 5-month MA interaction',
+            price_x_ma_7: 'Price × 7-month MA interaction',
+            lag1_x_lag2: 'Lag 1 × Lag 2 interaction',
+            lag1_x_lag3: 'Lag 1 × Lag 3 interaction',
+            lag2_x_lag3: 'Lag 2 × Lag 3 interaction',
+            lag1_over_lag2: 'Lag 1 / Lag 2 momentum ratio',
+            lag1_over_ma3: 'Lag 1 / 3-month MA momentum ratio'
         };
 
         // Mock data generator with extended features
@@ -152,27 +203,48 @@
                 const lag1 = 100 + Math.random() * 200;
                 const lag2 = 90 + Math.random() * 180;
                 const lag3 = 85 + Math.random() * 170;
-                const lag6 = 80 + Math.random() * 160;
+                const lag4 = 80 + Math.random() * 160;
+                const lag5 = 78 + Math.random() * 155;
+                const lag6 = 75 + Math.random() * 150;
                 const noise = (Math.random() - 0.5) * 40;
-                const priceVolatility = 5 + Math.random() * 15; // Rolling std dev of price
+                const std3 = 5 + Math.random() * 15;
 
                 // True relationship with some features
-                const sales = 300 - 1.5 * price + 0.6 * lag1 + 0.3 * lag2 + 0.1 * lag3 - 0.5 * priceVolatility + noise;
+                const sales = 300 - 1.5 * price + 0.6 * lag1 + 0.3 * lag2 + 0.1 * lag3 - 0.5 * std3 + noise;
 
                 data.push({
                     id: i,
                     price,
-                    log_price: Math.log(price),
-                    price_squared: price * price / 1000,
-                    lag_m1: lag1,
-                    lag_m2: lag2,
-                    lag_m3: lag3,
-                    lag_m6: lag6,
+                    lag_1: lag1,
+                    lag_2: lag2,
+                    lag_3: lag3,
+                    lag_4: lag4,
+                    lag_5: lag5,
+                    lag_6: lag6,
                     ma_3: (lag1 + lag2 + lag3) / 3,
-                    ma_6: (lag1 + lag2 + lag3 + lag6) / 4 + Math.random() * 20,
+                    ma_5: (lag1 + lag2 + lag3 + lag4 + lag5) / 5,
+                    ma_7: (lag1 + lag2 + lag3 + lag4 + lag5 + lag6 + (70 + Math.random() * 140)) / 7,
+                    std_3: std3,
+                    std_5: std3 * (0.9 + Math.random() * 0.3),
+                    std_7: std3 * (0.85 + Math.random() * 0.4),
                     price_change: (Math.random() - 0.5) * 20,
-                    price_change_pct: (Math.random() - 0.5) * 0.2,
-                    price_volatility: priceVolatility,
+                    price_pct_change: (Math.random() - 0.5) * 0.2,
+                    price_sq: price * price,
+                    lag_1_sq: lag1 * lag1,
+                    lag_2_sq: lag2 * lag2,
+                    lag_3_sq: lag3 * lag3,
+                    price_x_lag_1: price * lag1,
+                    price_x_lag_2: price * lag2,
+                    price_x_lag_3: price * lag3,
+                    price_x_lag_4: price * lag4,
+                    price_x_ma_3: price * (lag1 + lag2 + lag3) / 3,
+                    price_x_ma_5: price * (lag1 + lag2 + lag3 + lag4 + lag5) / 5,
+                    price_x_ma_7: price * (lag1 + lag2 + lag3 + lag4 + lag5 + lag6 + 100) / 7,
+                    lag1_x_lag2: lag1 * lag2,
+                    lag1_x_lag3: lag1 * lag3,
+                    lag2_x_lag3: lag2 * lag3,
+                    lag1_over_lag2: lag2 !== 0 ? lag1 / lag2 : 0,
+                    lag1_over_ma3: ((lag1 + lag2 + lag3) / 3) !== 0 ? lag1 / ((lag1 + lag2 + lag3) / 3) : 0,
                     actual_sales: Math.max(0, sales),
                 });
             }
@@ -196,17 +268,36 @@
             // Base coefficients (ground truth + noise)
             const baseCoeffs = {
                 price: -1.4,
-                log_price: -15.0,
-                price_squared: 0.002,
-                lag_m1: 0.55,
-                lag_m2: 0.28,
-                lag_m3: 0.12,
-                lag_m6: 0.05,
+                lag_1: 0.55,
+                lag_2: 0.28,
+                lag_3: 0.12,
+                lag_4: 0.08,
+                lag_5: 0.05,
+                lag_6: 0.03,
                 ma_3: 0.45,
-                ma_6: 0.25,
+                ma_5: 0.30,
+                ma_7: 0.20,
+                std_3: -0.5,
+                std_5: -0.35,
+                std_7: -0.25,
                 price_change: -0.8,
-                price_change_pct: -25.0,
-                price_volatility: -0.5
+                price_pct_change: -25.0,
+                price_sq: 0.002,
+                lag_1_sq: 0.0001,
+                lag_2_sq: 0.00005,
+                lag_3_sq: 0.00003,
+                price_x_lag_1: -0.005,
+                price_x_lag_2: -0.003,
+                price_x_lag_3: -0.002,
+                price_x_lag_4: -0.001,
+                price_x_ma_3: -0.004,
+                price_x_ma_5: -0.003,
+                price_x_ma_7: -0.002,
+                lag1_x_lag2: 0.0002,
+                lag1_x_lag3: 0.0001,
+                lag2_x_lag3: 0.0001,
+                lag1_over_lag2: 5.0,
+                lag1_over_ma3: 3.0
             };
 
             // Add noise to base coefficients
@@ -444,17 +535,36 @@
             const varColors = {
                 actual_sales: colors.primary,
                 price: colors.darkBlue,
-                log_price: colors.darkBlue,
-                price_squared: colors.darkBlue,
-                lag_m1: colors.positive,
-                lag_m2: colors.positive,
-                lag_m3: colors.positive,
-                lag_m6: colors.positive,
+                lag_1: colors.positive,
+                lag_2: colors.positive,
+                lag_3: colors.positive,
+                lag_4: colors.positive,
+                lag_5: colors.positive,
+                lag_6: colors.positive,
                 ma_3: colors.primaryDark,
-                ma_6: colors.primaryDark,
+                ma_5: colors.primaryDark,
+                ma_7: colors.primaryDark,
+                std_3: colors.lightBlue,
+                std_5: colors.lightBlue,
+                std_7: colors.lightBlue,
                 price_change: colors.negative,
-                price_change_pct: colors.negative,
-                price_volatility: colors.lightBlue
+                price_pct_change: colors.negative,
+                price_sq: colors.darkBlue,
+                lag_1_sq: colors.positive,
+                lag_2_sq: colors.positive,
+                lag_3_sq: colors.positive,
+                price_x_lag_1: '#8B5CF6',
+                price_x_lag_2: '#8B5CF6',
+                price_x_lag_3: '#8B5CF6',
+                price_x_lag_4: '#8B5CF6',
+                price_x_ma_3: '#8B5CF6',
+                price_x_ma_5: '#8B5CF6',
+                price_x_ma_7: '#8B5CF6',
+                lag1_x_lag2: '#059669',
+                lag1_x_lag3: '#059669',
+                lag2_x_lag3: '#059669',
+                lag1_over_lag2: '#D97706',
+                lag1_over_ma3: '#D97706'
             };
 
             return (
@@ -709,7 +819,7 @@
             const [l2Ratio, setL2Ratio] = useState(1.0);
             const [runCV, setRunCV] = useState(false);
             const [cvFolds, setCvFolds] = useState(5);
-            const [selectedFeatures, setSelectedFeatures] = useState(['price', 'lag_m1', 'lag_m2', 'ma_3', 'price_volatility']);
+            const [selectedFeatures, setSelectedFeatures] = useState(['price', 'lag_1', 'lag_2', 'ma_3', 'std_3']);
             const [isAnimating, setIsAnimating] = useState(false);
             const [data, setData] = useState([]);
             const [apiConnected, setApiConnected] = useState(false);
@@ -820,8 +930,9 @@
                         },
                         cvResults: apiResults.alpha_source === 'cv_selected' ? {
                             folds: 5,
-                            bestL1: apiResults.alpha,
-                            bestL2: apiResults.alpha,
+                            alpha: apiResults.alpha,
+                            l1_ratio: apiResults.l1_ratio,
+                            modelType: apiResults.model_type,
                             scores: []
                         } : null
                     };
@@ -1079,8 +1190,17 @@
                                                         {cvResults.folds}-Fold Cross-Validation Results
                                                     </span>
                                                     <div style={{ marginTop: '4px', fontSize: '0.9rem', color: colors.lightText }}>
-                                                        Best parameters: <strong style={{ color: colors.text }}>L1 = {cvResults.bestL1}</strong>
-                                                        {showL2 && <>, <strong style={{ color: colors.darkBlue }}>L2 = {cvResults.bestL2}</strong></>}
+                                                        {cvResults.alpha != null ? (
+                                                            <>
+                                                                Best parameters: <strong style={{ color: colors.text }}>α = {typeof cvResults.alpha === 'number' ? cvResults.alpha.toFixed(4) : cvResults.alpha}</strong>
+                                                                {cvResults.l1_ratio != null && <>, <strong style={{ color: colors.darkBlue }}>L1 ratio = {typeof cvResults.l1_ratio === 'number' ? cvResults.l1_ratio.toFixed(2) : cvResults.l1_ratio}</strong></>}
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                Best parameters: <strong style={{ color: colors.text }}>L1 = {cvResults.bestL1}</strong>
+                                                                {showL2 && <>, <strong style={{ color: colors.darkBlue }}>L2 = {cvResults.bestL2}</strong></>}
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </div>
                                                 <div style={{ fontSize: '0.8rem', color: colors.lightMuted }}>
