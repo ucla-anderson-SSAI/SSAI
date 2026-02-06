@@ -105,97 +105,71 @@
 
         const API_BASE = window.location.origin;
 
-        // Extended feature set (matches Week 1 notebook)
+        // Feature set: 10 engineered + 16 colors + 6 patterns = 32 total
         const ALL_FEATURES = [
-            // Base
-            'price',
-            // Lags
-            'lag_1', 'lag_2', 'lag_3', 'lag_4', 'lag_5', 'lag_6',
-            // Rolling stats
-            'ma_3', 'ma_5', 'ma_7', 'std_3', 'std_5', 'std_7',
-            // Price features
-            'price_change', 'price_pct_change',
-            // Squared terms
-            'price_sq', 'lag_1_sq', 'lag_2_sq', 'lag_3_sq',
-            // Price × lag interactions
-            'price_x_lag_1', 'price_x_lag_2', 'price_x_lag_3', 'price_x_lag_4',
-            // Price × rolling interactions
-            'price_x_ma_3', 'price_x_ma_5', 'price_x_ma_7',
-            // Cross-lag interactions
-            'lag1_x_lag2', 'lag1_x_lag3', 'lag2_x_lag3',
-            // Momentum ratios
-            'lag1_over_lag2', 'lag1_over_ma3'
+            // Base + Engineered
+            'price', 'lag_1', 'lag_2', 'lag_3',
+            'ma_3', 'std_3', 'price_change', 'price_sq',
+            'price_x_lag_1', 'lag1_x_lag2',
+            // Colors
+            'color_black', 'color_dark_blue', 'color_white', 'color_blue',
+            'color_dark_grey', 'color_grey', 'color_light_beige', 'color_light_blue',
+            'color_light_pink', 'color_beige', 'color_dark_red', 'color_greenish_khaki',
+            'color_light_grey', 'color_off_white', 'color_red', 'color_pink',
+            // Patterns
+            'pattern_solid', 'pattern_denim', 'pattern_allover',
+            'pattern_melange', 'pattern_stripe', 'pattern_lace'
         ];
 
         const FEATURE_LABELS = {
-            price: 'Price',
-            lag_1: 'Lag 1',
-            lag_2: 'Lag 2',
-            lag_3: 'Lag 3',
-            lag_4: 'Lag 4',
-            lag_5: 'Lag 5',
-            lag_6: 'Lag 6',
-            ma_3: '3-Mo MA',
-            ma_5: '5-Mo MA',
-            ma_7: '7-Mo MA',
-            std_3: '3-Mo Std',
-            std_5: '5-Mo Std',
-            std_7: '7-Mo Std',
-            price_change: 'Price Δ',
-            price_pct_change: 'Price Δ%',
-            price_sq: 'Price²',
-            lag_1_sq: 'Lag 1²',
-            lag_2_sq: 'Lag 2²',
-            lag_3_sq: 'Lag 3²',
-            price_x_lag_1: 'Price×Lag1',
-            price_x_lag_2: 'Price×Lag2',
-            price_x_lag_3: 'Price×Lag3',
-            price_x_lag_4: 'Price×Lag4',
-            price_x_ma_3: 'Price×MA3',
-            price_x_ma_5: 'Price×MA5',
-            price_x_ma_7: 'Price×MA7',
-            lag1_x_lag2: 'Lag1×Lag2',
-            lag1_x_lag3: 'Lag1×Lag3',
-            lag2_x_lag3: 'Lag2×Lag3',
-            lag1_over_lag2: 'Lag1/Lag2',
-            lag1_over_ma3: 'Lag1/MA3'
+            price: 'Price', lag_1: 'Lag 1', lag_2: 'Lag 2', lag_3: 'Lag 3',
+            ma_3: '3-Mo MA', std_3: '3-Mo Std',
+            price_change: 'Price Δ', price_sq: 'Price²',
+            price_x_lag_1: 'Price×Lag1', lag1_x_lag2: 'Lag1×Lag2',
+            // Colors
+            color_black: 'Black', color_dark_blue: 'Dark Blue', color_white: 'White',
+            color_blue: 'Blue', color_dark_grey: 'Dark Grey', color_grey: 'Grey',
+            color_light_beige: 'Lt Beige', color_light_blue: 'Lt Blue',
+            color_light_pink: 'Lt Pink', color_beige: 'Beige',
+            color_dark_red: 'Dark Red', color_greenish_khaki: 'Grn Khaki',
+            color_light_grey: 'Lt Grey', color_off_white: 'Off White',
+            color_red: 'Red', color_pink: 'Pink',
+            // Patterns
+            pattern_solid: 'Solid', pattern_denim: 'Denim',
+            pattern_allover: 'All-Over', pattern_melange: 'Melange',
+            pattern_stripe: 'Stripe', pattern_lace: 'Lace'
         };
 
         const FEATURE_DESCRIPTIONS = {
             price: 'Current price',
-            lag_1: 'Sales from 1 month ago',
-            lag_2: 'Sales from 2 months ago',
-            lag_3: 'Sales from 3 months ago',
-            lag_4: 'Sales from 4 months ago',
-            lag_5: 'Sales from 5 months ago',
-            lag_6: 'Sales from 6 months ago',
-            ma_3: '3-month moving average of sales',
-            ma_5: '5-month moving average of sales',
-            ma_7: '7-month moving average of sales',
-            std_3: '3-month rolling std dev of sales',
-            std_5: '5-month rolling std dev of sales',
-            std_7: '7-month rolling std dev of sales',
-            price_change: 'Absolute price change',
-            price_pct_change: 'Percentage price change',
-            price_sq: 'Price squared (non-linear)',
-            lag_1_sq: 'Lag 1 squared',
-            lag_2_sq: 'Lag 2 squared',
-            lag_3_sq: 'Lag 3 squared',
-            price_x_lag_1: 'Price × Lag 1 interaction',
-            price_x_lag_2: 'Price × Lag 2 interaction',
-            price_x_lag_3: 'Price × Lag 3 interaction',
-            price_x_lag_4: 'Price × Lag 4 interaction',
-            price_x_ma_3: 'Price × 3-month MA interaction',
-            price_x_ma_5: 'Price × 5-month MA interaction',
-            price_x_ma_7: 'Price × 7-month MA interaction',
-            lag1_x_lag2: 'Lag 1 × Lag 2 interaction',
-            lag1_x_lag3: 'Lag 1 × Lag 3 interaction',
-            lag2_x_lag3: 'Lag 2 × Lag 3 interaction',
-            lag1_over_lag2: 'Lag 1 / Lag 2 momentum ratio',
-            lag1_over_ma3: 'Lag 1 / 3-month MA momentum ratio'
+            lag_1: 'Sales from 1 month ago', lag_2: 'Sales from 2 months ago', lag_3: 'Sales from 3 months ago',
+            ma_3: '3-month moving average of sales', std_3: '3-month rolling std dev of sales',
+            price_change: 'Absolute price change from previous month',
+            price_sq: 'Price squared (non-linear effect)',
+            price_x_lag_1: 'Price × Lag 1 interaction', lag1_x_lag2: 'Lag 1 × Lag 2 interaction',
+            // Colors
+            color_black: 'Product color: Black', color_dark_blue: 'Product color: Dark Blue',
+            color_white: 'Product color: White', color_blue: 'Product color: Blue',
+            color_dark_grey: 'Product color: Dark Grey', color_grey: 'Product color: Grey',
+            color_light_beige: 'Product color: Light Beige', color_light_blue: 'Product color: Light Blue',
+            color_light_pink: 'Product color: Light Pink', color_beige: 'Product color: Beige',
+            color_dark_red: 'Product color: Dark Red', color_greenish_khaki: 'Product color: Greenish Khaki',
+            color_light_grey: 'Product color: Light Grey', color_off_white: 'Product color: Off White',
+            color_red: 'Product color: Red', color_pink: 'Product color: Pink',
+            // Patterns
+            pattern_solid: 'Pattern: Solid', pattern_denim: 'Pattern: Denim',
+            pattern_allover: 'Pattern: All-Over Print', pattern_melange: 'Pattern: Melange',
+            pattern_stripe: 'Pattern: Stripe', pattern_lace: 'Pattern: Lace'
         };
 
-        // Mock data generator with extended features
+        // Feature grouping for display
+        const FEATURE_GROUPS = {
+            'Engineered': ['price', 'lag_1', 'lag_2', 'lag_3', 'ma_3', 'std_3', 'price_change', 'price_sq', 'price_x_lag_1', 'lag1_x_lag2'],
+            'Colors': ['color_black', 'color_dark_blue', 'color_white', 'color_blue', 'color_dark_grey', 'color_grey', 'color_light_beige', 'color_light_blue', 'color_light_pink', 'color_beige', 'color_dark_red', 'color_greenish_khaki', 'color_light_grey', 'color_off_white', 'color_red', 'color_pink'],
+            'Patterns': ['pattern_solid', 'pattern_denim', 'pattern_allover', 'pattern_melange', 'pattern_stripe', 'pattern_lace']
+        };
+
+        // Mock data generator
         const generateMockData = (numPoints = 80) => {
             const data = [];
             for (let i = 0; i < numPoints; i++) {
@@ -203,48 +177,33 @@
                 const lag1 = 100 + Math.random() * 200;
                 const lag2 = 90 + Math.random() * 180;
                 const lag3 = 85 + Math.random() * 170;
-                const lag4 = 80 + Math.random() * 160;
-                const lag5 = 78 + Math.random() * 155;
-                const lag6 = 75 + Math.random() * 150;
                 const noise = (Math.random() - 0.5) * 40;
                 const std3 = 5 + Math.random() * 15;
+                const isBlack = Math.random() < 0.37 ? 1 : 0;
+                const isSolid = Math.random() < 0.58 ? 1 : 0;
 
-                // True relationship with some features
-                const sales = 300 - 1.5 * price + 0.6 * lag1 + 0.3 * lag2 + 0.1 * lag3 - 0.5 * std3 + noise;
+                const sales = 300 - 1.5 * price + 0.6 * lag1 + 0.3 * lag2 + 0.1 * lag3 - 0.5 * std3 + 8 * isBlack + 5 * isSolid + noise;
 
                 data.push({
-                    id: i,
-                    price,
-                    lag_1: lag1,
-                    lag_2: lag2,
-                    lag_3: lag3,
-                    lag_4: lag4,
-                    lag_5: lag5,
-                    lag_6: lag6,
-                    ma_3: (lag1 + lag2 + lag3) / 3,
-                    ma_5: (lag1 + lag2 + lag3 + lag4 + lag5) / 5,
-                    ma_7: (lag1 + lag2 + lag3 + lag4 + lag5 + lag6 + (70 + Math.random() * 140)) / 7,
-                    std_3: std3,
-                    std_5: std3 * (0.9 + Math.random() * 0.3),
-                    std_7: std3 * (0.85 + Math.random() * 0.4),
+                    id: i, price,
+                    lag_1: lag1, lag_2: lag2, lag_3: lag3,
+                    ma_3: (lag1 + lag2 + lag3) / 3, std_3: std3,
                     price_change: (Math.random() - 0.5) * 20,
-                    price_pct_change: (Math.random() - 0.5) * 0.2,
                     price_sq: price * price,
-                    lag_1_sq: lag1 * lag1,
-                    lag_2_sq: lag2 * lag2,
-                    lag_3_sq: lag3 * lag3,
-                    price_x_lag_1: price * lag1,
-                    price_x_lag_2: price * lag2,
-                    price_x_lag_3: price * lag3,
-                    price_x_lag_4: price * lag4,
-                    price_x_ma_3: price * (lag1 + lag2 + lag3) / 3,
-                    price_x_ma_5: price * (lag1 + lag2 + lag3 + lag4 + lag5) / 5,
-                    price_x_ma_7: price * (lag1 + lag2 + lag3 + lag4 + lag5 + lag6 + 100) / 7,
-                    lag1_x_lag2: lag1 * lag2,
-                    lag1_x_lag3: lag1 * lag3,
-                    lag2_x_lag3: lag2 * lag3,
-                    lag1_over_lag2: lag2 !== 0 ? lag1 / lag2 : 0,
-                    lag1_over_ma3: ((lag1 + lag2 + lag3) / 3) !== 0 ? lag1 / ((lag1 + lag2 + lag3) / 3) : 0,
+                    price_x_lag_1: price * lag1, lag1_x_lag2: lag1 * lag2,
+                    // Colors (random indicators)
+                    color_black: isBlack, color_dark_blue: Math.random() < 0.10 ? 1 : 0,
+                    color_white: Math.random() < 0.10 ? 1 : 0, color_blue: Math.random() < 0.04 ? 1 : 0,
+                    color_dark_grey: Math.random() < 0.03 ? 1 : 0, color_grey: Math.random() < 0.03 ? 1 : 0,
+                    color_light_beige: Math.random() < 0.03 ? 1 : 0, color_light_blue: Math.random() < 0.03 ? 1 : 0,
+                    color_light_pink: Math.random() < 0.03 ? 1 : 0, color_beige: Math.random() < 0.02 ? 1 : 0,
+                    color_dark_red: Math.random() < 0.02 ? 1 : 0, color_greenish_khaki: Math.random() < 0.02 ? 1 : 0,
+                    color_light_grey: Math.random() < 0.02 ? 1 : 0, color_off_white: Math.random() < 0.02 ? 1 : 0,
+                    color_red: Math.random() < 0.02 ? 1 : 0, color_pink: Math.random() < 0.01 ? 1 : 0,
+                    // Patterns
+                    pattern_solid: isSolid, pattern_denim: Math.random() < 0.09 ? 1 : 0,
+                    pattern_allover: Math.random() < 0.07 ? 1 : 0, pattern_melange: Math.random() < 0.06 ? 1 : 0,
+                    pattern_stripe: Math.random() < 0.05 ? 1 : 0, pattern_lace: Math.random() < 0.03 ? 1 : 0,
                     actual_sales: Math.max(0, sales),
                 });
             }
@@ -267,37 +226,17 @@
 
             // Base coefficients (ground truth + noise)
             const baseCoeffs = {
-                price: -1.4,
-                lag_1: 0.55,
-                lag_2: 0.28,
-                lag_3: 0.12,
-                lag_4: 0.08,
-                lag_5: 0.05,
-                lag_6: 0.03,
-                ma_3: 0.45,
-                ma_5: 0.30,
-                ma_7: 0.20,
-                std_3: -0.5,
-                std_5: -0.35,
-                std_7: -0.25,
-                price_change: -0.8,
-                price_pct_change: -25.0,
-                price_sq: 0.002,
-                lag_1_sq: 0.0001,
-                lag_2_sq: 0.00005,
-                lag_3_sq: 0.00003,
-                price_x_lag_1: -0.005,
-                price_x_lag_2: -0.003,
-                price_x_lag_3: -0.002,
-                price_x_lag_4: -0.001,
-                price_x_ma_3: -0.004,
-                price_x_ma_5: -0.003,
-                price_x_ma_7: -0.002,
-                lag1_x_lag2: 0.0002,
-                lag1_x_lag3: 0.0001,
-                lag2_x_lag3: 0.0001,
-                lag1_over_lag2: 5.0,
-                lag1_over_ma3: 3.0
+                price: -1.4, lag_1: 0.55, lag_2: 0.28, lag_3: 0.12,
+                ma_3: 0.45, std_3: -0.5, price_change: -0.8, price_sq: 0.002,
+                price_x_lag_1: -0.005, lag1_x_lag2: 0.0002,
+                // Colors (small effects, some noise)
+                color_black: 8.0, color_dark_blue: 2.0, color_white: 3.0, color_blue: 1.5,
+                color_dark_grey: 1.0, color_grey: 0.5, color_light_beige: 0.3, color_light_blue: 1.2,
+                color_light_pink: -0.5, color_beige: -0.3, color_dark_red: 0.8, color_greenish_khaki: -0.4,
+                color_light_grey: 0.2, color_off_white: 0.1, color_red: -0.2, color_pink: -0.6,
+                // Patterns
+                pattern_solid: 5.0, pattern_denim: -2.0, pattern_allover: -1.5,
+                pattern_melange: 0.5, pattern_stripe: 1.5, pattern_lace: -1.0
             };
 
             // Add noise to base coefficients
@@ -537,37 +476,21 @@
             // Color palette for different variables
             const varColors = {
                 actual_sales: colors.primary,
-                price: colors.darkBlue,
-                lag_1: colors.positive,
-                lag_2: colors.positive,
-                lag_3: colors.positive,
-                lag_4: colors.positive,
-                lag_5: colors.positive,
-                lag_6: colors.positive,
-                ma_3: colors.primaryDark,
-                ma_5: colors.primaryDark,
-                ma_7: colors.primaryDark,
-                std_3: colors.lightBlue,
-                std_5: colors.lightBlue,
-                std_7: colors.lightBlue,
-                price_change: colors.negative,
-                price_pct_change: colors.negative,
-                price_sq: colors.darkBlue,
-                lag_1_sq: colors.positive,
-                lag_2_sq: colors.positive,
-                lag_3_sq: colors.positive,
-                price_x_lag_1: '#8B5CF6',
-                price_x_lag_2: '#8B5CF6',
-                price_x_lag_3: '#8B5CF6',
-                price_x_lag_4: '#8B5CF6',
-                price_x_ma_3: '#8B5CF6',
-                price_x_ma_5: '#8B5CF6',
-                price_x_ma_7: '#8B5CF6',
-                lag1_x_lag2: '#059669',
-                lag1_x_lag3: '#059669',
-                lag2_x_lag3: '#059669',
-                lag1_over_lag2: '#D97706',
-                lag1_over_ma3: '#D97706'
+                price: colors.darkBlue, lag_1: colors.positive, lag_2: colors.positive, lag_3: colors.positive,
+                ma_3: colors.darkBlue, std_3: colors.lightBlue,
+                price_change: colors.text, price_sq: colors.darkBlue,
+                price_x_lag_1: '#8B5CF6', lag1_x_lag2: '#059669',
+                // Colors get a warm palette
+                color_black: '#1a1a1a', color_dark_blue: '#1e3a5f', color_white: '#666',
+                color_blue: '#2563eb', color_dark_grey: '#4b5563', color_grey: '#6b7280',
+                color_light_beige: '#d4a574', color_light_blue: '#60a5fa',
+                color_light_pink: '#f472b6', color_beige: '#c4a47c',
+                color_dark_red: '#991b1b', color_greenish_khaki: '#6b7c3e',
+                color_light_grey: '#9ca3af', color_off_white: '#a0a0a0',
+                color_red: '#dc2626', color_pink: '#ec4899',
+                // Patterns
+                pattern_solid: '#D97706', pattern_denim: '#2563eb', pattern_allover: '#7c3aed',
+                pattern_melange: '#059669', pattern_stripe: '#d97706', pattern_lace: '#ec4899'
             };
 
             return (
@@ -1034,7 +957,9 @@
                             test_r2: apiResults.test_metrics.r2.toFixed(3),
                             cv_mae: apiResults.cv_mae != null ? apiResults.cv_mae.toFixed(2) : null,
                             n_train: apiResults.n_train,
-                            n_test: apiResults.n_test
+                            n_test: apiResults.n_test,
+                            n_products_train: apiResults.n_products_train,
+                            n_products_test: apiResults.n_products_test
                         },
                         cvResults: apiResults.alpha_source === 'cv_selected' ? {
                             folds: 5,
@@ -1261,27 +1186,71 @@
 
                                         {/* Features Selection */}
                                         <div style={{ marginBottom: '24px' }}>
-                                            <label style={{ display: 'block', fontSize: '0.7rem', color: colors.lightMuted, marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: '600' }}>
-                                                Engineered Features ({selectedFeatures.length} selected)
-                                            </label>
-                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '8px' }}>
-                                                {ALL_FEATURES.map(feature => (
-                                                    <label key={feature} title={FEATURE_DESCRIPTIONS[feature]} style={{
-                                                        display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px',
-                                                        background: selectedFeatures.includes(feature) ? 'rgba(39, 116, 174, 0.12)' : colors.lightBg,
-                                                        border: `2px solid ${selectedFeatures.includes(feature) ? colors.primary : 'transparent'}`,
-                                                        borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem',
-                                                        color: selectedFeatures.includes(feature) ? colors.primary : colors.lightMuted,
-                                                        transition: 'all 0.2s ease',
-                                                        fontWeight: selectedFeatures.includes(feature) ? '600' : '400'
-                                                    }}>
-                                                        <input type="checkbox" checked={selectedFeatures.includes(feature)}
-                                                            onChange={() => toggleFeature(feature)}
-                                                            style={{ width: '14px', height: '14px' }} />
-                                                        {FEATURE_LABELS[feature]}
-                                                    </label>
-                                                ))}
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                                                <label style={{ fontSize: '0.7rem', color: colors.lightMuted, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: '600' }}>
+                                                    Features ({selectedFeatures.length} / {ALL_FEATURES.length} selected)
+                                                </label>
+                                                <div style={{ display: 'flex', gap: '8px' }}>
+                                                    <button onClick={() => setSelectedFeatures([...ALL_FEATURES])} style={{
+                                                        padding: '5px 12px', fontSize: '0.7rem', fontWeight: '600',
+                                                        background: selectedFeatures.length === ALL_FEATURES.length ? colors.primary : 'transparent',
+                                                        color: selectedFeatures.length === ALL_FEATURES.length ? 'white' : colors.primary,
+                                                        border: `1px solid ${colors.primary}`, borderRadius: '6px', cursor: 'pointer',
+                                                        transition: 'all 0.2s ease'
+                                                    }}>Select All</button>
+                                                    <button onClick={() => setSelectedFeatures(['price'])} style={{
+                                                        padding: '5px 12px', fontSize: '0.7rem', fontWeight: '600',
+                                                        background: 'transparent',
+                                                        color: colors.lightMuted,
+                                                        border: `1px solid ${colors.lightBorder}`, borderRadius: '6px', cursor: 'pointer',
+                                                        transition: 'all 0.2s ease'
+                                                    }}>Clear</button>
+                                                </div>
                                             </div>
+                                            {Object.entries(FEATURE_GROUPS).map(([groupName, groupFeatures]) => (
+                                                <div key={groupName} style={{ marginBottom: '12px' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                                        <span style={{ fontSize: '0.7rem', color: colors.lightText, fontWeight: '600' }}>{groupName}</span>
+                                                        <div style={{ flex: 1, height: '1px', background: colors.lightBorder }} />
+                                                        <button onClick={() => {
+                                                            const allInGroup = groupFeatures.every(f => selectedFeatures.includes(f));
+                                                            if (allInGroup) {
+                                                                setSelectedFeatures(prev => {
+                                                                    const remaining = prev.filter(f => !groupFeatures.includes(f));
+                                                                    return remaining.length > 0 ? remaining : ['price'];
+                                                                });
+                                                            } else {
+                                                                setSelectedFeatures(prev => [...new Set([...prev, ...groupFeatures])]);
+                                                            }
+                                                        }} style={{
+                                                            padding: '2px 8px', fontSize: '0.65rem', fontWeight: '500',
+                                                            background: 'transparent', color: colors.lightMuted,
+                                                            border: `1px solid ${colors.lightBorder}`, borderRadius: '4px',
+                                                            cursor: 'pointer'
+                                                        }}>
+                                                            {groupFeatures.every(f => selectedFeatures.includes(f)) ? 'none' : 'all'}
+                                                        </button>
+                                                    </div>
+                                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '6px' }}>
+                                                        {groupFeatures.map(feature => (
+                                                            <label key={feature} title={FEATURE_DESCRIPTIONS[feature]} style={{
+                                                                display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 10px',
+                                                                background: selectedFeatures.includes(feature) ? 'rgba(39, 116, 174, 0.12)' : colors.lightBg,
+                                                                border: `2px solid ${selectedFeatures.includes(feature) ? colors.primary : 'transparent'}`,
+                                                                borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem',
+                                                                color: selectedFeatures.includes(feature) ? colors.primary : colors.lightMuted,
+                                                                transition: 'all 0.2s ease',
+                                                                fontWeight: selectedFeatures.includes(feature) ? '600' : '400'
+                                                            }}>
+                                                                <input type="checkbox" checked={selectedFeatures.includes(feature)}
+                                                                    onChange={() => toggleFeature(feature)}
+                                                                    style={{ width: '13px', height: '13px' }} />
+                                                                {FEATURE_LABELS[feature]}
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))}
                                         </div>
 
                                         {/* Train Button */}
@@ -1340,10 +1309,11 @@
                                             ...(metrics.cv_mae != null ? [
                                                 { label: 'CV MAE (training set)', value: metrics.cv_mae, color: colors.darkBlue, highlight: true },
                                             ] : []),
-                                            { label: 'Test MAE (held-out month)', value: metrics.test_mae, color: colors.text, highlight: metrics.cv_mae == null },
+                                            { label: 'Test MAE (held-out products)', value: metrics.test_mae, color: colors.text, highlight: metrics.cv_mae == null },
                                             { label: 'Train R²', value: metrics.train_r2, color: colors.lightMuted },
                                             { label: 'Test R²', value: metrics.test_r2, color: colors.text },
-                                            { label: 'Train / Test Size', value: `${metrics.n_train} / ${metrics.n_test}`, color: colors.lightMuted },
+                                            { label: 'Products (train / test)', value: metrics.n_products_train ? `${metrics.n_products_train} / ${metrics.n_products_test}` : `— / —`, color: colors.lightMuted,
+                                              subtitle: `${metrics.n_train} / ${metrics.n_test} rows` },
                                         ].map((m, i) => (
                                             <div key={i} style={{
                                                 background: m.highlight ? 'rgba(39, 116, 174, 0.06)' : colors.lightCard,
@@ -1355,6 +1325,7 @@
                                             }}>
                                                 <div style={{ fontSize: '0.6rem', color: colors.lightMuted, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: '600' }}>{m.label}</div>
                                                 <div style={{ fontSize: '1.4rem', fontWeight: '700', color: m.color, marginTop: '6px' }}>{m.value}</div>
+                                                {m.subtitle && <div style={{ fontSize: '0.65rem', color: colors.lightMuted, marginTop: '2px' }}>{m.subtitle}</div>}
                                             </div>
                                         ))}
                                     </div>

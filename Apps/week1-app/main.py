@@ -37,48 +37,73 @@ DATA_URL = "https://raw.githubusercontent.com/ucla-anderson-SSAI/SSAI/main/HMDat
 MONTH_COLS = ["January", "February", "March", "April", "May", "June",
               "July", "August", "September", "October", "November", "December"]
 
-# Available features with descriptions (matches Week 1 notebook)
+# Available features with descriptions
 AVAILABLE_FEATURES = {
-    # Base
+    # ── Base ──
     "price": "Current price of the product",
-    # Lag features
+    # ── Lag features ──
     "lag_1": "Sales from 1 month ago",
     "lag_2": "Sales from 2 months ago",
     "lag_3": "Sales from 3 months ago",
-    "lag_4": "Sales from 4 months ago",
-    "lag_5": "Sales from 5 months ago",
-    "lag_6": "Sales from 6 months ago",
-    # Rolling statistics
+    # ── Rolling statistics ──
     "ma_3": "3-month moving average of sales",
-    "ma_5": "5-month moving average of sales",
-    "ma_7": "7-month moving average of sales",
     "std_3": "3-month rolling std dev of sales",
-    "std_5": "5-month rolling std dev of sales",
-    "std_7": "7-month rolling std dev of sales",
-    # Price features
+    # ── Price features ──
     "price_change": "Absolute change in price from previous month",
-    "price_pct_change": "Percentage change in price from previous month",
-    # Squared terms
     "price_sq": "Price squared (non-linear effect)",
-    "lag_1_sq": "Lag 1 squared",
-    "lag_2_sq": "Lag 2 squared",
-    "lag_3_sq": "Lag 3 squared",
-    # Price × lag interactions
+    # ── Interaction terms ──
     "price_x_lag_1": "Price × Lag 1 interaction",
-    "price_x_lag_2": "Price × Lag 2 interaction",
-    "price_x_lag_3": "Price × Lag 3 interaction",
-    "price_x_lag_4": "Price × Lag 4 interaction",
-    # Price × rolling interactions
-    "price_x_ma_3": "Price × 3-month MA interaction",
-    "price_x_ma_5": "Price × 5-month MA interaction",
-    "price_x_ma_7": "Price × 7-month MA interaction",
-    # Cross-lag interactions
     "lag1_x_lag2": "Lag 1 × Lag 2 interaction",
-    "lag1_x_lag3": "Lag 1 × Lag 3 interaction",
-    "lag2_x_lag3": "Lag 2 × Lag 3 interaction",
-    # Momentum ratios
-    "lag1_over_lag2": "Lag 1 / Lag 2 momentum ratio",
-    "lag1_over_ma3": "Lag 1 / 3-month MA momentum ratio",
+    # ── Color indicators ──
+    "color_black": "Product color is Black",
+    "color_dark_blue": "Product color is Dark Blue",
+    "color_white": "Product color is White",
+    "color_blue": "Product color is Blue",
+    "color_dark_grey": "Product color is Dark Grey",
+    "color_grey": "Product color is Grey",
+    "color_light_beige": "Product color is Light Beige",
+    "color_light_blue": "Product color is Light Blue",
+    "color_light_pink": "Product color is Light Pink",
+    "color_beige": "Product color is Beige",
+    "color_dark_red": "Product color is Dark Red",
+    "color_greenish_khaki": "Product color is Greenish Khaki",
+    "color_light_grey": "Product color is Light Grey",
+    "color_off_white": "Product color is Off White",
+    "color_red": "Product color is Red",
+    "color_pink": "Product color is Pink",
+    # ── Pattern indicators ──
+    "pattern_solid": "Pattern is Solid",
+    "pattern_denim": "Pattern is Denim",
+    "pattern_allover": "Pattern is All-Over Print",
+    "pattern_melange": "Pattern is Melange",
+    "pattern_stripe": "Pattern is Stripe",
+    "pattern_lace": "Pattern is Lace",
+}
+
+# Mapping from our clean feature names to original CSV column names
+STYLE_COL_MAP = {
+    "color_black": "Black",
+    "color_dark_blue": "Dark Blue",
+    "color_white": "White",
+    "color_blue": "Blue",
+    "color_dark_grey": "Dark Grey",
+    "color_grey": "Grey",
+    "color_light_beige": "Light Beige",
+    "color_light_blue": "Light Blue",
+    "color_light_pink": "Light Pink",
+    "color_beige": "Beige",
+    "color_dark_red": "Dark Red",
+    "color_greenish_khaki": "Greenish Khaki",
+    "color_light_grey": "Light Grey",
+    "color_off_white": "Off White",
+    "color_red": "Red",
+    "color_pink": "Pink",
+    "pattern_solid": "Solid",
+    "pattern_denim": "Denim",
+    "pattern_allover": "All over pattern",
+    "pattern_melange": "Melange",
+    "pattern_stripe": "Stripe",
+    "pattern_lace": "Lace",
 }
 
 # Model types
@@ -101,7 +126,7 @@ class AnalyzeRequest(BaseModel):
     features: List[str] = Field(default=["price", "lag_1"], description="Features to include in model")
     alpha: Optional[float] = Field(default=None, description="Regularization strength (auto-select via CV if not provided)")
     l1_ratio: Optional[float] = Field(default=0.5, description="ElasticNet mixing parameter (0=Ridge, 1=Lasso)")
-    test_month: Optional[int] = Field(default=None, description="Month number to use as test set (1-12, default=last available)")
+    test_fraction: Optional[float] = Field(default=0.2, description="Fraction of products to hold out for testing (0.1-0.5)")
 
 
 class CoefficientInfo(BaseModel):
@@ -129,7 +154,9 @@ class AnalyzeResponse(BaseModel):
     alpha_source: str  # "user_specified" or "cv_selected"
     l1_ratio: Optional[float]  # ElasticNet mixing parameter (CV-selected or user-specified)
     features_used: List[str]
-    test_month: str
+    split_type: str  # "by_product"
+    n_products_train: int
+    n_products_test: int
     n_train: int
     n_test: int
     train_metrics: ModelMetrics
@@ -155,7 +182,8 @@ class CompareModelResult(BaseModel):
 
 class CompareResponse(BaseModel):
     product: str
-    test_month: str
+    n_products_train: int
+    n_products_test: int
     n_train: int
     n_test: int
     models: List[CompareModelResult]
@@ -188,8 +216,7 @@ async def load_data():
 
 
 def prepare_data(selected_product: str) -> pd.DataFrame:
-    """Prepare dataset for a selected product category with all engineered features.
-    Matches the feature engineering in the Week 1 notebook."""
+    """Prepare dataset for a selected product category with engineered + style features."""
     df_sub = df[df["name"] == selected_product].copy()
 
     # Create month_num column
@@ -197,48 +224,39 @@ def prepare_data(selected_product: str) -> pd.DataFrame:
         {m: i+1 for i, m in enumerate(MONTH_COLS)}
     )
 
-    # --- Lag features (lag_1 through lag_6) ---
-    for i in range(1, 7):
+    # --- Lag features (lag_1 through lag_3) ---
+    for i in range(1, 4):
         df_sub[f"lag_{i}"] = df_sub.groupby("id")["sales"].shift(i)
 
-    # --- Rolling statistics (shifted by 1 to avoid leakage) ---
-    for w in [3, 5, 7]:
-        df_sub[f"ma_{w}"] = df_sub.groupby("id")["sales"].transform(
-            lambda x: x.rolling(w).mean().shift(1)
-        )
-        df_sub[f"std_{w}"] = df_sub.groupby("id")["sales"].transform(
-            lambda x: x.rolling(w).std().shift(1)
-        )
+    # --- Rolling statistics (3-month only, shifted by 1 to avoid leakage) ---
+    df_sub["ma_3"] = df_sub.groupby("id")["sales"].transform(
+        lambda x: x.rolling(3).mean().shift(1)
+    )
+    df_sub["std_3"] = df_sub.groupby("id")["sales"].transform(
+        lambda x: x.rolling(3).std().shift(1)
+    )
 
     # --- Price features ---
     df_sub["price_change"] = df_sub.groupby("id")["price"].diff()
-    df_sub["price_pct_change"] = df_sub.groupby("id")["price"].pct_change()
 
     # --- Squared terms ---
     df_sub["price_sq"] = df_sub["price"] ** 2
-    for i in range(1, 4):
-        df_sub[f"lag_{i}_sq"] = df_sub[f"lag_{i}"] ** 2
 
-    # --- Interaction terms: price × lags ---
-    for i in range(1, 5):
-        df_sub[f"price_x_lag_{i}"] = df_sub["price"] * df_sub[f"lag_{i}"]
-
-    # --- Interaction terms: price × rolling ---
-    for w in [3, 5, 7]:
-        df_sub[f"price_x_ma_{w}"] = df_sub["price"] * df_sub[f"ma_{w}"]
-
-    # --- Cross-lag interactions ---
+    # --- Interaction terms ---
+    df_sub["price_x_lag_1"] = df_sub["price"] * df_sub["lag_1"]
     df_sub["lag1_x_lag2"] = df_sub["lag_1"] * df_sub["lag_2"]
-    df_sub["lag1_x_lag3"] = df_sub["lag_1"] * df_sub["lag_3"]
-    df_sub["lag2_x_lag3"] = df_sub["lag_2"] * df_sub["lag_3"]
 
-    # --- Momentum ratios (safe division) ---
-    df_sub["lag1_over_lag2"] = df_sub["lag_1"] / df_sub["lag_2"].replace(0, np.nan)
-    df_sub["lag1_over_ma3"] = df_sub["lag_1"] / df_sub["ma_3"].replace(0, np.nan)
+    # --- Style columns: map from original CSV names to clean feature names ---
+    for clean_name, csv_col in STYLE_COL_MAP.items():
+        if csv_col in df_sub.columns:
+            df_sub[clean_name] = df_sub[csv_col].astype(float)
+        else:
+            df_sub[clean_name] = 0.0
 
-    # --- Fill NaN from shifts, rolling windows, and division ---
-    feature_cols = [c for c in AVAILABLE_FEATURES.keys() if c != "price"]
-    df_sub[feature_cols] = df_sub[feature_cols].fillna(0)
+    # --- Fill NaN from shifts and rolling windows ---
+    engineered_cols = [c for c in AVAILABLE_FEATURES.keys()
+                       if c != "price" and not c.startswith("color_") and not c.startswith("pattern_")]
+    df_sub[engineered_cols] = df_sub[engineered_cols].fillna(0)
     df_sub.replace([np.inf, -np.inf], 0, inplace=True)
 
     return df_sub
@@ -485,7 +503,7 @@ async def analyze_custom(request: AnalyzeRequest):
     - Select model type: ols, lasso, ridge, elasticnet
     - Choose features to include
     - Optionally specify alpha (regularization strength)
-    - Select test month
+    - Train/test split by product ID (held-out products never seen during training)
     """
     # Validate product
     if request.product not in CATEGORIES:
@@ -517,29 +535,29 @@ async def analyze_custom(request: AnalyzeRequest):
 
     # Prepare data
     df_sub = prepare_data(request.product)
-    months_available = sorted(df_sub["month_num"].unique())
 
-    # Determine test month
-    if request.test_month is not None:
-        if request.test_month not in months_available:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Test month {request.test_month} not available. Available months: {months_available}"
-            )
-        test_month_num = request.test_month
-    else:
-        test_month_num = months_available[-1]
+    # Split by product ID — hold out 20% of products entirely
+    test_fraction = request.test_fraction or 0.2
+    test_fraction = max(0.1, min(0.5, test_fraction))
 
-    test_month_name = MONTH_COLS[test_month_num - 1]
+    unique_ids = df_sub["id"].unique()
+    rng = np.random.RandomState(42)
+    rng.shuffle(unique_ids)
+    n_test_products = max(1, int(len(unique_ids) * test_fraction))
+    test_ids = set(unique_ids[:n_test_products])
+    train_ids = set(unique_ids[n_test_products:])
 
-    # Train/test split
-    train = df_sub[df_sub["month_num"] < test_month_num].copy()
-    test = df_sub[df_sub["month_num"] == test_month_num].copy()
+    train = df_sub[df_sub["id"].isin(train_ids)].copy()
+    test = df_sub[df_sub["id"].isin(test_ids)].copy()
+
+    # Drop rows with NaN in selected features or target
+    for subset in [train, test]:
+        subset.dropna(subset=request.features + ["sales"], inplace=True)
 
     if len(train) == 0 or len(test) == 0:
         raise HTTPException(
             status_code=400,
-            detail=f"Insufficient data for train/test split with test month {test_month_name}"
+            detail=f"Insufficient data for train/test split with {len(unique_ids)} products"
         )
 
     # Prepare features
@@ -561,7 +579,7 @@ async def analyze_custom(request: AnalyzeRequest):
         request.l1_ratio or 0.5
     )
 
-    # Calculate test metrics (out-of-sample)
+    # Calculate test metrics (out-of-sample: held-out products)
     test_metrics = calculate_metrics(y_test, predictions)
 
     # Calculate train metrics (in-sample)
@@ -591,7 +609,9 @@ async def analyze_custom(request: AnalyzeRequest):
         alpha_source=alpha_source,
         l1_ratio=l1_ratio_used,
         features_used=request.features,
-        test_month=test_month_name,
+        split_type="by_product",
+        n_products_train=len(train_ids),
+        n_products_test=len(test_ids),
         n_train=len(train),
         n_test=len(test),
         train_metrics=train_metrics,
@@ -607,13 +627,14 @@ async def analyze_custom(request: AnalyzeRequest):
 
 
 @app.get("/compare/{product}", response_model=CompareResponse)
-async def compare_models(product: str, test_month: Optional[int] = None):
+async def compare_models(product: str):
     """
     Run the standard A/B/C model comparison for a product.
 
     - Model A: Price only
     - Model B: Price + Last Month's Sales
     - Model C: All features (price, price_change, lag_1, lag_2, lag_3, ma_3)
+    - Split: 80/20 by product ID (held-out products)
     """
     if product not in CATEGORIES:
         raise HTTPException(
@@ -623,24 +644,17 @@ async def compare_models(product: str, test_month: Optional[int] = None):
 
     # Prepare data
     df_sub = prepare_data(product)
-    months_available = sorted(df_sub["month_num"].unique())
 
-    # Determine test month
-    if test_month is not None:
-        if test_month not in months_available:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Test month {test_month} not available. Available months: {months_available}"
-            )
-        test_month_num = test_month
-    else:
-        test_month_num = months_available[-1]
+    # Split by product ID
+    unique_ids = df_sub["id"].unique()
+    rng = np.random.RandomState(42)
+    rng.shuffle(unique_ids)
+    n_test_products = max(1, int(len(unique_ids) * 0.2))
+    test_ids = set(unique_ids[:n_test_products])
+    train_ids = set(unique_ids[n_test_products:])
 
-    test_month_name = MONTH_COLS[test_month_num - 1]
-
-    # Train/test split
-    train = df_sub[df_sub["month_num"] < test_month_num].copy()
-    test = df_sub[df_sub["month_num"] == test_month_num].copy()
+    train = df_sub[df_sub["id"].isin(train_ids)].copy()
+    test = df_sub[df_sub["id"].isin(test_ids)].copy()
 
     y_train = train["sales"].values
     y_test = test["sales"].values
@@ -699,7 +713,8 @@ async def compare_models(product: str, test_month: Optional[int] = None):
 
     return CompareResponse(
         product=product,
-        test_month=test_month_name,
+        n_products_train=len(train_ids),
+        n_products_test=len(test_ids),
         n_train=len(train),
         n_test=len(test),
         models=models_results,
@@ -707,31 +722,6 @@ async def compare_models(product: str, test_month: Optional[int] = None):
         improvement_ac=improvement_ac,
         sales_over_time=sales_data
     )
-
-
-@app.get("/months/{product}")
-async def get_available_months(product: str):
-    """Get available months for a product category."""
-    if product not in CATEGORIES:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Product '{product}' not found. Available: {CATEGORIES}"
-        )
-
-    df_sub = prepare_data(product)
-    months_available = sorted(df_sub["month_num"].unique())
-
-    return {
-        "product": product,
-        "available_months": [
-            {"number": m, "name": MONTH_COLS[m-1]}
-            for m in months_available
-        ],
-        "default_test_month": {
-            "number": months_available[-1],
-            "name": MONTH_COLS[months_available[-1] - 1]
-        }
-    }
 
 
 @app.get("/health")
