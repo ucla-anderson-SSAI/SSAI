@@ -582,6 +582,118 @@
             text-align: center;
             padding-bottom: 20px;
         }
+
+        /* CF Evaluation Styles */
+        .cf-section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 6px;
+        }
+
+        .cf-section-desc {
+            font-size: 0.82rem;
+            color: #888;
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+
+        .mae-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .mae-table th {
+            text-align: left;
+            padding: 8px 10px;
+            border-bottom: 2px solid #eee;
+            color: #666;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .mae-table td {
+            padding: 7px 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .mae-bar-track {
+            display: inline-block;
+            width: 80px;
+            height: 8px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            vertical-align: middle;
+            margin-right: 8px;
+            overflow: hidden;
+        }
+
+        .mae-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.4s ease;
+        }
+
+        .predict-result-box {
+            background: linear-gradient(135deg, rgba(39, 116, 174, 0.05), rgba(39, 174, 96, 0.05));
+            border: 1px solid rgba(39, 116, 174, 0.15);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 15px;
+        }
+
+        .big-predicted-rating {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            line-height: 1;
+        }
+
+        .confidence-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .confidence-high { background: rgba(39, 174, 96, 0.15); color: #27ae60; }
+        .confidence-medium { background: rgba(243, 156, 18, 0.15); color: #f39c12; }
+        .confidence-low { background: rgba(231, 76, 60, 0.15); color: #e74c3c; }
+
+        .user-taste-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 3px 0;
+            font-size: 0.82rem;
+        }
+
+        .user-taste-row .movie-name {
+            width: 160px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #333;
+        }
+
+        .user-taste-row .taste-bar {
+            flex: 1;
+            max-width: 80px;
+            height: 6px;
+            background: #f0f0f0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .user-taste-row .taste-fill {
+            height: 100%;
+            border-radius: 3px;
+        }
     </style>
 </head>
 <body>
@@ -711,6 +823,49 @@
             }, [data]);
 
             return <div style={{height: '250px'}}><canvas ref={canvasRef} /></div>;
+        }
+
+        function MultiLineChartComponent({ data, datasets, xKey, title }) {
+            const canvasRef = useRef(null);
+            const chartRef = useRef(null);
+
+            useEffect(() => {
+                if (!canvasRef.current || !data.length) return;
+                if (chartRef.current) chartRef.current.destroy();
+
+                const colors = ['#2774AE', '#e74c3c', '#27ae60', '#f39c12'];
+                const ctx = canvasRef.current.getContext('2d');
+                chartRef.current = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.map(d => d[xKey]),
+                        datasets: datasets.map((ds, i) => ({
+                            label: ds.label,
+                            data: data.map(d => d[ds.key]),
+                            borderColor: colors[i % colors.length],
+                            backgroundColor: 'transparent',
+                            tension: 0.3,
+                            pointRadius: 2,
+                            pointHoverRadius: 6,
+                            borderWidth: 2.5,
+                        }))
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: true, position: 'top', labels: { color: '#666', usePointStyle: true, padding: 15 } },
+                        },
+                        scales: {
+                            x: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#666' }, title: { display: true, text: 'k (neighbors)', color: '#666' } },
+                            y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#666' }, title: { display: true, text: 'Mean Absolute Error', color: '#666' } }
+                        }
+                    }
+                });
+                return () => { if (chartRef.current) chartRef.current.destroy(); };
+            }, [data, datasets, xKey]);
+
+            return <div style={{height: '300px'}}><canvas ref={canvasRef} /></div>;
         }
 
         // ==================== MOCK DATA GENERATORS ====================
@@ -1338,232 +1493,336 @@
         // ==================== COLLABORATIVE FILTERING TAB COMPONENT ====================
 
         const CollaborativeFilteringTab = () => {
-            const [dataSource, setDataSource] = useState('synthetic');
             const [apiConnected, setApiConnected] = useState(false);
-            const [isLoading, setIsLoading] = useState(false);
+            const [movies, setMovies] = useState([]);
+            const [userIds, setUserIds] = useState([]);
 
-            const [users, setUsers] = useState([]);
-            const [items, setItems] = useState([]);
-            const [selectedUser, setSelectedUser] = useState(null);
-            const [kNeighbors, setKNeighbors] = useState(5);
-            const [recommendations, setRecommendations] = useState([]);
-            const [neighbors, setNeighbors] = useState([]);
+            // CF Evaluation state
+            const [cfK, setCfK] = useState(10);
+            const [cfTestFrac, setCfTestFrac] = useState(20);
+            const [cfResult, setCfResult] = useState(null);
+            const [cfEvalLoading, setCfEvalLoading] = useState(false);
+
+            // K Sweep state
+            const [sweepData, setSweepData] = useState([]);
+            const [sweepLoading, setSweepLoading] = useState(false);
+            const [bestSweepK, setBestSweepK] = useState(null);
+
+            // Prediction state
+            const [predUser, setPredUser] = useState('');
+            const [predMovie, setPredMovie] = useState('');
+            const [predK, setPredK] = useState(10);
+            const [predResult, setPredResult] = useState(null);
+            const [predLoading, setPredLoading] = useState(false);
 
             useEffect(() => {
                 fetch(`${API_BASE}/`)
-                    .then(r => r.ok && setApiConnected(true))
-                    .catch(() => setApiConnected(false));
+                    .then(r => { if (r.ok) setApiConnected(true); })
+                    .catch(() => {});
             }, []);
 
-            const loadData = useCallback(async () => {
-                setIsLoading(true);
+            useEffect(() => {
+                if (!apiConnected) return;
+                Promise.all([
+                    fetch(`${API_BASE}/movies`).then(r => r.json()),
+                    fetch(`${API_BASE}/users`).then(r => r.json()),
+                ]).then(([moviesData, usersData]) => {
+                    setMovies(moviesData);
+                    setUserIds(usersData.user_ids);
+                    setPredUser(usersData.user_ids[0]);
+                    setPredMovie(moviesData[0]);
+                }).catch(err => console.error('Load failed:', err));
+            }, [apiConnected]);
 
-                if (dataSource === 'netflix' && apiConnected) {
-                    try {
-                        const usersResponse = await fetch(`${API_BASE}/users`);
-                        const usersData = await usersResponse.json();
-
-                        const moviesResponse = await fetch(`${API_BASE}/movies`);
-                        const moviesData = await moviesResponse.json();
-
-                        // Create user objects with placeholder ratings (API provides aggregated data)
-                        const apiUsers = usersData.user_ids.slice(0, 50).map((userId, i) => ({
-                            id: i,
-                            userId: `User_${userId}`,
-                            ratings: {} // Will be populated when user is selected
-                        }));
-
-                        setUsers(apiUsers);
-                        setItems(moviesData.slice(0, 15));
-                        setSelectedUser(apiUsers[0] || null);
-                    } catch (err) {
-                        console.error('Netflix CF data load failed:', err);
-                        loadSyntheticCF();
-                    }
-                } else {
-                    loadSyntheticCF();
-                }
-
-                setIsLoading(false);
-            }, [dataSource, apiConnected]);
-
-            const loadSyntheticCF = () => {
-                const { users: syntheticUsers, items: syntheticItems } = generateSyntheticCFData();
-                setUsers(syntheticUsers);
-                setItems(syntheticItems);
-                setSelectedUser(syntheticUsers[0] || null);
-            };
-
-            useEffect(() => { loadData(); }, [dataSource]);
-
-            const runRecommendation = useCallback(() => {
-                if (!selectedUser || users.length === 0) return;
-
-                if (dataSource === 'netflix' && apiConnected) {
-                    // For Netflix, use the API's recommend endpoint
-                    fetch(`${API_BASE}/recommend`, {
+            const runCFEval = async () => {
+                setCfEvalLoading(true);
+                try {
+                    const res = await fetch(`${API_BASE}/cf_evaluate`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            user_id: parseInt(selectedUser.userId.replace('User_', '')),
-                            movie: items[0] || 'Action',
-                            n_neighbors: kNeighbors
-                        })
-                    })
-                    .then(r => r.json())
-                    .then(data => {
-                        setNeighbors(data.similar_users.map((id, i) => ({
-                            user: { userId: `User_${id}` },
-                            similarity: (1 - i * 0.1).toFixed(2)
-                        })));
-                        setRecommendations([{
-                            item: data.movie,
-                            predicted: data.predicted_rating
-                        }]);
-                    })
-                    .catch(err => console.error('Recommendation failed:', err));
-                } else {
-                    // Use local algorithm for synthetic data
-                    const result = getRecommendations(selectedUser, users, items, kNeighbors);
-                    setRecommendations(result.recommendations);
-                    setNeighbors(result.neighbors);
-                }
-            }, [selectedUser, users, items, kNeighbors, dataSource, apiConnected]);
+                        body: JSON.stringify({ k: cfK, test_fraction: cfTestFrac / 100 })
+                    });
+                    setCfResult(await res.json());
+                } catch (err) { console.error(err); }
+                setCfEvalLoading(false);
+            };
 
-            useEffect(() => {
-                if (selectedUser && dataSource === 'synthetic') {
-                    runRecommendation();
-                }
-            }, [selectedUser, kNeighbors, runRecommendation]);
+            const runSweep = async () => {
+                setSweepLoading(true);
+                try {
+                    const res = await fetch(`${API_BASE}/cf_sweep`, { method: 'POST' });
+                    const data = await res.json();
+                    setSweepData(data);
+                    const best = data.reduce((a, b) => (b.test_mae && b.test_mae < (a.test_mae || 999)) ? b : a, data[0]);
+                    setBestSweepK(best);
+                } catch (err) { console.error(err); }
+                setSweepLoading(false);
+            };
+
+            const runPredict = async (userId, movie, k) => {
+                const uid = userId || predUser;
+                const mov = movie || predMovie;
+                const kVal = k || predK;
+                setPredLoading(true);
+                try {
+                    const res = await fetch(`${API_BASE}/predict_movie?user_id=${uid}&movie=${encodeURIComponent(mov)}&k=${kVal}`, { method: 'POST' });
+                    setPredResult(await res.json());
+                } catch (err) { console.error(err); }
+                setPredLoading(false);
+            };
+
+            const randomPredict = () => {
+                const rUser = userIds[Math.floor(Math.random() * userIds.length)];
+                const rMovie = movies[Math.floor(Math.random() * movies.length)];
+                setPredUser(rUser);
+                setPredMovie(rMovie);
+                runPredict(rUser, rMovie, predK);
+            };
+
+            if (!apiConnected) {
+                return (
+                    <div style={{ padding: '60px 40px', textAlign: 'center', color: '#888' }}>
+                        <div className="loading-spinner" style={{ margin: '0 auto 15px' }}></div>
+                        Connecting to API... Make sure the backend is running.
+                    </div>
+                );
+            }
 
             return (
                 <div>
                     <div className="controls-section">
-                        <div className={`data-source-bar ${dataSource === 'netflix' ? 'netflix' : ''}`}>
+                        <div className="data-source-bar netflix">
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <span style={{ fontWeight: '600' }}>Data Source:</span>
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                    <button className={`data-toggle-btn synthetic ${dataSource === 'synthetic' ? 'active' : ''}`}
-                                        onClick={() => setDataSource('synthetic')} disabled={isLoading}>
-                                        Synthetic Data
-                                    </button>
-                                    <button className={`data-toggle-btn netflix ${dataSource === 'netflix' ? 'active' : ''}`}
-                                        onClick={() => setDataSource('netflix')} disabled={isLoading || !apiConnected}>
-                                        Netflix Ratings
-                                    </button>
-                                </div>
-                            </div>
-                            <div style={{ fontSize: '0.8rem', color: '#666' }}>
-                                {isLoading ? 'Loading data...' : `${users.length} users, ${items.length} items`}
+                                <span style={{ fontWeight: '600' }}>📊 Netflix Ratings Data</span>
+                                <span style={{ fontSize: '0.85rem', color: '#666' }}>
+                                    {userIds.length} users · {movies.length} movies · Real ratings (1–5 stars)
+                                </span>
                             </div>
                         </div>
 
+                        {/* Predict a Movie Rating */}
                         <div className="control-panel">
-                            <h3>👥 User-Based Collaborative Filtering</h3>
+                            <h3>🎬 Predict a Movie Rating</h3>
+                            <p className="cf-section-desc">Pick a user and a movie to see what our KNN model predicts they'd rate it. Hit "Random" for a surprise!</p>
                             <div className="controls-grid">
                                 <div className="control-group">
-                                    <label>Select User</label>
-                                    <select value={selectedUser?.id || ''} onChange={(e) => setSelectedUser(users.find(u => u.id === parseInt(e.target.value)))}>
-                                        {users.slice(0, 20).map(u => (
-                                            <option key={u.id} value={u.id}>{u.userId}</option>
-                                        ))}
+                                    <label>User</label>
+                                    <select value={predUser} onChange={e => setPredUser(parseInt(e.target.value))}>
+                                        {userIds.slice(0, 50).map(u => <option key={u} value={u}>User {u}</option>)}
                                     </select>
                                 </div>
                                 <div className="control-group">
-                                    <label>K Nearest Neighbors</label>
-                                    <input type="range" min="3" max="15" value={kNeighbors} onChange={(e) => setKNeighbors(parseInt(e.target.value))} />
-                                    <div className="slider-value">{kNeighbors} neighbors</div>
+                                    <label>Movie</label>
+                                    <select value={predMovie} onChange={e => setPredMovie(e.target.value)}>
+                                        {movies.map(m => <option key={m} value={m}>{m}</option>)}
+                                    </select>
+                                </div>
+                                <div className="control-group">
+                                    <label>K Neighbors</label>
+                                    <input type="range" min="3" max="50" value={predK} onChange={e => setPredK(parseInt(e.target.value))} />
+                                    <div className="slider-value">{predK} neighbors</div>
                                 </div>
                                 <div className="control-group">
                                     <label>&nbsp;</label>
-                                    <button className="anim-btn play" onClick={runRecommendation} disabled={!selectedUser}>
-                                        🔍 Get Recommendations
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <button className="anim-btn play" onClick={() => runPredict()} disabled={predLoading}>
+                                            ⭐ Predict
+                                        </button>
+                                        <button className="anim-btn reset" onClick={randomPredict} disabled={predLoading}>
+                                            🎲 Random
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {predLoading && <div className="loading"><div className="loading-spinner"></div>Predicting...</div>}
+
+                            {predResult && !predLoading && (
+                                <div className="predict-result-box">
+                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '30px', flexWrap: 'wrap' }}>
+                                        <div>
+                                            <div style={{ fontSize: '0.8rem', color: '#888', marginBottom: '4px' }}>
+                                                Predicted rating for <strong style={{ color: '#333' }}>{predMovie}</strong>
+                                            </div>
+                                            <div className="big-predicted-rating">
+                                                {predResult.predicted.toFixed(1)}
+                                                <span style={{ fontSize: '1rem', marginLeft: '4px' }}>/ 5</span>
+                                            </div>
+                                            <div style={{ marginTop: '4px' }}>
+                                                {'★'.repeat(Math.round(predResult.predicted))}{'☆'.repeat(5 - Math.round(predResult.predicted))}
+                                            </div>
+                                            <span className={`confidence-badge confidence-${predResult.confidence}`} style={{ marginTop: '8px' }}>
+                                                {predResult.confidence} confidence
+                                            </span>
+                                        </div>
+
+                                        <div style={{ flex: 1, minWidth: '200px' }}>
+                                            {predResult.actual !== null && (
+                                                <div style={{ marginBottom: '12px', padding: '10px 14px', background: Math.abs(predResult.predicted - predResult.actual) < 0.5 ? 'rgba(39,174,96,0.1)' : 'rgba(243,156,18,0.1)', borderRadius: '8px' }}>
+                                                    <span style={{ color: '#666', fontSize: '0.82rem' }}>Actual rating: </span>
+                                                    <strong style={{ fontSize: '1.1rem', color: '#333' }}>{predResult.actual} / 5</strong>
+                                                    <span style={{ marginLeft: '8px' }}>{'★'.repeat(predResult.actual)}</span>
+                                                    <span style={{ marginLeft: '12px', color: '#666', fontSize: '0.82rem' }}>Error: </span>
+                                                    <strong style={{ color: Math.abs(predResult.predicted - predResult.actual) < 0.5 ? '#27ae60' : '#e67e22' }}>
+                                                        {Math.abs(predResult.predicted - predResult.actual).toFixed(2)}
+                                                    </strong>
+                                                </div>
+                                            )}
+                                            {predResult.actual === null && (
+                                                <div style={{ fontSize: '0.82rem', color: '#888', marginBottom: '10px', fontStyle: 'italic' }}>
+                                                    This user hasn't rated this movie — no actual to compare.
+                                                </div>
+                                            )}
+
+                                            <div style={{ fontSize: '0.75rem', color: '#999', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                                User {predUser}'s Top Rated
+                                            </div>
+                                            {(predResult.user_top_rated || []).map(([m, r], i) => (
+                                                <div key={i} className="user-taste-row">
+                                                    <span className="movie-name">{m}</span>
+                                                    <div className="taste-bar"><div className="taste-fill" style={{ width: `${r/5*100}%`, background: '#27ae60' }}></div></div>
+                                                    <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{r}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div style={{ marginTop: '10px', fontSize: '0.8rem', color: '#999' }}>
+                                        Similar users: {(predResult.similar_user_ids || []).join(', ')}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Train/Test Evaluation */}
+                        <div className="control-panel">
+                            <h3>📐 Train / Test Error (MAE)</h3>
+                            <p className="cf-section-desc">
+                                We split ratings into training and test sets. The model learns from training data, then we measure
+                                <strong> Mean Absolute Error</strong> — the average gap between predicted and actual ratings — on both sets.
+                                Lower is better. If train error is much lower than test error, the model may be overfitting.
+                            </p>
+                            <div className="controls-grid">
+                                <div className="control-group">
+                                    <label>K Neighbors</label>
+                                    <input type="range" min="1" max="80" value={cfK} onChange={e => setCfK(parseInt(e.target.value))} />
+                                    <div className="slider-value">{cfK} neighbors</div>
+                                </div>
+                                <div className="control-group">
+                                    <label>Test Fraction</label>
+                                    <input type="range" min="5" max="50" step="5" value={cfTestFrac} onChange={e => setCfTestFrac(parseInt(e.target.value))} />
+                                    <div className="slider-value">{cfTestFrac}%</div>
+                                </div>
+                                <div className="control-group">
+                                    <label>&nbsp;</label>
+                                    <button className="anim-btn play" onClick={runCFEval} disabled={cfEvalLoading}>
+                                        🔬 Evaluate
                                     </button>
                                 </div>
                             </div>
+
+                            {cfEvalLoading && <div className="loading"><div className="loading-spinner"></div>Evaluating (may take a few seconds)...</div>}
                         </div>
                     </div>
 
                     <div className="results-section">
-                        <div className="metrics-grid">
-                            <div className="metric-card"><div className="value">{users.length}</div><div className="label">Total Users</div></div>
-                            <div className="metric-card"><div className="value">{items.length}</div><div className="label">Total Items</div></div>
-                            <div className="metric-card"><div className="value">{kNeighbors}</div><div className="label">K Neighbors</div></div>
-                            <div className="metric-card"><div className="value">{recommendations.length}</div><div className="label">Recommendations</div></div>
-                        </div>
-
-                        <div className="main-grid">
-                            {dataSource === 'synthetic' && (
-                                <div className="chart-card hero">
-                                    <h3>User Similarity Matrix (Cosine Similarity)</h3>
-                                    {isLoading ? (
-                                        <div className="loading"><div className="loading-spinner"></div>Loading...</div>
-                                    ) : (
-                                        <SimilarityHeatmap users={users} items={items} selectedUser={selectedUser} />
-                                    )}
+                        {cfResult && (
+                            <>
+                                <div className="metrics-grid">
+                                    <div className="metric-card"><div className="value">{cfResult.k}</div><div className="label">K Neighbors</div></div>
+                                    <div className="metric-card">
+                                        <div className="value" style={{ color: '#2774AE' }}>{cfResult.train_mae.toFixed(4)}</div>
+                                        <div className="label">Train MAE</div>
+                                    </div>
+                                    <div className="metric-card">
+                                        <div className="value" style={{ color: cfResult.test_mae < 0.7 ? '#27ae60' : cfResult.test_mae < 0.85 ? '#f39c12' : '#e74c3c' }}>
+                                            {cfResult.test_mae.toFixed(4)}
+                                        </div>
+                                        <div className="label">Test MAE</div>
+                                    </div>
+                                    <div className="metric-card">
+                                        <div className="value" style={{ color: (cfResult.test_mae - cfResult.train_mae) > 0.15 ? '#e74c3c' : '#27ae60' }}>
+                                            {(cfResult.test_mae - cfResult.train_mae).toFixed(4)}
+                                        </div>
+                                        <div className="label">Gap (Overfitting?)</div>
+                                    </div>
                                 </div>
+
+                                <div className="main-grid">
+                                    <div className="chart-card hero">
+                                        <h3>Per-Movie Test MAE</h3>
+                                        <p style={{ fontSize: '0.8rem', color: '#888', marginBottom: '12px' }}>
+                                            How well does the model predict each movie? Lower MAE = easier to predict. Sorted by number of test ratings.
+                                        </p>
+                                        {cfResult.movie_mae && cfResult.movie_mae.length > 0 && (
+                                            <table className="mae-table">
+                                                <thead><tr><th>Movie</th><th>MAE</th><th>Test Ratings</th></tr></thead>
+                                                <tbody>
+                                                    {cfResult.movie_mae.map((m, i) => {
+                                                        const maxMAE = Math.max(...cfResult.movie_mae.map(x => x.mae));
+                                                        const pct = (m.mae / maxMAE) * 100;
+                                                        const color = m.mae < 0.6 ? '#27ae60' : m.mae < 0.75 ? '#f39c12' : '#e74c3c';
+                                                        return (
+                                                            <tr key={i}>
+                                                                <td style={{ fontWeight: 500, color: '#333' }}>{m.movie}</td>
+                                                                <td>
+                                                                    <span className="mae-bar-track">
+                                                                        <span className="mae-bar-fill" style={{ width: `${pct}%`, background: color }}></span>
+                                                                    </span>
+                                                                    {m.mae.toFixed(3)}
+                                                                </td>
+                                                                <td style={{ color: '#888' }}>{m.n}</td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        )}
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        {/* K Sweep */}
+                        <div className="chart-card" style={{ marginTop: '25px' }}>
+                            <h3>🔍 Tuning k: Train vs. Test Error Sweep</h3>
+                            <p style={{ fontSize: '0.82rem', color: '#888', marginBottom: '12px' }}>
+                                Sweep k from 1 to 50 and plot both train and test MAE. Look for the k where test error is minimized —
+                                that's the sweet spot. If train error keeps falling but test error rises, the model is overfitting.
+                            </p>
+                            {!sweepData.length && !sweepLoading && (
+                                <button className="anim-btn play" onClick={runSweep}>
+                                    ▶ Run k Sweep (takes ~15 seconds)
+                                </button>
                             )}
-
-                            <div className="chart-card">
-                                <h3>K Nearest Neighbors for {selectedUser?.userId || 'N/A'}</h3>
-                                {neighbors.length > 0 ? (
-                                    <div className="neighbors-grid">
-                                        {neighbors.map((n, i) => (
-                                            <div key={i} className="neighbor-card">
-                                                <div className="neighbor-id">{n.user.userId.replace('User_', 'U')}</div>
-                                                <div className="neighbor-sim">Sim: {typeof n.similarity === 'number' ? n.similarity.toFixed(3) : n.similarity}</div>
+                            {sweepLoading && <div className="loading"><div className="loading-spinner"></div>Evaluating k = 1 to 50...</div>}
+                            {sweepData.length > 0 && (
+                                <>
+                                    <MultiLineChartComponent
+                                        data={sweepData}
+                                        datasets={[
+                                            { key: 'train_mae', label: 'Train MAE' },
+                                            { key: 'test_mae', label: 'Test MAE' },
+                                        ]}
+                                        xKey="k"
+                                    />
+                                    {bestSweepK && (
+                                        <div className="algorithm-status" style={{ marginTop: '15px' }}>
+                                            <div className="status-item">
+                                                <span className="status-label">Best k:</span>
+                                                <span className="status-value">{bestSweepK.k}</span>
                                             </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div style={{ padding: '40px', textAlign: 'center', color: '#888' }}>
-                                        Click "Get Recommendations" to find similar users
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="chart-card">
-                                <h3>Top Recommendations</h3>
-                                {recommendations.length > 0 ? (
-                                    <ul className="recommendation-list">
-                                        {recommendations.map((rec, i) => (
-                                            <li key={i} className="recommendation-item">
-                                                <div className="rec-rank">{i + 1}</div>
-                                                <div className="rec-info">
-                                                    <div className="rec-title">{rec.item}</div>
-                                                    <div className="rec-subtitle">Based on similar users' ratings</div>
-                                                </div>
-                                                <div className="rec-rating">
-                                                    <span className="rec-stars">★</span>
-                                                    <span className="rec-score">{rec.predicted.toFixed(2)}</span>
-                                                </div>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                ) : (
-                                    <div style={{ padding: '40px', textAlign: 'center', color: '#888' }}>
-                                        No recommendations yet
-                                    </div>
-                                )}
-                            </div>
-
-                            {selectedUser && dataSource === 'synthetic' && (
-                                <div className="chart-card">
-                                    <h3>{selectedUser.userId}'s Existing Ratings</h3>
-                                    <ul className="recommendation-list">
-                                        {Object.entries(selectedUser.ratings).slice(0, 5).map(([item, rating], i) => (
-                                            <li key={i} className="recommendation-item">
-                                                <div className="rec-info">
-                                                    <div className="rec-title">{item}</div>
-                                                </div>
-                                                <div className="rec-rating">
-                                                    <span className="rec-stars">{'★'.repeat(rating)}</span>
-                                                    <span className="rec-score">{rating}</span>
-                                                </div>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
+                                            <div className="status-item">
+                                                <span className="status-label">Best Test MAE:</span>
+                                                <span className="status-value" style={{ color: '#27ae60' }}>{bestSweepK.test_mae?.toFixed(4)}</span>
+                                            </div>
+                                            <div className="status-item">
+                                                <span className="status-label">Train MAE at best k:</span>
+                                                <span className="status-value">{bestSweepK.train_mae?.toFixed(4)}</span>
+                                            </div>
+                                            <button className="anim-btn reset" onClick={runSweep} style={{ marginLeft: 'auto' }}>↺ Re-run</button>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </div>
                     </div>
