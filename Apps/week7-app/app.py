@@ -57,6 +57,119 @@ _num_classes = None
 VOCAB_SIZE = 10000
 MAX_LEN = 200
 
+# ============================================
+# Word Embeddings (GloVe-like)
+# ============================================
+EMBEDDING_DIM = 50
+_glove_embeddings = {}
+_embeddings_loaded = False
+
+
+def create_sample_embeddings():
+    """Create a sample set of embeddings for demonstration."""
+    global _glove_embeddings, _embeddings_loaded
+    
+    if _embeddings_loaded:
+        return
+    
+    np.random.seed(42)
+    
+    # Common words with semantically meaningful vectors
+    sample_words = [
+        "king", "queen", "man", "woman", "prince", "princess",
+        "boy", "girl", "father", "mother", "son", "daughter",
+        "brother", "sister", "uncle", "aunt",
+        "dog", "cat", "bird", "fish", "horse", "cow",
+        "car", "truck", "bus", "train", "plane", "boat",
+        "red", "blue", "green", "yellow", "black", "white",
+        "happy", "sad", "angry", "afraid", "love", "hate",
+        "big", "small", "tall", "short", "fast", "slow",
+        "good", "bad", "new", "old", "young", "beautiful",
+        "house", "home", "building", "city", "country", "world",
+        "water", "fire", "earth", "air", "sun", "moon",
+        "food", "drink", "bread", "meat", "fruit", "vegetable",
+        "work", "play", "read", "write", "speak", "listen",
+        "think", "feel", "know", "see", "hear", "touch",
+        "time", "day", "night", "year", "week", "month",
+        "one", "two", "three", "four", "five", "ten",
+        "computer", "phone", "internet", "technology", "science", "math",
+        "school", "teacher", "student", "book", "class", "learn",
+        "doctor", "nurse", "hospital", "medicine", "health", "sick",
+        "money", "bank", "rich", "poor", "buy", "sell",
+        "france", "paris", "germany", "berlin", "italy", "rome",
+        "japan", "tokyo", "china", "beijing", "russia", "moscow",
+        "great", "nice", "best", "worst", "terrible", "excellent",
+        "movie", "music", "art", "dance", "song", "show",
+        "eat", "sleep", "run", "walk", "jump", "swim"
+    ]
+    
+    # Create semantic base vectors
+    base_vectors = {
+        "royalty": np.random.randn(EMBEDDING_DIM).astype(np.float32),
+        "male": np.random.randn(EMBEDDING_DIM).astype(np.float32),
+        "female": np.random.randn(EMBEDDING_DIM).astype(np.float32),
+        "animal": np.random.randn(EMBEDDING_DIM).astype(np.float32),
+        "vehicle": np.random.randn(EMBEDDING_DIM).astype(np.float32),
+        "color": np.random.randn(EMBEDDING_DIM).astype(np.float32),
+        "emotion": np.random.randn(EMBEDDING_DIM).astype(np.float32),
+        "size": np.random.randn(EMBEDDING_DIM).astype(np.float32),
+        "positive": np.random.randn(EMBEDDING_DIM).astype(np.float32),
+        "negative": np.random.randn(EMBEDDING_DIM).astype(np.float32),
+        "location": np.random.randn(EMBEDDING_DIM).astype(np.float32),
+        "capital": np.random.randn(EMBEDDING_DIM).astype(np.float32),
+    }
+    
+    for word in sample_words:
+        base = np.random.randn(EMBEDDING_DIM).astype(np.float32) * 0.5
+        
+        # Add semantic components
+        if word in ["king", "prince", "father", "son", "brother", "uncle", "boy", "man"]:
+            base += base_vectors["male"] * 0.5
+        if word in ["queen", "princess", "mother", "daughter", "sister", "aunt", "girl", "woman"]:
+            base += base_vectors["female"] * 0.5
+        if word in ["king", "queen", "prince", "princess"]:
+            base += base_vectors["royalty"] * 0.5
+        if word in ["dog", "cat", "bird", "fish", "horse", "cow"]:
+            base += base_vectors["animal"] * 0.5
+        if word in ["car", "truck", "bus", "train", "plane", "boat"]:
+            base += base_vectors["vehicle"] * 0.5
+        if word in ["red", "blue", "green", "yellow", "black", "white"]:
+            base += base_vectors["color"] * 0.5
+        if word in ["happy", "sad", "angry", "afraid", "love", "hate"]:
+            base += base_vectors["emotion"] * 0.5
+        if word in ["big", "tall", "fast"]:
+            base += base_vectors["size"] * 0.3
+        if word in ["small", "short", "slow"]:
+            base -= base_vectors["size"] * 0.3
+        if word in ["good", "happy", "love", "great", "nice", "best", "excellent"]:
+            base += base_vectors["positive"] * 0.4
+        if word in ["bad", "sad", "hate", "worst", "terrible"]:
+            base += base_vectors["negative"] * 0.4
+        if word in ["france", "germany", "italy", "japan", "china", "russia"]:
+            base += base_vectors["location"] * 0.5
+        if word in ["paris", "berlin", "rome", "tokyo", "beijing", "moscow"]:
+            base += base_vectors["location"] * 0.3 + base_vectors["capital"] * 0.5
+        
+        # Normalize
+        _glove_embeddings[word] = base / (np.linalg.norm(base) + 1e-8)
+    
+    _embeddings_loaded = True
+    print(f"Loaded {len(_glove_embeddings)} sample word embeddings")
+
+
+def get_embedding(word):
+    """Get embedding for a word"""
+    create_sample_embeddings()
+    return _glove_embeddings.get(word.lower())
+
+
+def cosine_sim(v1, v2):
+    """Compute cosine similarity between two vectors"""
+    dot = np.dot(v1, v2)
+    norm1 = np.linalg.norm(v1)
+    norm2 = np.linalg.norm(v2)
+    return float(dot / (norm1 * norm2 + 1e-8))
+
 
 def load_tensorflow():
     """Lazy load TensorFlow"""
@@ -785,6 +898,98 @@ def get_stats():
             'queued_sessions': [sid for sid in training_queue],
             'active_sessions': list(active_trainings)
         })
+
+
+# ============================================
+# Word Embedding Endpoints
+# ============================================
+@app.route('/available_words', methods=['GET'])
+def available_words():
+    """Get a sample of available words in the vocabulary"""
+    create_sample_embeddings()
+    limit = int(request.args.get('limit', 100))
+    words = list(_glove_embeddings.keys())[:limit]
+    return jsonify({
+        'total_vocabulary': len(_glove_embeddings),
+        'sample_words': words
+    })
+
+
+@app.route('/similarity', methods=['POST'])
+def compute_similarity():
+    """Compute cosine similarity between two words"""
+    create_sample_embeddings()
+    data = request.json
+    word1 = data.get('word1', '').lower().strip()
+    word2 = data.get('word2', '').lower().strip()
+    
+    emb1 = get_embedding(word1)
+    emb2 = get_embedding(word2)
+    
+    if emb1 is None:
+        return jsonify({'detail': f'Word "{word1}" not found in vocabulary'}), 400
+    if emb2 is None:
+        return jsonify({'detail': f'Word "{word2}" not found in vocabulary'}), 400
+    
+    similarity = cosine_sim(emb1, emb2)
+    
+    return jsonify({
+        'word1': word1,
+        'word2': word2,
+        'similarity': similarity,
+        'word1_found': True,
+        'word2_found': True
+    })
+
+
+@app.route('/analogy', methods=['POST'])
+def solve_analogy():
+    """Solve word analogies: A - B + C = ?"""
+    create_sample_embeddings()
+    data = request.json
+    word_a = data.get('word_a', '').lower().strip()
+    word_b = data.get('word_b', '').lower().strip()
+    word_c = data.get('word_c', '').lower().strip()
+    top_n = int(data.get('top_n', 5))
+    
+    emb_a = get_embedding(word_a)
+    emb_b = get_embedding(word_b)
+    emb_c = get_embedding(word_c)
+    
+    words_found = {
+        word_a: emb_a is not None,
+        word_b: emb_b is not None,
+        word_c: emb_c is not None
+    }
+    
+    if not all(words_found.values()):
+        missing = [w for w, found in words_found.items() if not found]
+        return jsonify({'detail': f'Words not found in vocabulary: {", ".join(missing)}'}), 400
+    
+    # Compute analogy vector: A - B + C
+    target_vector = emb_a - emb_b + emb_c
+    target_vector = target_vector / (np.linalg.norm(target_vector) + 1e-8)
+    
+    # Find most similar words
+    exclude = {word_a, word_b, word_c}
+    similarities = []
+    
+    for word, emb in _glove_embeddings.items():
+        if word in exclude:
+            continue
+        sim = cosine_sim(target_vector, emb)
+        similarities.append((word, sim))
+    
+    # Sort by similarity
+    similarities.sort(key=lambda x: x[1], reverse=True)
+    
+    results = [{'word': word, 'similarity': sim} for word, sim in similarities[:top_n]]
+    
+    return jsonify({
+        'analogy': f'{word_a} - {word_b} + {word_c}',
+        'results': results,
+        'words_found': words_found
+    })
 
 
 @app.route('/', methods=['GET'])
