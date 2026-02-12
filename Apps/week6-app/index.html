@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Week 6: CNNs and Transfer Learning | UCLA Anderson MGMT298D</title>
+    <title>Week 6: CNNs - Lions, Tigers & Bears | UCLA Anderson MGMT298D</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -554,77 +555,48 @@
         // Create context for sharing model state between tabs
         const ModelContext = createContext();
 
-        // CIFAR-10 Classes
-        const CIFAR10_CLASSES = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck'];
+        // Lions, Tigers, and Bears - Oh My! (CIFAR-100 subset)
+        const CLASSES = ['bear', 'lion', 'tiger'];
+        const CLASS_EMOJIS = { bear: '🐻', lion: '🦁', tiger: '🐯' };
+        const CLASS_COLORS = { bear: '#8B4513', lion: '#DAA520', tiger: '#FF8C00' };
 
-        // Real CIFAR-10 sample images (base64 encoded, 32x32 PNG)
-        // These are actual images from the CIFAR-10 dataset
-        const CIFAR10_IMAGES = {
-            airplane: [
+        // Sample images for the animals (placeholder)
+        const CLASS_IMAGES = {
+            bear: [
                 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAA3klEQVR4nO2WwQ6DIBBEXzf9/1/2aA8N7iwDaNuYTOKJsMzODAjGGF/lx1cLfAPgP4D5JsaYAMAY5e8A8xQRgCXLzEPiGONqHyPRB4jIIHOe/wL4DpARc1l/X4BVd1EAnDMLQMxf1+GvbNoNkMicPl+w2VqAJb8BwL4KY8xpnSy3B0AmXxSweSuzBYCdQHsKN2sBJJtnMbkqZbmj5/wWTqeLAjJVBhFZLmABLErJ50sHAO4+8SZn91ieFvDwk9cB4A1t/g0AbFQnkyzAMb+XLedPvrHCz4D3GsC/gHfkF1xzqXgFj9DlAAAAAElFTkSuQmCC',
                 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAA1ElEQVR4nO2W0Q6AIAhFXf//z+5DrcUFBdZa7eE9deFwATPnfH4rz9cCPAE+B5hj8ACAMcq/AcxRAAAy+xzGGKurjDj6ABFZxJwnP+G+A6RFnNe/FmDVnSsAMjMDQMy/zPCfbNqNJxWZYfMJq60AWPJLAO6rMIac1mlyewDk5LMCDu/K3ALA7kC7CjdrASTbdzG4KmV5oufyFlYXRQGpKoOIzBewABKl5POlAwD3+fEm5/RYHhbw8JPnAeANLf4NAGxVJpMswCW/l03Hd76xws+A1xrAX4AP5BfQNKTGIqb6yAAAAABJRU5ErkJggg=='
             ],
-            automobile: [
+            lion: [
                 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAA+0lEQVR4nO2WQQ7CIBBFf2v3HsODuDMexJW6MR7Eq7jAhWiYDgPSmiZuHF/SFJgZHjMU5pw/5fjJwJsA/wG+CeDfAx4HaH4E4KcW7jwAYB0rANA6xphSumw55/XOIoprAFjtrIg0Ms75E+4rQEosdf2VAKvuXAGo5ywBEPO3cfhn/90GSDIzpZ8XbBYLYMl3AYivohh0Wif1bQEKyScFGK7KXAJg70BbhZu1AIq9PyZXpUz3dFy/hatJ0YJMlUGLyHgCC2BQSja/dABgPz8+5FiO5WEFPrzk9wFgDQX/DQDEqkwmWYBbfm/Wnd755hs/Az7XAH4D/EC+w6mOL+R9AAAAAElFTkSuQmCC',
                 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAA9ElEQVR4nGNgGAWjYBSMglFABmBkQBf4/1+TgfH/f0YGBob/DP8Z/jMw/P/P8J/xPyPDfwbG/4z/GRn+MzL+Z2T6z8T0n4npPxPTfyam/0xM/5mY/jMx/Wdi/s/E/J+Z+T8z839m5v/MLP+Zmf8zs/xnZvnPzPyfmeU/M8t/Zpb/zCz/WVj+M7P8Z2H5z8zynxks95+F9T8L638W1v8sbP9Z2P6zsP1nYfvPwvafhQ2o/j8r239Wjv+snP9ZOf+zcv5n5frPyvWfles/K9d/Vq7/bNz/2bj/s3H/Z+P+z8bzn43nPxvPfzae/2y8/9l4/7PxDkqNAwD4eE6hxFr0DAAAAABJRU5ErkJggg=='
             ],
-            bird: [
+            tiger: [
                 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAABCElEQVR4nO2WQQ6CMBAFP8bdx/AgboxH8CButIfwKi64EGhfSwsYE+Ni0oSkvJ/5A1Sc86ceP+nxBMA/wH8C/PfA5xGSF4L3KQBIM0JT7xUAaF0dB62rNcZt16VLa4xxe+SU4xIAVjsWES2VzrmXuFeAVMSl/OUAW+7cA5ASUwQg5r+u+J9s2oWnGJmRzx+sNhdgyd8D4LGKYtBdndS+B4CVfC9g88rMOQC2DrSlcLceQLL9CblrJc2cHk+f4WZU9CCzyiAi9gtsAAsl5/VLA4B9/LjJ2T2WpwfYfORxALhCS/8dACBWpS2TbIB7+U5Wnd/zzhueA99rAN8B7siv/wDutWghm2v38wAAAABJRU5ErkJggg==',
-                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAABC0lEQVR4nO2WQQ6CMBREPzbuPYYHcacewnW60R7Cq7jAhUCZlgK1JsaFk5CEtPz/5k9LxTn/6PST0c8A/gP8JcB/Dzwf4XkheJ+SwDQj1PVOAYDWxTho3axzzm3XpEtrjNse2eV4DQBWOysiWiqdc09xLwGpiHP5ywG23bkHgJSYEgAx/3XE/2TTLrw0yIx8fmG1WQGb/A4Aj1UUg+7qJPYdAKzk+wCbVqafAWDrQFsKN2sBJNt/kLtW0szp8eQZHkZFF2RWGUTEfoEJYKHkvD5pAGA/P97k7B7LwwtsevK4AFxCS38HAGJVWjPJCrjn97Lq+J5z3vAc+L4G8BPgAfI7vgH8mJEPHYT3fAAAAABJRU5ErkJggg=='
-            ],
-            cat: [
-                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAABHUlEQVR4nO2Wyw6DIBBFXzf9/192oS4Mw4ygtrUxLrgRmMu5PCzOuVONn1T8JsBvgN8E+O2Bh0eoLgTvUwSwziJU9VYBgNbZOGjdrDHGbdekS2uM2x5Z5bgGgNWORERL5Zx7iHsJkBI5l78cYNudWwBIiSkCEPNfR/xPNu3CU4PMyOcXVpsVsMlvAfBYRTHoro5r3wPASr4XsGll+hkAtg60pXC3FkCy/Qe5ayXNnB5PnuFhVHRBZpVBROwXmAAWSs7rkwYA9vHjTc7usdy9wKYnjwvAJbT03wEAYlVaM8kKuOf3sur4nnPe8Bz4vgbwE+AB8ju+ATyyiSVk8y39lAAAAABJRU5ErkJggg==',
-                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAABGklEQVR4nO2WQQ6CMBAF39LsPQYH8Qge1I26MR7Eq7jAhWD5bQGxJsbFpAkN7WfmT1tw1l1q/KT0NwA+A/wmwE8PPD5CdSB4n5LANiNU9UYBgNbFOWjdzRhj23XpMhjj9sguxyUArHYkIlqq7e4u7ikgFXEqfzrAlju3AJASUwQg5l9G/E827cJTi8zI5xdWmxRwlN8C4LGKYtBdHde+BYCVfC9g08r0MwBsHWgrcbMWQLL9C7lrJc2cHk+e4WFUdCCzyiAi9gtMAAsl5/VJAwD7+fEmZ/dYnl5g05PnBeASWvrvAACxKm2ZZAXc83tZdXznO994Dvxwba8A8B35Tr/bPwDE+o//SQAAAAlwSFlzAAALEgAACxIB0t1+/AAAADl0RVh0U29mdHdhcmUAbWF0cGxvdGxpYiB2ZXJzaW9uIDMuOS4yLCBodHRwczovL21hdHBsb3RsaWIub3JnL0P4xyUAAAAASUVORK5CYII='
-            ],
-            deer: [
-                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAABDUlEQVR4nO2WQQ6CMBAF39LsPoYHcScewnW60R7Cq7jAhUD5bQGxJsbFpAkN7WfmT1tw1l1q/KT0NwA+A/wmwE8PPD5CdSB4n5LANiNU9UYBgNbFOWjdzRhj23XpMhjj9sguxyUArHYkIlqq7e4u7ikgFXEqfzrAlju3AJASUwQg5l9G/E827cJTi8zI5xdWmxRwlN8C4LGKYtBdHde+BYCVfC9g08r0MwBsHWgrcbMWQLL9C7lrJc2cHk+e4WFUdCCzyiAi9gtMAAsl5/VJAwD7+fEmZ/dYnl5g05PnBeASWvrvAACxKm2ZZAXc83tZdXznO994DvxwbS8AcIf8hu+r/wA1HpL8n9AhVgAAAABJRU5ErkJggg==',
-                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAABD0lEQVR4nO2WQQ6CIBBFP+ruY3gQd8aDuFN3xoN4FRe4UJQZQayNceFLSELK/5k/LBTn3KXGT668BvAfYCDAfxe8PEJ1I3ifkoA0I1T1TgGA1tk5aN2tMcZu16VLa4zbntnluAaA1U6KiJZKO/cU9xSQijiXvxxg2517AEiJKQEQ818n/E827cJri8zI5w9Wmwuw5HsAPFZRDLqrE9u3ALCS7wVsWpl+BoCdA20p3KwFkGz/weBaSTPHx9NneBgVPchUGUTEfoENoFByXp80ALCfH29yDo/lYQU+fORxAJhCS/8dAIhVaU0kG+CW38umw3veeMNz4OcawHeAAfI7vtv/AESJr/+mUi4FAAAAAElFTkSuQmCC'
-            ],
-            dog: [
-                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAABEklEQVR4nO2WQQ6CIBBFP+ruY3gQd8aDuFN3xoN4FRe4EJQZQayNceFLSELK/5k/0Ipz7lLjJ6VfAfgP8JcA/13w8gjVjeB9SgLTjFDVOwUAWmfnoHW3xhi7XZcurTFue2aX4xoAVjspIloq7dxT3FNAKuJc/nKAbXfuASAlpgRAzH+d8D/ZtAuvLTIjnz9YbS7Aku8B8FhFMeiuTmzfAsBKvhewaaX6GQB2DrSlcLMWQLL9B4OrUpY5Pp4+w8Oo6EGmyiAi9gtMAIWS8/qkAYD9/HiTc3gsDyvw4SOPC8AUWvrfAYBYldZEsgFu+b1sOrznjTc8B36uAfwEGCDf8XX/FyBcfv2bMC8DAAAAAElFTkSuQmCC',
-                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAABEklEQVR4nO2WQRKCIBSAPzb7HMODODNHO0m70oPUSkdhRqEHLFS01saFX0JCyr+Zfyjo7PoU/tblLwJuBdwVcHsPvR6huhG8TQmgNUao6p0CAK2bc9C62bGuc9d16dIa4/Zn9jkuAWC1kySipRobexp4DkhFnMu/DLDtzj0ApMSUAIj5lxX/k0278NIiMxL5g9VmBSz5HgCPVRSD7urE9i0ArOR7AZtWZp4BYOdAW4pH6wEk2/8wuFbScny8/IaHUdGDTJVBROwfqAAKJafzpQOA+/7xR87psZxW4MNPXgeAKbT03wGAWJXWRLICbvm9bDq9581/PDf+/+f4LQCvNYCfAPfHN4Rv6R+JoKHFYAT4qgAAAABJRU5ErkJggg=='
-            ],
-            frog: [
-                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAA+0lEQVR4nO2WQQ6CQAxFf+PuY3gQd8aDuFN3xoN4FRdsiMy0MLAmxoV/skCSMu+/6TDWuXONn5T+BsB3gL8E+O+B50eoLgTvUxKwziJU9VYBgNbZOGjdrTHGbdelS2uM2x7Z5bgEgNWORERLJZ17insJSEWcy58OsO3OPQB2iekSEPN3K/4nm3bl6RfA6tGv75Kx2v8cxqWAXwDwWEUx6K5O6tcCeBsLUlNl9hkAlmLtIZytBZBs/0HuWkkzp8fTV3gYFV2QWWUQ+TtxAiiUnM8vHQC4748POYfHcrWAm5/8PABcQkt/BwCIVWnLJBvglt/LquMz73jjOfB1DaA1gC89rlGvMZJKBwAAAABJRU5ErkJggg==',
-                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAABCklEQVR4nO2WSxKCMBBEezbuPYYHcaccxLW6MR7Eq7jAhR+YSQISNcZFrxIqZF5ej6Odc6caPyn9DoD/AH8J8NcDz49QXQjep8xhWiMU9UYBgNbJOGjdjDFu2zVdGmPcds8uxxUArHYkIlqqbfeQ9xCQijiXvxxg2517AEiJKQEQ868z/iebduGpRWbk8werzQpY8j0AHqsoBt3Vce1bAFjJ9wI2rUw/A8DWgbYUbtYCSLb/YHBVyjKnx5NneBgVXZBZZRAR+wU2gIWS8/qkAYD9/HiTc3gsDy+w6cnzAnAJLf13AIBYlbZMsgHu+b1sOrzzjTc8B36uAfwEGCDf8X3+FyA0fp2bwvhNAAAAAElFTkSuQmCC'
-            ],
-            horse: [
-                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAABDklEQVR4nO2WQQ6CMBAF39LsPoYHcScewnW60R7Cq7jAhUD5bQGxJsbFpAkN7WfmT1tw1l1q/KT0NwA+A/wmwE8PPD5CdSB4n5LANiNU9UYBgNbFOWjdzRhj23XpMhjj9sguxyUArHYkIlqq7e4u7ikgFXEqfzrAlju3AJASUwQg5l9G/E827cJTi8zI5xdWmxRwlN8C4LGKYtBdHde+BYCVfC9g08r0MwBsHWgrcbMWQLL9C7lrJc2cHk+e4WFUdCCzyiAi9gtMAAsl5/VJAwD7+fEmZ/dYnl5g05PnBeASWvrvAACxKm2ZZAXc83tZdXznO994DvxwbS8AcIf8hu+r/wDlSJH8hQT/VAAAAABJRU5ErkJggg==',
-                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAABDUlEQVR4nO2WQRKCMAxF03TvMTyIM+NA3Kkb40G8igtciJQ0LZVRx4VvBhhI8pP/k5Zxzl1q/KT0OwD+A/wlwG8XvDxCdSN4n5LANktU9U4BgNbZOWjdrTHGbtelS2uM2x7Z5bgGgNVORERL5Zx7iHsJSEWcy58OsO3OPQCkxBQBiPnXGf+TTbvw0iAz8vmD1eYCLPkeAI9VFIPu6sT2LQCs5HsBm1aqnwFg60BbCndrASTbfzC4KmWZ4+PpMzyMih5kVhlExH6BDWCh5Lw+aQBgPz/e5Bwey8MKfPjI4wJwCS39dwCAWJXWRLICbvm9bDq+5403PAd+rgH8BBgg3+F1/xcAXHz9/2LbowAAAABJRU5ErkJggg=='
-            ],
-            ship: [
-                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAA7klEQVR4nO2WQQ6CQAxFf+PuY3gQd8aDuFN3xoN4FRdsGJlpGRgT4+IvSEJK+5n/y4hz7lTjJ6W/AvAf4C8B/rvg5RGqG8H7lASkGaGqdwoAtC7OQetuxxjbrkuX1hi3P7PL8RoAVjsRES2Vc+4h7iUgFXEufzrAtjv3AJASUwIg5l9n/E827cJLg8zI5w9WmxWw5HsAPFZRDLqrE9u3ALCS7wVsWpl+BoCdA20p3KwFkGz/weBaSTOnx9NneBgVPchUGUTEfoENYKHkvD5pAGA/P97kHB7Lwwp8+MjjAnAJLf13ACBWpTWRbIBbfi+bTu/5xhueA9/XAJoC+AIMnpEE/R/5EAAAAABJRU5ErkJggg==',
-                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAA80lEQVR4nO2WQQ7CIBBFf2P3HsODuDMexJ26Mx7Eq7jAhaWdoUCtiXHxJyRh4L/8nyHWuVONn5T+CsB/gL8E+O+Cl0eobgTvUxKQZoSq3ikA0Lo4B627HWNsuy5dWmPc/swux2sAWO1ERLRU2rmHuJeAVMS5/OkA2+7cA0BKTAmAmH+d8T/ZtAsvDTIjnz9YbVbAku8B8FhFMeiuTmzfAsBKvhewaaX6GQB2DrSlcLMWQLL9B4OrUpY5Pp4+w8Oo6EGmyiAi9gtsAAsl5/VJAwD7+fEm5/BYHlbgw0ceF4BLaOm/AwCxKq2JZAPc8nvZdHrPO294DnxfA2gK4APMYpIEqkkEXQAAAABJRU5ErkJggg=='
-            ],
-            truck: [
-                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAA+klEQVR4nO2WQQ6CMBBFf2P3HsODuDMexJ26Mx7Eq7hgQ2SmZWBNjItfSNKm/S//h4hz7lTjJ6W/AvAf4C8B/rvg5RGqG8H7lASkGaGqdwoAtC7OQetuxxjbrkuX1hi3P7PL8RoAVjsRES2Vc+4h7iUgFXEufzrAtjv3AJASUwIg5l9n/E827cJLg8zI5w9WmxWw5HsAPFZRDLqrE9u3ALCS7wVsWpl+BoCdA20p3KwFkGz/weBaSTOnx9NneBgVPchUGUTEfoENYKHkvD5pAGA/P97kHB7Lwwp8+MjjAnAJLf13ACBWpTWRbIBbfi+bTu/5xhueA9/XAP4FcE+D7JITy1GG1AAAAABJRU5ErkJggg==',
-                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAA/0lEQVR4nO2WQQ7CIBBFf2P3HsODuDMexJ26Mx7Eq7hgQ2SmZWBNjAtfSJLSfuZ/CMY5d6rxk9JfAfgP8JcA/13w8gjVjeB9SgLSjFDVOwUAWhfnoHW3Y4xt16VLa4zbn9nleA0Aq52IiJbKOfcQ9xKQijiXPx1g2517AEiJKQEQ868z/iebduGlQWbk8werzQpY8j0AHqsoBt3Vie1bAFjJ9wI2rVQ/A8DOgbYUbtYCSLb/YHBVyjLHx9NneBgVPchUGUTEfoENYKHkvD5pAGA/P97kHB7Lwwp8+MjjAnAJLf13ACBWpTWRbIBbfi+bTu95543/B3yuAfwLYE9+wyfgP9AQlxdD2wAAAABJRU5ErkJggg=='
+                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAABC0lEQVR4nO2WQQ6CMBREPzbuPYYHcacewnW60R7Cq7jAhUCZlgK1JsaFk5CEtPz/5k9LxTn/6PST0c8A/gP8JcB/Dzwf4XkheJ+SwDQj1PVOAYDWxTho3axzzm3XpEtrjNse2eV4DQBWOysiWiqdc09xLwGpiHP5ywG23bkHgJSYEgAx/3XE/2TTLrw0yIx8fmG1WQGb/A4Aj1UUg+7qJPYdAKzk+wCbVqafAWDrQFsKN2sBJNt/kLtW0szp8eQZHkZFF2RWGUTEfoEJYKHkvD5pAGA/P97k7B7LwwtsevK4AFxCS38HAGJVWjPJCrjn97Lq+J5z3vAc+L4G8BPgAfI7vtv/AESJr/+mUi4FAAAAAElFTkSuQmCC'
             ]
         };
 
-        // Get a random real CIFAR-10 image for a class
-        const getCIFARImage = (className) => {
-            const images = CIFAR10_IMAGES[className];
+        // Get a sample image for a class
+        const getClassImage = (className) => {
+            const images = CLASS_IMAGES[className];
             if (images && images.length > 0) {
                 return images[Math.floor(Math.random() * images.length)];
             }
-            // Fallback: generate a placeholder
             return generatePlaceholderImage(className);
         };
 
-        // Simple placeholder if no real image available
+        // Simple placeholder if no image available
         const generatePlaceholderImage = (className) => {
             const canvas = document.createElement('canvas');
             canvas.width = 32;
             canvas.height = 32;
             const ctx = canvas.getContext('2d');
-            const colors = { airplane: '#87CEEB', automobile: '#DC143C', bird: '#FFD700', cat: '#D2691E', deer: '#8B4513', dog: '#D2B48C', frog: '#32CD32', horse: '#8B4513', ship: '#4169E1', truck: '#FF6347' };
-            ctx.fillStyle = colors[className] || '#888';
+            ctx.fillStyle = CLASS_COLORS[className] || '#888';
             ctx.fillRect(0, 0, 32, 32);
-            ctx.fillStyle = 'rgba(0,0,0,0.3)';
-            ctx.font = '10px sans-serif';
+            ctx.fillStyle = 'rgba(255,255,255,0.9)';
+            ctx.font = '18px sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText(className.slice(0,4), 16, 20);
+            ctx.fillText(CLASS_EMOJIS[className] || '?', 16, 24);
             return canvas.toDataURL();
         };
 
@@ -1190,12 +1162,13 @@
             }, []);
 
             useEffect(() => {
-                const samples = CIFAR10_CLASSES.slice(0, 8).map(cls => ({
-                    imageData: getCIFARImage(cls),
-                    trueLabel: cls,
-                    predictedLabel: cls
-                }));
-                setSampleImages(samples);
+                // Create sample images for each class (multiple samples per class for variety)
+                const samples = [];
+                CLASSES.forEach(cls => {
+                    samples.push({ imageData: getClassImage(cls), trueLabel: cls, predictedLabel: cls });
+                    samples.push({ imageData: getClassImage(cls), trueLabel: cls, predictedLabel: cls });
+                });
+                setSampleImages(samples.slice(0, 6)); // Show 6 samples (2 per class)
             }, []);
 
             const calculateParams = useMemo(() => {
@@ -1288,7 +1261,7 @@
                             if (status.sample_predictions) {
                                 const results = sampleImages.map((img, idx) => ({
                                     ...img,
-                                    predictedLabel: CIFAR10_CLASSES[status.sample_predictions[idx]?.predicted || 0]
+                                    predictedLabel: CLASSES[status.sample_predictions[idx]?.predicted || 0]
                                 }));
                                 setClassificationResults(results);
                             }
@@ -1387,7 +1360,7 @@
 
                             <div className="control-group">
                                 <div className="control-label">
-                                    <span>Training Samples (CIFAR-10)</span>
+                                    <span>Training Samples (🐻🦁🐯)</span>
                                     <span className="control-value">{config.numSamples.toLocaleString()}</span>
                                 </div>
                                 <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
@@ -1514,7 +1487,7 @@
 
                     <div className="grid-2" style={{ marginTop: '1.5rem' }}>
                         <div className="section-card">
-                            <div className="section-title">🖼️ Training Samples (CIFAR-10)</div>
+                            <div className="section-title">🖼️ Training Samples (Bears, Lions, Tigers)</div>
                             <div className="grid-4">
                                 {sampleImages.map((img, idx) => (
                                     <SampleImage key={idx} imageData={img.imageData} trueLabel={img.trueLabel} predictedLabel={img.trueLabel} showResult={false} />
@@ -1673,293 +1646,289 @@
             );
         };
 
-        // Live Classification Tab with Webcam
-        const ClassifyImageTab = () => {
-            const { modelState } = useContext(ModelContext);
-            const { config, trainingHistory, isModelTrained } = modelState;
-
-            const [inputMode, setInputMode] = useState('webcam');
-            const [isWebcamActive, setIsWebcamActive] = useState(false);
-            const [capturedImage, setCapturedImage] = useState(null);
-            const [isClassifying, setIsClassifying] = useState(false);
-            const [prediction, setPrediction] = useState(null);
-            const [webcamError, setWebcamError] = useState(null);
-
+        // Facial Expression Recognition Tab
+        const FacialExpressionTab = () => {
+            const [isModelLoaded, setIsModelLoaded] = useState(false);
+            const [isLoading, setIsLoading] = useState(true);
+            const [loadingStatus, setLoadingStatus] = useState('Loading face detection models...');
+            const [isRunning, setIsRunning] = useState(false);
+            const [expressions, setExpressions] = useState(null);
+            const [error, setError] = useState(null);
+            
             const videoRef = useRef(null);
             const canvasRef = useRef(null);
             const streamRef = useRef(null);
-            const fileInputRef = useRef(null);
-
-            const modelAccuracy = trainingHistory.length > 0 ? trainingHistory[trainingHistory.length - 1].valAcc / 100 : 0;
-
-            const startWebcam = async () => {
+            const animationRef = useRef(null);
+            
+            const expressionEmojis = {
+                neutral: '😐',
+                happy: '😊',
+                sad: '😢',
+                angry: '😠',
+                fearful: '😨',
+                disgusted: '🤢',
+                surprised: '😲'
+            };
+            
+            const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model';
+            
+            // Load models on mount
+            useEffect(() => {
+                const loadModels = async () => {
+                    try {
+                        setLoadingStatus('Loading face detection model...');
+                        await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+                        
+                        setLoadingStatus('Loading expression recognition model...');
+                        await faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL);
+                        
+                        setIsModelLoaded(true);
+                        setIsLoading(false);
+                        setLoadingStatus('Models loaded! Click "Start Camera" to begin.');
+                    } catch (err) {
+                        console.error('Error loading models:', err);
+                        setError('Failed to load face detection models. Please refresh the page.');
+                        setIsLoading(false);
+                    }
+                };
+                
+                loadModels();
+                
+                return () => {
+                    stopCamera();
+                };
+            }, []);
+            
+            const startCamera = async () => {
                 try {
-                    setWebcamError(null);
+                    setError(null);
                     const stream = await navigator.mediaDevices.getUserMedia({
-                        video: { width: 640, height: 480, facingMode: 'environment' }
+                        video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' }
                     });
+                    
                     streamRef.current = stream;
                     if (videoRef.current) {
                         videoRef.current.srcObject = stream;
-                        videoRef.current.play();
+                        videoRef.current.onloadedmetadata = () => {
+                            if (canvasRef.current) {
+                                canvasRef.current.width = videoRef.current.videoWidth;
+                                canvasRef.current.height = videoRef.current.videoHeight;
+                            }
+                            setIsRunning(true);
+                            detectExpressions();
+                        };
                     }
-                    setIsWebcamActive(true);
                 } catch (err) {
-                    console.error('Webcam error:', err);
-                    setWebcamError('Could not access webcam. Please ensure camera permissions are granted.');
+                    console.error('Camera error:', err);
+                    setError('Could not access camera. Please allow camera permissions.');
                 }
             };
-
-            const stopWebcam = () => {
+            
+            const stopCamera = () => {
+                setIsRunning(false);
+                if (animationRef.current) {
+                    cancelAnimationFrame(animationRef.current);
+                    animationRef.current = null;
+                }
                 if (streamRef.current) {
                     streamRef.current.getTracks().forEach(track => track.stop());
                     streamRef.current = null;
                 }
-                setIsWebcamActive(false);
-            };
-
-            const captureImage = () => {
-                if (!videoRef.current || !canvasRef.current) return;
-
-                const video = videoRef.current;
-                const canvas = canvasRef.current;
-                const ctx = canvas.getContext('2d');
-
-                // Set canvas size to match bounding box (square, centered)
-                const boxSize = Math.min(video.videoWidth, video.videoHeight) * 0.6;
-                canvas.width = boxSize;
-                canvas.height = boxSize;
-
-                // Calculate crop area (center of video)
-                const sx = (video.videoWidth - boxSize) / 2;
-                const sy = (video.videoHeight - boxSize) / 2;
-
-                // Mirror the image (since video is mirrored)
-                ctx.translate(boxSize, 0);
-                ctx.scale(-1, 1);
-                ctx.drawImage(video, sx, sy, boxSize, boxSize, 0, 0, boxSize, boxSize);
-
-                const imageData = canvas.toDataURL('image/jpeg', 0.9);
-                setCapturedImage(imageData);
-                stopWebcam();
-            };
-
-            const handleFileUpload = (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => setCapturedImage(e.target.result);
-                    reader.readAsDataURL(file);
+                if (canvasRef.current) {
+                    const ctx = canvasRef.current.getContext('2d');
+                    ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
                 }
+                setExpressions(null);
             };
-
-            const classifyImage = async () => {
-                if (!isModelTrained) return;
-
-                setIsClassifying(true);
-                await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 500));
-
-                // Generate predictions based on trained model accuracy
-                const predictions = CIFAR10_CLASSES.map(cls => ({
-                    class: cls,
-                    confidence: Math.random()
-                }));
-
-                // Normalize
-                const sum = predictions.reduce((a, b) => a + b.confidence, 0);
-                predictions.forEach(p => p.confidence = p.confidence / sum);
-                predictions.sort((a, b) => b.confidence - a.confidence);
-
-                // Adjust confidence based on model accuracy
-                const topConfidence = 0.4 + (modelAccuracy * 0.5) + Math.random() * 0.1;
-                predictions[0].confidence = topConfidence;
-
-                const remaining = 1 - topConfidence;
-                for (let i = 1; i < predictions.length; i++) {
-                    predictions[i].confidence = remaining * (predictions.length - i) / ((predictions.length - 1) * predictions.length / 2);
-                }
-
-                setPrediction(predictions);
-                setIsClassifying(false);
-            };
-
-            const resetCapture = () => {
-                setCapturedImage(null);
-                setPrediction(null);
-                if (fileInputRef.current) fileInputRef.current.value = '';
-            };
-
-            useEffect(() => {
-                return () => stopWebcam();
-            }, []);
-
-            useEffect(() => {
-                if (inputMode === 'webcam' && !capturedImage) {
-                    startWebcam();
+            
+            const detectExpressions = async () => {
+                if (!videoRef.current || !canvasRef.current || !isModelLoaded) return;
+                
+                const detections = await faceapi
+                    .detectAllFaces(videoRef.current, new faceapi.TinyFaceDetectorOptions())
+                    .withFaceExpressions();
+                
+                const ctx = canvasRef.current.getContext('2d');
+                ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+                
+                if (detections.length > 0) {
+                    // Draw face boxes
+                    detections.forEach(detection => {
+                        const box = detection.detection.box;
+                        ctx.strokeStyle = '#2774AE';
+                        ctx.lineWidth = 3;
+                        ctx.strokeRect(box.x, box.y, box.width, box.height);
+                        
+                        // Draw expression label above box
+                        const sorted = Object.entries(detection.expressions).sort((a, b) => b[1] - a[1]);
+                        const [topExpr, topConf] = sorted[0];
+                        const label = `${expressionEmojis[topExpr]} ${topExpr} (${(topConf * 100).toFixed(0)}%)`;
+                        
+                        ctx.fillStyle = '#2774AE';
+                        ctx.fillRect(box.x, box.y - 25, ctx.measureText(label).width + 16, 22);
+                        ctx.fillStyle = 'white';
+                        ctx.font = '14px Inter, sans-serif';
+                        ctx.fillText(label, box.x + 8, box.y - 8);
+                    });
+                    
+                    setExpressions(detections[0].expressions);
                 } else {
-                    stopWebcam();
+                    setExpressions(null);
                 }
-            }, [inputMode, capturedImage]);
-
+                
+                if (streamRef.current) {
+                    animationRef.current = requestAnimationFrame(detectExpressions);
+                }
+            };
+            
+            const sortedExpressions = expressions 
+                ? Object.entries(expressions).sort((a, b) => b[1] - a[1])
+                : null;
+            
+            const topExpression = sortedExpressions ? sortedExpressions[0] : null;
+            
             return (
                 <div>
-                    {/* Model Status */}
-                    <div className={`model-status ${isModelTrained ? 'trained' : 'not-trained'}`}>
-                        <div className="model-status-icon">{isModelTrained ? '✓' : '⚠️'}</div>
-                        <div className="model-status-text">
-                            <div className="model-status-title">
-                                {isModelTrained ? 'Model Ready' : 'No Model Trained'}
-                            </div>
-                            <div className="model-status-desc">
-                                {isModelTrained
-                                    ? `${config.convBlocks} conv blocks, ${config.filters} base filters, ${(modelAccuracy * 100).toFixed(1)}% validation accuracy`
-                                    : 'Go to CNN Builder tab to train a model first'}
-                            </div>
-                        </div>
-                    </div>
-
                     <div className="grid-2">
                         <div className="section-card">
-                            <div className="section-title">📷 Capture Image</div>
-
-                            <div className="input-mode-toggle">
-                                <button className={`input-mode-btn ${inputMode === 'webcam' ? 'active' : ''}`}
-                                    onClick={() => { setInputMode('webcam'); resetCapture(); }}>
-                                    📹 Webcam
-                                </button>
-                                <button className={`input-mode-btn ${inputMode === 'upload' ? 'active' : ''}`}
-                                    onClick={() => { setInputMode('upload'); resetCapture(); }}>
-                                    📁 Upload
-                                </button>
+                            <div className="section-title">📹 Live Camera Feed</div>
+                            
+                            <div style={{ position: 'relative', width: '100%', borderRadius: '8px', overflow: 'hidden', background: '#000' }}>
+                                <video 
+                                    ref={videoRef} 
+                                    autoPlay 
+                                    muted 
+                                    playsInline
+                                    style={{ width: '100%', display: 'block', transform: 'scaleX(-1)' }}
+                                />
+                                <canvas 
+                                    ref={canvasRef}
+                                    style={{ 
+                                        position: 'absolute', 
+                                        top: 0, 
+                                        left: 0, 
+                                        width: '100%', 
+                                        height: '100%',
+                                        transform: 'scaleX(-1)'
+                                    }}
+                                />
+                                {!isRunning && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: 0, left: 0, right: 0, bottom: 0,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        background: 'rgba(0,0,0,0.7)',
+                                        color: 'white',
+                                        fontSize: '1.2rem'
+                                    }}>
+                                        {isLoading ? '⏳ Loading models...' : '📷 Camera not started'}
+                                    </div>
+                                )}
                             </div>
-
-                            {inputMode === 'webcam' ? (
-                                capturedImage ? (
-                                    <div style={{ textAlign: 'center' }}>
-                                        <img src={capturedImage} alt="Captured" className="captured-image" style={{ maxHeight: '300px' }} />
-                                        <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                                            <button className="option-btn" onClick={resetCapture}>📷 Retake</button>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="webcam-container">
-                                        {webcamError ? (
-                                            <div style={{ padding: '3rem', textAlign: 'center', color: '#e74c3c' }}>
-                                                <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>📷</div>
-                                                {webcamError}
-                                                <button className="option-btn" style={{ marginTop: '1rem' }} onClick={startWebcam}>Try Again</button>
-                                            </div>
-                                        ) : (
-                                            <>
-                                                <video ref={videoRef} className="webcam-video" autoPlay playsInline muted />
-                                                <div className="webcam-overlay">
-                                                    <div className="bounding-box" style={{ width: '60%', height: '60%' }}>
-                                                        <div className="bounding-box-label">Place object here</div>
-                                                    </div>
-                                                </div>
-                                            </>
-                                        )}
-                                    </div>
-                                )
-                            ) : (
-                                <div>
-                                    <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} />
-                                    {capturedImage ? (
-                                        <div style={{ textAlign: 'center' }}>
-                                            <img src={capturedImage} alt="Uploaded" className="captured-image" style={{ maxHeight: '300px' }} />
-                                            <div style={{ marginTop: '1rem' }}>
-                                                <button className="option-btn" onClick={resetCapture}>Choose Different Image</button>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div onClick={() => fileInputRef.current?.click()}
-                                            style={{
-                                                border: '2px dashed rgba(39,116,174,0.3)', borderRadius: '12px',
-                                                padding: '3rem', textAlign: 'center', cursor: 'pointer',
-                                                background: 'rgba(39,116,174,0.02)'
-                                            }}>
-                                            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📁</div>
-                                            <div style={{ color: '#666' }}>Click to upload an image</div>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            <canvas ref={canvasRef} style={{ display: 'none' }} />
-
-                            {inputMode === 'webcam' && isWebcamActive && !capturedImage && (
-                                <button className="run-button" style={{ marginTop: '1rem' }} onClick={captureImage}>
-                                    📸 Capture Photo
-                                </button>
-                            )}
-
-                            {capturedImage && (
-                                <button className="run-button" style={{ marginTop: '1rem' }}
-                                    onClick={classifyImage} disabled={isClassifying || !isModelTrained}>
-                                    {isClassifying ? <><div className="loading-spinner" /> Classifying...</>
-                                        : !isModelTrained ? '⚠️ Train Model First'
-                                        : '🔍 Classify with Your Model'}
-                                </button>
-                            )}
+                            
+                            <div style={{
+                                marginTop: '1rem',
+                                padding: '0.75rem 1rem',
+                                background: isLoading ? '#fff3cd' : error ? '#f8d7da' : isRunning ? '#d4edda' : '#f8f9fa',
+                                borderRadius: '8px',
+                                fontSize: '0.85rem',
+                                color: isLoading ? '#856404' : error ? '#721c24' : isRunning ? '#155724' : '#666'
+                            }}>
+                                {error || loadingStatus}
+                            </div>
+                            
+                            <button 
+                                className="run-button" 
+                                style={{ marginTop: '1rem' }}
+                                onClick={isRunning ? stopCamera : startCamera}
+                                disabled={isLoading || !!error}
+                            >
+                                {isRunning ? '⏹️ Stop Camera' : '▶️ Start Camera'}
+                            </button>
                         </div>
-
+                        
                         <div className="section-card">
-                            <div className="section-title">🎯 Classification Results</div>
-
-                            {prediction ? (
+                            <div className="section-title">🎯 Expression Detection</div>
+                            
+                            {sortedExpressions && topExpression ? (
                                 <>
-                                    <div className="prediction-result">
-                                        <div className="prediction-class">{prediction[0].class}</div>
-                                        <div className="prediction-confidence">
-                                            Confidence: {(prediction[0].confidence * 100).toFixed(1)}%
+                                    <div style={{ textAlign: 'center', padding: '1.5rem' }}>
+                                        <div style={{ fontSize: '4rem', marginBottom: '0.5rem' }}>
+                                            {expressionEmojis[topExpression[0]]}
+                                        </div>
+                                        <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#2774AE', textTransform: 'capitalize' }}>
+                                            {topExpression[0]}
+                                        </div>
+                                        <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '0.25rem' }}>
+                                            {(topExpression[1] * 100).toFixed(1)}% confidence
                                         </div>
                                     </div>
-
-                                    <div className="confidence-bars">
-                                        {prediction.slice(0, 5).map((p, idx) => (
-                                            <div key={idx} className="confidence-bar-item">
-                                                <div className="confidence-bar-label">{p.class}</div>
+                                    
+                                    <div style={{ marginTop: '1rem' }}>
+                                        {sortedExpressions.map(([expr, conf], idx) => (
+                                            <div key={expr} className="confidence-bar-item">
+                                                <div className="confidence-bar-label" style={{ width: '100px' }}>
+                                                    {expressionEmojis[expr]} {expr}
+                                                </div>
                                                 <div className="confidence-bar-track">
-                                                    <div className="confidence-bar-fill" style={{ width: `${Math.max(p.confidence * 100, 5)}%` }}>
-                                                        {(p.confidence * 100).toFixed(1)}%
+                                                    <div 
+                                                        className="confidence-bar-fill" 
+                                                        style={{ 
+                                                            width: `${Math.max(conf * 100, 2)}%`,
+                                                            background: idx === 0 ? '#2774AE' : '#94a3b8'
+                                                        }}
+                                                    >
+                                                        {conf > 0.1 ? `${(conf * 100).toFixed(0)}%` : ''}
                                                     </div>
                                                 </div>
                                             </div>
                                         ))}
                                     </div>
-
-                                    <div style={{ marginTop: '1.5rem', padding: '1rem', background: '#f8f9fa', borderRadius: '10px', fontSize: '0.85rem', color: '#666' }}>
-                                        <strong>Your Model:</strong> {config.convBlocks} conv blocks, {config.filters} base filters, {config.batchNorm ? 'with' : 'without'} batch norm
-                                        <br />
-                                        <strong>Model Accuracy:</strong> {(modelAccuracy * 100).toFixed(1)}% on validation set
-                                    </div>
                                 </>
                             ) : (
                                 <div style={{ textAlign: 'center', padding: '3rem', color: '#888' }}>
                                     <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>
-                                        {isModelTrained ? '🖼️' : '⚙️'}
+                                        {isRunning ? '🔍' : '👤'}
                                     </div>
-                                    {isModelTrained
-                                        ? 'Capture or upload an image to classify'
-                                        : 'Train a model in the CNN Builder tab first'}
+                                    {isRunning 
+                                        ? 'No face detected — make sure your face is visible'
+                                        : 'Start the camera to detect expressions'}
                                 </div>
                             )}
                         </div>
                     </div>
-
+                    
                     <div className="section-card" style={{ marginTop: '1.5rem' }}>
-                        <div className="section-title">ℹ️ How This Works</div>
+                        <div className="section-title">🧠 How This Works — It's a CNN!</div>
                         <div style={{ color: '#666', fontSize: '0.9rem', lineHeight: 1.8 }}>
                             <p>
-                                This demo uses <strong>your trained CNN model</strong> from the CNN Builder tab to classify images.
-                                The classification confidence reflects your model's architecture and training accuracy.
+                                This demo uses a <strong>Convolutional Neural Network</strong> running directly in your browser!
+                                The same architecture concepts we learned about in class power this real-time emotion detection.
                             </p>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+                                <div style={{ padding: '1rem', background: '#f8f9fa', borderRadius: '8px' }}>
+                                    <strong style={{ color: '#2774AE' }}>🔍 Face Detection</strong>
+                                    <p style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}>
+                                        SSD MobileNet (CNN) locates faces in the image using convolutional layers + bounding box regression.
+                                    </p>
+                                </div>
+                                <div style={{ padding: '1rem', background: '#f8f9fa', borderRadius: '8px' }}>
+                                    <strong style={{ color: '#2774AE' }}>😊 Expression Recognition</strong>
+                                    <p style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}>
+                                        Depthwise separable convolutions + dense blocks classify the cropped face into 7 emotions.
+                                    </p>
+                                </div>
+                                <div style={{ padding: '1rem', background: '#f8f9fa', borderRadius: '8px' }}>
+                                    <strong style={{ color: '#2774AE' }}>📦 Model Size</strong>
+                                    <p style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}>
+                                        Only ~310KB! Efficient architecture allows real-time inference in the browser.
+                                    </p>
+                                </div>
+                            </div>
                             <p style={{ marginTop: '1rem' }}>
-                                <strong>Try experimenting:</strong> Train models with different architectures (more conv blocks, different filter sizes)
-                                and see how the classification confidence changes!
-                            </p>
-                            <p style={{ marginTop: '1rem' }}>
-                                <strong>CIFAR-10 Classes:</strong> airplane, automobile, bird, cat, deer, dog, frog, horse, ship, truck
+                                <strong>Detected Expressions:</strong> 😐 Neutral · 😊 Happy · 😢 Sad · 😠 Angry · 😨 Fearful · 🤢 Disgusted · 😲 Surprised
                             </p>
                         </div>
                     </div>
@@ -1988,7 +1957,7 @@
             const tabs = [
                 { id: 'cnn', label: '🏗️ CNN Builder' },
                 { id: 'transfer', label: '🔄 Transfer Learning' },
-                { id: 'classify', label: '📷 Live Classification' }
+                { id: 'expression', label: '😊 Expression Recognition' }
             ];
 
             return (
@@ -1998,8 +1967,8 @@
                             <div className="header-content">
                                 <div className="header-left">
                                     <div className="course-label">MGMT298D: Science and Strategy of AI</div>
-                                    <h1>Week 6: CNNs and Transfer Learning</h1>
-                                    <p>Exploring convolutional neural networks and pre-trained models</p>
+                                    <h1>Week 6: CNNs — Lions, Tigers & Bears! 🐻🦁🐯</h1>
+                                    <p>Train a CNN to classify animals from CIFAR-100</p>
                                 </div>
                                 <div className="header-right">
                                     <span className="ucla-anderson">UCLA Anderson</span>
@@ -2014,7 +1983,6 @@
                                     className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
                                     onClick={() => setActiveTab(tab.id)}>
                                     {tab.label}
-                                    {tab.id === 'classify' && isModelTrained && <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem' }}>✓</span>}
                                 </button>
                             ))}
                         </nav>
@@ -2022,7 +1990,7 @@
                         <main className="main-content">
                             {activeTab === 'cnn' && <CNNBuilderTab />}
                             {activeTab === 'transfer' && <TransferLearningTab />}
-                            {activeTab === 'classify' && <ClassifyImageTab />}
+                            {activeTab === 'expression' && <FacialExpressionTab />}
                         </main>
 
                         <div className="footer">
