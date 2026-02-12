@@ -1433,9 +1433,9 @@
                             <button className="run-button" onClick={runTraining} disabled={isTraining || backendStatus !== 'connected'}>
                                 {isTraining ? <><div className="loading-spinner" /> {trainingStatus}</> : <>▶ Train CNN (Python/Keras)</>}
                             </button>
-                            {isModelTrained && trainedFilters && (
+                            {isModelTrained && testAccuracy && (
                                 <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#4CAF50' }}>
-                                    ✓ Model trained{testAccuracy ? ` — Test Accuracy: ${testAccuracy.toFixed(1)}%` : ''} — scroll down to see actual learned filters
+                                    ✓ Model trained — Test Accuracy: {testAccuracy.toFixed(1)}%
                                 </div>
                             )}
                         </div>
@@ -1510,31 +1510,6 @@
                         </div>
                     </div>
 
-                    <div className="section-card" style={{ marginTop: '1.5rem' }}>
-                        <div className="section-title">What CNNs Learn: Actual Trained Filters</div>
-                        <div className="filter-layer">
-                            <div className="filter-layer-title">Layer 1: Edge Detectors <span className="filter-layer-subtitle">— Low-level features (RGB weights)</span></div>
-                            <FilterVisualization layer={1} trainedFilters={trainedFilters} />
-                        </div>
-                        {config.convBlocks >= 2 && (
-                            <div className="filter-layer">
-                                <div className="filter-layer-title">Layer 2: Texture Patterns <span className="filter-layer-subtitle">— Combinations of edges</span></div>
-                                <FilterVisualization layer={2} trainedFilters={trainedFilters} />
-                            </div>
-                        )}
-                        {config.convBlocks >= 3 && (
-                            <div className="filter-layer">
-                                <div className="filter-layer-title">Layer 3: Object Parts <span className="filter-layer-subtitle">— Higher-level features</span></div>
-                                <FilterVisualization layer={3} trainedFilters={trainedFilters} />
-                            </div>
-                        )}
-                        {config.convBlocks >= 4 && (
-                            <div className="filter-layer">
-                                <div className="filter-layer-title">Layer 4: Complex Features <span className="filter-layer-subtitle">— Abstract representations</span></div>
-                                <FilterVisualization layer={4} trainedFilters={trainedFilters} />
-                            </div>
-                        )}
-                    </div>
                 </div>
             );
         };
