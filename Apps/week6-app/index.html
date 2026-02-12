@@ -722,8 +722,8 @@
                             y: {
                                 title: { display: true, text: 'Loss', color: '#666' },
                                 min: 0,
-                                max: 6,
-                                ticks: { color: '#666', stepSize: 1 },
+                                max: 2,
+                                ticks: { color: '#666', stepSize: 0.5 },
                                 grid: { color: 'rgba(0,0,0,0.05)' }
                             }
                         }
@@ -1228,10 +1228,10 @@
                     const { session_id } = await response.json();
                     setSessionId(session_id);
 
-                    // Poll for progress
+                    // Poll for progress - check every 200ms for smoother per-epoch updates
                     let complete = false;
                     while (!complete) {
-                        await new Promise(r => setTimeout(r, 500));
+                        await new Promise(r => setTimeout(r, 200));
 
                         const statusRes = await fetch(`${API_BASE_URL}/api/train/${session_id}`);
                         const status = await statusRes.json();
@@ -1309,7 +1309,7 @@
                                     <span>Convolutional Blocks</span>
                                     <span className="control-value">{config.convBlocks}</span>
                                 </div>
-                                <input type="range" className="slider" min="1" max="3" value={config.convBlocks}
+                                <input type="range" className="slider" min="1" max="5" value={config.convBlocks}
                                     onChange={(e) => setConfig({...config, convBlocks: parseInt(e.target.value)})} />
                             </div>
 

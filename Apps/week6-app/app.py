@@ -28,7 +28,7 @@ CORS(app)
 # ============================================
 # Configuration - OPTIMIZED FOR 80 STUDENTS
 # ============================================
-MAX_CONCURRENT_TRAININGS = 15
+MAX_CONCURRENT_TRAININGS = 30
 SESSION_TIMEOUT_MINUTES = 15
 CLEANUP_INTERVAL_SECONDS = 30
 
