@@ -17,7 +17,6 @@ import uuid
 # Set TensorFlow to CPU only and reduce logging BEFORE importing
 os.environ['CUDA_VISIBLE_DEVICES'] = ''
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-os.environ['TF_USE_LEGACY_KERAS'] = '1'  # Use Keras 2 for transformers compatibility
 
 app = Flask(__name__)
 CORS(app)
@@ -885,7 +884,15 @@ def finetune_pretrained():
 
     except Exception as e:
         import traceback
-        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
+        error_msg = str(e)
+        error_trace = traceback.format_exc()
+        print(f"Error in finetune endpoint: {error_msg}")
+        print(error_trace)
+        return jsonify({
+            'error': error_msg, 
+            'traceback': error_trace,
+            'details': 'Check server logs for more information'
+        }), 500
 
 
 @app.route('/api/stats', methods=['GET'])
