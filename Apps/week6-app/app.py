@@ -13,6 +13,9 @@ from collections import deque
 from datetime import datetime, timedelta
 import threading
 import uuid
+import base64
+from io import BytesIO
+from PIL import Image
 
 # Set TensorFlow to CPU only and reduce logging BEFORE importing
 os.environ['CUDA_VISIBLE_DEVICES'] = ''
@@ -69,6 +72,26 @@ _keras = None
 _layers = None
 
 
+def image_array_to_base64(img_array):
+    """Convert numpy array (32x32x3, normalized 0-1) to base64 data URL"""
+    # Convert from float [0,1] to uint8 [0,255]
+    img_uint8 = (img_array * 255).astype(np.uint8)
+
+    # Create PIL Image
+    img = Image.fromarray(img_uint8, mode='RGB')
+
+    # Save to BytesIO buffer as PNG
+    buffer = BytesIO()
+    img.save(buffer, format='PNG')
+    buffer.seek(0)
+
+    # Encode to base64
+    img_base64 = base64.b64encode(buffer.read()).decode('utf-8')
+
+    # Return as data URL
+    return f'data:image/png;base64,{img_base64}'
+
+
 def load_tensorflow():
     """Lazy load TensorFlow"""
     global _tf_loaded, _tf, _keras, _layers
@@ -77,11 +100,11 @@ def load_tensorflow():
 
     print("Loading TensorFlow...")
     import tensorflow as tf
-    
+
     # Limit TensorFlow memory and threads for better concurrent performance
     tf.config.threading.set_intra_op_parallelism_threads(2)
     tf.config.threading.set_inter_op_parallelism_threads(2)
-    
+
     from tensorflow import keras
     from tensorflow.keras import layers
     _tf = tf
@@ -362,7 +385,8 @@ def train_model_async(session_id, config):
                     sample_predictions.append({
                         'true': int(_Y_TEST[idx]),
                         'predicted': int(np.argmax(pred)),
-                        'confidence': float(np.max(pred))
+                        'confidence': float(np.max(pred)),
+                        'imageData': image_array_to_base64(_X_TEST[idx])
                     })
 
         session['sample_predictions'] = sample_predictions[:8]  # Limit to 8
@@ -532,6 +556,30 @@ def get_classes():
         'classes': CLASS_NAMES,
         'num_classes': NUM_CLASSES,
         'dataset': 'CIFAR-100 subset'
+    })
+
+
+@app.route('/api/sample-images', methods=['GET'])
+def get_sample_images():
+    """Get sample training images for each class"""
+    load_data()
+
+    sample_images = []
+    for class_idx in range(NUM_CLASSES):
+        class_train_indices = np.where(_Y_TRAIN == class_idx)[0]
+        if len(class_train_indices) > 0:
+            # Get 2 examples per class
+            selected = np.random.choice(class_train_indices, size=min(2, len(class_train_indices)), replace=False)
+            for idx in selected:
+                sample_images.append({
+                    'imageData': image_array_to_base64(_X_TRAIN[idx]),
+                    'className': CLASS_NAMES[class_idx],
+                    'classIndex': int(class_idx)
+                })
+
+    return jsonify({
+        'samples': sample_images,
+        'classes': CLASS_NAMES
     })
 
 

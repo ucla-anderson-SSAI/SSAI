@@ -1156,13 +1156,31 @@
             }, []);
 
             useEffect(() => {
-                // Create sample images for each class (multiple samples per class for variety)
-                const samples = [];
-                CLASSES.forEach(cls => {
-                    samples.push({ imageData: getClassImage(cls), trueLabel: cls, predictedLabel: cls });
-                    samples.push({ imageData: getClassImage(cls), trueLabel: cls, predictedLabel: cls });
-                });
-                setSampleImages(samples.slice(0, 6)); // Show 6 samples (2 per class)
+                // Fetch actual sample images from backend
+                const fetchSampleImages = async () => {
+                    try {
+                        const response = await fetch('/api/sample-images');
+                        const data = await response.json();
+                        if (data.samples) {
+                            const samples = data.samples.map(sample => ({
+                                imageData: sample.imageData,
+                                trueLabel: sample.className,
+                                predictedLabel: sample.className
+                            }));
+                            setSampleImages(samples);
+                        }
+                    } catch (error) {
+                        console.error('Error fetching sample images:', error);
+                        // Fallback to placeholder images
+                        const samples = [];
+                        CLASSES.forEach(cls => {
+                            samples.push({ imageData: getClassImage(cls), trueLabel: cls, predictedLabel: cls });
+                            samples.push({ imageData: getClassImage(cls), trueLabel: cls, predictedLabel: cls });
+                        });
+                        setSampleImages(samples.slice(0, 6));
+                    }
+                };
+                fetchSampleImages();
             }, []);
 
             const calculateParams = useMemo(() => {
@@ -1250,11 +1268,12 @@
                                 setTestAccuracy(status.test_accuracy);
                             }
 
-                            // Set predictions
+                            // Set predictions - use actual images from backend
                             if (status.sample_predictions) {
-                                const results = sampleImages.map((img, idx) => ({
-                                    ...img,
-                                    predictedLabel: CLASSES[status.sample_predictions[idx]?.predicted || 0]
+                                const results = status.sample_predictions.map(pred => ({
+                                    imageData: pred.imageData,
+                                    trueLabel: CLASSES[pred.true],
+                                    predictedLabel: CLASSES[pred.predicted]
                                 }));
                                 setClassificationResults(results);
                             }
