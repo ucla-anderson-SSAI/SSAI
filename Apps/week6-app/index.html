@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Week 6: CNNs - Lions, Tigers & Bears | UCLA Anderson MGMT298D</title>
+    <title>Week 6: Convolutional Neural Networks | UCLA Anderson MGMT298D</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -557,7 +557,6 @@
 
         // Lions, Tigers, and Bears - Oh My! (CIFAR-100 subset)
         const CLASSES = ['bear', 'lion', 'tiger'];
-        const CLASS_EMOJIS = { bear: '🐻', lion: '🦁', tiger: '🐯' };
         const CLASS_COLORS = { bear: '#8B4513', lion: '#DAA520', tiger: '#FF8C00' };
 
         // Sample images for the animals (placeholder)
@@ -594,9 +593,9 @@
             ctx.fillStyle = CLASS_COLORS[className] || '#888';
             ctx.fillRect(0, 0, 32, 32);
             ctx.fillStyle = 'rgba(255,255,255,0.9)';
-            ctx.font = '18px sans-serif';
+            ctx.font = '10px sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText(CLASS_EMOJIS[className] || '?', 16, 24);
+            ctx.fillText(className.slice(0,4), 16, 20);
             return canvas.toDataURL();
         };
 
@@ -957,11 +956,6 @@
                     result.push({ type: 'Conv', x, h, w, d, color: colors.conv, label: `Conv${i+1}` });
                     x += w + 18;
 
-                    if (config.batchNorm) {
-                        result.push({ type: 'BN', x, h: h - 6, w: 10, d: 8, color: colors.bn });
-                        x += 24;
-                    }
-
                     result.push({ type: 'ReLU', x, h: h - 10, w: 14, d: 8, color: colors.relu });
                     x += 30;
 
@@ -1176,12 +1170,11 @@
                 for (let i = 0; i < config.convBlocks; i++) {
                     const outputChannels = config.filters * Math.pow(2, Math.min(i, 2));
                     params += config.kernelSize * config.kernelSize * inputChannels * outputChannels + outputChannels;
-                    if (config.batchNorm) params += outputChannels * 4;
                     inputChannels = outputChannels;
                 }
                 const finalSize = 32 / Math.pow(2, config.convBlocks);
-                params += finalSize * finalSize * inputChannels * 256 + 256;
-                params += 256 * 10 + 10;
+                params += finalSize * finalSize * inputChannels * 64 + 64; // Dense layer 64 units
+                params += 64 * 3 + 3; // Output layer 3 classes
                 return params;
             }, [config]);
 
@@ -1289,7 +1282,7 @@
                 <div>
                     <div className="grid-2-fixed">
                         <div className="section-card">
-                            <div className="section-title">⚙️ Architecture Controls</div>
+                            <div className="section-title">Architecture Controls</div>
 
                             <div className="control-group">
                                 <div className="control-label">
@@ -1331,16 +1324,6 @@
                             </div>
 
                             <div className="control-group">
-                                <div className="toggle-container">
-                                    <span>Batch Normalization</span>
-                                    <div className={`toggle ${config.batchNorm ? 'active' : ''}`}
-                                        onClick={() => setConfig({...config, batchNorm: !config.batchNorm})}>
-                                        <div className="toggle-knob" />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="control-group">
                                 <div className="control-label">
                                     <span>Dropout Rate</span>
                                     <span className="control-value">{config.dropout.toFixed(2)}</span>
@@ -1354,17 +1337,17 @@
                                     <span>Training Epochs</span>
                                     <span className="control-value">{config.epochs}</span>
                                 </div>
-                                <input type="range" className="slider" min="5" max="50" step="5" value={config.epochs}
+                                <input type="range" className="slider" min="5" max="15" step="5" value={config.epochs}
                                     onChange={(e) => setConfig({...config, epochs: parseInt(e.target.value)})} />
                             </div>
 
                             <div className="control-group">
                                 <div className="control-label">
-                                    <span>Training Samples (🐻🦁🐯)</span>
+                                    <span>Training Samples</span>
                                     <span className="control-value">{config.numSamples.toLocaleString()}</span>
                                 </div>
                                 <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-                                    {[100, 1000, 10000].map(n => (
+                                    {[100, 300, 500].map(n => (
                                         <button
                                             key={n}
                                             onClick={() => setConfig({...config, numSamples: n})}
@@ -1386,7 +1369,7 @@
                                     ))}
                                 </div>
                                 <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '0.3rem' }}>
-                                    More samples = better accuracy, slower training
+                                    More samples = better accuracy, slower training (max 500 per class)
                                 </div>
                             </div>
 
@@ -1439,7 +1422,7 @@
                         </div>
 
                         <div className="section-card">
-                            <div className="section-title">📊 Model Metrics</div>
+                            <div className="section-title">Model Metrics</div>
 
                             {isTraining && (
                                 <div className="epoch-indicator">
@@ -1487,7 +1470,7 @@
 
                     <div className="grid-2" style={{ marginTop: '1.5rem' }}>
                         <div className="section-card">
-                            <div className="section-title">🖼️ Training Samples (Bears, Lions, Tigers)</div>
+                            <div className="section-title">Training Samples (Bears, Lions, Tigers)</div>
                             <div className="grid-4">
                                 {sampleImages.map((img, idx) => (
                                     <SampleImage key={idx} imageData={img.imageData} trueLabel={img.trueLabel} predictedLabel={img.trueLabel} showResult={false} />
@@ -1495,7 +1478,7 @@
                             </div>
                         </div>
                         <div className="section-card">
-                            <div className="section-title">✓✗ Classification Results</div>
+                            <div className="section-title">Classification Results</div>
                             {classificationResults.length > 0 ? (
                                 <div className="grid-4">
                                     {classificationResults.map((img, idx) => (
@@ -1509,7 +1492,7 @@
                     </div>
 
                     <div className="section-card" style={{ marginTop: '1.5rem' }}>
-                        <div className="section-title">🔍 What CNNs Learn: Actual Trained Filters</div>
+                        <div className="section-title">What CNNs Learn: Actual Trained Filters</div>
                         <div className="filter-layer">
                             <div className="filter-layer-title">Layer 1: Edge Detectors <span className="filter-layer-subtitle">— Low-level features (RGB weights)</span></div>
                             <FilterVisualization layer={1} trainedFilters={trainedFilters} />
@@ -1546,10 +1529,10 @@
             const [trainingHistory, setTrainingHistory] = useState([]);
 
             const models = [
-                { id: 'vgg16', name: 'VGG16', params: '138M', accuracy: '71.3%', icon: '🏛️' },
-                { id: 'resnet50', name: 'ResNet50', params: '25.6M', accuracy: '76.1%', icon: '🔄' },
-                { id: 'mobilenet', name: 'MobileNetV2', params: '3.4M', accuracy: '71.8%', icon: '📱' },
-                { id: 'efficientnet', name: 'EfficientNet-B0', params: '5.3M', accuracy: '77.1%', icon: '⚡' }
+                { id: 'vgg16', name: 'VGG16', params: '138M', accuracy: '71.3%', icon: '' },
+                { id: 'resnet50', name: 'ResNet50', params: '25.6M', accuracy: '76.1%', icon: '' },
+                { id: 'mobilenet', name: 'MobileNetV2', params: '3.4M', accuracy: '71.8%', icon: '' },
+                { id: 'efficientnet', name: 'EfficientNet-B0', params: '5.3M', accuracy: '77.1%', icon: '' }
             ];
 
             const totalLayers = selectedModel === 'vgg16' ? 16 : selectedModel === 'resnet50' ? 50 : selectedModel === 'mobilenet' ? 53 : 237;
@@ -1581,7 +1564,7 @@
                 <div>
                     <div className="grid-2">
                         <div className="section-card">
-                            <div className="section-title">🧠 Pre-trained Model Selection</div>
+                            <div className="section-title">Pre-trained Model Selection</div>
                             <div className="grid-2" style={{ gap: '0.75rem' }}>
                                 {models.map(model => (
                                     <div key={model.id} onClick={() => setSelectedModel(model.id)}
@@ -1660,14 +1643,14 @@
             const streamRef = useRef(null);
             const animationRef = useRef(null);
             
-            const expressionEmojis = {
-                neutral: '😐',
-                happy: '😊',
-                sad: '😢',
-                angry: '😠',
-                fearful: '😨',
-                disgusted: '🤢',
-                surprised: '😲'
+            const expressionLabels = {
+                neutral: 'Neutral',
+                happy: 'Happy',
+                sad: 'Sad',
+                angry: 'Angry',
+                fearful: 'Fearful',
+                disgusted: 'Disgusted',
+                surprised: 'Surprised'
             };
             
             const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model';
@@ -1762,7 +1745,7 @@
                         // Draw expression label above box
                         const sorted = Object.entries(detection.expressions).sort((a, b) => b[1] - a[1]);
                         const [topExpr, topConf] = sorted[0];
-                        const label = `${expressionEmojis[topExpr]} ${topExpr} (${(topConf * 100).toFixed(0)}%)`;
+                        const label = `${topExpr} (${(topConf * 100).toFixed(0)}%)`;
                         
                         ctx.fillStyle = '#2774AE';
                         ctx.fillRect(box.x, box.y - 25, ctx.measureText(label).width + 16, 22);
@@ -1791,7 +1774,7 @@
                 <div>
                     <div className="grid-2">
                         <div className="section-card">
-                            <div className="section-title">📹 Live Camera Feed</div>
+                            <div className="section-title">Live Camera Feed</div>
                             
                             <div style={{ position: 'relative', width: '100%', borderRadius: '8px', overflow: 'hidden', background: '#000' }}>
                                 <video 
@@ -1823,7 +1806,7 @@
                                         color: 'white',
                                         fontSize: '1.2rem'
                                     }}>
-                                        {isLoading ? '⏳ Loading models...' : '📷 Camera not started'}
+                                        {isLoading ? 'Loading models...' : 'Camera not started'}
                                     </div>
                                 )}
                             </div>
@@ -1845,19 +1828,16 @@
                                 onClick={isRunning ? stopCamera : startCamera}
                                 disabled={isLoading || !!error}
                             >
-                                {isRunning ? '⏹️ Stop Camera' : '▶️ Start Camera'}
+                                {isRunning ? 'Stop Camera' : 'Start Camera'}
                             </button>
                         </div>
                         
                         <div className="section-card">
-                            <div className="section-title">🎯 Expression Detection</div>
+                            <div className="section-title">Expression Detection</div>
                             
                             {sortedExpressions && topExpression ? (
                                 <>
                                     <div style={{ textAlign: 'center', padding: '1.5rem' }}>
-                                        <div style={{ fontSize: '4rem', marginBottom: '0.5rem' }}>
-                                            {expressionEmojis[topExpression[0]]}
-                                        </div>
                                         <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#2774AE', textTransform: 'capitalize' }}>
                                             {topExpression[0]}
                                         </div>
@@ -1869,8 +1849,8 @@
                                     <div style={{ marginTop: '1rem' }}>
                                         {sortedExpressions.map(([expr, conf], idx) => (
                                             <div key={expr} className="confidence-bar-item">
-                                                <div className="confidence-bar-label" style={{ width: '100px' }}>
-                                                    {expressionEmojis[expr]} {expr}
+                                                <div className="confidence-bar-label" style={{ width: '100px', textTransform: 'capitalize' }}>
+                                                    {expr}
                                                 </div>
                                                 <div className="confidence-bar-track">
                                                     <div 
@@ -1890,7 +1870,7 @@
                             ) : (
                                 <div style={{ textAlign: 'center', padding: '3rem', color: '#888' }}>
                                     <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>
-                                        {isRunning ? '🔍' : '👤'}
+                                        {isRunning ? '' : ''}
                                     </div>
                                     {isRunning 
                                         ? 'No face detected — make sure your face is visible'
@@ -1900,38 +1880,6 @@
                         </div>
                     </div>
                     
-                    <div className="section-card" style={{ marginTop: '1.5rem' }}>
-                        <div className="section-title">🧠 How This Works — It's a CNN!</div>
-                        <div style={{ color: '#666', fontSize: '0.9rem', lineHeight: 1.8 }}>
-                            <p>
-                                This demo uses a <strong>Convolutional Neural Network</strong> running directly in your browser!
-                                The same architecture concepts we learned about in class power this real-time emotion detection.
-                            </p>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
-                                <div style={{ padding: '1rem', background: '#f8f9fa', borderRadius: '8px' }}>
-                                    <strong style={{ color: '#2774AE' }}>🔍 Face Detection</strong>
-                                    <p style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}>
-                                        SSD MobileNet (CNN) locates faces in the image using convolutional layers + bounding box regression.
-                                    </p>
-                                </div>
-                                <div style={{ padding: '1rem', background: '#f8f9fa', borderRadius: '8px' }}>
-                                    <strong style={{ color: '#2774AE' }}>😊 Expression Recognition</strong>
-                                    <p style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}>
-                                        Depthwise separable convolutions + dense blocks classify the cropped face into 7 emotions.
-                                    </p>
-                                </div>
-                                <div style={{ padding: '1rem', background: '#f8f9fa', borderRadius: '8px' }}>
-                                    <strong style={{ color: '#2774AE' }}>📦 Model Size</strong>
-                                    <p style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}>
-                                        Only ~310KB! Efficient architecture allows real-time inference in the browser.
-                                    </p>
-                                </div>
-                            </div>
-                            <p style={{ marginTop: '1rem' }}>
-                                <strong>Detected Expressions:</strong> 😐 Neutral · 😊 Happy · 😢 Sad · 😠 Angry · 😨 Fearful · 🤢 Disgusted · 😲 Surprised
-                            </p>
-                        </div>
-                    </div>
                 </div>
             );
         };
@@ -1941,7 +1889,7 @@
             const [activeTab, setActiveTab] = useState('cnn');
             const [config, setConfig] = useState({
                 convBlocks: 3, filters: 32, kernelSize: 3,
-                poolType: 'max', batchNorm: true, dropout: 0.25, epochs: 20, numSamples: 1000
+                poolType: 'max', batchNorm: false, dropout: 0.25, epochs: 10, numSamples: 300
             });
             const [trainingHistory, setTrainingHistory] = useState([]);
             const [isModelTrained, setIsModelTrained] = useState(false);
@@ -1955,9 +1903,9 @@
             };
 
             const tabs = [
-                { id: 'cnn', label: '🏗️ CNN Builder' },
-                { id: 'transfer', label: '🔄 Transfer Learning' },
-                { id: 'expression', label: '😊 Expression Recognition' }
+                { id: 'cnn', label: 'CNN Builder' },
+                { id: 'transfer', label: 'Transfer Learning' },
+                { id: 'expression', label: 'Expression Recognition' }
             ];
 
             return (
@@ -1967,7 +1915,7 @@
                             <div className="header-content">
                                 <div className="header-left">
                                     <div className="course-label">MGMT298D: Science and Strategy of AI</div>
-                                    <h1>Week 6: CNNs — Lions, Tigers & Bears! 🐻🦁🐯</h1>
+                                    <h1>Week 6: Convolutional Neural Networks</h1>
                                     <p>Train a CNN to classify animals from CIFAR-100</p>
                                 </div>
                                 <div className="header-right">

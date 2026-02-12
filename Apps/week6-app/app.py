@@ -31,9 +31,9 @@ CLEANUP_INTERVAL_SECONDS = 30
 
 # Default training settings optimized for speed
 DEFAULT_EPOCHS = 10
-DEFAULT_NUM_SAMPLES = 500
+DEFAULT_NUM_SAMPLES = 300
 MAX_EPOCHS = 15
-MAX_SAMPLES = 1500  # Max is 500 per class * 3 classes
+MAX_SAMPLES = 500  # Max is 500 per class in CIFAR-100 fine classes
 
 # ============================================
 # CIFAR-100 Class Configuration
