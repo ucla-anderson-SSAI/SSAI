@@ -973,7 +973,6 @@
         // Tab 2: Train Transformers
         // ===========================================
         const TrainTransformerTab = () => {
-            const [mode, setMode] = useState('single'); // 'single' or 'compare'
             const [config, setConfig] = useState({
                 numSamples: 500,
                 epochs: 8,
@@ -991,11 +990,6 @@
             const [serverStatus, setServerStatus] = useState(null);
             const [activeHead, setActiveHead] = useState(0);
             const [activeBlock, setActiveBlock] = useState(0);
-
-            // Comparison state
-            const [compareStatus, setCompareStatus] = useState('idle');
-            const [compareResults, setCompareResults] = useState(null);
-            const [compareError, setCompareError] = useState(null);
 
             // Training samples state
             const [trainingSamples, setTrainingSamples] = useState([]);
@@ -1070,35 +1064,6 @@
                 }
             };
 
-            const startComparison = async () => {
-                setCompareStatus('training');
-                setCompareError(null);
-                setCompareResults(null);
-
-                try {
-                    const response = await fetch(`${API_BASE}/compare_transformers?` + new URLSearchParams({
-                        embed_dim: config.embed_dim,
-                        num_heads: config.num_heads,
-                        ff_dim: config.ff_dim,
-                        dropout_rate: config.dropout,
-                        epochs: config.epochs,
-                        max_len: 200,
-                        batch_size: 32
-                    }));
-
-                    if (!response.ok) {
-                        throw new Error('Comparison failed');
-                    }
-
-                    const data = await response.json();
-                    setCompareResults(data);
-                    setCompareStatus('complete');
-                } catch (err) {
-                    setCompareError(err.message);
-                    setCompareStatus('error');
-                }
-            };
-
             const getColor = (weight) => {
                 const intensity = Math.pow(weight, 0.5);
                 return `rgba(39, 116, 174, ${0.1 + intensity * 0.9})`;
@@ -1133,25 +1098,6 @@
                         </div>
                     )}
 
-                    {/* Mode Toggle */}
-                    <div className="card">
-                        <div className="card-title">Training Mode</div>
-                        <div className="btn-group">
-                            <button
-                                className={`btn-option ${mode === 'single' ? 'active' : ''}`}
-                                onClick={() => setMode('single')}
-                            >
-                                Single Model Training
-                            </button>
-                            <button
-                                className={`btn-option ${mode === 'compare' ? 'active' : ''}`}
-                                onClick={() => setMode('compare')}
-                            >
-                                Compare 1-Block vs 3-Block
-                            </button>
-                        </div>
-                    </div>
-
                     {/* Architecture Diagram */}
                     <div className="card">
                         <div className="card-title">
@@ -1169,9 +1115,7 @@
                         <ArchitectureDiagram config={config} />
                     </div>
 
-                    {mode === 'single' ? (
-                        <>
-                        <div className="grid-2">
+                    <div className="grid-2">
                             {/* Configuration */}
                             <div className="card">
                                 <div className="card-title">
@@ -1180,6 +1124,18 @@
                                         <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
                                     </svg>
                                     Training Configuration
+                                </div>
+
+                                <div className="input-group">
+                                    <label className="input-label">Transformer Blocks:</label>
+                                    <div className="btn-group">
+                                        {[1, 2, 3, 4].map(n => (
+                                            <button key={n} className={`btn-option ${config.num_blocks === n ? 'active' : ''}`}
+                                                onClick={() => setConfig({...config, num_blocks: n})}
+                                                disabled={status === 'training'}
+                                            >{n}</button>
+                                        ))}
+                                    </div>
                                 </div>
 
                                 <div className="input-group">
@@ -1224,18 +1180,6 @@
                                         {[2, 4, 8].map(n => (
                                             <button key={n} className={`btn-option ${config.num_heads === n ? 'active' : ''}`}
                                                 onClick={() => setConfig({...config, num_heads: n})}
-                                                disabled={status === 'training'}
-                                            >{n}</button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="input-group">
-                                    <label className="input-label">Transformer Blocks:</label>
-                                    <div className="btn-group">
-                                        {[1, 2, 3, 4].map(n => (
-                                            <button key={n} className={`btn-option ${config.num_blocks === n ? 'active' : ''}`}
-                                                onClick={() => setConfig({...config, num_blocks: n})}
                                                 disabled={status === 'training'}
                                             >{n}</button>
                                         ))}
@@ -1514,158 +1458,9 @@
                                 )}
                             </div>
                         )}
-                        </>
-                    ) : (
-                        /* Comparison Mode */
-                        <div>
-                            <div className="card">
-                                <div className="card-title">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M18 20V10M12 20V4M6 20v-6"/>
-                                    </svg>
-                                    Compare Architectures
-                                </div>
 
-                                <p style={{ marginBottom: '1rem', color: 'var(--textMuted)', fontSize: '0.9rem' }}>
-                                    Train two transformers with identical settings except for the number of blocks (1 vs 3) to see how depth affects performance.
-                                </p>
-
-                                <div className="grid-3" style={{ marginBottom: '1rem' }}>
-                                    <div className="input-group" style={{ marginBottom: 0 }}>
-                                        <label className="input-label">Epochs:</label>
-                                        <div className="btn-group">
-                                            {[3, 5, 8].map(n => (
-                                                <button key={n} className={`btn-option ${config.epochs === n ? 'active' : ''}`}
-                                                    onClick={() => setConfig({...config, epochs: n})}
-                                                    disabled={compareStatus === 'training'}
-                                                >{n}</button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div className="input-group" style={{ marginBottom: 0 }}>
-                                        <label className="input-label">Embedding Dim:</label>
-                                        <div className="btn-group">
-                                            {[64, 128, 256].map(n => (
-                                                <button key={n} className={`btn-option ${config.embed_dim === n ? 'active' : ''}`}
-                                                    onClick={() => setConfig({...config, embed_dim: n})}
-                                                    disabled={compareStatus === 'training'}
-                                                >{n}</button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div className="input-group" style={{ marginBottom: 0 }}>
-                                        <label className="input-label">Attention Heads:</label>
-                                        <div className="btn-group">
-                                            {[2, 4, 8].map(n => (
-                                                <button key={n} className={`btn-option ${config.num_heads === n ? 'active' : ''}`}
-                                                    onClick={() => setConfig({...config, num_heads: n})}
-                                                    disabled={compareStatus === 'training'}
-                                                >{n}</button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <button
-                                    className="btn btn-primary"
-                                    onClick={startComparison}
-                                    disabled={compareStatus === 'training' || serverStatus?.error}
-                                    style={{ width: '100%', justifyContent: 'center' }}
-                                >
-                                    {compareStatus === 'training' ? (
-                                        <>
-                                            <div className="spinner" style={{
-                                                width: 16,
-                                                height: 16,
-                                                border: '2px solid rgba(255,255,255,0.3)',
-                                                borderTopColor: 'white'
-                                            }} />
-                                            Training both models (this may take a minute)...
-                                        </>
-                                    ) : 'Run Comparison'}
-                                </button>
-
-                                {compareError && (
-                                    <div className="error-box">{compareError}</div>
-                                )}
-                            </div>
-
-                            {compareResults && (
-                                <>
-                                    <div className="comparison-grid">
-                                        {/* 1-Block Results */}
-                                        <div className={`comparison-card ${compareResults.comparison.winner === 'one_block' ? 'winner' : ''}`}>
-                                            <div className="comparison-title">
-                                                1 Transformer Block
-                                                {compareResults.comparison.winner === 'one_block' && <span className="badge">WINNER</span>}
-                                            </div>
-                                            <div className="stats-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                                                <div className="stat-card">
-                                                    <div className="stat-value">{(compareResults.one_block.test_accuracy * 100).toFixed(1)}%</div>
-                                                    <div className="stat-label">Test Accuracy</div>
-                                                </div>
-                                                <div className="stat-card">
-                                                    <div className="stat-value">{(compareResults.one_block.num_params / 1000).toFixed(0)}K</div>
-                                                    <div className="stat-label">Parameters</div>
-                                                </div>
-                                            </div>
-                                            <div style={{ fontSize: '0.85rem', color: 'var(--textMuted)', marginTop: '0.5rem' }}>
-                                                Training time: {compareResults.one_block.training_time.toFixed(1)}s
-                                            </div>
-                                        </div>
-
-                                        {/* 3-Block Results */}
-                                        <div className={`comparison-card ${compareResults.comparison.winner === 'three_blocks' ? 'winner' : ''}`}>
-                                            <div className="comparison-title">
-                                                3 Transformer Blocks
-                                                {compareResults.comparison.winner === 'three_blocks' && <span className="badge">WINNER</span>}
-                                            </div>
-                                            <div className="stats-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                                                <div className="stat-card">
-                                                    <div className="stat-value">{(compareResults.three_blocks.test_accuracy * 100).toFixed(1)}%</div>
-                                                    <div className="stat-label">Test Accuracy</div>
-                                                </div>
-                                                <div className="stat-card">
-                                                    <div className="stat-value">{(compareResults.three_blocks.num_params / 1000).toFixed(0)}K</div>
-                                                    <div className="stat-label">Parameters</div>
-                                                </div>
-                                            </div>
-                                            <div style={{ fontSize: '0.85rem', color: 'var(--textMuted)', marginTop: '0.5rem' }}>
-                                                Training time: {compareResults.three_blocks.training_time.toFixed(1)}s
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Summary */}
-                                    <div className="card">
-                                        <div className="card-title">Comparison Summary</div>
-                                        <div className="stats-grid" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
-                                            <div className="stat-card">
-                                                <div className="stat-value" style={{
-                                                    color: compareResults.comparison.accuracy_improvement > 0 ? '#28a745' : '#dc3545'
-                                                }}>
-                                                    {compareResults.comparison.accuracy_improvement > 0 ? '+' : ''}
-                                                    {(compareResults.comparison.accuracy_improvement * 100).toFixed(1)}%
-                                                </div>
-                                                <div className="stat-label">Accuracy Difference (3-block - 1-block)</div>
-                                            </div>
-                                            <div className="stat-card">
-                                                <div className="stat-value">+{(compareResults.comparison.parameter_increase / 1000).toFixed(0)}K</div>
-                                                <div className="stat-label">Extra Parameters</div>
-                                            </div>
-                                            <div className="stat-card">
-                                                <div className="stat-value">+{compareResults.comparison.time_increase.toFixed(1)}s</div>
-                                                <div className="stat-label">Extra Training Time</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Attention Weights Visualization (Single mode only) */}
-                    {mode === 'single' && status === 'complete' && results && results.attention_weights && (
+                    {/* Attention Weights Visualization */}
+                    {status === 'complete' && results && results.attention_weights && (
                         <div className="card">
                             <div className="card-title">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

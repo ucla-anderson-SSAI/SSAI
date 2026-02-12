@@ -796,7 +796,7 @@ def finetune_pretrained():
 
         # Sample data
         train_indices = np.random.choice(len(_X_train), size=min(num_samples, len(_X_train)), replace=False)
-        test_indices = np.random.choice(len(_X_test), size=min(1000, len(_X_test)), replace=False)
+        test_indices = np.random.choice(len(_X_test), size=min(200, len(_X_test)), replace=False)
 
         train_texts = [_train_texts[i] for i in train_indices]
         train_labels = _y_train[train_indices]
@@ -808,7 +808,7 @@ def finetune_pretrained():
         test_encodings = tokenizer(test_texts, truncation=True, padding=True, max_length=128, return_tensors='tf')
 
         # Evaluate base model
-        base_predictions = base_model.predict(test_encodings['input_ids'])
+        base_predictions = base_model.predict(test_encodings['input_ids'], verbose=0)
         base_preds = np.argmax(base_predictions.logits, axis=1)
         base_accuracy = float(np.mean(base_preds == test_labels) * 100)
 
@@ -841,21 +841,20 @@ def finetune_pretrained():
         )
 
         # Evaluate fine-tuned model
-        finetuned_predictions = finetune_model.predict(test_encodings['input_ids'])
+        finetuned_predictions = finetune_model.predict(test_encodings['input_ids'], verbose=0)
         finetuned_preds = np.argmax(finetuned_predictions.logits, axis=1)
         finetuned_accuracy = float(np.mean(finetuned_preds == test_labels) * 100)
 
         # Get sample predictions
         sample_predictions = []
         for i in range(min(8, len(test_texts))):
-            sample_pred = finetuned_model.predict(test_encodings['input_ids'][i:i+1])
-            pred_class = int(np.argmax(sample_pred.logits[0]))
+            pred_class = int(finetuned_preds[i])
             true_class = int(test_labels[i])
 
             sample_predictions.append({
-                'text': test_texts[i][:300],
-                'true': true_class,
-                'predicted': pred_class,
+                'text': test_texts[i][:200],
+                'true': true_class + 1,  # Convert to 1-5 stars
+                'predicted': pred_class + 1,
                 'correct': pred_class == true_class
             })
 
@@ -873,6 +872,7 @@ def finetune_pretrained():
             'frozen_params': int(frozen_params),
             'num_frozen_layers': num_freeze,
             'num_trainable_layers': num_layers - num_freeze,
+            'epochs': epochs,
             'history': {
                 'train_acc': [float(x) * 100 for x in history.history['accuracy']],
                 'val_acc': [float(x) * 100 for x in history.history['val_accuracy']],
@@ -883,7 +883,8 @@ def finetune_pretrained():
         })
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        import traceback
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
 
 
 @app.route('/api/stats', methods=['GET'])
