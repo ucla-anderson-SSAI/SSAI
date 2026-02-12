@@ -314,6 +314,13 @@ def train_model_async(session_id, config):
         # Apply caps to prevent abuse
         num_samples = min(config.get('numSamples', DEFAULT_NUM_SAMPLES), MAX_SAMPLES)
         epochs = min(config.get('epochs', DEFAULT_EPOCHS), MAX_EPOCHS)
+
+        print(f"\n{'='*60}")
+        print(f"[Session {session_id[:8]}] Starting new training session")
+        print(f"  Config received: {config}")
+        print(f"  Epochs (after cap): {epochs}")
+        print(f"  Samples (after cap): {num_samples}")
+        print(f"{'='*60}\n")
         
         session['status'] = f'Preparing {num_samples} training samples...'
 
@@ -338,15 +345,37 @@ def train_model_async(session_id, config):
         X_val = _X_TEST[val_indices]
         y_val = _Y_TEST[val_indices]
 
+        # Data quality checks
+        print(f"[Session {session_id[:8]}] Data quality checks:")
+        print(f"  - X_train: min={X_train.min():.4f}, max={X_train.max():.4f}, mean={X_train.mean():.4f}")
+        print(f"  - X_val: min={X_val.min():.4f}, max={X_val.max():.4f}, mean={X_val.mean():.4f}")
+        print(f"  - y_train unique: {np.unique(y_train)}, counts: {np.bincount(y_train)}")
+        print(f"  - y_val unique: {np.unique(y_val)}, counts: {np.bincount(y_val)}")
+        print(f"  - Any NaN in X_train: {np.isnan(X_train).any()}")
+        print(f"  - Any Inf in X_train: {np.isinf(X_train).any()}")
+
         session['status'] = 'Building model...'
         model = build_cnn_model(config)
 
         session['status'] = 'Training...'
         session['history'] = []
         session['current_epoch'] = 0
+        session['current_batch'] = 0
+        session['total_batches'] = 0
 
         class ProgressCallback(_keras.callbacks.Callback):
+            def on_epoch_begin(self, epoch, logs=None):
+                session['current_batch'] = 0
+                session['total_batches'] = len(X_train) // 64  # batch_size = 64
+
+            def on_batch_end(self, batch, logs=None):
+                session['current_batch'] = batch + 1
+
             def on_epoch_end(self, epoch, logs=None):
+                print(f"[Session {session_id[:8]}] Completed epoch {epoch + 1}/{epochs}")
+                print(f"  - Train Acc: {logs['accuracy']:.4f}, Val Acc: {logs['val_accuracy']:.4f}")
+                print(f"  - Train Loss: {logs['loss']:.4f}, Val Loss: {logs['val_loss']:.4f}")
+
                 session['current_epoch'] = epoch + 1
                 session['history'].append({
                     'trainAcc': float(logs['accuracy'] * 100),
@@ -355,8 +384,13 @@ def train_model_async(session_id, config):
                     'valLoss': float(logs['val_loss'])
                 })
                 session['status'] = f"Epoch {epoch + 1}/{epochs}"
+                session['current_batch'] = 0  # Reset for next epoch
 
-        model.fit(
+        print(f"[Session {session_id[:8]}] Starting training: {epochs} epochs, {len(X_train)} samples")
+        print(f"  - Training set shape: {X_train.shape}, labels: {y_train.shape}")
+        print(f"  - Validation set shape: {X_val.shape}, labels: {y_val.shape}")
+
+        history = model.fit(
             X_train, y_train,
             batch_size=64,
             epochs=epochs,
@@ -364,6 +398,8 @@ def train_model_async(session_id, config):
             callbacks=[ProgressCallback()],
             verbose=0
         )
+
+        print(f"[Session {session_id[:8]}] Training completed. Total epochs in history: {len(history.history['loss'])}")
 
         session['status'] = 'Extracting learned filters...'
         filters = extract_filters(model, config['convBlocks'])
@@ -499,6 +535,8 @@ def get_training_status(session_id):
         'status': session['status'],
         'current_epoch': session['current_epoch'],
         'total_epochs': session['config']['epochs'],
+        'current_batch': session.get('current_batch', 0),
+        'total_batches': session.get('total_batches', 0),
         'history': session['history'],
         'queue_position': queue_position,
         'active_trainings': active_count,

@@ -1134,6 +1134,8 @@
             const [backendStatus, setBackendStatus] = useState('checking');
             const [queuePosition, setQueuePosition] = useState(0);
             const [serverStats, setServerStats] = useState({ active: 0, max: 5 });
+            const [currentBatch, setCurrentBatch] = useState(0);
+            const [totalBatches, setTotalBatches] = useState(0);
 
             // Check backend health on mount and periodically
             useEffect(() => {
@@ -1207,6 +1209,8 @@
                 setIsTraining(true);
                 setTrainingHistory([]);
                 setCurrentEpoch(0);
+                setCurrentBatch(0);
+                setTotalBatches(0);
                 setClassificationResults([]);
                 setIsModelTrained(false);
                 setTrainedFilters(null);
@@ -1243,6 +1247,10 @@
                         // Update queue info
                         setQueuePosition(status.queue_position || 0);
                         setServerStats({ active: status.active_trainings || 0, max: status.max_concurrent || 5 });
+
+                        // Update batch progress
+                        setCurrentBatch(status.current_batch || 0);
+                        setTotalBatches(status.total_batches || 0);
 
                         // Show appropriate status message
                         if (status.queue_position > 0) {
@@ -1326,7 +1334,7 @@
                             <div className="control-group">
                                 <div className="control-label">Kernel Size</div>
                                 <div className="button-group">
-                                    {[3, 5, 7].map(k => (
+                                    {[3, 5].map(k => (
                                         <button key={k} className={`option-btn ${config.kernelSize === k ? 'active' : ''}`}
                                             onClick={() => setConfig({...config, kernelSize: k})}>{k}×{k}</button>
                                     ))}
@@ -1445,10 +1453,29 @@
                             <div className="section-title">Model Metrics</div>
 
                             {isTraining && (
-                                <div className="epoch-indicator">
-                                    <div className="epoch-dot" />
-                                    Training Epoch {currentEpoch} of {config.epochs}
-                                </div>
+                                <>
+                                    <div className="epoch-indicator">
+                                        <div className="epoch-dot" />
+                                        Training Epoch {currentEpoch} of {config.epochs}
+                                    </div>
+                                    {totalBatches > 0 && (
+                                        <div style={{ marginBottom: '1rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', fontSize: '0.75rem', color: '#666' }}>
+                                                <span>Mini-batch SGD (batch size: 64)</span>
+                                                <span>{currentBatch} / {totalBatches} batches</span>
+                                            </div>
+                                            <div style={{ width: '100%', height: '8px', background: '#f0f0f0', borderRadius: '4px', overflow: 'hidden' }}>
+                                                <div style={{
+                                                    width: `${(currentBatch / totalBatches) * 100}%`,
+                                                    height: '100%',
+                                                    background: 'linear-gradient(90deg, #2774AE, #FFD100)',
+                                                    transition: 'width 0.1s ease',
+                                                    borderRadius: '4px'
+                                                }} />
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
                             )}
 
                             <div className="metrics-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
