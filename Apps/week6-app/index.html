@@ -1442,6 +1442,25 @@
                             <button className="run-button" onClick={runTraining} disabled={isTraining || backendStatus !== 'connected'}>
                                 {isTraining ? <><div className="loading-spinner" /> {trainingStatus}</> : <>▶ Train CNN (Python/Keras)</>}
                             </button>
+
+                            {isTraining && totalBatches > 0 && (
+                                <div style={{ marginTop: '1rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', fontSize: '0.75rem', color: '#666' }}>
+                                        <span>Mini-batch SGD (batch size: 64)</span>
+                                        <span>{currentBatch} / {totalBatches} batches</span>
+                                    </div>
+                                    <div style={{ width: '100%', height: '8px', background: '#f0f0f0', borderRadius: '4px', overflow: 'hidden' }}>
+                                        <div style={{
+                                            width: `${(currentBatch / totalBatches) * 100}%`,
+                                            height: '100%',
+                                            background: 'linear-gradient(90deg, #2774AE, #FFD100)',
+                                            transition: 'width 0.1s ease',
+                                            borderRadius: '4px'
+                                        }} />
+                                    </div>
+                                </div>
+                            )}
+
                             {isModelTrained && testAccuracy && (
                                 <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#4CAF50' }}>
                                     ✓ Model trained — Test Accuracy: {testAccuracy.toFixed(1)}%
@@ -1453,29 +1472,10 @@
                             <div className="section-title">Model Metrics</div>
 
                             {isTraining && (
-                                <>
-                                    <div className="epoch-indicator">
-                                        <div className="epoch-dot" />
-                                        Training Epoch {currentEpoch} of {config.epochs}
-                                    </div>
-                                    {totalBatches > 0 && (
-                                        <div style={{ marginBottom: '1rem' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', fontSize: '0.75rem', color: '#666' }}>
-                                                <span>Mini-batch SGD (batch size: 64)</span>
-                                                <span>{currentBatch} / {totalBatches} batches</span>
-                                            </div>
-                                            <div style={{ width: '100%', height: '8px', background: '#f0f0f0', borderRadius: '4px', overflow: 'hidden' }}>
-                                                <div style={{
-                                                    width: `${(currentBatch / totalBatches) * 100}%`,
-                                                    height: '100%',
-                                                    background: 'linear-gradient(90deg, #2774AE, #FFD100)',
-                                                    transition: 'width 0.1s ease',
-                                                    borderRadius: '4px'
-                                                }} />
-                                            </div>
-                                        </div>
-                                    )}
-                                </>
+                                <div className="epoch-indicator">
+                                    <div className="epoch-dot" />
+                                    Training Epoch {currentEpoch} of {config.epochs}
+                                </div>
                             )}
 
                             <div className="metrics-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>

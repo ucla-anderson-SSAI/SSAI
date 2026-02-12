@@ -478,20 +478,21 @@
 
         .arch-block {
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             align-items: center;
+            justify-content: center;
             width: 100%;
-            max-width: 300px;
+            min-width: fit-content;
         }
 
         .arch-layer {
-            width: 100%;
+            min-width: 140px;
             padding: 0.75rem 1rem;
             border-radius: 8px;
             text-align: center;
             font-size: 0.85rem;
             font-weight: 500;
-            margin: 0.25rem 0;
+            margin: 0 0.25rem;
             position: relative;
         }
 
@@ -517,16 +518,12 @@
             background: linear-gradient(135deg, #e8d4f7, #d4b8e8);
             border: 2px solid #8B5CF6;
             color: #4c1d95;
-            margin-left: 1.5rem;
-            width: calc(100% - 1.5rem);
         }
 
         .arch-layer.ffn {
             background: linear-gradient(135deg, #d4f7e8, #a8e8c8);
             border: 2px solid #10B981;
             color: #065f46;
-            margin-left: 1.5rem;
-            width: calc(100% - 1.5rem);
         }
 
         .arch-layer.output {
@@ -536,37 +533,46 @@
         }
 
         .arch-arrow {
-            width: 2px;
-            height: 20px;
+            width: 30px;
+            height: 2px;
             background: #999;
             position: relative;
+            margin: 0 0.5rem;
         }
 
         .arch-arrow::after {
             content: '';
             position: absolute;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            border-left: 6px solid transparent;
-            border-right: 6px solid transparent;
-            border-top: 8px solid #999;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            border-top: 6px solid transparent;
+            border-bottom: 6px solid transparent;
+            border-left: 8px solid #999;
         }
 
         .arch-bracket {
             border: 2px dashed #2774AE;
             border-radius: 12px;
-            padding: 0.5rem;
-            margin: 0.5rem 0;
-            width: 100%;
+            padding: 0.75rem;
+            margin: 0 0.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         .arch-bracket-label {
             font-size: 0.75rem;
             color: #2774AE;
             text-align: center;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.75rem;
             font-weight: 600;
+        }
+
+        .arch-bracket-content {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
         }
 
         .arch-layer-detail {
@@ -986,25 +992,31 @@
 
                         {/* Transformer Blocks */}
                         <div className="arch-bracket">
-                            <div className="arch-bracket-label">× {config.num_blocks} Transformer Block{config.num_blocks > 1 ? 's' : ''}</div>
+                            <div className="arch-bracket-label">× {config.num_blocks} Block{config.num_blocks > 1 ? 's' : ''}</div>
+                            <div className="arch-bracket-content">
+                                <div className="arch-layer attention">
+                                    <div>Multi-Head Attention</div>
+                                    <div className="arch-layer-detail">
+                                        {config.num_heads} heads
+                                    </div>
+                                    <div className="arch-layer-detail">
+                                        {config.embed_dim / config.num_heads}d per head
+                                    </div>
+                                </div>
+                                <div className="arch-arrow" />
 
-                            <div className="arch-layer attention">
-                                <div>Multi-Head Attention</div>
-                                <div className="arch-layer-detail">
-                                    {config.num_heads} heads × {config.embed_dim / config.num_heads}d per head
+                                <div className="arch-layer ffn">
+                                    <div>Feed-Forward</div>
+                                    <div className="arch-layer-detail">
+                                        {config.embed_dim}d → {config.ff_dim}d
+                                    </div>
+                                    <div className="arch-layer-detail">
+                                        → {config.embed_dim}d
+                                    </div>
                                 </div>
                             </div>
-                            <div className="arch-arrow" style={{ marginLeft: '1.5rem' }} />
-
-                            <div className="arch-layer ffn">
-                                <div>Feed-Forward Network</div>
-                                <div className="arch-layer-detail">
-                                    {config.embed_dim}d → {config.ff_dim}d → {config.embed_dim}d
-                                </div>
-                            </div>
-
-                            <div style={{ fontSize: '0.75rem', color: '#666', textAlign: 'center', marginTop: '0.5rem' }}>
-                                + LayerNorm + Residual Connections + Dropout ({(config.dropout * 100).toFixed(0)}%)
+                            <div style={{ fontSize: '0.7rem', color: '#666', textAlign: 'center', marginTop: '0.5rem' }}>
+                                + Dropout ({(config.dropout * 100).toFixed(0)}%)
                             </div>
                         </div>
                         <div className="arch-arrow" />
@@ -1061,9 +1073,9 @@
         const TrainTransformerTab = () => {
             const [mode, setMode] = useState('single'); // 'single' or 'compare'
             const [config, setConfig] = useState({
-                numSamples: 2000,
+                numSamples: 500,
                 epochs: 8,
-                embed_dim: 64,
+                embed_dim: 128,
                 num_heads: 4,
                 ff_dim: 128,
                 num_blocks: 2,
@@ -1267,7 +1279,7 @@
                                 <div className="input-group">
                                     <label className="input-label">Training Samples:</label>
                                     <div className="btn-group">
-                                        {[1000, 2000, 4000, 8000].map(n => (
+                                        {[100, 500, 1000].map(n => (
                                             <button key={n} className={`btn-option ${config.numSamples === n ? 'active' : ''}`}
                                                 onClick={() => setConfig({...config, numSamples: n})}
                                                 disabled={status === 'training'}
@@ -1291,7 +1303,7 @@
                                 <div className="input-group">
                                     <label className="input-label">Embedding Dimension:</label>
                                     <div className="btn-group">
-                                        {[32, 64, 128].map(n => (
+                                        {[64, 128, 256].map(n => (
                                             <button key={n} className={`btn-option ${config.embed_dim === n ? 'active' : ''}`}
                                                 onClick={() => setConfig({...config, embed_dim: n})}
                                                 disabled={status === 'training'}
@@ -1385,6 +1397,44 @@
                                                 Your job is in queue. Position: {progress.queue_position}
                                             </div>
                                         )}
+
+                                        {/* Mini-batch visualizer */}
+                                        {progress.current_epoch > 0 && (() => {
+                                            const batchSize = 32;
+                                            const totalBatches = Math.ceil(config.numSamples / batchSize);
+                                            const currentBatch = Math.floor((Date.now() / 100) % totalBatches); // Simulated batch progress
+
+                                            return (
+                                                <div style={{ marginBottom: '1.5rem' }}>
+                                                    <div style={{ fontSize: '0.85rem', color: 'var(--textMuted)', marginBottom: '0.5rem' }}>
+                                                        Processing Mini-Batches (batch size: {batchSize})
+                                                    </div>
+                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                                        {Array.from({ length: Math.min(totalBatches, 50) }).map((_, i) => (
+                                                            <div
+                                                                key={i}
+                                                                style={{
+                                                                    width: '12px',
+                                                                    height: '12px',
+                                                                    borderRadius: '2px',
+                                                                    background: i <= currentBatch ? 'var(--primary)' : '#e0e0e0',
+                                                                    transition: 'background 0.2s'
+                                                                }}
+                                                                title={`Batch ${i + 1}/${totalBatches}`}
+                                                            />
+                                                        ))}
+                                                        {totalBatches > 50 && (
+                                                            <span style={{ fontSize: '0.75rem', color: 'var(--textMuted)', alignSelf: 'center', marginLeft: '0.5rem' }}>
+                                                                +{totalBatches - 50} more
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div style={{ fontSize: '0.75rem', color: 'var(--textMuted)', marginTop: '0.5rem' }}>
+                                                        {totalBatches} batches total • ~{Math.ceil(totalBatches / 10)} batches/second
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
 
                                         {progress.history && progress.history.length > 0 && (
                                             <div style={{ marginTop: '1rem' }}>
@@ -1531,7 +1581,7 @@
                                     <div className="input-group" style={{ marginBottom: 0 }}>
                                         <label className="input-label">Embedding Dim:</label>
                                         <div className="btn-group">
-                                            {[32, 64, 128].map(n => (
+                                            {[64, 128, 256].map(n => (
                                                 <button key={n} className={`btn-option ${config.embed_dim === n ? 'active' : ''}`}
                                                     onClick={() => setConfig({...config, embed_dim: n})}
                                                     disabled={compareStatus === 'training'}
