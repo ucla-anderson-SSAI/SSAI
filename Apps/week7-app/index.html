@@ -1135,12 +1135,6 @@
                         </div>
                     )}
 
-                    <div className="explanation">
-                        <strong>Train a Real Transformer!</strong> This uses Keras to train a transformer classifier on the
-                        <strong> Yelp reviews dataset</strong> to predict star ratings (1-5 stars) from review text.
-                        Adjust the architecture parameters to see how they affect training, or compare 1-block vs 3-block architectures.
-                    </div>
-
                     {/* Mode Toggle */}
                     <div className="card">
                         <div className="card-title">Training Mode</div>
@@ -1457,9 +1451,6 @@
                                         </svg>
                                         Training Examples
                                     </div>
-                                    <p style={{ marginBottom: '1rem', fontSize: '0.85rem', color: 'var(--textMuted)' }}>
-                                        Random samples from the training dataset
-                                    </p>
                                     {trainingSamples.length > 0 ? (
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem' }}>
                                             {trainingSamples.map((sample, i) => (
@@ -1496,9 +1487,6 @@
                                             </svg>
                                             Test Set Predictions
                                         </div>
-                                        <p style={{ marginBottom: '1rem', fontSize: '0.85rem', color: 'var(--textMuted)' }}>
-                                            Model predictions on held-out test data
-                                        </p>
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem' }}>
                                             {results.sample_predictions.map((pred, i) => (
                                                 <div key={i} style={{
@@ -1763,6 +1751,481 @@
         };
 
         // ===========================================
+        // Tab 3: Fine-tune Pre-trained Models
+        // ===========================================
+        const FinetuneTab = () => {
+            const [config, setConfig] = useState({
+                freeze_percent: 70,  // 70% frozen = only train last ~2 layers
+                learning_rate: 5e-5,
+                num_samples: 500,
+                epochs: 3
+            });
+            const [status, setStatus] = useState('idle');
+            const [results, setResults] = useState(null);
+            const [error, setError] = useState(null);
+            const [trainingSamples, setTrainingSamples] = useState([]);
+
+            // Fetch training samples
+            useEffect(() => {
+                fetch(`${API_BASE}/api/training_samples?num=8`)
+                    .then(res => res.json())
+                    .then(data => setTrainingSamples(data.samples || []))
+                    .catch(err => console.log('Could not fetch training samples:', err));
+            }, []);
+
+            const startFineTuning = async () => {
+                setStatus('training');
+                setError(null);
+                setResults(null);
+
+                try {
+                    const response = await fetch(`${API_BASE}/api/finetune`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(config)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Fine-tuning failed');
+                    }
+
+                    const data = await response.json();
+                    setResults(data);
+                    setStatus('complete');
+                } catch (err) {
+                    setError(err.message);
+                    setStatus('error');
+                }
+            };
+
+            // DistilBERT Architecture Diagram
+            const DistilBERTDiagram = () => {
+                const canvasRef = React.useRef(null);
+                const animationRef = React.useRef(null);
+
+                const layers = React.useMemo(() => {
+                    const result = [];
+                    let x = 30;
+
+                    const colors = {
+                        input: '#4CAF50',
+                        embedding: '#FFD100',
+                        transformer: '#2774AE',
+                        output: '#FFD100'
+                    };
+
+                    // Input
+                    result.push({ type: 'Input', x, h: 70, w: 32, d: 12, color: colors.input });
+                    x += 48;
+
+                    // Embeddings
+                    result.push({ type: 'Embeddings', x, h: 75, w: 40, d: 15, color: colors.embedding });
+                    x += 60;
+
+                    // 6 Transformer layers
+                    for (let i = 0; i < 6; i++) {
+                        const frozen = i < Math.floor(6 * config.freeze_percent / 100);
+                        result.push({
+                            type: `Layer ${i + 1}`,
+                            x,
+                            h: 65,
+                            w: 35,
+                            d: 14,
+                            color: frozen ? '#95a5a6' : colors.transformer,
+                            frozen
+                        });
+                        x += 48;
+                    }
+
+                    // Classification Head
+                    result.push({ type: 'Classifier', x, h: 60, w: 38, d: 14, color: colors.output });
+
+                    return result;
+                }, [config.freeze_percent]);
+
+                React.useEffect(() => {
+                    const canvas = canvasRef.current;
+                    if (!canvas) return;
+                    const ctx = canvas.getContext('2d');
+                    const dpr = window.devicePixelRatio || 1;
+
+                    const rect = canvas.getBoundingClientRect();
+                    canvas.width = rect.width * dpr;
+                    canvas.height = rect.height * dpr;
+                    ctx.scale(dpr, dpr);
+
+                    function shadeColor(color, percent) {
+                        const num = parseInt(color.replace('#', ''), 16);
+                        const amt = Math.round(2.55 * percent);
+                        const R = Math.min(255, Math.max(0, (num >> 16) + amt));
+                        const G = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amt));
+                        const B = Math.min(255, Math.max(0, (num & 0x0000FF) + amt));
+                        return `rgb(${R},${G},${B})`;
+                    }
+
+                    function drawBlock(x, y, w, h, d, color) {
+                        ctx.fillStyle = shadeColor(color, -18);
+                        ctx.beginPath();
+                        ctx.moveTo(x + w, y);
+                        ctx.lineTo(x + w + d * 0.7, y - d * 0.4);
+                        ctx.lineTo(x + w + d * 0.7, y + h - d * 0.4);
+                        ctx.lineTo(x + w, y + h);
+                        ctx.closePath();
+                        ctx.fill();
+
+                        ctx.fillStyle = shadeColor(color, 12);
+                        ctx.beginPath();
+                        ctx.moveTo(x, y);
+                        ctx.lineTo(x + d * 0.7, y - d * 0.4);
+                        ctx.lineTo(x + w + d * 0.7, y - d * 0.4);
+                        ctx.lineTo(x + w, y);
+                        ctx.closePath();
+                        ctx.fill();
+
+                        ctx.fillStyle = color;
+                        ctx.fillRect(x, y, w, h);
+
+                        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+                        ctx.lineWidth = 0.5;
+                        ctx.beginPath();
+                        ctx.moveTo(x, y);
+                        ctx.lineTo(x + w, y);
+                        ctx.stroke();
+                    }
+
+                    const draw = () => {
+                        const width = rect.width;
+                        const height = rect.height;
+                        ctx.clearRect(0, 0, width, height);
+
+                        const centerY = height / 2;
+
+                        // Connection lines
+                        ctx.strokeStyle = 'rgba(120, 120, 120, 0.25)';
+                        ctx.lineWidth = 1.5;
+
+                        for (let i = 0; i < layers.length - 1; i++) {
+                            const from = layers[i];
+                            const to = layers[i + 1];
+                            const fromX = from.x + from.w + from.d * 0.7;
+                            const toX = to.x;
+
+                            ctx.beginPath();
+                            ctx.moveTo(fromX, centerY);
+                            ctx.lineTo(toX, centerY);
+                            ctx.stroke();
+                        }
+
+                        // Draw blocks
+                        layers.forEach(layer => {
+                            const y = centerY - layer.h / 2;
+                            drawBlock(layer.x, y, layer.w, layer.h, layer.d, layer.color);
+                        });
+
+                        // Labels
+                        ctx.fillStyle = '#666';
+                        ctx.font = '9px Inter, sans-serif';
+                        ctx.textAlign = 'center';
+                        layers.forEach(layer => {
+                            const labelX = layer.x + layer.w / 2 + layer.d * 0.35;
+                            ctx.fillText(layer.type, labelX, centerY + layer.h / 2 + 14);
+
+                            if (layer.frozen) {
+                                ctx.font = '7px Inter, sans-serif';
+                                ctx.fillStyle = '#95a5a6';
+                                ctx.fillText('🔒', labelX, centerY + layer.h / 2 + 24);
+                                ctx.font = '9px Inter, sans-serif';
+                                ctx.fillStyle = '#666';
+                            }
+                        });
+
+                        animationRef.current = requestAnimationFrame(draw);
+                    };
+
+                    draw();
+
+                    return () => {
+                        if (animationRef.current) cancelAnimationFrame(animationRef.current);
+                    };
+                }, [layers]);
+
+                return (
+                    <div style={{ background: '#f8f9fa', borderRadius: '12px', padding: '1.5rem' }}>
+                        <canvas ref={canvasRef} style={{ width: '100%', height: '150px', display: 'block' }} />
+                    </div>
+                );
+            };
+
+            const numFrozenLayers = Math.floor(6 * config.freeze_percent / 100);
+            const numTrainableLayers = 6 - numFrozenLayers;
+
+            return (
+                <div>
+                    {/* DistilBERT Info Card */}
+                    <div className="card">
+                        <div className="card-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M12 6v6l4 2"/>
+                            </svg>
+                            DistilBERT Architecture
+                        </div>
+                        <p style={{ marginBottom: '1rem', fontSize: '0.85rem', color: 'var(--textMuted)' }}>
+                            Gray blocks 🔒 are frozen. Blue blocks are trainable.
+                        </p>
+                        <DistilBERTDiagram />
+                        <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', marginTop: '1rem', fontSize: '0.85rem' }}>
+                            <div><strong>Total Parameters:</strong> 66M</div>
+                            <div><strong>Layers:</strong> 6</div>
+                            <div><strong>Hidden Size:</strong> 768</div>
+                        </div>
+                    </div>
+
+                    <div className="grid-2">
+                        {/* Configuration */}
+                        <div className="card">
+                            <div className="card-title">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                                </svg>
+                                Fine-tuning Configuration
+                            </div>
+
+                            <div className="input-group">
+                                <label className="input-label">
+                                    Freeze Layers: {config.freeze_percent}% ({numFrozenLayers}/6 frozen)
+                                </label>
+                                <input
+                                    type="range"
+                                    min="50"
+                                    max="100"
+                                    step="10"
+                                    value={config.freeze_percent}
+                                    onChange={(e) => setConfig({...config, freeze_percent: parseInt(e.target.value)})}
+                                    disabled={status === 'training'}
+                                    style={{ width: '100%' }}
+                                />
+                                <div style={{ display: 'flex', marginTop: '0.5rem', gap: '0.5rem' }}>
+                                    <div style={{
+                                        flex: config.freeze_percent,
+                                        background: 'linear-gradient(90deg, #95a5a6, #7f8c8d)',
+                                        padding: '0.5rem',
+                                        borderRadius: '6px',
+                                        color: 'white',
+                                        fontSize: '0.75rem',
+                                        textAlign: 'center'
+                                    }}>Frozen 🔒</div>
+                                    <div style={{
+                                        flex: 100 - config.freeze_percent,
+                                        background: 'linear-gradient(90deg, #2774AE, #005587)',
+                                        padding: '0.5rem',
+                                        borderRadius: '6px',
+                                        color: 'white',
+                                        fontSize: '0.75rem',
+                                        textAlign: 'center'
+                                    }}>Trainable ✏️</div>
+                                </div>
+                            </div>
+
+                            <div className="input-group">
+                                <label className="input-label">Learning Rate:</label>
+                                <div className="btn-group">
+                                    {[1e-5, 5e-5, 1e-4].map(lr => (
+                                        <button
+                                            key={lr}
+                                            className={`btn-option ${config.learning_rate === lr ? 'active' : ''}`}
+                                            onClick={() => setConfig({...config, learning_rate: lr})}
+                                            disabled={status === 'training'}
+                                        >{lr}</button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="input-group">
+                                <label className="input-label">Training Samples:</label>
+                                <div className="btn-group">
+                                    {[100, 500, 1000].map(n => (
+                                        <button
+                                            key={n}
+                                            className={`btn-option ${config.num_samples === n ? 'active' : ''}`}
+                                            onClick={() => setConfig({...config, num_samples: n})}
+                                            disabled={status === 'training'}
+                                        >{n}</button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="input-group">
+                                <label className="input-label">Epochs:</label>
+                                <div className="btn-group">
+                                    {[2, 3, 5].map(n => (
+                                        <button
+                                            key={n}
+                                            className={`btn-option ${config.epochs === n ? 'active' : ''}`}
+                                            onClick={() => setConfig({...config, epochs: n})}
+                                            disabled={status === 'training'}
+                                        >{n}</button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <button
+                                className="run-button"
+                                onClick={startFineTuning}
+                                disabled={status === 'training'}
+                                style={{ marginTop: '1rem' }}
+                            >
+                                {status === 'training' ? '⏳ Fine-tuning...' : '▶ Start Fine-tuning'}
+                            </button>
+
+                            {error && (
+                                <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(220, 53, 69, 0.1)', borderRadius: '8px', color: '#dc3545' }}>
+                                    Error: {error}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Results */}
+                        <div className="card">
+                            <div className="card-title">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                                </svg>
+                                Results Comparison
+                            </div>
+
+                            {status === 'idle' && (
+                                <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--textMuted)' }}>
+                                    Configure parameters and click "Start Fine-tuning"
+                                </div>
+                            )}
+
+                            {status === 'training' && (
+                                <div style={{ textAlign: 'center', padding: '3rem' }}>
+                                    <div className="loading-spinner" style={{ margin: '0 auto 1rem' }} />
+                                    <div>Fine-tuning DistilBERT...</div>
+                                    <div style={{ fontSize: '0.85rem', color: 'var(--textMuted)', marginTop: '0.5rem' }}>
+                                        This may take 30-60 seconds
+                                    </div>
+                                </div>
+                            )}
+
+                            {status === 'complete' && results && (
+                                <div>
+                                    <div className="grid-2" style={{ gap: '1rem', marginBottom: '1.5rem' }}>
+                                        <div style={{ padding: '1rem', background: 'rgba(39, 116, 174, 0.1)', borderRadius: '8px', border: '2px solid #2774AE' }}>
+                                            <div style={{ fontSize: '0.85rem', color: '#666', marginBottom: '0.5rem' }}>Base Model</div>
+                                            <div style={{ fontSize: '2rem', fontWeight: 700, color: '#2774AE' }}>
+                                                {results.base_accuracy.toFixed(1)}%
+                                            </div>
+                                            <div style={{ fontSize: '0.75rem', color: '#666', marginTop: '0.25rem' }}>No fine-tuning</div>
+                                        </div>
+
+                                        <div style={{ padding: '1rem', background: 'rgba(40, 167, 69, 0.1)', borderRadius: '8px', border: '2px solid #28a745' }}>
+                                            <div style={{ fontSize: '0.85rem', color: '#666', marginBottom: '0.5rem' }}>Fine-tuned Model</div>
+                                            <div style={{ fontSize: '2rem', fontWeight: 700, color: '#28a745' }}>
+                                                {results.finetuned_accuracy.toFixed(1)}%
+                                            </div>
+                                            <div style={{ fontSize: '0.75rem', color: '#28a745', marginTop: '0.25rem', fontWeight: 600 }}>
+                                                +{results.improvement.toFixed(1)}% improvement!
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div style={{ marginBottom: '1.5rem' }}>
+                                        <div style={{ fontSize: '0.85rem', marginBottom: '0.5rem', color: '#666' }}>
+                                            <strong>Parameters:</strong> {(results.frozen_params / 1e6).toFixed(1)}M frozen, {(results.trainable_params / 1e6).toFixed(1)}M trainable
+                                        </div>
+                                        <div style={{ fontSize: '0.85rem', color: '#666' }}>
+                                            <strong>Layers:</strong> {results.num_frozen_layers} frozen, {results.num_trainable_layers} trainable
+                                        </div>
+                                    </div>
+
+                                    {results.history && results.history.train_acc.length > 0 && (
+                                        <div>
+                                            <h4 style={{ fontSize: '0.9rem', marginBottom: '0.75rem' }}>Training Progress</h4>
+                                            <svg width="100%" height="150" viewBox="0 0 400 150">
+                                                <line x1="50" y1="130" x2="380" y2="130" stroke="#ccc" strokeWidth="1"/>
+                                                <line x1="50" y1="20" x2="50" y2="130" stroke="#ccc" strokeWidth="1"/>
+
+                                                {[0, 25, 50, 75, 100].map((v, i) => (
+                                                    <g key={i}>
+                                                        <line x1="50" y1={130 - v * 1.1} x2="380" y2={130 - v * 1.1} stroke="#eee" strokeWidth="1"/>
+                                                        <text x="45" y={135 - v * 1.1} textAnchor="end" fontSize="10" fill="#999">{v}</text>
+                                                    </g>
+                                                ))}
+
+                                                <polyline
+                                                    fill="none"
+                                                    stroke="var(--primary)"
+                                                    strokeWidth="2"
+                                                    points={results.history.train_acc.map((acc, i) =>
+                                                        `${50 + (i + 1) * (330 / results.epochs)},${130 - acc * 1.1}`
+                                                    ).join(' ')}
+                                                />
+
+                                                <polyline
+                                                    fill="none"
+                                                    stroke="var(--gold)"
+                                                    strokeWidth="2"
+                                                    points={results.history.val_acc.map((acc, i) =>
+                                                        `${50 + (i + 1) * (330 / results.epochs)},${130 - acc * 1.1}`
+                                                    ).join(' ')}
+                                                />
+
+                                                <rect x="280" y="25" width="12" height="12" fill="var(--primary)"/>
+                                                <text x="297" y="35" fontSize="10" fill="#666">Train</text>
+                                                <rect x="330" y="25" width="12" height="12" fill="var(--gold)"/>
+                                                <text x="347" y="35" fontSize="10" fill="#666">Val</text>
+                                            </svg>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Sample Predictions */}
+                    {status === 'complete' && results && results.sample_predictions && (
+                        <div className="card" style={{ marginTop: '1.5rem' }}>
+                            <div className="card-title">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M9 11l3 3L22 4"/>
+                                    <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+                                </svg>
+                                Fine-tuned Model Predictions
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem' }}>
+                                {results.sample_predictions.map((pred, i) => (
+                                    <div key={i} style={{
+                                        padding: '0.75rem',
+                                        background: pred.correct ? 'rgba(40, 167, 69, 0.05)' : 'rgba(220, 53, 69, 0.05)',
+                                        borderRadius: 8,
+                                        border: `2px solid ${pred.correct ? '#28a745' : '#dc3545'}`,
+                                        fontSize: '0.8rem'
+                                    }}>
+                                        <div style={{ marginBottom: '0.5rem', fontSize: '0.75rem', color: '#666', fontStyle: 'italic', lineHeight: '1.4' }}>
+                                            "{pred.text}..."
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
+                                            <div>
+                                                <span style={{ fontWeight: 600 }}>True:</span> {'⭐'.repeat(pred.true + 1)}<br/>
+                                                <span style={{ fontWeight: 600 }}>Pred:</span> {'⭐'.repeat(pred.predicted + 1)}
+                                            </div>
+                                            <div style={{ fontSize: '0.7rem', color: pred.correct ? '#28a745' : '#dc3545', fontWeight: 600 }}>
+                                                {pred.correct ? '✓' : '✗'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // ===========================================
         // Main App
         // ===========================================
         const App = () => {
@@ -1771,12 +2234,14 @@
             const tabs = [
                 { id: 'embeddings', label: 'Word Embeddings' },
                 { id: 'training', label: 'Train Transformers' },
+                { id: 'finetune', label: 'Fine-tune Pre-trained' },
             ];
 
             const renderTab = () => {
                 switch (activeTab) {
                     case 'embeddings': return <EmbeddingsTab />;
                     case 'training': return <TrainTransformerTab />;
+                    case 'finetune': return <FinetuneTab />;
                     default: return <EmbeddingsTab />;
                 }
             };

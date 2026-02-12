@@ -656,6 +656,123 @@ def get_training_samples():
     return jsonify({'samples': samples})
 
 
+@app.route('/api/finetune', methods=['POST'])
+def finetune_pretrained():
+    """Fine-tune DistilBERT on Yelp reviews"""
+    load_yelp_data()
+
+    data = request.json
+    freeze_percent = float(data.get('freeze_percent', 70))
+    learning_rate = float(data.get('learning_rate', 5e-5))
+    num_samples = int(data.get('num_samples', 500))
+    epochs = int(data.get('epochs', 3))
+
+    try:
+        from transformers import TFDistilBertForSequenceClassification, DistilBertTokenizer
+        import tensorflow as tf
+
+        # Load pre-trained DistilBERT
+        model_name = 'distilbert-base-uncased'
+        tokenizer = DistilBertTokenizer.from_pretrained(model_name)
+
+        # Get base model accuracy (without fine-tuning)
+        base_model = TFDistilBertForSequenceClassification.from_pretrained(
+            model_name,
+            num_labels=5
+        )
+
+        # Sample data
+        train_indices = np.random.choice(len(_X_train), size=min(num_samples, len(_X_train)), replace=False)
+        test_indices = np.random.choice(len(_X_test), size=min(1000, len(_X_test)), replace=False)
+
+        train_texts = [_train_texts[i] for i in train_indices]
+        train_labels = _y_train[train_indices]
+        test_texts = [_test_texts[i] for i in test_indices]
+        test_labels = _y_test[test_indices]
+
+        # Tokenize
+        train_encodings = tokenizer(train_texts, truncation=True, padding=True, max_length=128, return_tensors='tf')
+        test_encodings = tokenizer(test_texts, truncation=True, padding=True, max_length=128, return_tensors='tf')
+
+        # Evaluate base model
+        base_predictions = base_model.predict(test_encodings['input_ids'])
+        base_preds = np.argmax(base_predictions.logits, axis=1)
+        base_accuracy = float(np.mean(base_preds == test_labels) * 100)
+
+        # Fine-tune model
+        finetune_model = TFDistilBertForSequenceClassification.from_pretrained(
+            model_name,
+            num_labels=5
+        )
+
+        # Freeze layers based on percentage
+        num_layers = 6  # DistilBERT has 6 transformer layers
+        num_freeze = int(num_layers * freeze_percent / 100)
+
+        for i in range(num_freeze):
+            finetune_model.distilbert.transformer.layer[i].trainable = False
+
+        # Compile
+        optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+        loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+        finetune_model.compile(optimizer=optimizer, loss=loss, metrics=['accuracy'])
+
+        # Train
+        history = finetune_model.fit(
+            {'input_ids': train_encodings['input_ids'], 'attention_mask': train_encodings['attention_mask']},
+            train_labels,
+            epochs=epochs,
+            batch_size=16,
+            validation_split=0.1,
+            verbose=0
+        )
+
+        # Evaluate fine-tuned model
+        finetuned_predictions = finetune_model.predict(test_encodings['input_ids'])
+        finetuned_preds = np.argmax(finetuned_predictions.logits, axis=1)
+        finetuned_accuracy = float(np.mean(finetuned_preds == test_labels) * 100)
+
+        # Get sample predictions
+        sample_predictions = []
+        for i in range(min(8, len(test_texts))):
+            sample_pred = finetuned_model.predict(test_encodings['input_ids'][i:i+1])
+            pred_class = int(np.argmax(sample_pred.logits[0]))
+            true_class = int(test_labels[i])
+
+            sample_predictions.append({
+                'text': test_texts[i][:300],
+                'true': true_class,
+                'predicted': pred_class,
+                'correct': pred_class == true_class
+            })
+
+        # Count parameters
+        total_params = finetune_model.count_params()
+        trainable_params = sum([tf.keras.backend.count_params(w) for w in finetune_model.trainable_weights])
+        frozen_params = total_params - trainable_params
+
+        return jsonify({
+            'base_accuracy': base_accuracy,
+            'finetuned_accuracy': finetuned_accuracy,
+            'improvement': finetuned_accuracy - base_accuracy,
+            'total_params': int(total_params),
+            'trainable_params': int(trainable_params),
+            'frozen_params': int(frozen_params),
+            'num_frozen_layers': num_freeze,
+            'num_trainable_layers': num_layers - num_freeze,
+            'history': {
+                'train_acc': [float(x) * 100 for x in history.history['accuracy']],
+                'val_acc': [float(x) * 100 for x in history.history['val_accuracy']],
+                'train_loss': [float(x) for x in history.history['loss']],
+                'val_loss': [float(x) for x in history.history['val_loss']]
+            },
+            'sample_predictions': sample_predictions
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/stats', methods=['GET'])
 def get_stats():
     """Get server statistics"""
