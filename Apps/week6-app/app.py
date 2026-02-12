@@ -35,7 +35,7 @@ CLEANUP_INTERVAL_SECONDS = 30
 # Default training settings optimized for speed
 DEFAULT_EPOCHS = 10
 DEFAULT_NUM_SAMPLES = 300
-MAX_EPOCHS = 15
+MAX_EPOCHS = 10
 MAX_SAMPLES = 500  # Max is 500 per class in CIFAR-100 fine classes
 
 # ============================================
@@ -565,11 +565,12 @@ def get_sample_images():
     load_data()
 
     sample_images = []
+    # Get 3 examples per class (3 × 3 = 9), then limit to 8
     for class_idx in range(NUM_CLASSES):
         class_train_indices = np.where(_Y_TRAIN == class_idx)[0]
         if len(class_train_indices) > 0:
-            # Get 2 examples per class
-            selected = np.random.choice(class_train_indices, size=min(2, len(class_train_indices)), replace=False)
+            # Get 3 examples per class
+            selected = np.random.choice(class_train_indices, size=min(3, len(class_train_indices)), replace=False)
             for idx in selected:
                 sample_images.append({
                     'imageData': image_array_to_base64(_X_TRAIN[idx]),
@@ -578,7 +579,7 @@ def get_sample_images():
                 })
 
     return jsonify({
-        'samples': sample_images,
+        'samples': sample_images[:8],  # Limit to 8 total
         'classes': CLASS_NAMES
     })
 
