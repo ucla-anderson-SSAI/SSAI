@@ -811,7 +811,7 @@
 
             const layers = React.useMemo(() => {
                 const result = [];
-                let x = 30;
+                let x = 40;
 
                 // UCLA color scheme for transformer layers
                 const colors = {
@@ -824,32 +824,32 @@
                     output: '#FFD100'      // UCLA gold
                 };
 
-                // Input
-                result.push({ type: 'Input', x, h: 80, w: 35, d: 14, color: colors.input });
-                x += 55;
+                // Input - increased size
+                result.push({ type: 'Input', x, h: 110, w: 50, d: 20, color: colors.input });
+                x += 75;
 
-                // Embeddings
-                result.push({ type: 'Embeddings', x, h: 85, w: 45, d: 18, color: colors.embedding });
-                x += 70;
+                // Embeddings - increased size
+                result.push({ type: 'Embeddings', x, h: 115, w: 60, d: 24, color: colors.embedding });
+                x += 95;
 
-                // Transformer blocks (attention + ffn pairs)
+                // Transformer blocks (attention + ffn pairs) - increased size
                 for (let i = 0; i < config.num_blocks; i++) {
-                    result.push({ type: 'Attention', x, h: 75, w: 40, d: 16, color: colors.attention });
-                    x += 55;
-                    result.push({ type: 'Feed-Fwd', x, h: 70, w: 38, d: 15, color: colors.ffn });
-                    x += 55;
+                    result.push({ type: 'Attention', x, h: 105, w: 55, d: 22, color: colors.attention });
+                    x += 75;
+                    result.push({ type: 'Feed-Fwd', x, h: 100, w: 52, d: 21, color: colors.ffn });
+                    x += 75;
                 }
 
-                // Pooling
-                result.push({ type: 'Pooling', x, h: 65, w: 35, d: 14, color: colors.pooling });
-                x += 52;
+                // Pooling - increased size
+                result.push({ type: 'Pooling', x, h: 90, w: 50, d: 20, color: colors.pooling });
+                x += 72;
 
-                // Dense
-                result.push({ type: 'Dense', x, h: 70, w: 36, d: 15, color: colors.dense });
-                x += 54;
+                // Dense - increased size
+                result.push({ type: 'Dense', x, h: 95, w: 50, d: 21, color: colors.dense });
+                x += 74;
 
-                // Output
-                result.push({ type: 'Output', x, h: 60, w: 32, d: 13, color: colors.output });
+                // Output - increased size
+                result.push({ type: 'Output', x, h: 85, w: 46, d: 19, color: colors.output });
 
                 return result;
             }, [config.num_blocks]);
@@ -940,12 +940,12 @@
                     });
 
                     // Labels
-                    ctx.fillStyle = '#666';
-                    ctx.font = '10px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+                    ctx.fillStyle = '#333';
+                    ctx.font = 'bold 14px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
                     ctx.textAlign = 'center';
                     layers.forEach(layer => {
                         const labelX = layer.x + layer.w / 2 + layer.d * 0.35;
-                        ctx.fillText(layer.type, labelX, centerY + layer.h / 2 + 16);
+                        ctx.fillText(layer.type, labelX, centerY + layer.h / 2 + 22);
                     });
 
                     time++;
@@ -963,7 +963,7 @@
                 <div style={{ background: '#f8f9fa', borderRadius: '12px', padding: '1.5rem' }}>
                     <canvas
                         ref={canvasRef}
-                        style={{ width: '100%', height: '150px', display: 'block' }}
+                        style={{ width: '100%', height: '250px', display: 'block' }}
                     />
                 </div>
             );
@@ -1552,13 +1552,14 @@
             const [config, setConfig] = useState({
                 freeze_percent: 70,  // 70% frozen = only train last ~2 layers
                 learning_rate: 5e-5,
-                num_samples: 500,
+                num_samples: 200,  // Reduced from 500 for faster training on Railway
                 epochs: 3
             });
             const [status, setStatus] = useState('idle');
             const [results, setResults] = useState(null);
             const [error, setError] = useState(null);
             const [trainingSamples, setTrainingSamples] = useState([]);
+            const [progress, setProgress] = useState({ epoch: 0, totalEpochs: 3, batch: 0, totalBatches: 0 });
 
             // Fetch training samples
             useEffect(() => {
@@ -1572,6 +1573,22 @@
                 setStatus('training');
                 setError(null);
                 setResults(null);
+                
+                // Initialize progress
+                const totalBatches = Math.ceil(config.num_samples / 16); // batch_size = 16
+                setProgress({ epoch: 0, totalEpochs: config.epochs, batch: 0, totalBatches });
+
+                // Simulate progress updates
+                const progressInterval = setInterval(() => {
+                    setProgress(prev => {
+                        if (prev.batch < prev.totalBatches) {
+                            return { ...prev, batch: prev.batch + 1 };
+                        } else if (prev.epoch < prev.totalEpochs - 1) {
+                            return { ...prev, epoch: prev.epoch + 1, batch: 0 };
+                        }
+                        return prev;
+                    });
+                }, 200); // Update every 200ms for smooth progress
 
                 try {
                     const response = await fetch(`${API_BASE}/api/finetune`, {
@@ -1580,6 +1597,8 @@
                         body: JSON.stringify(config)
                     });
 
+                    clearInterval(progressInterval);
+
                     if (!response.ok) {
                         throw new Error('Fine-tuning failed');
                     }
@@ -1587,7 +1606,9 @@
                     const data = await response.json();
                     setResults(data);
                     setStatus('complete');
+                    setProgress({ epoch: config.epochs, totalEpochs: config.epochs, batch: totalBatches, totalBatches });
                 } catch (err) {
+                    clearInterval(progressInterval);
                     setError(err.message);
                     setStatus('error');
                 }
@@ -1839,7 +1860,7 @@
                             <div className="input-group">
                                 <label className="input-label">Training Samples:</label>
                                 <div className="btn-group">
-                                    {[100, 500, 1000].map(n => (
+                                    {[100, 200, 500].map(n => (
                                         <button
                                             key={n}
                                             className={`btn-option ${config.num_samples === n ? 'active' : ''}`}
@@ -1865,12 +1886,22 @@
                             </div>
 
                             <button
-                                className="run-button"
+                                className="btn btn-primary"
                                 onClick={startFineTuning}
                                 disabled={status === 'training'}
-                                style={{ marginTop: '1rem' }}
+                                style={{ width: '100%', marginTop: '1rem', justifyContent: 'center' }}
                             >
-                                {status === 'training' ? '⏳ Fine-tuning...' : '▶ Start Fine-tuning'}
+                                {status === 'training' ? (
+                                    <>
+                                        <div className="spinner" style={{
+                                            width: 16,
+                                            height: 16,
+                                            border: '2px solid rgba(255,255,255,0.3)',
+                                            borderTopColor: 'white'
+                                        }} />
+                                        Fine-tuning...
+                                    </>
+                                ) : '▶ Start Fine-tuning'}
                             </button>
 
                             {error && (
@@ -1896,11 +1927,61 @@
                             )}
 
                             {status === 'training' && (
-                                <div style={{ textAlign: 'center', padding: '3rem' }}>
-                                    <div className="loading-spinner" style={{ margin: '0 auto 1rem' }} />
-                                    <div>Fine-tuning DistilBERT...</div>
-                                    <div style={{ fontSize: '0.85rem', color: 'var(--textMuted)', marginTop: '0.5rem' }}>
-                                        This may take 30-60 seconds
+                                <div style={{ padding: '2rem' }}>
+                                    <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                                        <div className="loading-spinner" style={{ margin: '0 auto 1rem' }} />
+                                        <div style={{ fontSize: '1.1rem', fontWeight: 500, marginBottom: '0.5rem' }}>
+                                            Fine-tuning DistilBERT...
+                                        </div>
+                                        <div style={{ fontSize: '0.85rem', color: 'var(--textMuted)' }}>
+                                            This may take 1-3 minutes (or longer on slower servers)
+                                        </div>
+                                    </div>
+
+                                    {/* Epoch Progress */}
+                                    <div style={{ marginBottom: '1.5rem' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                            <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>Epoch Progress</span>
+                                            <span style={{ fontSize: '0.9rem', color: 'var(--textMuted)' }}>
+                                                {progress.epoch + 1} / {progress.totalEpochs}
+                                            </span>
+                                        </div>
+                                        <div style={{ 
+                                            height: '8px', 
+                                            background: '#e9ecef', 
+                                            borderRadius: '4px', 
+                                            overflow: 'hidden' 
+                                        }}>
+                                            <div style={{
+                                                height: '100%',
+                                                width: `${((progress.epoch + 1) / progress.totalEpochs) * 100}%`,
+                                                background: 'linear-gradient(90deg, #2774AE, #8BB8E8)',
+                                                transition: 'width 0.3s ease'
+                                            }} />
+                                        </div>
+                                    </div>
+
+                                    {/* Batch Progress */}
+                                    <div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                            <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>Batch Progress</span>
+                                            <span style={{ fontSize: '0.9rem', color: 'var(--textMuted)' }}>
+                                                {progress.batch} / {progress.totalBatches} batches
+                                            </span>
+                                        </div>
+                                        <div style={{ 
+                                            height: '8px', 
+                                            background: '#e9ecef', 
+                                            borderRadius: '4px', 
+                                            overflow: 'hidden' 
+                                        }}>
+                                            <div style={{
+                                                height: '100%',
+                                                width: `${(progress.batch / progress.totalBatches) * 100}%`,
+                                                background: 'linear-gradient(90deg, #FFD100, #FFA500)',
+                                                transition: 'width 0.1s linear'
+                                            }} />
+                                        </div>
                                     </div>
                                 </div>
                             )}

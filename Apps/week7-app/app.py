@@ -4,6 +4,12 @@ Real transformer training on Yelp review star rating prediction with Keras
 With queueing system for concurrent user limits
 """
 
+import sys
+print("=" * 50, flush=True)
+print("STARTING FLASK APP", flush=True)
+print(f"Python version: {sys.version}", flush=True)
+print("=" * 50, flush=True)
+
 from flask import Flask, jsonify, request, send_file
 from flask_cors import CORS
 import numpy as np
@@ -14,12 +20,18 @@ from datetime import datetime, timedelta
 import threading
 import uuid
 
+print("✓ Basic imports successful", flush=True)
+
 # Set TensorFlow to CPU only and reduce logging BEFORE importing
 os.environ['CUDA_VISIBLE_DEVICES'] = ''
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
+print("✓ Environment variables set", flush=True)
+
 app = Flask(__name__)
 CORS(app)
+
+print("✓ Flask app created and CORS enabled", flush=True)
 
 # ============================================
 # Configuration
@@ -772,25 +784,35 @@ def get_training_samples():
 @app.route('/api/finetune', methods=['POST'])
 def finetune_pretrained():
     """Fine-tune DistilBERT on Yelp reviews using PyTorch"""
+    print("=" * 50, flush=True)
+    print("FINE-TUNING REQUEST RECEIVED", flush=True)
+    print("=" * 50, flush=True)
+    
     load_yelp_data()
 
     data = request.json
     freeze_percent = float(data.get('freeze_percent', 70))
     learning_rate = float(data.get('learning_rate', 5e-5))
-    num_samples = int(data.get('num_samples', 500))
+    num_samples = int(data.get('num_samples', 200))
     epochs = int(data.get('epochs', 3))
+    
+    print(f"Config: samples={num_samples}, epochs={epochs}, freeze={freeze_percent}%, lr={learning_rate}", flush=True)
 
     try:
         import torch
         from torch.utils.data import DataLoader, TensorDataset
         from transformers import DistilBertForSequenceClassification, DistilBertTokenizer
         
+        print("✓ PyTorch imports successful", flush=True)
+        
         # Set device
         device = torch.device('cpu')  # Force CPU for Railway
 
         # Load pre-trained DistilBERT
+        print("Loading DistilBERT model...", flush=True)
         model_name = 'distilbert-base-uncased'
         tokenizer = DistilBertTokenizer.from_pretrained(model_name)
+        print("✓ Tokenizer loaded", flush=True)
 
         # Sample data
         train_indices = np.random.choice(len(_X_train), size=min(num_samples, len(_X_train)), replace=False)
@@ -865,7 +887,9 @@ def finetune_pretrained():
         }
 
         # Training loop
+        print(f"Starting training for {epochs} epochs...", flush=True)
         for epoch in range(epochs):
+            print(f"Epoch {epoch + 1}/{epochs} - Training...", flush=True)
             # Training phase
             finetune_model.train()
             train_loss = 0
@@ -889,6 +913,7 @@ def finetune_pretrained():
             train_acc = train_correct / train_total
             train_loss = train_loss / len(train_loader)
             
+            print(f"Epoch {epoch + 1}/{epochs} - Validating...", flush=True)
             # Validation phase
             finetune_model.eval()
             val_loss = 0
@@ -906,6 +931,9 @@ def finetune_pretrained():
                     val_total += labels.size(0)
             
             val_acc = val_correct / val_total
+            val_loss = val_loss / len(val_loader)
+            
+            print(f"✓ Epoch {epoch + 1}/{epochs} complete - Train Acc: {train_acc:.3f}, Val Acc: {val_acc:.3f}", flush=True)
             val_loss = val_loss / len(val_loader)
             
             history['train_acc'].append(train_acc)
@@ -937,6 +965,13 @@ def finetune_pretrained():
         total_params = sum(p.numel() for p in finetune_model.parameters())
         trainable_params = sum(p.numel() for p in finetune_model.parameters() if p.requires_grad)
         frozen_params = total_params - trainable_params
+
+        print("=" * 50, flush=True)
+        print("✓ FINE-TUNING COMPLETE!", flush=True)
+        print(f"Base Accuracy: {base_accuracy:.2f}%", flush=True)
+        print(f"Fine-tuned Accuracy: {finetuned_accuracy:.2f}%", flush=True)
+        print(f"Improvement: +{finetuned_accuracy - base_accuracy:.2f}%", flush=True)
+        print("=" * 50, flush=True)
 
         return jsonify({
             'base_accuracy': base_accuracy,
@@ -1083,15 +1118,42 @@ def root():
 
 
 # Start background threads
-cleanup_thread = threading.Thread(target=cleanup_old_sessions, daemon=True)
-cleanup_thread.start()
+print("Starting background threads...", flush=True)
 
-queue_thread = threading.Thread(target=process_queue, daemon=True)
-queue_thread.start()
+try:
+    cleanup_thread = threading.Thread(target=cleanup_old_sessions, daemon=True)
+    cleanup_thread.start()
+    print("✓ Cleanup thread started", flush=True)
+except Exception as e:
+    print(f"✗ ERROR starting cleanup thread: {e}", flush=True)
+
+try:
+    queue_thread = threading.Thread(target=process_queue, daemon=True)
+    queue_thread.start()
+    print("✓ Queue thread started", flush=True)
+except Exception as e:
+    print(f"✗ ERROR starting queue thread: {e}", flush=True)
+
+print("=" * 50, flush=True)
+print("APP INITIALIZATION COMPLETE", flush=True)
+print("=" * 50, flush=True)
 
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    print(f"Starting server on port {port}")
-    print(f"Max concurrent trainings: {MAX_CONCURRENT_TRAININGS}")
-    app.run(host='0.0.0.0', port=port, debug=False, threaded=True)
+    print(f"Starting server on port {port}", flush=True)
+    print(f"Max concurrent trainings: {MAX_CONCURRENT_TRAININGS}", flush=True)
+    
+    # Check if index.html exists
+    if os.path.exists('index.html'):
+        print("✓ index.html found", flush=True)
+    else:
+        print("✗ WARNING: index.html not found!", flush=True)
+    
+    try:
+        app.run(host='0.0.0.0', port=port, debug=False, threaded=True)
+    except Exception as e:
+        print(f"✗ FATAL ERROR starting server: {e}", flush=True)
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
