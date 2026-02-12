@@ -771,7 +771,7 @@ def get_training_samples():
 
 @app.route('/api/finetune', methods=['POST'])
 def finetune_pretrained():
-    """Fine-tune DistilBERT on Yelp reviews"""
+    """Fine-tune DistilBERT on Yelp reviews using PyTorch"""
     load_yelp_data()
 
     data = request.json
@@ -781,18 +781,16 @@ def finetune_pretrained():
     epochs = int(data.get('epochs', 3))
 
     try:
-        from transformers import TFDistilBertForSequenceClassification, DistilBertTokenizer
-        import tensorflow as tf
+        import torch
+        from torch.utils.data import DataLoader, TensorDataset
+        from transformers import DistilBertForSequenceClassification, DistilBertTokenizer
+        
+        # Set device
+        device = torch.device('cpu')  # Force CPU for Railway
 
         # Load pre-trained DistilBERT
         model_name = 'distilbert-base-uncased'
         tokenizer = DistilBertTokenizer.from_pretrained(model_name)
-
-        # Get base model accuracy (without fine-tuning)
-        base_model = TFDistilBertForSequenceClassification.from_pretrained(
-            model_name,
-            num_labels=5
-        )
 
         # Sample data
         train_indices = np.random.choice(len(_X_train), size=min(num_samples, len(_X_train)), replace=False)
@@ -804,46 +802,123 @@ def finetune_pretrained():
         test_labels = _y_test[test_indices]
 
         # Tokenize
-        train_encodings = tokenizer(train_texts, truncation=True, padding=True, max_length=128, return_tensors='tf')
-        test_encodings = tokenizer(test_texts, truncation=True, padding=True, max_length=128, return_tensors='tf')
+        train_encodings = tokenizer(train_texts, truncation=True, padding=True, max_length=128, return_tensors='pt')
+        test_encodings = tokenizer(test_texts, truncation=True, padding=True, max_length=128, return_tensors='pt')
+        
+        # Convert labels to tensors
+        train_labels_tensor = torch.tensor(train_labels, dtype=torch.long)
+        test_labels_tensor = torch.tensor(test_labels, dtype=torch.long)
 
-        # Evaluate base model
-        base_predictions = base_model.predict(test_encodings['input_ids'], verbose=0)
-        base_preds = np.argmax(base_predictions.logits, axis=1)
-        base_accuracy = float(np.mean(base_preds == test_labels) * 100)
-
-        # Fine-tune model
-        finetune_model = TFDistilBertForSequenceClassification.from_pretrained(
+        # Get base model accuracy (without fine-tuning)
+        base_model = DistilBertForSequenceClassification.from_pretrained(
             model_name,
             num_labels=5
-        )
+        ).to(device)
+        
+        base_model.eval()
+        with torch.no_grad():
+            base_outputs = base_model(**test_encodings.to(device))
+            base_preds = torch.argmax(base_outputs.logits, dim=1).cpu().numpy()
+            base_accuracy = float(np.mean(base_preds == test_labels) * 100)
+
+        # Fine-tune model
+        finetune_model = DistilBertForSequenceClassification.from_pretrained(
+            model_name,
+            num_labels=5
+        ).to(device)
 
         # Freeze layers based on percentage
         num_layers = 6  # DistilBERT has 6 transformer layers
         num_freeze = int(num_layers * freeze_percent / 100)
 
+        # Freeze transformer layers
         for i in range(num_freeze):
-            finetune_model.distilbert.transformer.layer[i].trainable = False
+            for param in finetune_model.distilbert.transformer.layer[i].parameters():
+                param.requires_grad = False
 
-        # Compile
-        optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-        loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-        finetune_model.compile(optimizer=optimizer, loss=loss, metrics=['accuracy'])
-
-        # Train
-        history = finetune_model.fit(
-            {'input_ids': train_encodings['input_ids'], 'attention_mask': train_encodings['attention_mask']},
-            train_labels,
-            epochs=epochs,
-            batch_size=16,
-            validation_split=0.1,
-            verbose=0
+        # Create DataLoader
+        train_dataset = TensorDataset(
+            train_encodings['input_ids'],
+            train_encodings['attention_mask'],
+            train_labels_tensor
         )
+        train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
 
-        # Evaluate fine-tuned model
-        finetuned_predictions = finetune_model.predict(test_encodings['input_ids'], verbose=0)
-        finetuned_preds = np.argmax(finetuned_predictions.logits, axis=1)
-        finetuned_accuracy = float(np.mean(finetuned_preds == test_labels) * 100)
+        # Split for validation
+        val_size = int(0.1 * len(train_dataset))
+        train_size = len(train_dataset) - val_size
+        train_subset, val_subset = torch.utils.data.random_split(
+            train_dataset, [train_size, val_size]
+        )
+        train_loader = DataLoader(train_subset, batch_size=16, shuffle=True)
+        val_loader = DataLoader(val_subset, batch_size=16, shuffle=False)
+
+        # Optimizer and loss
+        optimizer = torch.optim.Adam(finetune_model.parameters(), lr=learning_rate)
+        
+        # Training history
+        history = {
+            'train_acc': [],
+            'val_acc': [],
+            'train_loss': [],
+            'val_loss': []
+        }
+
+        # Training loop
+        for epoch in range(epochs):
+            # Training phase
+            finetune_model.train()
+            train_loss = 0
+            train_correct = 0
+            train_total = 0
+            
+            for batch in train_loader:
+                input_ids, attention_mask, labels = [b.to(device) for b in batch]
+                
+                optimizer.zero_grad()
+                outputs = finetune_model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
+                loss = outputs.loss
+                loss.backward()
+                optimizer.step()
+                
+                train_loss += loss.item()
+                preds = torch.argmax(outputs.logits, dim=1)
+                train_correct += (preds == labels).sum().item()
+                train_total += labels.size(0)
+            
+            train_acc = train_correct / train_total
+            train_loss = train_loss / len(train_loader)
+            
+            # Validation phase
+            finetune_model.eval()
+            val_loss = 0
+            val_correct = 0
+            val_total = 0
+            
+            with torch.no_grad():
+                for batch in val_loader:
+                    input_ids, attention_mask, labels = [b.to(device) for b in batch]
+                    outputs = finetune_model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
+                    
+                    val_loss += outputs.loss.item()
+                    preds = torch.argmax(outputs.logits, dim=1)
+                    val_correct += (preds == labels).sum().item()
+                    val_total += labels.size(0)
+            
+            val_acc = val_correct / val_total
+            val_loss = val_loss / len(val_loader)
+            
+            history['train_acc'].append(train_acc)
+            history['val_acc'].append(val_acc)
+            history['train_loss'].append(train_loss)
+            history['val_loss'].append(val_loss)
+
+        # Evaluate fine-tuned model on test set
+        finetune_model.eval()
+        with torch.no_grad():
+            test_outputs = finetune_model(**test_encodings.to(device))
+            finetuned_preds = torch.argmax(test_outputs.logits, dim=1).cpu().numpy()
+            finetuned_accuracy = float(np.mean(finetuned_preds == test_labels) * 100)
 
         # Get sample predictions
         sample_predictions = []
@@ -859,8 +934,8 @@ def finetune_pretrained():
             })
 
         # Count parameters
-        total_params = finetune_model.count_params()
-        trainable_params = sum([tf.keras.backend.count_params(w) for w in finetune_model.trainable_weights])
+        total_params = sum(p.numel() for p in finetune_model.parameters())
+        trainable_params = sum(p.numel() for p in finetune_model.parameters() if p.requires_grad)
         frozen_params = total_params - trainable_params
 
         return jsonify({
@@ -874,10 +949,10 @@ def finetune_pretrained():
             'num_trainable_layers': num_layers - num_freeze,
             'epochs': epochs,
             'history': {
-                'train_acc': [float(x) * 100 for x in history.history['accuracy']],
-                'val_acc': [float(x) * 100 for x in history.history['val_accuracy']],
-                'train_loss': [float(x) for x in history.history['loss']],
-                'val_loss': [float(x) for x in history.history['val_loss']]
+                'train_acc': [float(x) * 100 for x in history['train_acc']],
+                'val_acc': [float(x) * 100 for x in history['val_acc']],
+                'train_loss': [float(x) for x in history['train_loss']],
+                'val_loss': [float(x) for x in history['val_loss']]
             },
             'sample_predictions': sample_predictions
         })
