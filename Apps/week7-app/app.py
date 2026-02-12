@@ -1,6 +1,6 @@
 """
 Flask backend for Week 7 Transformer Training App
-Real transformer training on Reuters news classification with Keras
+Real transformer training on Yelp review star rating prediction with Keras
 With queueing system for concurrent user limits
 """
 
@@ -24,7 +24,10 @@ CORS(app)
 # ============================================
 # Configuration
 # ============================================
-MAX_CONCURRENT_TRAININGS = 3  # Lower than Week 6 - transformers use more memory
+# Concurrent training limits by Railway plan:
+# Hobby (512MB RAM): 3-5 concurrent safe
+# Pro (8GB RAM): 20-50 concurrent safe
+MAX_CONCURRENT_TRAININGS = 30  # Optimized for Pro plan - handles full classroom
 SESSION_TIMEOUT_MINUTES = 15
 CLEANUP_INTERVAL_SECONDS = 60
 
@@ -46,8 +49,9 @@ _X_train = None
 _y_train = None
 _X_test = None
 _y_test = None
-_word_index = None
-_index_to_word = None
+_train_texts = None
+_test_texts = None
+_tokenizer = None
 _num_classes = None
 
 VOCAB_SIZE = 10000
@@ -71,46 +75,56 @@ def load_tensorflow():
     print(f"TensorFlow {tf.__version__} loaded")
 
 
-def load_reuters_data():
-    """Lazy load Reuters dataset"""
+def load_yelp_data():
+    """Lazy load Yelp dataset from Hugging Face"""
     global _data_loaded, _X_train, _y_train, _X_test, _y_test
-    global _word_index, _index_to_word, _num_classes
+    global _train_texts, _test_texts, _tokenizer, _num_classes
 
     if _data_loaded:
         return
 
     load_tensorflow()
 
-    print("Loading Reuters dataset...")
-    from tensorflow.keras.datasets import reuters
+    print("Loading Yelp dataset from Hugging Face...")
+    from datasets import load_dataset
+    from tensorflow.keras.preprocessing.text import Tokenizer
     from tensorflow.keras.preprocessing.sequence import pad_sequences
 
-    # Load data
-    (x_train, y_train), (x_test, y_test) = reuters.load_data(
-        num_words=VOCAB_SIZE,
-        test_split=0.2
-    )
+    # Load Yelp dataset (5-star ratings)
+    dataset = load_dataset('yelp_review_full', split='train[:10000]')  # Use subset for speed
+    test_dataset = load_dataset('yelp_review_full', split='test[:2000]')
 
-    # Get word index
-    _word_index = reuters.get_word_index()
-    _index_to_word = {v + 3: k for k, v in _word_index.items()}
-    _index_to_word[0] = '<PAD>'
-    _index_to_word[1] = '<START>'
-    _index_to_word[2] = '<UNK>'
-    _index_to_word[3] = '<UNUSED>'
+    # Extract texts and labels
+    train_texts_list = dataset['text']
+    train_labels = dataset['label']  # 0-4 (representing 1-5 stars)
+
+    test_texts_list = test_dataset['text']
+    test_labels = test_dataset['label']
+
+    # Store original texts for visualization
+    _train_texts = train_texts_list
+    _test_texts = test_texts_list
+
+    # Create tokenizer
+    _tokenizer = Tokenizer(num_words=VOCAB_SIZE, oov_token='<UNK>')
+    _tokenizer.fit_on_texts(train_texts_list)
+
+    # Convert texts to sequences
+    train_sequences = _tokenizer.texts_to_sequences(train_texts_list)
+    test_sequences = _tokenizer.texts_to_sequences(test_texts_list)
 
     # Pad sequences
-    _X_train = pad_sequences(x_train, maxlen=MAX_LEN, padding='post', truncating='post')
-    _X_test = pad_sequences(x_test, maxlen=MAX_LEN, padding='post', truncating='post')
-    _y_train = np.array(y_train)
-    _y_test = np.array(y_test)
+    _X_train = pad_sequences(train_sequences, maxlen=MAX_LEN, padding='post', truncating='post')
+    _X_test = pad_sequences(test_sequences, maxlen=MAX_LEN, padding='post', truncating='post')
 
-    # Use top 10 categories for simplicity
-    _num_classes = 46  # Reuters has 46 categories
+    _y_train = np.array(train_labels)
+    _y_test = np.array(test_labels)
+
+    _num_classes = 5  # 5 star ratings (1-5 stars, stored as 0-4)
 
     _data_loaded = True
     print(f"Loaded {len(_X_train)} training samples, {len(_X_test)} test samples")
-    print(f"Number of classes: {_num_classes}")
+    print(f"Number of classes: {_num_classes} (star ratings 1-5)")
 
 
 # ============================================
@@ -219,11 +233,17 @@ def create_attention_model(trained_model, config):
 
 def decode_sequence(sequence, max_tokens=20):
     """Decode a sequence of token IDs to words"""
+    if _tokenizer is None:
+        return []
+
+    # Get reverse word index from tokenizer
+    index_to_word = {v: k for k, v in _tokenizer.word_index.items()}
+
     words = []
     for idx in sequence[:max_tokens]:
         if idx == 0:  # PAD
             break
-        word = _index_to_word.get(idx, '<UNK>')
+        word = index_to_word.get(idx, '<UNK>')
         words.append(word)
     return words
 
@@ -296,7 +316,7 @@ def train_model_async(session_id, config):
 
     try:
         # Ensure data is loaded
-        load_reuters_data()
+        load_yelp_data()
 
         num_samples = config.get('numSamples', 2000)
         epochs = config.get('epochs', 10)
@@ -358,18 +378,24 @@ def train_model_async(session_id, config):
         test_loss, test_acc = model.evaluate(_X_test[:1000], _y_test[:1000], verbose=0)
         session['test_accuracy'] = float(test_acc * 100)
 
-        # Get sample predictions
+        # Get sample predictions with actual review text
         sample_predictions = []
-        for i in range(min(5, len(X_val))):
+        for i in range(min(8, len(X_val))):
             pred = model.predict(X_val[i:i + 1], verbose=0)
             pred_class = int(np.argmax(pred[0]))
             true_class = int(y_val[i])
             confidence = float(np.max(pred[0]))
+
+            # Get the actual review text
+            original_idx = test_indices[i]
+            review_text = _test_texts[original_idx] if original_idx < len(_test_texts) else ""
+
             sample_predictions.append({
                 'true': true_class,
                 'predicted': pred_class,
                 'confidence': confidence,
-                'correct': pred_class == true_class
+                'correct': pred_class == true_class,
+                'text': review_text[:300]  # Limit to 300 chars for display
             })
 
         session['sample_predictions'] = sample_predictions
@@ -476,7 +502,7 @@ def health():
 @app.route('/api/warmup', methods=['POST'])
 def warmup():
     """Pre-load TensorFlow and Reuters data"""
-    load_reuters_data()
+    load_yelp_data()
     return jsonify({
         'status': 'ok',
         'tf_version': _tf.__version__,
@@ -561,7 +587,7 @@ def get_training_status(session_id):
 @app.route('/api/tokenize', methods=['POST'])
 def tokenize():
     """Tokenize input text using the Reuters word index"""
-    load_reuters_data()
+    load_yelp_data()
 
     data = request.json
     text = data.get('text', '')
@@ -591,7 +617,7 @@ def tokenize():
 @app.route('/api/sample', methods=['GET'])
 def get_sample():
     """Get a random sample from the dataset"""
-    load_reuters_data()
+    load_yelp_data()
 
     idx = np.random.randint(0, len(_X_test))
     sequence = _X_test[idx]
@@ -605,6 +631,29 @@ def get_sample():
         'label': label,
         'text': ' '.join(words)
     })
+
+
+@app.route('/api/training_samples', methods=['GET'])
+def get_training_samples():
+    """Get random training samples with text"""
+    load_yelp_data()
+
+    num_samples = int(request.args.get('num', 8))
+    samples = []
+
+    indices = np.random.choice(len(_X_train), size=min(num_samples, len(_X_train)), replace=False)
+
+    for idx in indices:
+        label = int(_y_train[idx])
+        text = _train_texts[idx] if idx < len(_train_texts) else ""
+
+        samples.append({
+            'text': text[:300],  # Limit to 300 chars
+            'label': label,
+            'stars': label + 1  # Convert 0-4 to 1-5 stars
+        })
+
+    return jsonify({'samples': samples})
 
 
 @app.route('/api/stats', methods=['GET'])

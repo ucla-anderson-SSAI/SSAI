@@ -465,143 +465,6 @@
             border-radius: 8px;
         }
 
-        /* Architecture diagram styles */
-        .arch-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 1.5rem;
-            background: #f8f9fa;
-            border-radius: 12px;
-            overflow-x: auto;
-        }
-
-        .arch-block {
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            min-width: fit-content;
-        }
-
-        .arch-layer {
-            min-width: 140px;
-            padding: 0.75rem 1rem;
-            border-radius: 8px;
-            text-align: center;
-            font-size: 0.85rem;
-            font-weight: 500;
-            margin: 0 0.25rem;
-            position: relative;
-        }
-
-        .arch-layer.input {
-            background: linear-gradient(135deg, #e8f4f8, #d0e8f0);
-            border: 2px solid #8BB8E8;
-            color: #005587;
-        }
-
-        .arch-layer.embedding {
-            background: linear-gradient(135deg, #fff3d0, #ffe69c);
-            border: 2px solid #FFD100;
-            color: #665200;
-        }
-
-        .arch-layer.transformer {
-            background: linear-gradient(135deg, #d4e5f7, #a8c8e8);
-            border: 2px solid #2774AE;
-            color: #005587;
-        }
-
-        .arch-layer.attention {
-            background: linear-gradient(135deg, #e8d4f7, #d4b8e8);
-            border: 2px solid #8B5CF6;
-            color: #4c1d95;
-        }
-
-        .arch-layer.ffn {
-            background: linear-gradient(135deg, #d4f7e8, #a8e8c8);
-            border: 2px solid #10B981;
-            color: #065f46;
-        }
-
-        .arch-layer.output {
-            background: linear-gradient(135deg, #fde8e8, #f8c4c4);
-            border: 2px solid #dc3545;
-            color: #991b1b;
-        }
-
-        .arch-arrow {
-            width: 30px;
-            height: 2px;
-            background: #999;
-            position: relative;
-            margin: 0 0.5rem;
-        }
-
-        .arch-arrow::after {
-            content: '';
-            position: absolute;
-            right: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            border-top: 6px solid transparent;
-            border-bottom: 6px solid transparent;
-            border-left: 8px solid #999;
-        }
-
-        .arch-bracket {
-            border: 2px dashed #2774AE;
-            border-radius: 12px;
-            padding: 0.75rem;
-            margin: 0 0.5rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .arch-bracket-label {
-            font-size: 0.75rem;
-            color: #2774AE;
-            text-align: center;
-            margin-bottom: 0.75rem;
-            font-weight: 600;
-        }
-
-        .arch-bracket-content {
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-        }
-
-        .arch-layer-detail {
-            font-size: 0.7rem;
-            color: inherit;
-            opacity: 0.8;
-            margin-top: 0.25rem;
-        }
-
-        .arch-params {
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-            margin-top: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .arch-param {
-            background: white;
-            padding: 0.5rem 1rem;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            border: 1px solid var(--border);
-        }
-
-        .arch-param-value {
-            font-weight: 600;
-            color: var(--primary);
-        }
     </style>
 </head>
 <body>
@@ -942,127 +805,168 @@
         };
 
         // ===========================================
-        // Architecture Visualization Component
+        // Architecture Visualization Component - 3D Canvas Style
         // ===========================================
         const ArchitectureDiagram = ({ config }) => {
-            const vocabSize = 10000;
-            const maxLen = 200;
-            const numClasses = 46;
+            const canvasRef = React.useRef(null);
+            const animationRef = React.useRef(null);
 
-            // Calculate parameter counts
-            const tokenEmbParams = vocabSize * config.embed_dim;
-            const posEmbParams = maxLen * config.embed_dim;
-            const embeddingParams = tokenEmbParams + posEmbParams;
+            const layers = React.useMemo(() => {
+                const result = [];
+                let x = 30;
 
-            // Per transformer block
-            const attentionParams = 4 * config.embed_dim * config.embed_dim; // Q, K, V, Output projections
-            const ffnParams = 2 * config.embed_dim * config.ff_dim; // Two dense layers
-            const layerNormParams = 4 * config.embed_dim; // 2 layer norms per block
-            const perBlockParams = attentionParams + ffnParams + layerNormParams;
-            const totalTransformerParams = perBlockParams * config.num_blocks;
+                // UCLA color scheme for transformer layers
+                const colors = {
+                    input: '#4CAF50',      // green (input)
+                    embedding: '#FFD100',  // UCLA gold
+                    attention: '#8B5CF6',  // purple
+                    ffn: '#10B981',        // emerald
+                    pooling: '#8BB8E8',    // UCLA light blue
+                    dense: '#2774AE',      // UCLA blue
+                    output: '#FFD100'      // UCLA gold
+                };
 
-            // Output layers
-            const poolingParams = 0; // Global average pooling has no params
-            const denseParams = config.embed_dim * 64 + 64; // Hidden dense layer
-            const outputParams = 64 * numClasses + numClasses; // Output layer
+                // Input
+                result.push({ type: 'Input', x, h: 80, w: 35, d: 14, color: colors.input });
+                x += 55;
 
-            const totalParams = embeddingParams + totalTransformerParams + denseParams + outputParams;
+                // Embeddings
+                result.push({ type: 'Embeddings', x, h: 85, w: 45, d: 18, color: colors.embedding });
+                x += 70;
+
+                // Transformer blocks (attention + ffn pairs)
+                for (let i = 0; i < config.num_blocks; i++) {
+                    result.push({ type: 'Attention', x, h: 75, w: 40, d: 16, color: colors.attention });
+                    x += 55;
+                    result.push({ type: 'Feed-Fwd', x, h: 70, w: 38, d: 15, color: colors.ffn });
+                    x += 55;
+                }
+
+                // Pooling
+                result.push({ type: 'Pooling', x, h: 65, w: 35, d: 14, color: colors.pooling });
+                x += 52;
+
+                // Dense
+                result.push({ type: 'Dense', x, h: 70, w: 36, d: 15, color: colors.dense });
+                x += 54;
+
+                // Output
+                result.push({ type: 'Output', x, h: 60, w: 32, d: 13, color: colors.output });
+
+                return result;
+            }, [config.num_blocks]);
+
+            React.useEffect(() => {
+                const canvas = canvasRef.current;
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                const dpr = window.devicePixelRatio || 1;
+
+                const rect = canvas.getBoundingClientRect();
+                canvas.width = rect.width * dpr;
+                canvas.height = rect.height * dpr;
+                ctx.scale(dpr, dpr);
+
+                let time = 0;
+
+                function shadeColor(color, percent) {
+                    const num = parseInt(color.replace('#', ''), 16);
+                    const amt = Math.round(2.55 * percent);
+                    const R = Math.min(255, Math.max(0, (num >> 16) + amt));
+                    const G = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amt));
+                    const B = Math.min(255, Math.max(0, (num & 0x0000FF) + amt));
+                    return `rgb(${R},${G},${B})`;
+                }
+
+                function drawBlock(x, y, w, h, d, color) {
+                    // Right face (darker)
+                    ctx.fillStyle = shadeColor(color, -18);
+                    ctx.beginPath();
+                    ctx.moveTo(x + w, y);
+                    ctx.lineTo(x + w + d * 0.7, y - d * 0.4);
+                    ctx.lineTo(x + w + d * 0.7, y + h - d * 0.4);
+                    ctx.lineTo(x + w, y + h);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // Top face (lighter)
+                    ctx.fillStyle = shadeColor(color, 12);
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x + d * 0.7, y - d * 0.4);
+                    ctx.lineTo(x + w + d * 0.7, y - d * 0.4);
+                    ctx.lineTo(x + w, y);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // Front face
+                    ctx.fillStyle = color;
+                    ctx.fillRect(x, y, w, h);
+
+                    // Subtle edge highlight
+                    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+                    ctx.lineWidth = 0.5;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x + w, y);
+                    ctx.stroke();
+                }
+
+                const draw = () => {
+                    const width = rect.width;
+                    const height = rect.height;
+                    ctx.clearRect(0, 0, width, height);
+
+                    const centerY = height / 2;
+
+                    // Draw connection lines
+                    ctx.strokeStyle = 'rgba(120, 120, 120, 0.25)';
+                    ctx.lineWidth = 1.5;
+
+                    for (let i = 0; i < layers.length - 1; i++) {
+                        const from = layers[i];
+                        const to = layers[i + 1];
+                        const fromX = from.x + from.w + from.d * 0.7;
+                        const toX = to.x;
+
+                        ctx.beginPath();
+                        ctx.moveTo(fromX, centerY);
+                        ctx.lineTo(toX, centerY);
+                        ctx.stroke();
+                    }
+
+                    // Draw blocks
+                    layers.forEach(layer => {
+                        const y = centerY - layer.h / 2;
+                        drawBlock(layer.x, y, layer.w, layer.h, layer.d, layer.color);
+                    });
+
+                    // Labels
+                    ctx.fillStyle = '#666';
+                    ctx.font = '10px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+                    ctx.textAlign = 'center';
+                    layers.forEach(layer => {
+                        const labelX = layer.x + layer.w / 2 + layer.d * 0.35;
+                        ctx.fillText(layer.type, labelX, centerY + layer.h / 2 + 16);
+                    });
+
+                    time++;
+                    animationRef.current = requestAnimationFrame(draw);
+                };
+
+                draw();
+
+                return () => {
+                    if (animationRef.current) cancelAnimationFrame(animationRef.current);
+                };
+            }, [layers]);
 
             return (
-                <div className="arch-container">
-                    <div className="arch-block">
-                        {/* Input */}
-                        <div className="arch-layer input">
-                            <div>Input Sequence</div>
-                            <div className="arch-layer-detail">Shape: (batch, {maxLen})</div>
-                        </div>
-                        <div className="arch-arrow" />
-
-                        {/* Embeddings */}
-                        <div className="arch-layer embedding">
-                            <div>Token + Position Embedding</div>
-                            <div className="arch-layer-detail">
-                                {vocabSize.toLocaleString()} vocab × {config.embed_dim}d + {maxLen} pos × {config.embed_dim}d
-                            </div>
-                            <div className="arch-layer-detail">
-                                → {(embeddingParams / 1000).toFixed(0)}K params
-                            </div>
-                        </div>
-                        <div className="arch-arrow" />
-
-                        {/* Transformer Blocks */}
-                        <div className="arch-bracket">
-                            <div className="arch-bracket-label">× {config.num_blocks} Block{config.num_blocks > 1 ? 's' : ''}</div>
-                            <div className="arch-bracket-content">
-                                <div className="arch-layer attention">
-                                    <div>Multi-Head Attention</div>
-                                    <div className="arch-layer-detail">
-                                        {config.num_heads} heads
-                                    </div>
-                                    <div className="arch-layer-detail">
-                                        {config.embed_dim / config.num_heads}d per head
-                                    </div>
-                                </div>
-                                <div className="arch-arrow" />
-
-                                <div className="arch-layer ffn">
-                                    <div>Feed-Forward</div>
-                                    <div className="arch-layer-detail">
-                                        {config.embed_dim}d → {config.ff_dim}d
-                                    </div>
-                                    <div className="arch-layer-detail">
-                                        → {config.embed_dim}d
-                                    </div>
-                                </div>
-                            </div>
-                            <div style={{ fontSize: '0.7rem', color: '#666', textAlign: 'center', marginTop: '0.5rem' }}>
-                                + Dropout ({(config.dropout * 100).toFixed(0)}%)
-                            </div>
-                        </div>
-                        <div className="arch-arrow" />
-
-                        {/* Pooling */}
-                        <div className="arch-layer transformer">
-                            <div>Global Average Pooling</div>
-                            <div className="arch-layer-detail">
-                                ({maxLen}, {config.embed_dim}) → ({config.embed_dim})
-                            </div>
-                        </div>
-                        <div className="arch-arrow" />
-
-                        {/* Dense */}
-                        <div className="arch-layer transformer">
-                            <div>Dense Layer + Dropout</div>
-                            <div className="arch-layer-detail">
-                                {config.embed_dim}d → 64d (ReLU)
-                            </div>
-                        </div>
-                        <div className="arch-arrow" />
-
-                        {/* Output */}
-                        <div className="arch-layer output">
-                            <div>Output (Softmax)</div>
-                            <div className="arch-layer-detail">
-                                64d → {numClasses} classes
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Parameter Summary */}
-                    <div className="arch-params">
-                        <div className="arch-param">
-                            Embeddings: <span className="arch-param-value">{(embeddingParams / 1000).toFixed(0)}K</span>
-                        </div>
-                        <div className="arch-param">
-                            Transformer: <span className="arch-param-value">{(totalTransformerParams / 1000).toFixed(0)}K</span>
-                        </div>
-                        <div className="arch-param">
-                            Output: <span className="arch-param-value">{((denseParams + outputParams) / 1000).toFixed(1)}K</span>
-                        </div>
-                        <div className="arch-param" style={{ background: 'var(--primary)', color: 'white' }}>
-                            Total: <span style={{ fontWeight: 600 }}>{(totalParams / 1000).toFixed(0)}K params</span>
-                        </div>
-                    </div>
+                <div style={{ background: '#f8f9fa', borderRadius: '12px', padding: '1.5rem' }}>
+                    <canvas
+                        ref={canvasRef}
+                        style={{ width: '100%', height: '150px', display: 'block' }}
+                    />
                 </div>
             );
         };
@@ -1094,6 +998,17 @@
             const [compareStatus, setCompareStatus] = useState('idle');
             const [compareResults, setCompareResults] = useState(null);
             const [compareError, setCompareError] = useState(null);
+
+            // Training samples state
+            const [trainingSamples, setTrainingSamples] = useState([]);
+
+            // Fetch training samples on mount
+            useEffect(() => {
+                fetch(`${API_BASE}/api/training_samples?num=8`)
+                    .then(res => res.json())
+                    .then(data => setTrainingSamples(data.samples || []))
+                    .catch(err => console.log('Could not fetch training samples:', err));
+            }, []);
 
             // Check server health on mount
             useEffect(() => {
@@ -1222,7 +1137,7 @@
 
                     <div className="explanation">
                         <strong>Train a Real Transformer!</strong> This uses Keras to train a transformer classifier on the
-                        <strong> Reuters news dataset</strong> (46 categories of news articles like earnings, acquisitions, commodities, etc.).
+                        <strong> Yelp reviews dataset</strong> to predict star ratings (1-5 stars) from review text.
                         Adjust the architecture parameters to see how they affect training, or compare 1-block vs 3-block architectures.
                     </div>
 
@@ -1257,9 +1172,7 @@
                             Transformer Architecture
                         </div>
                         <p style={{ marginBottom: '1rem', color: 'var(--textMuted)', fontSize: '0.9rem' }}>
-                            This diagram updates in real-time as you adjust the configuration below.
-                            The model processes text sequences through embeddings, self-attention, and feed-forward layers
-                            to classify Reuters news articles into {mode === 'compare' ? '46' : '46'} categories.
+                            The transformer processes review text through attention and feed-forward layers to predict star ratings (1-5).
                         </p>
                         <ArchitectureDiagram config={config} />
                     </div>
@@ -1527,30 +1440,93 @@
                                                 </svg>
                                             </div>
                                         )}
-
-                                        {results.sample_predictions && (
-                                            <div>
-                                                <h4 style={{ fontSize: '0.9rem', marginBottom: '0.75rem' }}>Sample Predictions</h4>
-                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                                    {results.sample_predictions.map((pred, i) => (
-                                                        <div key={i} style={{
-                                                            padding: '0.5rem 1rem',
-                                                            background: pred.correct ? 'rgba(40, 167, 69, 0.1)' : 'rgba(220, 53, 69, 0.1)',
-                                                            borderRadius: 8,
-                                                            border: `1px solid ${pred.correct ? '#28a745' : '#dc3545'}`,
-                                                            fontSize: '0.8rem'
-                                                        }}>
-                                                            <div>True: {pred.true} → Pred: {pred.predicted}</div>
-                                                            <div style={{ color: 'var(--textMuted)' }}>{(pred.confidence * 100).toFixed(0)}% conf</div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
                                     </div>
                                 )}
                             </div>
                         </div>
+
+                        {/* Training & Test Samples Visualization */}
+                        {(status === 'complete' || trainingSamples.length > 0) && (
+                            <div className="grid-2" style={{ marginTop: '1.5rem' }}>
+                                {/* Training Samples */}
+                                <div className="card">
+                                    <div className="card-title">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/>
+                                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
+                                        </svg>
+                                        Training Examples
+                                    </div>
+                                    <p style={{ marginBottom: '1rem', fontSize: '0.85rem', color: 'var(--textMuted)' }}>
+                                        Random samples from the training dataset
+                                    </p>
+                                    {trainingSamples.length > 0 ? (
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem' }}>
+                                            {trainingSamples.map((sample, i) => (
+                                                <div key={i} style={{
+                                                    padding: '0.75rem',
+                                                    background: '#f8f9fa',
+                                                    borderRadius: 8,
+                                                    border: '1px solid #ddd',
+                                                    fontSize: '0.8rem'
+                                                }}>
+                                                    <div style={{ marginBottom: '0.5rem', fontSize: '0.75rem', color: '#666', fontStyle: 'italic', lineHeight: '1.4' }}>
+                                                        "{sample.text}..."
+                                                    </div>
+                                                    <div style={{ marginTop: '0.5rem', fontWeight: 600, color: '#FFD100', textShadow: '0 0 1px #000' }}>
+                                                        {'⭐'.repeat(sample.stars)}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div style={{ textAlign: 'center', padding: '2rem', color: '#888' }}>
+                                            Loading training samples...
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Test Predictions (moved here) */}
+                                {status === 'complete' && results && results.sample_predictions && (
+                                    <div className="card">
+                                        <div className="card-title">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M9 11l3 3L22 4"/>
+                                                <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+                                            </svg>
+                                            Test Set Predictions
+                                        </div>
+                                        <p style={{ marginBottom: '1rem', fontSize: '0.85rem', color: 'var(--textMuted)' }}>
+                                            Model predictions on held-out test data
+                                        </p>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem' }}>
+                                            {results.sample_predictions.map((pred, i) => (
+                                                <div key={i} style={{
+                                                    padding: '0.75rem',
+                                                    background: pred.correct ? 'rgba(40, 167, 69, 0.05)' : 'rgba(220, 53, 69, 0.05)',
+                                                    borderRadius: 8,
+                                                    border: `2px solid ${pred.correct ? '#28a745' : '#dc3545'}`,
+                                                    fontSize: '0.8rem'
+                                                }}>
+                                                    <div style={{ marginBottom: '0.5rem', fontSize: '0.75rem', color: '#666', fontStyle: 'italic', lineHeight: '1.4' }}>
+                                                        "{pred.text}..."
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
+                                                        <div>
+                                                            <span style={{ fontWeight: 600 }}>True:</span> {'⭐'.repeat(pred.true + 1)}<br/>
+                                                            <span style={{ fontWeight: 600 }}>Pred:</span> {'⭐'.repeat(pred.predicted + 1)}
+                                                        </div>
+                                                        <div style={{ fontSize: '0.7rem', color: pred.correct ? '#28a745' : '#dc3545', fontWeight: 600 }}>
+                                                            {pred.correct ? '✓' : '✗'}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     ) : (
                         /* Comparison Mode */
                         <div>
