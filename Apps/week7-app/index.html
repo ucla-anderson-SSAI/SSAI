@@ -473,7 +473,7 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
 
-        // API Base URL - empty string uses same origin (Flask serves both HTML and API)
+        // API Base URL - empty string uses same origin
         const API_BASE = '';
 
         // ===========================================
@@ -1170,6 +1170,7 @@
                     </div>
 
                     {mode === 'single' ? (
+                        <>
                         <div className="grid-2">
                             {/* Configuration */}
                             <div className="card">
@@ -1513,6 +1514,7 @@
                                 )}
                             </div>
                         )}
+                        </>
                     ) : (
                         /* Comparison Mode */
                         <div>
