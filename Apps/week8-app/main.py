@@ -15,7 +15,7 @@ import math
 import time
 import json
 
-app = FastAPI(title="Assignment 8: LLM Parameters Dashboard")
+app = FastAPI(title="Assignment 8: Large Language Models")
 
 app.add_middleware(
     CORSMiddleware,
