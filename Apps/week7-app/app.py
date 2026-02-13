@@ -832,18 +832,42 @@ def finetune_pretrained():
         test_labels_tensor = torch.tensor(test_labels, dtype=torch.long)
 
         # Get base model accuracy (without fine-tuning)
+        print("Loading base model for comparison...", flush=True)
         base_model = DistilBertForSequenceClassification.from_pretrained(
             model_name,
             num_labels=5
         ).to(device)
         
+        print("Evaluating base model (no fine-tuning)...", flush=True)
         base_model.eval()
+        base_all_preds = []
+        batch_size = 32
+        
         with torch.no_grad():
-            base_outputs = base_model(**test_encodings.to(device))
-            base_preds = torch.argmax(base_outputs.logits, dim=1).cpu().numpy()
-            base_accuracy = float(np.mean(base_preds == test_labels) * 100)
+            for i in range(0, len(test_encodings['input_ids']), batch_size):
+                batch_input_ids = test_encodings['input_ids'][i:i+batch_size].to(device)
+                batch_attention_mask = test_encodings['attention_mask'][i:i+batch_size].to(device)
+                
+                batch_outputs = base_model(input_ids=batch_input_ids, attention_mask=batch_attention_mask)
+                batch_preds = torch.argmax(batch_outputs.logits, dim=1).cpu().numpy()
+                base_all_preds.extend(batch_preds)
+        
+        base_preds = np.array(base_all_preds)
+        # Clip predictions to valid range 0-4
+        base_preds = np.clip(base_preds, 0, 4)
+        base_accuracy = float(np.mean(base_preds == test_labels) * 100)
+        
+        print(f"✓ Base model accuracy: {base_accuracy:.2f}%", flush=True)
+        
+        # Clean up base model to free memory
+        del base_model
+        import gc
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
         # Fine-tune model
+        print("Loading model for fine-tuning...", flush=True)
         finetune_model = DistilBertForSequenceClassification.from_pretrained(
             model_name,
             num_labels=5
@@ -941,25 +965,48 @@ def finetune_pretrained():
             history['train_loss'].append(train_loss)
             history['val_loss'].append(val_loss)
 
-        # Evaluate fine-tuned model on test set
+        print("Training complete! Evaluating on test set...", flush=True)
+        
+        # Evaluate fine-tuned model on test set (in batches to avoid memory issues)
         finetune_model.eval()
+        all_preds = []
+        batch_size = 32
+        
         with torch.no_grad():
-            test_outputs = finetune_model(**test_encodings.to(device))
-            finetuned_preds = torch.argmax(test_outputs.logits, dim=1).cpu().numpy()
-            finetuned_accuracy = float(np.mean(finetuned_preds == test_labels) * 100)
+            for i in range(0, len(test_encodings['input_ids']), batch_size):
+                batch_input_ids = test_encodings['input_ids'][i:i+batch_size].to(device)
+                batch_attention_mask = test_encodings['attention_mask'][i:i+batch_size].to(device)
+                
+                batch_outputs = finetune_model(input_ids=batch_input_ids, attention_mask=batch_attention_mask)
+                batch_preds = torch.argmax(batch_outputs.logits, dim=1).cpu().numpy()
+                all_preds.extend(batch_preds)
+        
+        finetuned_preds = np.array(all_preds)
+        # Clip predictions to valid range 0-4 (in case of numerical issues)
+        finetuned_preds = np.clip(finetuned_preds, 0, 4)
+        finetuned_accuracy = float(np.mean(finetuned_preds == test_labels) * 100)
+        
+        print(f"✓ Test evaluation complete - Accuracy: {finetuned_accuracy:.2f}%", flush=True)
+        print("Preparing sample predictions...", flush=True)
 
         # Get sample predictions
         sample_predictions = []
         for i in range(min(8, len(test_texts))):
             pred_class = int(finetuned_preds[i])
             true_class = int(test_labels[i])
+            
+            # Double-check bounds (should be 0-4)
+            assert 0 <= pred_class <= 4, f"Invalid prediction class: {pred_class}"
+            assert 0 <= true_class <= 4, f"Invalid true class: {true_class}"
 
             sample_predictions.append({
                 'text': test_texts[i][:200],
-                'true': true_class + 1,  # Convert to 1-5 stars
-                'predicted': pred_class + 1,
+                'true': true_class,  # Keep as 0-4, frontend will add 1 for display
+                'predicted': pred_class,
                 'correct': pred_class == true_class
             })
+        
+        print("Counting parameters...", flush=True)
 
         # Count parameters
         total_params = sum(p.numel() for p in finetune_model.parameters())

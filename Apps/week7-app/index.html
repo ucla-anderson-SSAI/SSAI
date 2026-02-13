@@ -811,7 +811,7 @@
 
             const layers = React.useMemo(() => {
                 const result = [];
-                let x = 40;
+                let x = 30;
 
                 // UCLA color scheme for transformer layers
                 const colors = {
@@ -824,32 +824,32 @@
                     output: '#FFD100'      // UCLA gold
                 };
 
-                // Input - increased size
-                result.push({ type: 'Input', x, h: 110, w: 50, d: 20, color: colors.input });
-                x += 75;
+                // Input
+                result.push({ type: 'Input', x, h: 80, w: 35, d: 14, color: colors.input });
+                x += 55;
 
-                // Embeddings - increased size
-                result.push({ type: 'Embeddings', x, h: 115, w: 60, d: 24, color: colors.embedding });
-                x += 95;
+                // Embeddings
+                result.push({ type: 'Embeddings', x, h: 85, w: 45, d: 18, color: colors.embedding });
+                x += 70;
 
-                // Transformer blocks (attention + ffn pairs) - increased size
+                // Transformer blocks (attention + ffn pairs)
                 for (let i = 0; i < config.num_blocks; i++) {
-                    result.push({ type: 'Attention', x, h: 105, w: 55, d: 22, color: colors.attention });
-                    x += 75;
-                    result.push({ type: 'Feed-Fwd', x, h: 100, w: 52, d: 21, color: colors.ffn });
-                    x += 75;
+                    result.push({ type: 'Attention', x, h: 75, w: 40, d: 16, color: colors.attention });
+                    x += 55;
+                    result.push({ type: 'Feed-Fwd', x, h: 70, w: 38, d: 15, color: colors.ffn });
+                    x += 55;
                 }
 
-                // Pooling - increased size
-                result.push({ type: 'Pooling', x, h: 90, w: 50, d: 20, color: colors.pooling });
-                x += 72;
+                // Pooling
+                result.push({ type: 'Pooling', x, h: 65, w: 35, d: 14, color: colors.pooling });
+                x += 52;
 
-                // Dense - increased size
-                result.push({ type: 'Dense', x, h: 95, w: 50, d: 21, color: colors.dense });
-                x += 74;
+                // Dense
+                result.push({ type: 'Dense', x, h: 70, w: 36, d: 15, color: colors.dense });
+                x += 54;
 
-                // Output - increased size
-                result.push({ type: 'Output', x, h: 85, w: 46, d: 19, color: colors.output });
+                // Output
+                result.push({ type: 'Output', x, h: 60, w: 32, d: 13, color: colors.output });
 
                 return result;
             }, [config.num_blocks]);
@@ -940,12 +940,12 @@
                     });
 
                     // Labels
-                    ctx.fillStyle = '#333';
-                    ctx.font = 'bold 14px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+                    ctx.fillStyle = '#666';
+                    ctx.font = '10px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
                     ctx.textAlign = 'center';
                     layers.forEach(layer => {
                         const labelX = layer.x + layer.w / 2 + layer.d * 0.35;
-                        ctx.fillText(layer.type, labelX, centerY + layer.h / 2 + 22);
+                        ctx.fillText(layer.type, labelX, centerY + layer.h / 2 + 16);
                     });
 
                     time++;
@@ -963,7 +963,7 @@
                 <div style={{ background: '#f8f9fa', borderRadius: '12px', padding: '1.5rem' }}>
                     <canvas
                         ref={canvasRef}
-                        style={{ width: '100%', height: '250px', display: 'block' }}
+                        style={{ width: '100%', height: '150px', display: 'block' }}
                     />
                 </div>
             );
@@ -1226,73 +1226,65 @@
                                 )}
 
                                 {(status === 'training' || status === 'starting') && progress && (
-                                    <div style={{ padding: '1rem 0' }}>
-                                        {progress.queue_position > 0 ? (
-                                            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--textMuted)' }}>
-                                                <div style={{ fontSize: '1rem', marginBottom: '0.5rem' }}>
-                                                    Your job is in queue
-                                                </div>
-                                                <div style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--primary)' }}>
-                                                    Position: {progress.queue_position}
-                                                </div>
+                                    <>
+                                        <div style={{ marginBottom: '1rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                                <span>{progress.status}</span>
+                                                <span>{progress.current_epoch}/{progress.total_epochs} epochs</span>
                                             </div>
-                                        ) : (
-                                            <>
-                                                {/* Epoch Progress */}
+                                            <div style={{ height: 8, background: '#e0e0e0', borderRadius: 4, overflow: 'hidden' }}>
+                                                <div style={{
+                                                    height: '100%',
+                                                    width: `${(progress.current_epoch / progress.total_epochs) * 100}%`,
+                                                    background: 'var(--primary)',
+                                                    transition: 'width 0.3s'
+                                                }} />
+                                            </div>
+                                        </div>
+
+                                        {progress.queue_position > 0 && (
+                                            <div className="explanation">
+                                                Your job is in queue. Position: {progress.queue_position}
+                                            </div>
+                                        )}
+
+                                        {/* Mini-batch visualizer */}
+                                        {progress.current_epoch > 0 && (() => {
+                                            const batchSize = 32;
+                                            const totalBatches = Math.ceil(config.numSamples / batchSize);
+                                            const currentBatch = Math.floor((Date.now() / 100) % totalBatches); // Simulated batch progress
+
+                                            return (
                                                 <div style={{ marginBottom: '1.5rem' }}>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                                        <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>Epoch Progress</span>
-                                                        <span style={{ fontSize: '0.9rem', color: 'var(--textMuted)' }}>
-                                                            {progress.current_epoch} / {progress.total_epochs}
-                                                        </span>
+                                                    <div style={{ fontSize: '0.85rem', color: 'var(--textMuted)', marginBottom: '0.5rem' }}>
+                                                        Processing Mini-Batches (batch size: {batchSize})
                                                     </div>
-                                                    <div style={{ 
-                                                        height: '8px', 
-                                                        background: '#e9ecef', 
-                                                        borderRadius: '4px', 
-                                                        overflow: 'hidden' 
-                                                    }}>
-                                                        <div style={{
-                                                            height: '100%',
-                                                            width: `${(progress.current_epoch / progress.total_epochs) * 100}%`,
-                                                            background: 'linear-gradient(90deg, #2774AE, #8BB8E8)',
-                                                            transition: 'width 0.3s ease'
-                                                        }} />
+                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                                        {Array.from({ length: Math.min(totalBatches, 50) }).map((_, i) => (
+                                                            <div
+                                                                key={i}
+                                                                style={{
+                                                                    width: '12px',
+                                                                    height: '12px',
+                                                                    borderRadius: '2px',
+                                                                    background: i <= currentBatch ? 'var(--primary)' : '#e0e0e0',
+                                                                    transition: 'background 0.2s'
+                                                                }}
+                                                                title={`Batch ${i + 1}/${totalBatches}`}
+                                                            />
+                                                        ))}
+                                                        {totalBatches > 50 && (
+                                                            <span style={{ fontSize: '0.75rem', color: 'var(--textMuted)', alignSelf: 'center', marginLeft: '0.5rem' }}>
+                                                                +{totalBatches - 50} more
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div style={{ fontSize: '0.75rem', color: 'var(--textMuted)', marginTop: '0.5rem' }}>
+                                                        {totalBatches} batches total • ~{Math.ceil(totalBatches / 10)} batches/second
                                                     </div>
                                                 </div>
-
-                                                {/* Batch Progress */}
-                                                {progress.current_epoch > 0 && (() => {
-                                                    const batchSize = 32;
-                                                    const totalBatches = Math.ceil(config.numSamples / batchSize);
-                                                    const currentBatch = Math.floor((Date.now() / 100) % totalBatches); // Simulated batch progress
-
-                                                    return (
-                                                        <div style={{ marginBottom: '1.5rem' }}>
-                                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                                                <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>Batch Progress</span>
-                                                                <span style={{ fontSize: '0.9rem', color: 'var(--textMuted)' }}>
-                                                                    {currentBatch} / {totalBatches} batches
-                                                                </span>
-                                                            </div>
-                                                            <div style={{ 
-                                                                height: '8px', 
-                                                                background: '#e9ecef', 
-                                                                borderRadius: '4px', 
-                                                                overflow: 'hidden' 
-                                                            }}>
-                                                                <div style={{
-                                                                    height: '100%',
-                                                                    width: `${(currentBatch / totalBatches) * 100}%`,
-                                                                    background: 'linear-gradient(90deg, #FFD100, #FFA500)',
-                                                                    transition: 'width 0.1s linear'
-                                                                }} />
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })()}
-                                            </>
-                                        )}
+                                            );
+                                        })()}
 
                                         {progress.history && progress.history.length > 0 && (
                                             <div style={{ marginTop: '1rem' }}>
@@ -1560,14 +1552,13 @@
             const [config, setConfig] = useState({
                 freeze_percent: 70,  // 70% frozen = only train last ~2 layers
                 learning_rate: 5e-5,
-                num_samples: 200,  // Reduced from 500 for faster training on Railway
+                num_samples: 500,
                 epochs: 3
             });
             const [status, setStatus] = useState('idle');
             const [results, setResults] = useState(null);
             const [error, setError] = useState(null);
             const [trainingSamples, setTrainingSamples] = useState([]);
-            const [progress, setProgress] = useState({ epoch: 0, totalEpochs: 3, batch: 0, totalBatches: 0 });
 
             // Fetch training samples
             useEffect(() => {
@@ -1581,56 +1572,23 @@
                 setStatus('training');
                 setError(null);
                 setResults(null);
-                
-                // Initialize progress
-                const totalBatches = Math.ceil(config.num_samples / 16); // batch_size = 16
-                setProgress({ epoch: 0, totalEpochs: config.epochs, batch: 0, totalBatches });
-
-                // Simulate progress updates
-                const progressInterval = setInterval(() => {
-                    setProgress(prev => {
-                        if (prev.batch < prev.totalBatches) {
-                            return { ...prev, batch: prev.batch + 1 };
-                        } else if (prev.epoch < prev.totalEpochs - 1) {
-                            return { ...prev, epoch: prev.epoch + 1, batch: 0 };
-                        } else {
-                            // All epochs done, preparing results
-                            return { ...prev, epoch: prev.totalEpochs, preparing: true };
-                        }
-                    });
-                }, 200); // Update every 200ms for smooth progress
 
                 try {
-                    // Add timeout to prevent indefinite hanging (10 minutes)
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 600000);
-
                     const response = await fetch(`${API_BASE}/api/finetune`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(config),
-                        signal: controller.signal
+                        body: JSON.stringify(config)
                     });
 
-                    clearTimeout(timeoutId);
-                    clearInterval(progressInterval);
-
                     if (!response.ok) {
-                        const errorData = await response.json().catch(() => ({}));
-                        throw new Error(errorData.error || 'Fine-tuning failed');
+                        throw new Error('Fine-tuning failed');
                     }
 
                     const data = await response.json();
                     setResults(data);
                     setStatus('complete');
-                    setProgress({ epoch: config.epochs, totalEpochs: config.epochs, batch: totalBatches, totalBatches });
                 } catch (err) {
-                    clearInterval(progressInterval);
-                    if (err.name === 'AbortError') {
-                        setError('Request timeout - training may still be running on server. Try reducing samples or epochs.');
-                    } else {
-                        setError(err.message);
-                    }
+                    setError(err.message);
                     setStatus('error');
                 }
             };
@@ -1881,7 +1839,7 @@
                             <div className="input-group">
                                 <label className="input-label">Training Samples:</label>
                                 <div className="btn-group">
-                                    {[100, 200, 500].map(n => (
+                                    {[100, 500, 1000].map(n => (
                                         <button
                                             key={n}
                                             className={`btn-option ${config.num_samples === n ? 'active' : ''}`}
@@ -1907,22 +1865,12 @@
                             </div>
 
                             <button
-                                className="btn btn-primary"
+                                className="run-button"
                                 onClick={startFineTuning}
                                 disabled={status === 'training'}
-                                style={{ width: '100%', marginTop: '1rem', justifyContent: 'center' }}
+                                style={{ marginTop: '1rem' }}
                             >
-                                {status === 'training' ? (
-                                    <>
-                                        <div className="spinner" style={{
-                                            width: 16,
-                                            height: 16,
-                                            border: '2px solid rgba(255,255,255,0.3)',
-                                            borderTopColor: 'white'
-                                        }} />
-                                        Fine-tuning...
-                                    </>
-                                ) : '▶ Start Fine-tuning'}
+                                {status === 'training' ? '⏳ Fine-tuning...' : '▶ Start Fine-tuning'}
                             </button>
 
                             {error && (
@@ -1948,66 +1896,12 @@
                             )}
 
                             {status === 'training' && (
-                                <div style={{ padding: '2rem' }}>
-                                    <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                                        <div className="loading-spinner" style={{ margin: '0 auto 1rem' }} />
-                                        <div style={{ fontSize: '1.1rem', fontWeight: 500, marginBottom: '0.5rem' }}>
-                                            {progress.preparing ? 'Preparing Results...' : 'Fine-tuning DistilBERT...'}
-                                        </div>
-                                        <div style={{ fontSize: '0.85rem', color: 'var(--textMuted)' }}>
-                                            {progress.preparing 
-                                                ? 'Evaluating model and generating predictions...' 
-                                                : 'This may take 1-3 minutes (or longer on slower servers)'}
-                                        </div>
+                                <div style={{ textAlign: 'center', padding: '3rem' }}>
+                                    <div className="loading-spinner" style={{ margin: '0 auto 1rem' }} />
+                                    <div>Fine-tuning DistilBERT...</div>
+                                    <div style={{ fontSize: '0.85rem', color: 'var(--textMuted)', marginTop: '0.5rem' }}>
+                                        This may take 30-60 seconds
                                     </div>
-
-                                    {/* Epoch Progress */}
-                                    <div style={{ marginBottom: '1.5rem' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                            <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>Epoch Progress</span>
-                                            <span style={{ fontSize: '0.9rem', color: 'var(--textMuted)' }}>
-                                                {progress.epoch + 1} / {progress.totalEpochs}
-                                            </span>
-                                        </div>
-                                        <div style={{ 
-                                            height: '8px', 
-                                            background: '#e9ecef', 
-                                            borderRadius: '4px', 
-                                            overflow: 'hidden' 
-                                        }}>
-                                            <div style={{
-                                                height: '100%',
-                                                width: `${((progress.epoch + 1) / progress.totalEpochs) * 100}%`,
-                                                background: 'linear-gradient(90deg, #2774AE, #8BB8E8)',
-                                                transition: 'width 0.3s ease'
-                                            }} />
-                                        </div>
-                                    </div>
-
-                                    {/* Batch Progress - hide when preparing results */}
-                                    {!progress.preparing && (
-                                        <div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                                <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>Batch Progress</span>
-                                                <span style={{ fontSize: '0.9rem', color: 'var(--textMuted)' }}>
-                                                    {progress.batch} / {progress.totalBatches} batches
-                                                </span>
-                                            </div>
-                                            <div style={{ 
-                                                height: '8px', 
-                                                background: '#e9ecef', 
-                                                borderRadius: '4px', 
-                                                overflow: 'hidden' 
-                                            }}>
-                                                <div style={{
-                                                    height: '100%',
-                                                    width: `${(progress.batch / progress.totalBatches) * 100}%`,
-                                                    background: 'linear-gradient(90deg, #FFD100, #FFA500)',
-                                                    transition: 'width 0.1s linear'
-                                                }} />
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
                             )}
 
