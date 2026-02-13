@@ -50,6 +50,7 @@ training_sessions = {}
 training_queue = deque()
 active_trainings = set()
 state_lock = threading.Lock()
+finetune_sessions = {}
 
 # Lazy-loaded data and modules
 _tf_loaded = False
@@ -400,6 +401,18 @@ def cleanup_old_sessions():
 
             if expired:
                 print(f"Cleaned up {len(expired)} expired sessions")
+
+            finetune_expired = []
+            for session_id, session in finetune_sessions.items():
+                created = session.get('created_at', now)
+                if now - created > timedelta(minutes=SESSION_TIMEOUT_MINUTES):
+                    finetune_expired.append(session_id)
+
+            for session_id in finetune_expired:
+                del finetune_sessions[session_id]
+
+            if finetune_expired:
+                print(f"Cleaned up {len(finetune_expired)} expired fine-tune sessions")
 
 
 # ============================================
@@ -783,33 +796,72 @@ def get_training_samples():
 
 @app.route('/api/finetune', methods=['POST'])
 def finetune_pretrained():
-    """Fine-tune DistilBERT on Yelp reviews using PyTorch"""
+    """Start fine-tuning DistilBERT (async)"""
+    data = request.json or {}
+    session_id = str(uuid.uuid4())
+
+    with state_lock:
+        finetune_sessions[session_id] = {
+            'status': 'starting',
+            'config': data,
+            'current_epoch': 0,
+            'history': {
+                'train_acc': [],
+                'val_acc': [],
+                'train_loss': [],
+                'val_loss': []
+            },
+            'results': None,
+            'error': None,
+            'created_at': datetime.now()
+        }
+
+    thread = threading.Thread(target=finetune_model_async, args=(session_id, data))
+    thread.daemon = True
+    thread.start()
+
+    return jsonify({'session_id': session_id})
+
+
+def finetune_model_async(session_id, config):
+    """Fine-tune DistilBERT on Yelp reviews using PyTorch (async)."""
+    session = finetune_sessions.get(session_id)
+    if not session:
+        return
+
+    def update_session(**kwargs):
+        with state_lock:
+            current = finetune_sessions.get(session_id)
+            if not current:
+                return
+            current.update(kwargs)
+
     print("=" * 50, flush=True)
     print("FINE-TUNING REQUEST RECEIVED", flush=True)
     print("=" * 50, flush=True)
-    
-    load_yelp_data()
-
-    data = request.json
-    freeze_percent = float(data.get('freeze_percent', 70))
-    learning_rate = float(data.get('learning_rate', 5e-5))
-    num_samples = int(data.get('num_samples', 200))
-    epochs = int(data.get('epochs', 3))
-    
-    print(f"Config: samples={num_samples}, epochs={epochs}, freeze={freeze_percent}%, lr={learning_rate}", flush=True)
 
     try:
+        update_session(status='Loading data...')
+        load_yelp_data()
+
+        freeze_percent = float(config.get('freeze_percent', 70))
+        learning_rate = float(config.get('learning_rate', 5e-5))
+        num_samples = int(config.get('num_samples', 200))
+        epochs = int(config.get('epochs', 3))
+
+        print(f"Config: samples={num_samples}, epochs={epochs}, freeze={freeze_percent}%, lr={learning_rate}", flush=True)
+
         import torch
         from torch.utils.data import DataLoader, TensorDataset
         from transformers import DistilBertForSequenceClassification, DistilBertTokenizer
-        
+
         print("✓ PyTorch imports successful", flush=True)
-        
+
         # Set device
         device = torch.device('cpu')  # Force CPU for Railway
 
         # Load pre-trained DistilBERT
-        print("Loading DistilBERT model...", flush=True)
+        update_session(status='Loading DistilBERT...')
         model_name = 'distilbert-base-uncased'
         tokenizer = DistilBertTokenizer.from_pretrained(model_name)
         print("✓ Tokenizer loaded", flush=True)
@@ -826,39 +878,36 @@ def finetune_pretrained():
         # Tokenize
         train_encodings = tokenizer(train_texts, truncation=True, padding=True, max_length=128, return_tensors='pt')
         test_encodings = tokenizer(test_texts, truncation=True, padding=True, max_length=128, return_tensors='pt')
-        
+
         # Convert labels to tensors
         train_labels_tensor = torch.tensor(train_labels, dtype=torch.long)
         test_labels_tensor = torch.tensor(test_labels, dtype=torch.long)
 
         # Get base model accuracy (without fine-tuning)
-        print("Loading base model for comparison...", flush=True)
+        update_session(status='Evaluating base model...')
         base_model = DistilBertForSequenceClassification.from_pretrained(
             model_name,
             num_labels=5
         ).to(device)
-        
-        print("Evaluating base model (no fine-tuning)...", flush=True)
+
         base_model.eval()
         base_all_preds = []
         batch_size = 32
-        
+
         with torch.no_grad():
             for i in range(0, len(test_encodings['input_ids']), batch_size):
-                batch_input_ids = test_encodings['input_ids'][i:i+batch_size].to(device)
-                batch_attention_mask = test_encodings['attention_mask'][i:i+batch_size].to(device)
-                
+                batch_input_ids = test_encodings['input_ids'][i:i + batch_size].to(device)
+                batch_attention_mask = test_encodings['attention_mask'][i:i + batch_size].to(device)
+
                 batch_outputs = base_model(input_ids=batch_input_ids, attention_mask=batch_attention_mask)
                 batch_preds = torch.argmax(batch_outputs.logits, dim=1).cpu().numpy()
                 base_all_preds.extend(batch_preds)
-        
+
         base_preds = np.array(base_all_preds)
-        # Clip predictions to valid range 0-4
         base_preds = np.clip(base_preds, 0, 4)
         base_accuracy = float(np.mean(base_preds == test_labels) * 100)
-        
         print(f"✓ Base model accuracy: {base_accuracy:.2f}%", flush=True)
-        
+
         # Clean up base model to free memory
         del base_model
         import gc
@@ -866,8 +915,8 @@ def finetune_pretrained():
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
 
-        # Fine-tune model
-        print("Loading model for fine-tuning...", flush=True)
+        # Load model for fine-tuning
+        update_session(status='Preparing fine-tuning...')
         finetune_model = DistilBertForSequenceClassification.from_pretrained(
             model_name,
             num_labels=5
@@ -901,7 +950,7 @@ def finetune_pretrained():
 
         # Optimizer and loss
         optimizer = torch.optim.Adam(finetune_model.parameters(), lr=learning_rate)
-        
+
         # Training history
         history = {
             'train_acc': [],
@@ -909,83 +958,90 @@ def finetune_pretrained():
             'train_loss': [],
             'val_loss': []
         }
+        update_session(history=history, current_epoch=0)
 
         # Training loop
         print(f"Starting training for {epochs} epochs...", flush=True)
         for epoch in range(epochs):
-            print(f"Epoch {epoch + 1}/{epochs} - Training...", flush=True)
-            # Training phase
+            update_session(status=f"Epoch {epoch + 1}/{epochs} - Training")
             finetune_model.train()
             train_loss = 0
             train_correct = 0
             train_total = 0
-            
+
             for batch in train_loader:
                 input_ids, attention_mask, labels = [b.to(device) for b in batch]
-                
+
                 optimizer.zero_grad()
                 outputs = finetune_model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
                 loss = outputs.loss
                 loss.backward()
                 optimizer.step()
-                
+
                 train_loss += loss.item()
                 preds = torch.argmax(outputs.logits, dim=1)
                 train_correct += (preds == labels).sum().item()
                 train_total += labels.size(0)
-            
+
             train_acc = train_correct / train_total
             train_loss = train_loss / len(train_loader)
-            
-            print(f"Epoch {epoch + 1}/{epochs} - Validating...", flush=True)
-            # Validation phase
+
+            update_session(status=f"Epoch {epoch + 1}/{epochs} - Validating")
             finetune_model.eval()
             val_loss = 0
             val_correct = 0
             val_total = 0
-            
+
             with torch.no_grad():
                 for batch in val_loader:
                     input_ids, attention_mask, labels = [b.to(device) for b in batch]
                     outputs = finetune_model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
-                    
+
                     val_loss += outputs.loss.item()
                     preds = torch.argmax(outputs.logits, dim=1)
                     val_correct += (preds == labels).sum().item()
                     val_total += labels.size(0)
-            
+
             val_acc = val_correct / val_total
             val_loss = val_loss / len(val_loader)
-            
-            print(f"✓ Epoch {epoch + 1}/{epochs} complete - Train Acc: {train_acc:.3f}, Val Acc: {val_acc:.3f}", flush=True)
-            val_loss = val_loss / len(val_loader)
-            
-            history['train_acc'].append(train_acc)
-            history['val_acc'].append(val_acc)
-            history['train_loss'].append(train_loss)
-            history['val_loss'].append(val_loss)
 
-        print("Training complete! Evaluating on test set...", flush=True)
-        
+            print(
+                f"✓ Epoch {epoch + 1}/{epochs} complete - Train Acc: {train_acc:.3f}, Val Acc: {val_acc:.3f}",
+                flush=True
+            )
+
+            with state_lock:
+                current = finetune_sessions.get(session_id)
+                if not current:
+                    return
+                current['current_epoch'] = epoch + 1
+                current['history']['train_acc'].append(float(train_acc * 100))
+                current['history']['val_acc'].append(float(val_acc * 100))
+                current['history']['train_loss'].append(float(train_loss))
+                current['history']['val_loss'].append(float(val_loss))
+
+            update_session(status=f"Epoch {epoch + 1}/{epochs} complete")
+
+        update_session(status='Evaluating on test set...')
+
         # Evaluate fine-tuned model on test set (in batches to avoid memory issues)
         finetune_model.eval()
         all_preds = []
         batch_size = 32
-        
+
         with torch.no_grad():
             for i in range(0, len(test_encodings['input_ids']), batch_size):
-                batch_input_ids = test_encodings['input_ids'][i:i+batch_size].to(device)
-                batch_attention_mask = test_encodings['attention_mask'][i:i+batch_size].to(device)
-                
+                batch_input_ids = test_encodings['input_ids'][i:i + batch_size].to(device)
+                batch_attention_mask = test_encodings['attention_mask'][i:i + batch_size].to(device)
+
                 batch_outputs = finetune_model(input_ids=batch_input_ids, attention_mask=batch_attention_mask)
                 batch_preds = torch.argmax(batch_outputs.logits, dim=1).cpu().numpy()
                 all_preds.extend(batch_preds)
-        
+
         finetuned_preds = np.array(all_preds)
-        # Clip predictions to valid range 0-4 (in case of numerical issues)
         finetuned_preds = np.clip(finetuned_preds, 0, 4)
         finetuned_accuracy = float(np.mean(finetuned_preds == test_labels) * 100)
-        
+
         print(f"✓ Test evaluation complete - Accuracy: {finetuned_accuracy:.2f}%", flush=True)
         print("Preparing sample predictions...", flush=True)
 
@@ -994,18 +1050,17 @@ def finetune_pretrained():
         for i in range(min(8, len(test_texts))):
             pred_class = int(finetuned_preds[i])
             true_class = int(test_labels[i])
-            
-            # Double-check bounds (should be 0-4)
+
             assert 0 <= pred_class <= 4, f"Invalid prediction class: {pred_class}"
             assert 0 <= true_class <= 4, f"Invalid true class: {true_class}"
 
             sample_predictions.append({
                 'text': test_texts[i][:200],
-                'true': true_class,  # Keep as 0-4, frontend will add 1 for display
+                'true': true_class,
                 'predicted': pred_class,
                 'correct': pred_class == true_class
             })
-        
+
         print("Counting parameters...", flush=True)
 
         # Count parameters
@@ -1020,7 +1075,7 @@ def finetune_pretrained():
         print(f"Improvement: +{finetuned_accuracy - base_accuracy:.2f}%", flush=True)
         print("=" * 50, flush=True)
 
-        return jsonify({
+        results = {
             'base_accuracy': base_accuracy,
             'finetuned_accuracy': finetuned_accuracy,
             'improvement': finetuned_accuracy - base_accuracy,
@@ -1031,25 +1086,47 @@ def finetune_pretrained():
             'num_trainable_layers': num_layers - num_freeze,
             'epochs': epochs,
             'history': {
-                'train_acc': [float(x) * 100 for x in history['train_acc']],
-                'val_acc': [float(x) * 100 for x in history['val_acc']],
-                'train_loss': [float(x) for x in history['train_loss']],
-                'val_loss': [float(x) for x in history['val_loss']]
+                'train_acc': history['train_acc'],
+                'val_acc': history['val_acc'],
+                'train_loss': history['train_loss'],
+                'val_loss': history['val_loss']
             },
             'sample_predictions': sample_predictions
-        })
+        }
+
+        update_session(status='complete', results=results)
 
     except Exception as e:
         import traceback
         error_msg = str(e)
         error_trace = traceback.format_exc()
-        print(f"Error in finetune endpoint: {error_msg}")
+        print(f"Error in finetune worker: {error_msg}")
         print(error_trace)
-        return jsonify({
-            'error': error_msg, 
-            'traceback': error_trace,
-            'details': 'Check server logs for more information'
-        }), 500
+        update_session(status='error', error=error_msg, traceback=error_trace)
+
+
+@app.route('/api/finetune/<session_id>', methods=['GET'])
+def get_finetune_status(session_id):
+    """Get fine-tuning status and results"""
+    if session_id not in finetune_sessions:
+        return jsonify({'error': 'Session not found'}), 404
+
+    session = finetune_sessions[session_id]
+
+    response = {
+        'status': session.get('status'),
+        'current_epoch': session.get('current_epoch', 0),
+        'total_epochs': session.get('config', {}).get('epochs', 3),
+        'history': session.get('history', {})
+    }
+
+    if session.get('results'):
+        response.update(session['results'])
+
+    if session.get('error'):
+        response['error'] = session.get('error')
+
+    return jsonify(response)
 
 
 @app.route('/api/stats', methods=['GET'])
