@@ -1550,7 +1550,7 @@
         // ===========================================
         const FinetuneTab = () => {
             const [config, setConfig] = useState({
-                freeze_percent: 70,  // 70% frozen = only train last ~2 layers
+                frozen_layers: 4,  // 4/6 frozen = only train last 2 layers
                 learning_rate: 5e-5,
                 num_samples: 500,
                 epochs: 3
@@ -1577,7 +1577,10 @@
                     const response = await fetch(`${API_BASE}/api/finetune`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(config)
+                        body: JSON.stringify({
+                            ...config,
+                            freeze_percent: (config.frozen_layers / 6) * 100
+                        })
                     });
 
                     if (!response.ok) {
@@ -1600,7 +1603,7 @@
 
                 const layers = React.useMemo(() => {
                     const result = [];
-                    let x = 30;
+                    let x = 25;
 
                     const colors = {
                         input: '#4CAF50',
@@ -1610,33 +1613,38 @@
                     };
 
                     // Input
-                    result.push({ type: 'Input', x, h: 70, w: 32, d: 12, color: colors.input });
-                    x += 48;
+                    result.push({ type: 'Input', x, h: 100, w: 50, d: 20, color: colors.input, params: null });
+                    x += 72;
 
-                    // Embeddings
-                    result.push({ type: 'Embeddings', x, h: 75, w: 40, d: 15, color: colors.embedding });
-                    x += 60;
+                    // Embeddings (word + position embeddings: vocab_size*768 + 512*768 ≈ 23.8M)
+                    result.push({ type: 'Embeddings', x, h: 115, w: 60, d: 22, color: colors.embedding, params: '23.8M' });
+                    x += 85;
 
-                    // 6 Transformer layers
+                    // 6 Transformer layers (each layer ≈ 7.1M params)
                     for (let i = 0; i < 6; i++) {
-                        const frozen = i < Math.floor(6 * config.freeze_percent / 100);
+                        const frozen = i < config.frozen_layers;
                         result.push({
                             type: `Layer ${i + 1}`,
                             x,
-                            h: 65,
-                            w: 35,
-                            d: 14,
+                            h: 100,
+                            w: 55,
+                            d: 20,
                             color: frozen ? '#95a5a6' : colors.transformer,
-                            frozen
+                            frozen,
+                            params: '7.1M'
                         });
-                        x += 48;
+                        x += 72;
                     }
 
-                    // Classification Head
-                    result.push({ type: 'Classifier', x, h: 60, w: 38, d: 14, color: colors.output });
+                    // Dense Layer (768*768 ≈ 0.59M)
+                    result.push({ type: 'Dense Layer', x, h: 95, w: 58, d: 20, color: '#2774AE', params: '0.59M' });
+                    x += 78;
+
+                    // Softmax (768*5 ≈ 3.8K)
+                    result.push({ type: 'Softmax', x, h: 75, w: 45, d: 16, color: colors.output, params: '3.8K' });
 
                     return result;
-                }, [config.freeze_percent]);
+                }, [config.frozen_layers]);
 
                 React.useEffect(() => {
                     const canvas = canvasRef.current;
@@ -1719,17 +1727,25 @@
 
                         // Labels
                         ctx.fillStyle = '#666';
-                        ctx.font = '9px Inter, sans-serif';
+                        ctx.font = '13px Inter, sans-serif';
                         ctx.textAlign = 'center';
                         layers.forEach(layer => {
                             const labelX = layer.x + layer.w / 2 + layer.d * 0.35;
-                            ctx.fillText(layer.type, labelX, centerY + layer.h / 2 + 14);
+                            ctx.fillStyle = '#444';
+                            ctx.font = 'bold 13px Inter, sans-serif';
+                            ctx.fillText(layer.type, labelX, centerY + layer.h / 2 + 18);
+
+                            if (layer.params) {
+                                ctx.font = '11px Inter, sans-serif';
+                                ctx.fillStyle = '#888';
+                                ctx.fillText(layer.params, labelX, centerY + layer.h / 2 + 34);
+                            }
 
                             if (layer.frozen) {
-                                ctx.font = '7px Inter, sans-serif';
+                                ctx.font = '12px Inter, sans-serif';
                                 ctx.fillStyle = '#95a5a6';
-                                ctx.fillText('🔒', labelX, centerY + layer.h / 2 + 24);
-                                ctx.font = '9px Inter, sans-serif';
+                                ctx.fillText('🔒', labelX, centerY - layer.h / 2 - 8);
+                                ctx.font = '13px Inter, sans-serif';
                                 ctx.fillStyle = '#666';
                             }
                         });
@@ -1746,13 +1762,13 @@
 
                 return (
                     <div style={{ background: '#f8f9fa', borderRadius: '12px', padding: '1.5rem' }}>
-                        <canvas ref={canvasRef} style={{ width: '100%', height: '150px', display: 'block' }} />
+                        <canvas ref={canvasRef} style={{ width: '100%', height: '280px', display: 'block' }} />
                     </div>
                 );
             };
 
-            const numFrozenLayers = Math.floor(6 * config.freeze_percent / 100);
-            const numTrainableLayers = 6 - numFrozenLayers;
+            const numFrozenLayers = config.frozen_layers;
+            const numTrainableLayers = 6 - config.frozen_layers;
 
             return (
                 <div>
@@ -1769,10 +1785,23 @@
                             Gray blocks 🔒 are frozen. Blue blocks are trainable.
                         </p>
                         <DistilBERTDiagram />
-                        <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', marginTop: '1rem', fontSize: '0.85rem' }}>
-                            <div><strong>Total Parameters:</strong> 66M</div>
-                            <div><strong>Layers:</strong> 6</div>
-                            <div><strong>Hidden Size:</strong> 768</div>
+                        <div style={{ marginTop: '1.25rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', fontSize: '0.85rem', marginBottom: '0.75rem' }}>
+                                <div><strong>Total Parameters:</strong> 67M</div>
+                                <div><strong>Layers:</strong> 6</div>
+                                <div><strong>Hidden Size:</strong> 768</div>
+                            </div>
+                            <div style={{ background: '#f0f4f8', borderRadius: '8px', padding: '1rem', fontSize: '0.8rem', color: '#555', lineHeight: '1.7' }}>
+                                <strong style={{ color: '#333' }}>Parameter Breakdown:</strong><br/>
+                                <span style={{ display: 'inline-block', width: '12px', height: '12px', background: '#FFD100', borderRadius: '2px', verticalAlign: 'middle', marginRight: '6px' }}></span>
+                                Embeddings (word + position): <strong>23.8M</strong> (vocab 30,522 × 768 + 512 × 768)<br/>
+                                <span style={{ display: 'inline-block', width: '12px', height: '12px', background: '#2774AE', borderRadius: '2px', verticalAlign: 'middle', marginRight: '6px' }}></span>
+                                Transformer Layer × 6: <strong>7.1M each</strong> (multi-head attention + feed-forward) = <strong>42.5M</strong><br/>
+                                <span style={{ display: 'inline-block', width: '12px', height: '12px', background: '#2774AE', borderRadius: '2px', verticalAlign: 'middle', marginRight: '6px' }}></span>
+                                Dense Layer: <strong>0.59M</strong> (768 × 768)<br/>
+                                <span style={{ display: 'inline-block', width: '12px', height: '12px', background: '#FFD100', borderRadius: '2px', verticalAlign: 'middle', marginRight: '6px' }}></span>
+                                Softmax: <strong>3.8K</strong> (768 × 5)
+                            </div>
                         </div>
                     </div>
 
@@ -1788,37 +1817,45 @@
 
                             <div className="input-group">
                                 <label className="input-label">
-                                    Freeze Layers: {config.freeze_percent}% ({numFrozenLayers}/6 frozen)
+                                    Freeze Layers: {config.frozen_layers}/6 frozen ({6 - config.frozen_layers} trainable)
                                 </label>
                                 <input
                                     type="range"
-                                    min="50"
-                                    max="100"
-                                    step="10"
-                                    value={config.freeze_percent}
-                                    onChange={(e) => setConfig({...config, freeze_percent: parseInt(e.target.value)})}
+                                    min="3"
+                                    max="6"
+                                    step="1"
+                                    value={config.frozen_layers}
+                                    onChange={(e) => setConfig({...config, frozen_layers: parseInt(e.target.value)})}
                                     disabled={status === 'training'}
                                     style={{ width: '100%' }}
                                 />
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#888', marginTop: '0.25rem', padding: '0 2px' }}>
+                                    <span>3/6</span>
+                                    <span>4/6</span>
+                                    <span>5/6</span>
+                                    <span>6/6</span>
+                                </div>
                                 <div style={{ display: 'flex', marginTop: '0.5rem', gap: '0.5rem' }}>
                                     <div style={{
-                                        flex: config.freeze_percent,
+                                        flex: config.frozen_layers,
                                         background: 'linear-gradient(90deg, #95a5a6, #7f8c8d)',
                                         padding: '0.5rem',
                                         borderRadius: '6px',
                                         color: 'white',
                                         fontSize: '0.75rem',
                                         textAlign: 'center'
-                                    }}>Frozen 🔒</div>
-                                    <div style={{
-                                        flex: 100 - config.freeze_percent,
-                                        background: 'linear-gradient(90deg, #2774AE, #005587)',
-                                        padding: '0.5rem',
-                                        borderRadius: '6px',
-                                        color: 'white',
-                                        fontSize: '0.75rem',
-                                        textAlign: 'center'
-                                    }}>Trainable ✏️</div>
+                                    }}>Frozen 🔒 ({config.frozen_layers})</div>
+                                    {config.frozen_layers < 6 && (
+                                        <div style={{
+                                            flex: 6 - config.frozen_layers,
+                                            background: 'linear-gradient(90deg, #2774AE, #005587)',
+                                            padding: '0.5rem',
+                                            borderRadius: '6px',
+                                            color: 'white',
+                                            fontSize: '0.75rem',
+                                            textAlign: 'center'
+                                        }}>Trainable ✏️ ({6 - config.frozen_layers})</div>
+                                    )}
                                 </div>
                             </div>
 
@@ -1870,7 +1907,7 @@
                                 disabled={status === 'training'}
                                 style={{ marginTop: '1rem' }}
                             >
-                                {status === 'training' ? '⏳ Fine-tuning...' : '▶ Start Fine-tuning'}
+                                {status === 'training' ? '⏳ Training...' : '▶ Start Training'}
                             </button>
 
                             {error && (
@@ -1891,15 +1928,67 @@
 
                             {status === 'idle' && (
                                 <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--textMuted)' }}>
-                                    Configure parameters and click "Start Fine-tuning"
+                                    Configure parameters and click "Start Training"
                                 </div>
                             )}
 
                             {status === 'training' && (
-                                <div style={{ textAlign: 'center', padding: '3rem' }}>
-                                    <div className="loading-spinner" style={{ margin: '0 auto 1rem' }} />
-                                    <div>Fine-tuning DistilBERT...</div>
-                                    <div style={{ fontSize: '0.85rem', color: 'var(--textMuted)', marginTop: '0.5rem' }}>
+                                <div style={{ padding: '1.5rem' }}>
+                                    <div style={{ marginBottom: '1rem' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                            <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>Training DistilBERT...</span>
+                                            <span style={{ fontSize: '0.85rem', color: 'var(--textMuted)' }}>{config.epochs} epochs</span>
+                                        </div>
+                                        <div style={{ height: 8, background: '#e0e0e0', borderRadius: 4, overflow: 'hidden' }}>
+                                            <div style={{
+                                                height: '100%',
+                                                background: 'linear-gradient(90deg, var(--primary), var(--darkBlue))',
+                                                borderRadius: 4,
+                                                animation: 'progressPulse 2.5s ease-in-out infinite',
+                                                width: '100%',
+                                                transformOrigin: 'left'
+                                            }} />
+                                        </div>
+                                        <style>{`
+                                            @keyframes progressPulse {
+                                                0% { transform: scaleX(0.05); opacity: 1; }
+                                                50% { transform: scaleX(0.7); opacity: 0.8; }
+                                                100% { transform: scaleX(0.05); opacity: 1; }
+                                            }
+                                        `}</style>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+                                        {Array.from({ length: config.epochs }).map((_, i) => (
+                                            <div key={i} style={{
+                                                flex: 1,
+                                                height: 6,
+                                                borderRadius: 3,
+                                                background: '#e0e0e0',
+                                                overflow: 'hidden',
+                                                minWidth: 40
+                                            }}>
+                                                <div style={{
+                                                    height: '100%',
+                                                    background: 'var(--primary)',
+                                                    borderRadius: 3,
+                                                    animation: `epochFill${i} ${8 + i * 5}s ease-in forwards`,
+                                                    width: '0%'
+                                                }} />
+                                                <style>{`
+                                                    @keyframes epochFill${i} {
+                                                        0% { width: 0%; }
+                                                        100% { width: 100%; }
+                                                    }
+                                                `}</style>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#888' }}>
+                                        {Array.from({ length: config.epochs }).map((_, i) => (
+                                            <span key={i}>Epoch {i + 1}</span>
+                                        ))}
+                                    </div>
+                                    <div style={{ fontSize: '0.85rem', color: 'var(--textMuted)', marginTop: '1rem', textAlign: 'center' }}>
                                         This may take 30-60 seconds
                                     </div>
                                 </div>
