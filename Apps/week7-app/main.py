@@ -1,39 +1,22 @@
-"""
-Week 7: Word Embeddings & Transformers - FastAPI Backend
-
-Part A: Word Embeddings with GloVe
-Part B: Text Classification with Transformer Architecture
-"""
-
 import os
-import time
-import zipfile
-import requests
-import numpy as np
-from typing import List, Optional, Dict, Any
-from io import BytesIO
+"""
+Assignment 8: Building with Generative AI APIs (LLM Parameters)
+FastAPI Backend - Simulated LLM Responses
+"""
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from sklearn.decomposition import PCA
-from sklearn.metrics.pairwise import cosine_similarity
+from typing import List, Optional
+import random
+import math
+import time
+import json
 
-import tensorflow as tf
-from tensorflow import keras
-from keras import layers
-from keras.datasets import reuters
-from keras.preprocessing.sequence import pad_sequences
+app = FastAPI(title="Assignment 8: Large Language Models")
 
-app = FastAPI(
-    title="Week 7: Word Embeddings & Transformers",
-    description="Interactive ML backend for word embeddings and transformer-based text classification",
-    version="1.0.0"
-)
-
-# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -42,663 +25,475 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Global storage for embeddings and models
-glove_embeddings: Dict[str, np.ndarray] = {}
-embedding_dim = 50
-GLOVE_PATH = "/tmp/glove.6B.50d.txt"
+# Request/Response Models
+class GenerateRequest(BaseModel):
+    prompt: str
+    temperature: float = Field(default=1.0, ge=0.1, le=2.0)
+    top_k: int = Field(default=40, ge=1, le=50)
+    top_p: float = Field(default=0.9, ge=0.1, le=1.0)
+    num_outputs: int = Field(default=5, ge=1, le=10)
 
-# ============================================================================
-# Pydantic Models
-# ============================================================================
+class ReviewRequest(BaseModel):
+    review: str
 
-class SimilarityRequest(BaseModel):
-    word1: str = Field(..., description="First word")
-    word2: str = Field(..., description="Second word")
+class BatchReviewRequest(BaseModel):
+    reviews: List[str]
 
-class SimilarityResponse(BaseModel):
-    word1: str
-    word2: str
-    similarity: float
-    word1_found: bool
-    word2_found: bool
-
-class AnalogyRequest(BaseModel):
-    word_a: str = Field(..., description="First word (e.g., 'king')")
-    word_b: str = Field(..., description="Second word (e.g., 'man')")
-    word_c: str = Field(..., description="Third word (e.g., 'woman')")
-    top_n: int = Field(default=5, ge=1, le=20, description="Number of results to return")
-
-class AnalogyResponse(BaseModel):
-    analogy: str
-    results: List[Dict[str, Any]]
-    words_found: Dict[str, bool]
-
-class EmbeddingVizRequest(BaseModel):
-    words: Optional[List[str]] = Field(
-        default=None,
-        description="Words to visualize (uses default set if not provided)"
-    )
-    n_components: int = Field(default=2, ge=2, le=3, description="PCA dimensions (2 or 3)")
-
-class EmbeddingVizResponse(BaseModel):
-    words: List[str]
-    coordinates: List[List[float]]
-    n_components: int
-    explained_variance_ratio: List[float]
-
-class ClassifierConfig(BaseModel):
-    embed_dim: int = Field(default=64, description="Embedding dimension")
-    num_heads: int = Field(default=2, description="Number of attention heads")
-    num_transformer_blocks: int = Field(default=2, ge=1, le=4, description="Number of transformer blocks")
-    ff_dim: int = Field(default=64, description="Feed-forward dimension")
-    dropout_rate: float = Field(default=0.1, ge=0.0, le=0.5, description="Dropout rate")
-    epochs: int = Field(default=10, ge=5, le=30, description="Training epochs")
-    max_len: int = Field(default=200, description="Maximum sequence length")
-    batch_size: int = Field(default=32, description="Batch size")
-
-class ClassifierResponse(BaseModel):
-    config: Dict[str, Any]
-    accuracy_history: List[float]
-    val_accuracy_history: List[float]
-    loss_history: List[float]
-    val_loss_history: List[float]
-    test_accuracy: float
-    test_loss: float
-    training_time: float
-    num_params: int
-
-class CompareTransformersResponse(BaseModel):
-    one_block: Dict[str, Any]
-    three_blocks: Dict[str, Any]
-    comparison: Dict[str, Any]
-
-# ============================================================================
-# GloVe Embeddings Functions
-# ============================================================================
-
-def download_glove():
-    """Download GloVe embeddings if not available."""
-    if os.path.exists(GLOVE_PATH):
-        return True
-
-    print("Downloading GloVe embeddings...")
-    url = "http://nlp.stanford.edu/data/glove.6B.zip"
-
-    try:
-        response = requests.get(url, stream=True, timeout=300)
-        response.raise_for_status()
-
-        with zipfile.ZipFile(BytesIO(response.content)) as z:
-            # Extract only the 50d file
-            with z.open("glove.6B.50d.txt") as f:
-                with open(GLOVE_PATH, "wb") as out:
-                    out.write(f.read())
-
-        print("GloVe embeddings downloaded successfully!")
-        return True
-    except Exception as e:
-        print(f"Failed to download GloVe: {e}")
-        return False
-
-def load_glove_embeddings(max_words: int = 50000):
-    """Load GloVe embeddings from file."""
-    global glove_embeddings
-
-    if glove_embeddings:
-        return True
-
-    # Try to download if not exists
-    if not os.path.exists(GLOVE_PATH):
-        if not download_glove():
-            # Use a pre-computed subset as fallback
-            print("Using pre-computed subset of embeddings...")
-            create_sample_embeddings()
-            return True
-
-    try:
-        print("Loading GloVe embeddings...")
-        count = 0
-        with open(GLOVE_PATH, "r", encoding="utf-8") as f:
-            for line in f:
-                if count >= max_words:
-                    break
-                parts = line.strip().split()
-                word = parts[0]
-                vector = np.array(parts[1:], dtype=np.float32)
-                if len(vector) == embedding_dim:
-                    glove_embeddings[word] = vector
-                    count += 1
-
-        print(f"Loaded {len(glove_embeddings)} word embeddings")
-        return True
-    except Exception as e:
-        print(f"Error loading GloVe: {e}")
-        create_sample_embeddings()
-        return True
-
-def create_sample_embeddings():
-    """Create a sample set of embeddings for demonstration."""
-    global glove_embeddings
-
-    # Pre-computed sample embeddings (normalized for demonstration)
-    np.random.seed(42)
-
-    # Common words with semantically meaningful random vectors
-    sample_words = [
-        "king", "queen", "man", "woman", "prince", "princess",
-        "boy", "girl", "father", "mother", "son", "daughter",
-        "brother", "sister", "uncle", "aunt",
-        "dog", "cat", "bird", "fish", "horse", "cow",
-        "car", "truck", "bus", "train", "plane", "boat",
-        "red", "blue", "green", "yellow", "black", "white",
-        "happy", "sad", "angry", "afraid", "love", "hate",
-        "big", "small", "tall", "short", "fast", "slow",
-        "good", "bad", "new", "old", "young", "beautiful",
-        "house", "home", "building", "city", "country", "world",
-        "water", "fire", "earth", "air", "sun", "moon",
-        "food", "drink", "bread", "meat", "fruit", "vegetable",
-        "work", "play", "read", "write", "speak", "listen",
-        "think", "feel", "know", "see", "hear", "touch",
-        "time", "day", "night", "year", "week", "month",
-        "one", "two", "three", "four", "five", "ten",
-        "computer", "phone", "internet", "technology", "science", "math",
-        "school", "teacher", "student", "book", "class", "learn",
-        "doctor", "nurse", "hospital", "medicine", "health", "sick",
-        "money", "bank", "rich", "poor", "buy", "sell",
-        "france", "paris", "germany", "berlin", "italy", "rome",
-        "japan", "tokyo", "china", "beijing", "russia", "moscow"
-    ]
-
-    # Create semantically grouped embeddings
-    base_vectors = {}
-
-    # Royalty cluster
-    base_vectors["royalty"] = np.random.randn(embedding_dim).astype(np.float32)
-    base_vectors["male"] = np.random.randn(embedding_dim).astype(np.float32)
-    base_vectors["female"] = np.random.randn(embedding_dim).astype(np.float32)
-
-    # Create embeddings with semantic relationships
-    for word in sample_words:
-        base = np.random.randn(embedding_dim).astype(np.float32) * 0.5
-
-        # Add semantic components
-        if word in ["king", "prince", "father", "son", "brother", "uncle", "boy", "man"]:
-            base += base_vectors["male"] * 0.5
-        if word in ["queen", "princess", "mother", "daughter", "sister", "aunt", "girl", "woman"]:
-            base += base_vectors["female"] * 0.5
-        if word in ["king", "queen", "prince", "princess"]:
-            base += base_vectors["royalty"] * 0.5
-
-        # Normalize
-        glove_embeddings[word] = base / (np.linalg.norm(base) + 1e-8)
-
-    print(f"Created {len(glove_embeddings)} sample embeddings")
-
-def get_embedding(word: str) -> Optional[np.ndarray]:
-    """Get embedding for a word."""
-    return glove_embeddings.get(word.lower())
-
-def compute_cosine_similarity(vec1: np.ndarray, vec2: np.ndarray) -> float:
-    """Compute cosine similarity between two vectors."""
-    return float(cosine_similarity(vec1.reshape(1, -1), vec2.reshape(1, -1))[0, 0])
-
-def find_nearest_words(vector: np.ndarray, exclude: List[str] = None, top_n: int = 5) -> List[tuple]:
-    """Find nearest words to a vector."""
-    exclude = exclude or []
-    exclude_lower = [w.lower() for w in exclude]
-
-    similarities = []
-    for word, emb in glove_embeddings.items():
-        if word.lower() not in exclude_lower:
-            sim = compute_cosine_similarity(vector, emb)
-            similarities.append((word, sim))
-
-    similarities.sort(key=lambda x: x[1], reverse=True)
-    return similarities[:top_n]
-
-# ============================================================================
-# Transformer Model Components
-# ============================================================================
-
-class TransformerBlock(layers.Layer):
-    """Transformer block with multi-head attention."""
-
-    def __init__(self, embed_dim: int, num_heads: int, ff_dim: int, dropout_rate: float = 0.1):
-        super(TransformerBlock, self).__init__()
-        self.embed_dim = embed_dim
-        self.num_heads = num_heads
-        self.ff_dim = ff_dim
-        self.dropout_rate = dropout_rate
-
-        self.att = layers.MultiHeadAttention(num_heads=num_heads, key_dim=embed_dim)
-        self.ffn = keras.Sequential([
-            layers.Dense(ff_dim, activation="relu"),
-            layers.Dense(embed_dim),
-        ])
-        self.layernorm1 = layers.LayerNormalization(epsilon=1e-6)
-        self.layernorm2 = layers.LayerNormalization(epsilon=1e-6)
-        self.dropout1 = layers.Dropout(dropout_rate)
-        self.dropout2 = layers.Dropout(dropout_rate)
-
-    def call(self, inputs, training=False):
-        attn_output = self.att(inputs, inputs)
-        attn_output = self.dropout1(attn_output, training=training)
-        out1 = self.layernorm1(inputs + attn_output)
-        ffn_output = self.ffn(out1)
-        ffn_output = self.dropout2(ffn_output, training=training)
-        return self.layernorm2(out1 + ffn_output)
-
-    def get_config(self):
-        config = super().get_config()
-        config.update({
-            "embed_dim": self.embed_dim,
-            "num_heads": self.num_heads,
-            "ff_dim": self.ff_dim,
-            "dropout_rate": self.dropout_rate,
-        })
-        return config
-
-class TokenAndPositionEmbedding(layers.Layer):
-    """Token and position embedding layer."""
-
-    def __init__(self, maxlen: int, vocab_size: int, embed_dim: int):
-        super(TokenAndPositionEmbedding, self).__init__()
-        self.maxlen = maxlen
-        self.vocab_size = vocab_size
-        self.embed_dim = embed_dim
-
-        self.token_emb = layers.Embedding(input_dim=vocab_size, output_dim=embed_dim)
-        self.pos_emb = layers.Embedding(input_dim=maxlen, output_dim=embed_dim)
-
-    def call(self, x):
-        maxlen = tf.shape(x)[-1]
-        positions = tf.range(start=0, limit=maxlen, delta=1)
-        positions = self.pos_emb(positions)
-        x = self.token_emb(x)
-        return x + positions
-
-    def get_config(self):
-        config = super().get_config()
-        config.update({
-            "maxlen": self.maxlen,
-            "vocab_size": self.vocab_size,
-            "embed_dim": self.embed_dim,
-        })
-        return config
-
-def build_transformer_classifier(
-    vocab_size: int,
-    maxlen: int,
-    num_classes: int,
-    embed_dim: int = 64,
-    num_heads: int = 2,
-    num_transformer_blocks: int = 2,
-    ff_dim: int = 64,
-    dropout_rate: float = 0.1
-) -> keras.Model:
-    """Build a transformer-based text classifier."""
-
-    inputs = layers.Input(shape=(maxlen,))
-    embedding_layer = TokenAndPositionEmbedding(maxlen, vocab_size, embed_dim)
-    x = embedding_layer(inputs)
-
-    for _ in range(num_transformer_blocks):
-        x = TransformerBlock(embed_dim, num_heads, ff_dim, dropout_rate)(x)
-
-    x = layers.GlobalAveragePooling1D()(x)
-    x = layers.Dropout(dropout_rate)(x)
-    x = layers.Dense(64, activation="relu")(x)
-    x = layers.Dropout(dropout_rate)(x)
-    outputs = layers.Dense(num_classes, activation="softmax")(x)
-
-    model = keras.Model(inputs=inputs, outputs=outputs)
-    return model
-
-def load_reuters_data(max_len: int = 200, max_words: int = 10000):
-    """Load and preprocess Reuters dataset."""
-    (x_train, y_train), (x_test, y_test) = reuters.load_data(num_words=max_words)
-
-    # Pad sequences
-    x_train = pad_sequences(x_train, maxlen=max_len)
-    x_test = pad_sequences(x_test, maxlen=max_len)
-
-    num_classes = max(y_train.max(), y_test.max()) + 1
-
-    return (x_train, y_train), (x_test, y_test), num_classes, max_words
-
-# ============================================================================
-# API Endpoints
-# ============================================================================
-
-@app.get("/", tags=["Health"])
-async def health_check():
-    """Health check endpoint."""
-    embeddings_loaded = len(glove_embeddings) > 0
-    return {
-        "status": "healthy",
-        "service": "Week 7: Word Embeddings & Transformers",
-        "embeddings_loaded": embeddings_loaded,
-        "num_embeddings": len(glove_embeddings),
-        "tensorflow_version": tf.__version__
+# Simulated vocabulary for demonstrations
+SAMPLE_VOCABULARY = {
+    "weather": {
+        "tokens": ["sunny", "cloudy", "rainy", "stormy", "clear", "foggy", "humid", "dry", "windy", "calm"],
+        "base_probs": [0.25, 0.20, 0.15, 0.10, 0.10, 0.07, 0.05, 0.04, 0.02, 0.02]
+    },
+    "greeting": {
+        "tokens": ["Hello", "Hi", "Hey", "Greetings", "Welcome", "Good day", "Howdy", "Salutations", "Yo", "Hola"],
+        "base_probs": [0.30, 0.25, 0.15, 0.10, 0.08, 0.05, 0.03, 0.02, 0.01, 0.01]
+    },
+    "sentiment": {
+        "tokens": ["great", "good", "okay", "fine", "excellent", "wonderful", "amazing", "decent", "poor", "terrible"],
+        "base_probs": [0.22, 0.20, 0.15, 0.12, 0.10, 0.08, 0.06, 0.04, 0.02, 0.01]
+    },
+    "continuation": {
+        "tokens": ["the", "a", "this", "that", "an", "some", "my", "your", "their", "our"],
+        "base_probs": [0.28, 0.22, 0.12, 0.10, 0.08, 0.07, 0.05, 0.04, 0.02, 0.02]
     }
+}
 
-@app.on_event("startup")
-async def startup_event():
-    """Load embeddings on startup."""
-    load_glove_embeddings()
+# Sample outputs for different prompts at different temperatures
+SAMPLE_OUTPUTS = {
+    "weather": {
+        "low_temp": [
+            "The weather today is sunny and pleasant with clear skies.",
+            "The weather today is sunny and warm with clear conditions.",
+            "The weather today is sunny with clear skies expected.",
+        ],
+        "mid_temp": [
+            "The weather today is mostly cloudy with a chance of rain.",
+            "The weather today brings warm temperatures and scattered clouds.",
+            "The weather today seems humid with overcast conditions developing.",
+        ],
+        "high_temp": [
+            "The weather today? Absolutely bonkers - sunshine mixed with existential fog!",
+            "The weather today dances between moody storms and whimsical breezes.",
+            "The weather today is conducting a symphony of chaotic atmospherics!",
+        ]
+    },
+    "story": {
+        "low_temp": [
+            "Once upon a time, there was a young princess who lived in a castle.",
+            "Once upon a time, there was a brave knight who sought adventure.",
+            "Once upon a time, there was a wise wizard in a tall tower.",
+        ],
+        "mid_temp": [
+            "Once upon a time, a curious fox discovered a hidden garden of dreams.",
+            "Once upon a time, the moon decided to visit the ocean floor.",
+            "Once upon a time, a clockwork bird sang songs of forgotten ages.",
+        ],
+        "high_temp": [
+            "Once upon a time, quantum jellyfish negotiated treaties with sentient nebulae!",
+            "Once upon a time, yesterday's tomorrow danced with next week's memories.",
+            "Once upon a time, the concept of 'once' questioned its own existence.",
+        ]
+    },
+    "default": {
+        "low_temp": [
+            "This is a standard response with predictable, common word choices.",
+            "This is a typical response following expected patterns.",
+            "This is a conventional response using common vocabulary.",
+        ],
+        "mid_temp": [
+            "This response shows moderate variation in word selection and structure.",
+            "This output demonstrates balanced creativity with coherent ideas.",
+            "This generation balances novelty with meaningful content.",
+        ],
+        "high_temp": [
+            "This response ventures into unexpected territories of linguistic exploration!",
+            "This output embraces the beautiful chaos of unlimited possibility!",
+            "This generation defies conventional patterns with wild abandon!",
+        ]
+    }
+}
 
-@app.post("/similarity", response_model=SimilarityResponse, tags=["Word Embeddings"])
-async def compute_similarity(request: SimilarityRequest):
-    """Compute cosine similarity between two words."""
-    if not glove_embeddings:
-        load_glove_embeddings()
+def apply_temperature(probs: List[float], temperature: float) -> List[float]:
+    """Apply temperature scaling to probability distribution."""
+    if temperature == 0:
+        temperature = 0.01
 
-    vec1 = get_embedding(request.word1)
-    vec2 = get_embedding(request.word2)
+    # Apply temperature: p_i^(1/T) / sum(p_j^(1/T))
+    scaled = [p ** (1.0 / temperature) for p in probs]
+    total = sum(scaled)
+    return [p / total for p in scaled]
 
-    word1_found = vec1 is not None
-    word2_found = vec2 is not None
+def apply_top_k(probs: List[float], k: int) -> List[float]:
+    """Apply top-k filtering to probability distribution."""
+    indexed = list(enumerate(probs))
+    sorted_probs = sorted(indexed, key=lambda x: x[1], reverse=True)
 
-    if not word1_found or not word2_found:
-        similarity = 0.0
-        if not word1_found and not word2_found:
-            raise HTTPException(status_code=404, detail=f"Words '{request.word1}' and '{request.word2}' not found in vocabulary")
-        elif not word1_found:
-            raise HTTPException(status_code=404, detail=f"Word '{request.word1}' not found in vocabulary")
+    result = [0.0] * len(probs)
+    kept_probs = []
+    for i, (idx, prob) in enumerate(sorted_probs):
+        if i < k:
+            kept_probs.append((idx, prob))
+
+    total = sum(p for _, p in kept_probs)
+    for idx, prob in kept_probs:
+        result[idx] = prob / total if total > 0 else 0
+
+    return result
+
+def apply_top_p(probs: List[float], p: float) -> List[float]:
+    """Apply nucleus (top-p) sampling to probability distribution."""
+    indexed = list(enumerate(probs))
+    sorted_probs = sorted(indexed, key=lambda x: x[1], reverse=True)
+
+    result = [0.0] * len(probs)
+    cumulative = 0.0
+    kept_probs = []
+
+    for idx, prob in sorted_probs:
+        if cumulative < p:
+            kept_probs.append((idx, prob))
+            cumulative += prob
         else:
-            raise HTTPException(status_code=404, detail=f"Word '{request.word2}' not found in vocabulary")
+            break
 
-    similarity = compute_cosine_similarity(vec1, vec2)
+    total = sum(prob for _, prob in kept_probs)
+    for idx, prob in kept_probs:
+        result[idx] = prob / total if total > 0 else 0
 
-    return SimilarityResponse(
-        word1=request.word1,
-        word2=request.word2,
-        similarity=similarity,
-        word1_found=word1_found,
-        word2_found=word2_found
-    )
+    return result
 
-@app.post("/analogy", response_model=AnalogyResponse, tags=["Word Embeddings"])
-async def solve_analogy(request: AnalogyRequest):
-    """
-    Solve word analogy: word_a - word_b + word_c = ?
-    Example: king - man + woman = queen
-    """
-    if not glove_embeddings:
-        load_glove_embeddings()
+def get_probability_visualization(vocab_key: str, temperature: float, top_k: int, top_p: float):
+    """Generate probability distribution visualization data."""
+    vocab = SAMPLE_VOCABULARY.get(vocab_key, SAMPLE_VOCABULARY["sentiment"])
+    tokens = vocab["tokens"]
+    base_probs = vocab["base_probs"].copy()
 
-    vec_a = get_embedding(request.word_a)
-    vec_b = get_embedding(request.word_b)
-    vec_c = get_embedding(request.word_c)
+    # Apply transformations in sequence
+    temp_probs = apply_temperature(base_probs, temperature)
+    topk_probs = apply_top_k(temp_probs, top_k)
+    final_probs = apply_top_p(topk_probs, top_p)
 
-    words_found = {
-        request.word_a: vec_a is not None,
-        request.word_b: vec_b is not None,
-        request.word_c: vec_c is not None
+    return {
+        "tokens": tokens,
+        "base_probs": base_probs,
+        "after_temperature": temp_probs,
+        "after_top_k": topk_probs,
+        "after_top_p": final_probs
     }
 
-    missing = [w for w, found in words_found.items() if not found]
-    if missing:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Words not found in vocabulary: {', '.join(missing)}"
-        )
+def select_output(prompt: str, temperature: float) -> str:
+    """Select appropriate output based on prompt and temperature."""
+    prompt_lower = prompt.lower()
 
-    # Compute analogy vector: a - b + c
-    result_vector = vec_a - vec_b + vec_c
-
-    # Find nearest words (excluding input words)
-    nearest = find_nearest_words(
-        result_vector,
-        exclude=[request.word_a, request.word_b, request.word_c],
-        top_n=request.top_n
-    )
-
-    results = [{"word": word, "similarity": float(sim)} for word, sim in nearest]
-
-    return AnalogyResponse(
-        analogy=f"{request.word_a} - {request.word_b} + {request.word_c} = ?",
-        results=results,
-        words_found=words_found
-    )
-
-@app.get("/embedding_viz", response_model=EmbeddingVizResponse, tags=["Word Embeddings"])
-async def get_embedding_visualization(
-    n_components: int = 2,
-    words: Optional[str] = None
-):
-    """
-    Get 2D/3D PCA projection of word embeddings for visualization.
-    Pass words as comma-separated string, or use default set.
-    """
-    if not glove_embeddings:
-        load_glove_embeddings()
-
-    # Default sample words for visualization
-    default_words = [
-        "king", "queen", "man", "woman", "prince", "princess",
-        "dog", "cat", "bird", "fish",
-        "happy", "sad", "good", "bad",
-        "big", "small", "fast", "slow",
-        "car", "truck", "bus", "train",
-        "red", "blue", "green", "yellow"
-    ]
-
-    if words:
-        word_list = [w.strip() for w in words.split(",")]
+    if "weather" in prompt_lower:
+        outputs = SAMPLE_OUTPUTS["weather"]
+    elif "story" in prompt_lower or "once upon" in prompt_lower:
+        outputs = SAMPLE_OUTPUTS["story"]
     else:
-        word_list = default_words
+        outputs = SAMPLE_OUTPUTS["default"]
 
-    # Filter to words we have embeddings for
-    valid_words = []
-    embeddings = []
-    for word in word_list:
-        emb = get_embedding(word)
-        if emb is not None:
-            valid_words.append(word)
-            embeddings.append(emb)
+    if temperature < 0.5:
+        category = "low_temp"
+    elif temperature < 1.2:
+        category = "mid_temp"
+    else:
+        category = "high_temp"
 
-    if len(valid_words) < 3:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Need at least 3 valid words for PCA. Found {len(valid_words)}: {valid_words}"
-        )
+    return random.choice(outputs[category])
 
-    # Perform PCA
-    embeddings_array = np.array(embeddings)
-    n_components = min(n_components, len(valid_words) - 1, 3)
+def analyze_review_text(review: str) -> dict:
+    """Simulate structured review analysis."""
+    review_lower = review.lower()
 
-    pca = PCA(n_components=n_components)
-    reduced = pca.fit_transform(embeddings_array)
+    # Simulate sentiment detection
+    positive_words = ["great", "excellent", "amazing", "love", "fantastic", "wonderful", "best", "perfect"]
+    negative_words = ["bad", "terrible", "awful", "hate", "worst", "poor", "disappointing", "horrible"]
 
-    return EmbeddingVizResponse(
-        words=valid_words,
-        coordinates=reduced.tolist(),
-        n_components=n_components,
-        explained_variance_ratio=pca.explained_variance_ratio_.tolist()
+    positive_count = sum(1 for word in positive_words if word in review_lower)
+    negative_count = sum(1 for word in negative_words if word in review_lower)
+
+    if positive_count > negative_count:
+        sentiment = "positive"
+        rating = min(5, 3 + positive_count)
+    elif negative_count > positive_count:
+        sentiment = "negative"
+        rating = max(1, 3 - negative_count)
+    else:
+        sentiment = "neutral"
+        rating = 3
+
+    # Extract topics
+    topic_keywords = {
+        "quality": ["quality", "well-made", "durable", "sturdy", "flimsy"],
+        "price": ["price", "expensive", "cheap", "value", "worth", "cost"],
+        "delivery": ["delivery", "shipping", "arrived", "fast", "slow"],
+        "service": ["service", "support", "help", "customer", "staff"],
+        "usability": ["easy", "difficult", "intuitive", "confusing", "simple"]
+    }
+
+    topics = []
+    for topic, keywords in topic_keywords.items():
+        if any(kw in review_lower for kw in keywords):
+            topics.append(topic)
+
+    if not topics:
+        topics = ["general"]
+
+    # Determine if action needed
+    action_needed = sentiment == "negative" or rating <= 2
+
+    return {
+        "sentiment": sentiment,
+        "confidence": round(random.uniform(0.75, 0.98), 2),
+        "rating": rating,
+        "topics": topics,
+        "action_needed": action_needed,
+        "action_reason": "Negative feedback requires follow-up" if action_needed else None,
+        "key_phrases": extract_key_phrases(review),
+        "word_count": len(review.split())
+    }
+
+def extract_key_phrases(text: str) -> List[str]:
+    """Extract simulated key phrases from text."""
+    words = text.split()
+    phrases = []
+
+    # Simple extraction of 2-3 word phrases
+    for i in range(len(words) - 1):
+        if len(words[i]) > 3 and len(words[i + 1]) > 3:
+            phrases.append(f"{words[i]} {words[i + 1]}")
+
+    return phrases[:3] if phrases else ["general feedback"]
+
+@app.post("/generate")
+async def generate_text(request: GenerateRequest):
+    """Generate text with specified LLM parameters."""
+    outputs = []
+
+    for i in range(request.num_outputs):
+        # Add slight variation to temperature for demonstration
+        temp_variation = request.temperature + random.uniform(-0.1, 0.1)
+        temp_variation = max(0.1, min(2.0, temp_variation))
+
+        output = select_output(request.prompt, temp_variation)
+        outputs.append({
+            "text": output,
+            "effective_temperature": round(temp_variation, 2),
+            "tokens_generated": len(output.split()),
+            "generation_id": i + 1
+        })
+
+    # Get vocabulary type for visualization
+    prompt_lower = request.prompt.lower()
+    if "weather" in prompt_lower:
+        vocab_key = "weather"
+    elif "hello" in prompt_lower or "greeting" in prompt_lower:
+        vocab_key = "greeting"
+    else:
+        vocab_key = "sentiment"
+
+    prob_viz = get_probability_visualization(
+        vocab_key,
+        request.temperature,
+        request.top_k,
+        request.top_p
     )
 
-@app.post("/train_classifier", response_model=ClassifierResponse, tags=["Transformers"])
-async def train_classifier(config: ClassifierConfig):
-    """Train a transformer-based text classifier on Reuters dataset."""
+    return {
+        "prompt": request.prompt,
+        "parameters": {
+            "temperature": request.temperature,
+            "top_k": request.top_k,
+            "top_p": request.top_p
+        },
+        "outputs": outputs,
+        "probability_visualization": prob_viz,
+        "explanation": get_parameter_explanation(request.temperature, request.top_k, request.top_p)
+    }
+
+def get_parameter_explanation(temperature: float, top_k: int, top_p: float) -> dict:
+    """Provide educational explanation of current parameters."""
+    if temperature < 0.5:
+        temp_desc = "Very low temperature produces highly deterministic, repetitive outputs. The model strongly favors the most probable tokens."
+    elif temperature < 1.0:
+        temp_desc = "Low-to-moderate temperature balances coherence with some variation. Good for factual content."
+    elif temperature < 1.5:
+        temp_desc = "Moderate-to-high temperature increases creativity and diversity. Outputs become more varied and surprising."
+    else:
+        temp_desc = "High temperature produces very diverse, potentially chaotic outputs. Useful for brainstorming but may lose coherence."
+
+    if top_k <= 10:
+        topk_desc = f"Top-K={top_k} severely limits choices to only the {top_k} most probable tokens. Very focused output."
+    elif top_k <= 30:
+        topk_desc = f"Top-K={top_k} provides moderate token diversity while filtering unlikely options."
+    else:
+        topk_desc = f"Top-K={top_k} allows broad token selection, maintaining most of the probability mass."
+
+    if top_p <= 0.5:
+        topp_desc = f"Top-P={top_p} (nucleus sampling) keeps only tokens comprising {int(top_p*100)}% cumulative probability. Very focused."
+    elif top_p <= 0.9:
+        topp_desc = f"Top-P={top_p} balances diversity with quality by keeping the top {int(top_p*100)}% probability mass."
+    else:
+        topp_desc = f"Top-P={top_p} includes nearly all probable tokens, maximizing potential diversity."
+
+    return {
+        "temperature": temp_desc,
+        "top_k": topk_desc,
+        "top_p": topp_desc
+    }
+
+@app.post("/analyze_review")
+async def analyze_review(request: ReviewRequest):
+    """Analyze a single review and return structured JSON output."""
+    if not request.review.strip():
+        raise HTTPException(status_code=400, detail="Review text cannot be empty")
+
     start_time = time.time()
 
-    # Load data
-    (x_train, y_train), (x_test, y_test), num_classes, vocab_size = load_reuters_data(
-        max_len=config.max_len
-    )
+    # Simulate processing delay
+    time.sleep(random.uniform(0.1, 0.3))
 
-    # Build model
-    model = build_transformer_classifier(
-        vocab_size=vocab_size,
-        maxlen=config.max_len,
-        num_classes=num_classes,
-        embed_dim=config.embed_dim,
-        num_heads=config.num_heads,
-        num_transformer_blocks=config.num_transformer_blocks,
-        ff_dim=config.ff_dim,
-        dropout_rate=config.dropout_rate
-    )
+    analysis = analyze_review_text(request.review)
 
-    model.compile(
-        optimizer="adam",
-        loss="sparse_categorical_crossentropy",
-        metrics=["accuracy"]
-    )
+    processing_time = time.time() - start_time
 
-    # Train
-    history = model.fit(
-        x_train, y_train,
-        batch_size=config.batch_size,
-        epochs=config.epochs,
-        validation_split=0.1,
-        verbose=1
-    )
-
-    # Evaluate
-    test_loss, test_accuracy = model.evaluate(x_test, y_test, verbose=0)
-
-    training_time = time.time() - start_time
-
-    return ClassifierResponse(
-        config={
-            "embed_dim": config.embed_dim,
-            "num_heads": config.num_heads,
-            "num_transformer_blocks": config.num_transformer_blocks,
-            "ff_dim": config.ff_dim,
-            "dropout_rate": config.dropout_rate,
-            "epochs": config.epochs,
-            "max_len": config.max_len,
-            "batch_size": config.batch_size,
-            "num_classes": num_classes,
-            "vocab_size": vocab_size
-        },
-        accuracy_history=history.history["accuracy"],
-        val_accuracy_history=history.history["val_accuracy"],
-        loss_history=history.history["loss"],
-        val_loss_history=history.history["val_loss"],
-        test_accuracy=float(test_accuracy),
-        test_loss=float(test_loss),
-        training_time=training_time,
-        num_params=model.count_params()
-    )
-
-@app.get("/compare_transformers", response_model=CompareTransformersResponse, tags=["Transformers"])
-async def compare_transformers(
-    embed_dim: int = 64,
-    num_heads: int = 2,
-    ff_dim: int = 64,
-    dropout_rate: float = 0.1,
-    epochs: int = 5,
-    max_len: int = 200,
-    batch_size: int = 32
-):
-    """Compare 1-block vs 3-block transformer architectures."""
-
-    # Load data once
-    (x_train, y_train), (x_test, y_test), num_classes, vocab_size = load_reuters_data(
-        max_len=max_len
-    )
-
-    results = {}
-
-    for num_blocks in [1, 3]:
-        start_time = time.time()
-
-        model = build_transformer_classifier(
-            vocab_size=vocab_size,
-            maxlen=max_len,
-            num_classes=num_classes,
-            embed_dim=embed_dim,
-            num_heads=num_heads,
-            num_transformer_blocks=num_blocks,
-            ff_dim=ff_dim,
-            dropout_rate=dropout_rate
-        )
-
-        model.compile(
-            optimizer="adam",
-            loss="sparse_categorical_crossentropy",
-            metrics=["accuracy"]
-        )
-
-        history = model.fit(
-            x_train, y_train,
-            batch_size=batch_size,
-            epochs=epochs,
-            validation_split=0.1,
-            verbose=1
-        )
-
-        test_loss, test_accuracy = model.evaluate(x_test, y_test, verbose=0)
-        training_time = time.time() - start_time
-
-        key = "one_block" if num_blocks == 1 else "three_blocks"
-        results[key] = {
-            "num_transformer_blocks": num_blocks,
-            "accuracy_history": history.history["accuracy"],
-            "val_accuracy_history": history.history["val_accuracy"],
-            "loss_history": history.history["loss"],
-            "val_loss_history": history.history["val_loss"],
-            "test_accuracy": float(test_accuracy),
-            "test_loss": float(test_loss),
-            "training_time": training_time,
-            "num_params": model.count_params()
+    return {
+        "success": True,
+        "input": request.review,
+        "analysis": analysis,
+        "raw_json": json.dumps(analysis, indent=2),
+        "parsing_status": "success",
+        "processing_time_ms": round(processing_time * 1000, 2),
+        "model_info": {
+            "simulated_model": "gpt-4-turbo",
+            "output_format": "JSON",
+            "schema_validated": True
         }
-
-        # Clear session to free memory
-        keras.backend.clear_session()
-
-    # Comparison summary
-    comparison = {
-        "accuracy_improvement": results["three_blocks"]["test_accuracy"] - results["one_block"]["test_accuracy"],
-        "parameter_increase": results["three_blocks"]["num_params"] - results["one_block"]["num_params"],
-        "time_increase": results["three_blocks"]["training_time"] - results["one_block"]["training_time"],
-        "winner": "three_blocks" if results["three_blocks"]["test_accuracy"] > results["one_block"]["test_accuracy"] else "one_block"
     }
 
-    return CompareTransformersResponse(
-        one_block=results["one_block"],
-        three_blocks=results["three_blocks"],
-        comparison=comparison
-    )
+@app.post("/batch_analyze")
+async def batch_analyze(request: BatchReviewRequest):
+    """Analyze multiple reviews in batch with timing information."""
+    if not request.reviews:
+        raise HTTPException(status_code=400, detail="Reviews list cannot be empty")
 
-@app.get("/available_words", tags=["Word Embeddings"])
-async def get_available_words(limit: int = 100):
-    """Get a sample of available words in the vocabulary."""
-    if not glove_embeddings:
-        load_glove_embeddings()
+    if len(request.reviews) > 20:
+        raise HTTPException(status_code=400, detail="Maximum 20 reviews per batch")
 
-    words = list(glove_embeddings.keys())[:limit]
+    start_time = time.time()
+    results = []
+
+    for i, review in enumerate(request.reviews):
+        review_start = time.time()
+
+        # Simulate variable processing time
+        time.sleep(random.uniform(0.05, 0.15))
+
+        if review.strip():
+            analysis = analyze_review_text(review)
+            results.append({
+                "index": i,
+                "review": review[:100] + "..." if len(review) > 100 else review,
+                "analysis": analysis,
+                "processing_time_ms": round((time.time() - review_start) * 1000, 2),
+                "status": "success"
+            })
+        else:
+            results.append({
+                "index": i,
+                "review": "",
+                "analysis": None,
+                "processing_time_ms": 0,
+                "status": "skipped",
+                "error": "Empty review"
+            })
+
+    total_time = time.time() - start_time
+    successful = sum(1 for r in results if r["status"] == "success")
+
     return {
-        "total_vocabulary": len(glove_embeddings),
-        "sample_words": words
+        "batch_id": f"batch_{int(time.time())}",
+        "total_reviews": len(request.reviews),
+        "successful": successful,
+        "failed": len(request.reviews) - successful,
+        "results": results,
+        "timing": {
+            "total_time_ms": round(total_time * 1000, 2),
+            "average_per_review_ms": round((total_time * 1000) / len(request.reviews), 2),
+            "throughput_reviews_per_second": round(len(request.reviews) / total_time, 2)
+        },
+        "cost_estimate": {
+            "estimated_tokens": sum(len(r.get("review", "").split()) * 2 for r in results),
+            "estimated_cost_usd": round(len(request.reviews) * 0.002, 4),
+            "note": "Simulated cost based on typical GPT-4 pricing"
+        }
     }
 
-@app.get("/model_info", tags=["Transformers"])
-async def get_model_info():
-    """Get information about model architecture options."""
+@app.get("/probability_demo")
+async def probability_demo():
+    """Return sample probability distributions for different parameter combinations."""
+    demos = []
+
+    # Demo 1: Temperature comparison
+    for temp in [0.2, 0.7, 1.0, 1.5, 2.0]:
+        demos.append({
+            "name": f"Temperature = {temp}",
+            "category": "temperature",
+            "data": get_probability_visualization("sentiment", temp, 50, 1.0)
+        })
+
+    # Demo 2: Top-K comparison
+    for k in [3, 5, 10, 25, 50]:
+        demos.append({
+            "name": f"Top-K = {k}",
+            "category": "top_k",
+            "data": get_probability_visualization("sentiment", 1.0, k, 1.0)
+        })
+
+    # Demo 3: Top-P comparison
+    for p in [0.3, 0.5, 0.7, 0.9, 1.0]:
+        demos.append({
+            "name": f"Top-P = {p}",
+            "category": "top_p",
+            "data": get_probability_visualization("sentiment", 1.0, 50, p)
+        })
+
+    # Demo 4: Combined effects
+    demos.append({
+        "name": "Low Temp + Low Top-K",
+        "category": "combined",
+        "data": get_probability_visualization("sentiment", 0.3, 5, 1.0)
+    })
+    demos.append({
+        "name": "High Temp + High Top-P",
+        "category": "combined",
+        "data": get_probability_visualization("sentiment", 1.5, 50, 0.95)
+    })
+    demos.append({
+        "name": "Balanced Settings",
+        "category": "combined",
+        "data": get_probability_visualization("sentiment", 0.7, 20, 0.9)
+    })
+
     return {
-        "embed_dim_options": [32, 64, 128, 256],
-        "num_heads_options": [1, 2, 4, 8],
-        "num_transformer_blocks_range": {"min": 1, "max": 4},
-        "ff_dim_options": [32, 64, 128],
-        "dropout_rate_range": {"min": 0.0, "max": 0.5},
-        "epochs_range": {"min": 5, "max": 30},
-        "dataset": "Reuters (46 categories)",
-        "architecture": "Transformer with Multi-Head Attention"
+        "demos": demos,
+        "vocabulary_info": {
+            "tokens": SAMPLE_VOCABULARY["sentiment"]["tokens"],
+            "description": "Sentiment-related tokens used for demonstration"
+        },
+        "explanation": {
+            "temperature": "Reshapes the probability distribution. Low values sharpen (favor top tokens), high values flatten (more uniform).",
+            "top_k": "Keeps only the K most probable tokens, zeroing out the rest before renormalization.",
+            "top_p": "Keeps the smallest set of tokens whose cumulative probability exceeds P (nucleus sampling)."
+        }
     }
 
-# Serve frontend
-app.mount("/static", StaticFiles(directory="."), name="static")
-
-@app.get("/app")
-async def serve_frontend():
-    """Serve the frontend application."""
+@app.get("/")
+async def root():
     return FileResponse("index.html")
-
 
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.getenv("PORT", 8000))
+    port = int(os.getenv("PORT", 8107))
     uvicorn.run(app, host="0.0.0.0", port=port)

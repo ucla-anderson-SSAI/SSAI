@@ -1,5 +1,5 @@
 """
-Flask backend for Week 2 CNN Training App
+Flask backend for Week 5 CNN Training App
 CNN training on CIFAR-100 subset: Lions, Tigers, and Bears!
 OPTIMIZED for 80 concurrent students
 """
@@ -13,6 +13,9 @@ from collections import deque
 from datetime import datetime, timedelta
 import threading
 import uuid
+import base64
+from io import BytesIO
+from PIL import Image
 
 # Set TensorFlow to CPU only and reduce logging BEFORE importing
 os.environ['CUDA_VISIBLE_DEVICES'] = ''
@@ -25,15 +28,15 @@ CORS(app)
 # ============================================
 # Configuration - OPTIMIZED FOR 80 STUDENTS
 # ============================================
-MAX_CONCURRENT_TRAININGS = 15
+MAX_CONCURRENT_TRAININGS = 30
 SESSION_TIMEOUT_MINUTES = 15
 CLEANUP_INTERVAL_SECONDS = 30
 
 # Default training settings optimized for speed
 DEFAULT_EPOCHS = 10
-DEFAULT_NUM_SAMPLES = 500
-MAX_EPOCHS = 15
-MAX_SAMPLES = 1500  # Max is 500 per class * 3 classes
+DEFAULT_NUM_SAMPLES = 300
+MAX_EPOCHS = 10
+MAX_SAMPLES = 500  # Max is 500 per class in CIFAR-100 fine classes
 
 # ============================================
 # CIFAR-100 Class Configuration
@@ -69,6 +72,26 @@ _keras = None
 _layers = None
 
 
+def image_array_to_base64(img_array):
+    """Convert numpy array (32x32x3, normalized 0-1) to base64 data URL"""
+    # Convert from float [0,1] to uint8 [0,255]
+    img_uint8 = (img_array * 255).astype(np.uint8)
+
+    # Create PIL Image
+    img = Image.fromarray(img_uint8, mode='RGB')
+
+    # Save to BytesIO buffer as PNG
+    buffer = BytesIO()
+    img.save(buffer, format='PNG')
+    buffer.seek(0)
+
+    # Encode to base64
+    img_base64 = base64.b64encode(buffer.read()).decode('utf-8')
+
+    # Return as data URL
+    return f'data:image/png;base64,{img_base64}'
+
+
 def load_tensorflow():
     """Lazy load TensorFlow"""
     global _tf_loaded, _tf, _keras, _layers
@@ -77,11 +100,11 @@ def load_tensorflow():
 
     print("Loading TensorFlow...")
     import tensorflow as tf
-    
+
     # Limit TensorFlow memory and threads for better concurrent performance
     tf.config.threading.set_intra_op_parallelism_threads(2)
     tf.config.threading.set_inter_op_parallelism_threads(2)
-    
+
     from tensorflow import keras
     from tensorflow.keras import layers
     _tf = tf
@@ -291,6 +314,13 @@ def train_model_async(session_id, config):
         # Apply caps to prevent abuse
         num_samples = min(config.get('numSamples', DEFAULT_NUM_SAMPLES), MAX_SAMPLES)
         epochs = min(config.get('epochs', DEFAULT_EPOCHS), MAX_EPOCHS)
+
+        print(f"\n{'='*60}")
+        print(f"[Session {session_id[:8]}] Starting new training session")
+        print(f"  Config received: {config}")
+        print(f"  Epochs (after cap): {epochs}")
+        print(f"  Samples (after cap): {num_samples}")
+        print(f"{'='*60}\n")
         
         session['status'] = f'Preparing {num_samples} training samples...'
 
@@ -315,15 +345,37 @@ def train_model_async(session_id, config):
         X_val = _X_TEST[val_indices]
         y_val = _Y_TEST[val_indices]
 
+        # Data quality checks
+        print(f"[Session {session_id[:8]}] Data quality checks:")
+        print(f"  - X_train: min={X_train.min():.4f}, max={X_train.max():.4f}, mean={X_train.mean():.4f}")
+        print(f"  - X_val: min={X_val.min():.4f}, max={X_val.max():.4f}, mean={X_val.mean():.4f}")
+        print(f"  - y_train unique: {np.unique(y_train)}, counts: {np.bincount(y_train)}")
+        print(f"  - y_val unique: {np.unique(y_val)}, counts: {np.bincount(y_val)}")
+        print(f"  - Any NaN in X_train: {np.isnan(X_train).any()}")
+        print(f"  - Any Inf in X_train: {np.isinf(X_train).any()}")
+
         session['status'] = 'Building model...'
         model = build_cnn_model(config)
 
         session['status'] = 'Training...'
         session['history'] = []
         session['current_epoch'] = 0
+        session['current_batch'] = 0
+        session['total_batches'] = 0
 
         class ProgressCallback(_keras.callbacks.Callback):
+            def on_epoch_begin(self, epoch, logs=None):
+                session['current_batch'] = 0
+                session['total_batches'] = len(X_train) // 64  # batch_size = 64
+
+            def on_batch_end(self, batch, logs=None):
+                session['current_batch'] = batch + 1
+
             def on_epoch_end(self, epoch, logs=None):
+                print(f"[Session {session_id[:8]}] Completed epoch {epoch + 1}/{epochs}")
+                print(f"  - Train Acc: {logs['accuracy']:.4f}, Val Acc: {logs['val_accuracy']:.4f}")
+                print(f"  - Train Loss: {logs['loss']:.4f}, Val Loss: {logs['val_loss']:.4f}")
+
                 session['current_epoch'] = epoch + 1
                 session['history'].append({
                     'trainAcc': float(logs['accuracy'] * 100),
@@ -332,8 +384,13 @@ def train_model_async(session_id, config):
                     'valLoss': float(logs['val_loss'])
                 })
                 session['status'] = f"Epoch {epoch + 1}/{epochs}"
+                session['current_batch'] = 0  # Reset for next epoch
 
-        model.fit(
+        print(f"[Session {session_id[:8]}] Starting training: {epochs} epochs, {len(X_train)} samples")
+        print(f"  - Training set shape: {X_train.shape}, labels: {y_train.shape}")
+        print(f"  - Validation set shape: {X_val.shape}, labels: {y_val.shape}")
+
+        history = model.fit(
             X_train, y_train,
             batch_size=64,
             epochs=epochs,
@@ -341,6 +398,8 @@ def train_model_async(session_id, config):
             callbacks=[ProgressCallback()],
             verbose=0
         )
+
+        print(f"[Session {session_id[:8]}] Training completed. Total epochs in history: {len(history.history['loss'])}")
 
         session['status'] = 'Extracting learned filters...'
         filters = extract_filters(model, config['convBlocks'])
@@ -362,7 +421,8 @@ def train_model_async(session_id, config):
                     sample_predictions.append({
                         'true': int(_Y_TEST[idx]),
                         'predicted': int(np.argmax(pred)),
-                        'confidence': float(np.max(pred))
+                        'confidence': float(np.max(pred)),
+                        'imageData': image_array_to_base64(_X_TEST[idx])
                     })
 
         session['sample_predictions'] = sample_predictions[:8]  # Limit to 8
@@ -475,6 +535,8 @@ def get_training_status(session_id):
         'status': session['status'],
         'current_epoch': session['current_epoch'],
         'total_epochs': session['config']['epochs'],
+        'current_batch': session.get('current_batch', 0),
+        'total_batches': session.get('total_batches', 0),
         'history': session['history'],
         'queue_position': queue_position,
         'active_trainings': active_count,
@@ -532,6 +594,31 @@ def get_classes():
         'classes': CLASS_NAMES,
         'num_classes': NUM_CLASSES,
         'dataset': 'CIFAR-100 subset'
+    })
+
+
+@app.route('/api/sample-images', methods=['GET'])
+def get_sample_images():
+    """Get sample training images for each class"""
+    load_data()
+
+    sample_images = []
+    # Get 3 examples per class (3 × 3 = 9), then limit to 8
+    for class_idx in range(NUM_CLASSES):
+        class_train_indices = np.where(_Y_TRAIN == class_idx)[0]
+        if len(class_train_indices) > 0:
+            # Get 3 examples per class
+            selected = np.random.choice(class_train_indices, size=min(3, len(class_train_indices)), replace=False)
+            for idx in selected:
+                sample_images.append({
+                    'imageData': image_array_to_base64(_X_TRAIN[idx]),
+                    'className': CLASS_NAMES[class_idx],
+                    'classIndex': int(class_idx)
+                })
+
+    return jsonify({
+        'samples': sample_images[:8],  # Limit to 8 total
+        'classes': CLASS_NAMES
     })
 
 

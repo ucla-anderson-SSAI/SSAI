@@ -1,23 +1,39 @@
 import os
 """
-Week 4: Reinforcement Learning - Dynamic Pricing Application
-Multi-Armed Bandits + Q-Learning for Price Optimization
+Week 4: Neural Networks - Breast Cancer Diagnosis Classification
+FastAPI Backend for training and evaluating neural networks
 """
 
+import base64
+import io
+import time
+from typing import List, Optional
+
+import numpy as np
+import pandas as pd
 from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from typing import List, Dict, Optional, Literal
-import numpy as np
-from enum import Enum
+from sklearn.metrics import confusion_matrix
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers, models, optimizers, callbacks
+from xgboost import XGBClassifier
+
+# Suppress TensorFlow warnings
+tf.get_logger().setLevel('ERROR')
 
 app = FastAPI(
-    title="Week 4: Reinforcement Learning - Dynamic Pricing",
-    description="Multi-Armed Bandits and Q-Learning for price optimization"
+    title="Week 4: Neural Networks - Breast Cancer Diagnosis Classification",
+    description="Train and evaluate neural networks on Wisconsin Breast Cancer dataset",
+    version="1.0.0"
 )
 
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -26,427 +42,433 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ============== Constants ==============
-PRICES = [5, 10, 15, 20, 25]
-TRUE_CONVERSION_RATES = [0.50, 0.35, 0.22, 0.12, 0.05]
-NUM_ARMS = len(PRICES)
+# Class names for Breast Cancer Diagnosis
+CLASS_NAMES = ["Benign", "Malignant"]
 
-# Q-Learning states
-INVENTORY_LEVELS = ["high", "low"]
-TIME_PERIODS = ["early", "late"]
-STATES = [(inv, time) for inv in INVENTORY_LEVELS for time in TIME_PERIODS]
-STATE_TO_IDX = {state: idx for idx, state in enumerate(STATES)}
-NUM_STATES = len(STATES)
-NUM_ACTIONS = NUM_ARMS
+# Feature names for the dataset
+FEATURE_NAMES = [
+    "radius_mean", "texture_mean", "perimeter_mean", "area_mean", "smoothness_mean",
+    "compactness_mean", "concavity_mean", "concave_points_mean", "symmetry_mean", "fractal_dimension_mean",
+    "radius_se", "texture_se", "perimeter_se", "area_se", "smoothness_se",
+    "compactness_se", "concavity_se", "concave_points_se", "symmetry_se", "fractal_dimension_se",
+    "radius_worst", "texture_worst", "perimeter_worst", "area_worst", "smoothness_worst",
+    "compactness_worst", "concavity_worst", "concave_points_worst", "symmetry_worst", "fractal_dimension_worst"
+]
 
-
-# ============== Request/Response Models ==============
-class BanditStrategy(str, Enum):
-    random = "random"
-    epsilon_greedy = "epsilon_greedy"
-    ucb = "ucb"
+# Global cache for dataset
+_dataset_cache = None
 
 
-class BanditRunRequest(BaseModel):
-    strategy: BanditStrategy
-    n_customers: int = Field(default=1000, ge=100, le=5000)
-    epsilon: float = Field(default=0.1, ge=0.0, le=0.5)
-    confidence: float = Field(default=2.0, ge=0.5, le=5.0)
+def load_cancer_data():
+    """Load and preprocess Wisconsin Breast Cancer dataset with caching."""
+    global _dataset_cache
+
+    if _dataset_cache is not None:
+        return _dataset_cache
+
+    # Load dataset from CSV
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    csv_path = os.path.join(script_dir, '..', '..', 'cancer.csv')
+
+    # Try alternative path if first doesn't exist
+    if not os.path.exists(csv_path):
+        csv_path = '/sessions/lucid-affectionate-lovelace/mnt/SSAI/cancer.csv'
+
+    df = pd.read_csv(csv_path)
+
+    # Convert diagnosis to binary (M=1, B=0)
+    y = (df['diagnosis'] == 'M').astype(int).values
+
+    # Get features (exclude id and diagnosis columns)
+    feature_cols = [col for col in df.columns if col not in ['id', 'diagnosis']]
+    X = df[feature_cols].values.astype('float32')
+
+    # Split data
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42, stratify=y
+    )
+
+    # Standardize features
+    scaler = StandardScaler()
+    X_train = scaler.fit_transform(X_train).astype('float32')
+    X_test = scaler.transform(X_test).astype('float32')
+
+    _dataset_cache = {
+        "x_train": X_train,
+        "y_train": y_train,
+        "x_test": X_test,
+        "y_test": y_test,
+        "scaler": scaler,
+        "feature_names": feature_cols,
+        "n_features": X_train.shape[1]
+    }
+
+    return _dataset_cache
 
 
-class BanditCompareRequest(BaseModel):
-    n_customers: int = Field(default=1000, ge=100, le=5000)
-    epsilon: float = Field(default=0.1, ge=0.0, le=0.5)
-    confidence: float = Field(default=2.0, ge=0.5, le=5.0)
+# Pydantic models for request/response
+class TrainRequest(BaseModel):
+    hidden_layers: List[int] = Field(default=[64, 32], description="List of hidden layer sizes")
+    activation: str = Field(default="relu", description="Activation function: relu, sigmoid, tanh")
+    dropout_rate: float = Field(default=0.2, ge=0.0, le=0.5, description="Dropout rate")
+    use_batch_norm: bool = Field(default=False, description="Whether to use batch normalization")
+    learning_rate: float = Field(default=0.001, ge=0.0001, le=0.1, description="Learning rate")
+    batch_size: int = Field(default=32, description="Batch size: 16, 32, 64, 128")
+    epochs: int = Field(default=50, ge=10, le=200, description="Number of epochs")
 
 
-class BanditResult(BaseModel):
-    strategy: str
-    cumulative_revenue: List[float]
-    final_revenue: float
-    action_counts: List[int]
-    estimated_conversion_rates: List[float]
-    optimal_price: int
-    prices: List[int] = PRICES
-    true_conversion_rates: List[float] = TRUE_CONVERSION_RATES
+class TrainResponse(BaseModel):
+    train_accuracy_history: List[float]
+    val_accuracy_history: List[float]
+    train_loss_history: List[float]
+    val_loss_history: List[float]
+    test_accuracy: float
+    test_loss: float
+    confusion_matrix: List[List[int]]
+    training_time: float
+    model_summary: str
+    total_params: int
 
 
-class BanditCompareResult(BaseModel):
-    results: Dict[str, BanditResult]
-    prices: List[int] = PRICES
-    true_conversion_rates: List[float] = TRUE_CONVERSION_RATES
+class SampleData(BaseModel):
+    features: List[float]
+    feature_names: List[str]
+    label: int
+    label_name: str
 
 
-class QLearningTrainRequest(BaseModel):
-    learning_rate: float = Field(default=0.1, ge=0.01, le=0.5)
-    discount_factor: float = Field(default=0.9, ge=0.0, le=0.99)
-    episodes: int = Field(default=1000, ge=100, le=3000)
-    epsilon: float = Field(default=0.1, ge=0.0, le=0.5)
+class SampleDataResponse(BaseModel):
+    samples: List[SampleData]
+    class_names: List[str]
+    feature_names: List[str]
 
 
-class QLearningCompareRequest(BaseModel):
-    param_to_compare: Literal["learning_rate", "discount"]
-    episodes: int = Field(default=1000, ge=100, le=3000)
-    base_learning_rate: float = Field(default=0.1, ge=0.01, le=0.5)
-    base_discount: float = Field(default=0.9, ge=0.0, le=0.99)
-    epsilon: float = Field(default=0.1, ge=0.0, le=0.5)
+class ModelComparison(BaseModel):
+    model_name: str
+    test_accuracy: float
+    training_time: float
+    description: str
 
 
-class QLearningResult(BaseModel):
-    q_table: Dict[str, List[float]]
-    policy: Dict[str, str]
-    learning_curve: List[float]
-    final_avg_reward: float
-    episodes: int
+class CompareResponse(BaseModel):
+    comparisons: List[ModelComparison]
+    best_model: str
+
+
+class DatasetInfo(BaseModel):
+    n_samples: int
+    n_features: int
+    n_train: int
+    n_test: int
+    class_distribution: dict
+    feature_names: List[str]
+
+
+def build_model(
+    n_features: int,
+    hidden_layers: List[int],
+    activation: str,
+    dropout_rate: float,
+    use_batch_norm: bool,
     learning_rate: float
-    discount_factor: float
-    states: List[str]
-    prices: List[int] = PRICES
+) -> keras.Model:
+    """Build a neural network model with specified architecture."""
 
+    model = models.Sequential()
+    model.add(layers.Input(shape=(n_features,)))
 
-class QLearningCompareResult(BaseModel):
-    param_name: str
-    param_values: List[float]
-    results: List[QLearningResult]
+    for i, units in enumerate(hidden_layers):
+        model.add(layers.Dense(units))
 
+        if use_batch_norm:
+            model.add(layers.BatchNormalization())
 
-# ============== Bandit Algorithms ==============
-class MultiArmedBandit:
-    def __init__(self, n_arms: int = NUM_ARMS):
-        self.n_arms = n_arms
-        self.reset()
+        model.add(layers.Activation(activation))
 
-    def reset(self):
-        self.counts = np.zeros(self.n_arms)
-        self.values = np.zeros(self.n_arms)
-        self.total_reward = 0.0
-        self.cumulative_rewards = []
+        if dropout_rate > 0:
+            model.add(layers.Dropout(dropout_rate))
 
-    def update(self, arm: int, reward: float):
-        self.counts[arm] += 1
-        n = self.counts[arm]
-        self.values[arm] = self.values[arm] + (reward - self.values[arm]) / n
-        self.total_reward += reward
-        self.cumulative_rewards.append(self.total_reward)
+    # Output layer - binary classification
+    model.add(layers.Dense(1, activation="sigmoid"))
 
-
-def random_strategy(bandit: MultiArmedBandit) -> int:
-    return np.random.randint(bandit.n_arms)
-
-
-def epsilon_greedy_strategy(bandit: MultiArmedBandit, epsilon: float) -> int:
-    if np.random.random() < epsilon:
-        return np.random.randint(bandit.n_arms)
-    return int(np.argmax(bandit.values))
-
-
-def ucb_strategy(bandit: MultiArmedBandit, t: int, confidence: float) -> int:
-    # Handle arms that haven't been pulled yet
-    for arm in range(bandit.n_arms):
-        if bandit.counts[arm] == 0:
-            return arm
-
-    ucb_values = bandit.values + confidence * np.sqrt(np.log(t + 1) / bandit.counts)
-    return int(np.argmax(ucb_values))
-
-
-def simulate_purchase(arm: int) -> tuple:
-    """Simulate a customer purchase decision. Returns (converted, revenue)."""
-    price = PRICES[arm]
-    conversion_rate = TRUE_CONVERSION_RATES[arm]
-    converted = np.random.random() < conversion_rate
-    revenue = price if converted else 0
-    return converted, revenue
-
-
-def run_bandit_simulation(
-    strategy: str,
-    n_customers: int,
-    epsilon: float = 0.1,
-    confidence: float = 2.0
-) -> BanditResult:
-    bandit = MultiArmedBandit()
-
-    for t in range(n_customers):
-        if strategy == "random":
-            arm = random_strategy(bandit)
-        elif strategy == "epsilon_greedy":
-            arm = epsilon_greedy_strategy(bandit, epsilon)
-        elif strategy == "ucb":
-            arm = ucb_strategy(bandit, t, confidence)
-        else:
-            raise ValueError(f"Unknown strategy: {strategy}")
-
-        converted, revenue = simulate_purchase(arm)
-        bandit.update(arm, revenue)
-
-    # Compute estimated conversion rates from values and prices
-    estimated_rates = [
-        bandit.values[i] / PRICES[i] if PRICES[i] > 0 else 0
-        for i in range(NUM_ARMS)
-    ]
-
-    optimal_idx = int(np.argmax(bandit.values))
-
-    return BanditResult(
-        strategy=strategy,
-        cumulative_revenue=bandit.cumulative_rewards,
-        final_revenue=bandit.total_reward,
-        action_counts=[int(c) for c in bandit.counts],
-        estimated_conversion_rates=estimated_rates,
-        optimal_price=PRICES[optimal_idx]
+    # Compile model
+    model.compile(
+        optimizer=optimizers.Adam(learning_rate=learning_rate),
+        loss="binary_crossentropy",
+        metrics=["accuracy"]
     )
 
-
-# ============== Q-Learning Environment ==============
-class InventoryPricingEnv:
-    """
-    Environment for inventory-based dynamic pricing.
-    States: (inventory_level, time_period)
-    Actions: price indices (0-4 corresponding to $5-$25)
-    """
-
-    def __init__(self):
-        self.state_idx = 0
-        self.reset()
-
-    def reset(self):
-        # Start with random state
-        self.state_idx = np.random.randint(NUM_STATES)
-        return self.state_idx
-
-    def get_conversion_rate(self, state_idx: int, action: int) -> float:
-        """
-        Conversion rate depends on state and price.
-        - High inventory + early time: base rates
-        - High inventory + late time: slightly higher (urgency to sell)
-        - Low inventory + early time: can afford higher prices
-        - Low inventory + late time: mixed strategy
-        """
-        base_rate = TRUE_CONVERSION_RATES[action]
-        state = STATES[state_idx]
-        inv, time = state
-
-        if inv == "high" and time == "early":
-            modifier = 1.0
-        elif inv == "high" and time == "late":
-            modifier = 1.2  # Urgency increases conversions
-        elif inv == "low" and time == "early":
-            modifier = 0.9  # Can afford to be selective
-        else:  # low + late
-            modifier = 1.1
-
-        return min(1.0, base_rate * modifier)
-
-    def step(self, action: int) -> tuple:
-        """
-        Take an action, return (next_state, reward, done).
-        """
-        price = PRICES[action]
-        conversion_rate = self.get_conversion_rate(self.state_idx, action)
-        converted = np.random.random() < conversion_rate
-        reward = price if converted else 0
-
-        # Transition to next state (simplified: random transitions)
-        next_state_idx = np.random.randint(NUM_STATES)
-        done = np.random.random() < 0.1  # 10% chance episode ends
-
-        self.state_idx = next_state_idx
-        return next_state_idx, reward, done
+    return model
 
 
-class QLearningAgent:
-    def __init__(
-        self,
-        n_states: int = NUM_STATES,
-        n_actions: int = NUM_ACTIONS,
-        learning_rate: float = 0.1,
-        discount_factor: float = 0.9,
-        epsilon: float = 0.1
-    ):
-        self.n_states = n_states
-        self.n_actions = n_actions
-        self.lr = learning_rate
-        self.gamma = discount_factor
-        self.epsilon = epsilon
-        self.q_table = np.zeros((n_states, n_actions))
-
-    def choose_action(self, state: int) -> int:
-        if np.random.random() < self.epsilon:
-            return np.random.randint(self.n_actions)
-        return int(np.argmax(self.q_table[state]))
-
-    def update(self, state: int, action: int, reward: float, next_state: int):
-        best_next = np.max(self.q_table[next_state])
-        td_target = reward + self.gamma * best_next
-        td_error = td_target - self.q_table[state, action]
-        self.q_table[state, action] += self.lr * td_error
-
-    def get_policy(self) -> Dict[str, str]:
-        policy = {}
-        for state_idx, state in enumerate(STATES):
-            best_action = int(np.argmax(self.q_table[state_idx]))
-            state_name = f"{state[0]}_{state[1]}"
-            policy[state_name] = f"${PRICES[best_action]}"
-        return policy
-
-    def get_q_table_dict(self) -> Dict[str, List[float]]:
-        q_dict = {}
-        for state_idx, state in enumerate(STATES):
-            state_name = f"{state[0]}_{state[1]}"
-            q_dict[state_name] = [float(v) for v in self.q_table[state_idx]]
-        return q_dict
+def get_model_summary(model: keras.Model) -> str:
+    """Get model summary as string."""
+    string_list = []
+    model.summary(print_fn=lambda x: string_list.append(x))
+    return "\n".join(string_list)
 
 
-def train_qlearning(
-    learning_rate: float = 0.1,
-    discount_factor: float = 0.9,
-    episodes: int = 1000,
-    epsilon: float = 0.1
-) -> QLearningResult:
-    env = InventoryPricingEnv()
-    agent = QLearningAgent(
-        learning_rate=learning_rate,
-        discount_factor=discount_factor,
-        epsilon=epsilon
-    )
-
-    learning_curve = []
-    window_rewards = []
-
-    for episode in range(episodes):
-        state = env.reset()
-        episode_reward = 0
-        done = False
-        steps = 0
-        max_steps = 100
-
-        while not done and steps < max_steps:
-            action = agent.choose_action(state)
-            next_state, reward, done = env.step(action)
-            agent.update(state, action, reward, next_state)
-            episode_reward += reward
-            state = next_state
-            steps += 1
-
-        window_rewards.append(episode_reward)
-
-        # Rolling average over last 100 episodes
-        if len(window_rewards) > 100:
-            window_rewards.pop(0)
-
-        learning_curve.append(np.mean(window_rewards))
-
-    return QLearningResult(
-        q_table=agent.get_q_table_dict(),
-        policy=agent.get_policy(),
-        learning_curve=learning_curve,
-        final_avg_reward=float(np.mean(window_rewards)),
-        episodes=episodes,
-        learning_rate=learning_rate,
-        discount_factor=discount_factor,
-        states=[f"{s[0]}_{s[1]}" for s in STATES]
-    )
-
-
-# ============== API Endpoints ==============
 @app.get("/")
-def health_check():
+async def health_check():
+    """Health check endpoint."""
     return {
         "status": "healthy",
-        "application": "Week 4: Reinforcement Learning - Dynamic Pricing",
-        "components": {
-            "bandit": "Multi-Armed Bandits for Price Optimization",
-            "qlearning": "Q-Learning for Inventory Pricing"
-        },
-        "prices": PRICES,
-        "true_conversion_rates": TRUE_CONVERSION_RATES
+        "service": "Week 4: Neural Networks - Breast Cancer Diagnosis Classification",
+        "class_names": CLASS_NAMES
     }
 
 
-@app.post("/bandit/run", response_model=BanditResult)
-def run_bandit(request: BanditRunRequest):
-    """Run a single bandit simulation with the specified strategy."""
-    try:
-        result = run_bandit_simulation(
-            strategy=request.strategy.value,
-            n_customers=request.n_customers,
-            epsilon=request.epsilon,
-            confidence=request.confidence
+@app.get("/dataset_info", response_model=DatasetInfo)
+async def get_dataset_info():
+    """Return information about the dataset."""
+    data = load_cancer_data()
+
+    y_all = np.concatenate([data["y_train"], data["y_test"]])
+    class_dist = {
+        "Benign": int(np.sum(y_all == 0)),
+        "Malignant": int(np.sum(y_all == 1))
+    }
+
+    return DatasetInfo(
+        n_samples=len(y_all),
+        n_features=data["n_features"],
+        n_train=len(data["y_train"]),
+        n_test=len(data["y_test"]),
+        class_distribution=class_dist,
+        feature_names=data["feature_names"]
+    )
+
+
+@app.get("/sample_data", response_model=SampleDataResponse)
+async def get_sample_data():
+    """Return sample data points with labels."""
+    data = load_cancer_data()
+
+    # Get 5 samples from each class (10 total)
+    samples = []
+    for class_idx in range(2):
+        # Find indices of this class
+        class_indices = np.where(data["y_test"] == class_idx)[0]
+        # Take first 5 samples
+        selected_indices = class_indices[:5]
+
+        for idx in selected_indices:
+            features = data["x_test"][idx]
+            samples.append(SampleData(
+                features=[float(f) for f in features],
+                feature_names=data["feature_names"],
+                label=int(class_idx),
+                label_name=CLASS_NAMES[class_idx]
+            ))
+
+    return SampleDataResponse(
+        samples=samples,
+        class_names=CLASS_NAMES,
+        feature_names=data["feature_names"]
+    )
+
+
+@app.post("/train", response_model=TrainResponse)
+async def train_model(request: TrainRequest):
+    """Train a custom neural network with specified hyperparameters."""
+
+    # Validate activation function
+    if request.activation not in ["relu", "sigmoid", "tanh"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Activation must be one of: relu, sigmoid, tanh"
         )
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
-
-@app.post("/bandit/compare", response_model=BanditCompareResult)
-def compare_bandits(request: BanditCompareRequest):
-    """Compare all three bandit strategies."""
-    try:
-        results = {}
-        for strategy in BanditStrategy:
-            result = run_bandit_simulation(
-                strategy=strategy.value,
-                n_customers=request.n_customers,
-                epsilon=request.epsilon,
-                confidence=request.confidence
-            )
-            results[strategy.value] = result
-
-        return BanditCompareResult(results=results)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post("/qlearning/train", response_model=QLearningResult)
-def train_qlearning_endpoint(request: QLearningTrainRequest):
-    """Train a Q-learning agent for inventory-based pricing."""
-    try:
-        result = train_qlearning(
-            learning_rate=request.learning_rate,
-            discount_factor=request.discount_factor,
-            episodes=request.episodes,
-            epsilon=request.epsilon
+    # Validate batch size
+    if request.batch_size not in [16, 32, 64, 128]:
+        raise HTTPException(
+            status_code=400,
+            detail="Batch size must be one of: 16, 32, 64, 128"
         )
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+
+    # Load data
+    data = load_cancer_data()
+    x_train = data["x_train"]
+    y_train = data["y_train"]
+    x_test = data["x_test"]
+    y_test = data["y_test"]
+    n_features = data["n_features"]
+
+    # Split training data for validation
+    val_split = 0.15
+    val_size = int(len(x_train) * val_split)
+    x_val = x_train[-val_size:]
+    y_val = y_train[-val_size:]
+    x_train = x_train[:-val_size]
+    y_train = y_train[:-val_size]
+
+    # Build model
+    model = build_model(
+        n_features=n_features,
+        hidden_layers=request.hidden_layers,
+        activation=request.activation,
+        dropout_rate=request.dropout_rate,
+        use_batch_norm=request.use_batch_norm,
+        learning_rate=request.learning_rate
+    )
+
+    # Get model summary
+    model_summary = get_model_summary(model)
+    total_params = model.count_params()
+
+    # Early stopping callback
+    early_stop = callbacks.EarlyStopping(
+        monitor="val_loss",
+        patience=15,
+        restore_best_weights=True
+    )
+
+    # Train model
+    start_time = time.time()
+    history = model.fit(
+        x_train, y_train,
+        validation_data=(x_val, y_val),
+        epochs=request.epochs,
+        batch_size=request.batch_size,
+        callbacks=[early_stop],
+        verbose=0
+    )
+    training_time = time.time() - start_time
+
+    # Evaluate on test set
+    test_loss, test_accuracy = model.evaluate(x_test, y_test, verbose=0)
+
+    # Get predictions for confusion matrix
+    y_pred_proba = model.predict(x_test, verbose=0)
+    y_pred_classes = (y_pred_proba > 0.5).astype(int).flatten()
+    cm = confusion_matrix(y_test, y_pred_classes)
+
+    # Clear model from memory
+    keras.backend.clear_session()
+
+    return TrainResponse(
+        train_accuracy_history=[float(x) for x in history.history["accuracy"]],
+        val_accuracy_history=[float(x) for x in history.history["val_accuracy"]],
+        train_loss_history=[float(x) for x in history.history["loss"]],
+        val_loss_history=[float(x) for x in history.history["val_loss"]],
+        test_accuracy=float(test_accuracy),
+        test_loss=float(test_loss),
+        confusion_matrix=cm.tolist(),
+        training_time=float(training_time),
+        model_summary=model_summary,
+        total_params=total_params
+    )
 
 
-@app.post("/qlearning/compare_params", response_model=QLearningCompareResult)
-def compare_qlearning_params(request: QLearningCompareRequest):
-    """Compare Q-learning performance across different parameter values."""
-    try:
-        if request.param_to_compare == "learning_rate":
-            param_values = [0.01, 0.05, 0.1, 0.2, 0.3, 0.5]
-            results = [
-                train_qlearning(
-                    learning_rate=lr,
-                    discount_factor=request.base_discount,
-                    episodes=request.episodes,
-                    epsilon=request.epsilon
-                )
-                for lr in param_values
-            ]
-        else:  # discount
-            param_values = [0.0, 0.5, 0.7, 0.9, 0.95, 0.99]
-            results = [
-                train_qlearning(
-                    learning_rate=request.base_learning_rate,
-                    discount_factor=df,
-                    episodes=request.episodes,
-                    epsilon=request.epsilon
-                )
-                for df in param_values
-            ]
+@app.get("/compare", response_model=CompareResponse)
+async def compare_models():
+    """Compare XGBoost vs simple NN vs deep NN vs regularized NN."""
 
-        return QLearningCompareResult(
-            param_name=request.param_to_compare,
-            param_values=param_values,
-            results=results
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    data = load_cancer_data()
+    x_train = data["x_train"]
+    y_train = data["y_train"]
+    x_test = data["x_test"]
+    y_test = data["y_test"]
+    n_features = data["n_features"]
+
+    comparisons = []
+
+    # 1. XGBoost
+    print("Training XGBoost...")
+    start_time = time.time()
+    xgb_model = XGBClassifier(
+        n_estimators=100,
+        max_depth=4,
+        learning_rate=0.1,
+        n_jobs=-1,
+        random_state=42
+    )
+    xgb_model.fit(x_train, y_train)
+    xgb_time = time.time() - start_time
+    xgb_accuracy = xgb_model.score(x_test, y_test)
+    comparisons.append(ModelComparison(
+        model_name="XGBoost",
+        test_accuracy=float(xgb_accuracy),
+        training_time=float(xgb_time),
+        description="Gradient boosted trees (100 estimators, max_depth=4)"
+    ))
+
+    # 2. Simple NN (single hidden layer)
+    print("Training Simple NN...")
+    keras.backend.clear_session()
+    simple_nn = build_model(
+        n_features=n_features,
+        hidden_layers=[32],
+        activation="relu",
+        dropout_rate=0.0,
+        use_batch_norm=False,
+        learning_rate=0.001
+    )
+    start_time = time.time()
+    simple_nn.fit(x_train, y_train, epochs=50, batch_size=32, verbose=0)
+    simple_time = time.time() - start_time
+    _, simple_accuracy = simple_nn.evaluate(x_test, y_test, verbose=0)
+    comparisons.append(ModelComparison(
+        model_name="Simple NN",
+        test_accuracy=float(simple_accuracy),
+        training_time=float(simple_time),
+        description="Single hidden layer (32 units), no regularization"
+    ))
+
+    # 3. Deep NN (multiple hidden layers, no regularization)
+    print("Training Deep NN...")
+    keras.backend.clear_session()
+    deep_nn = build_model(
+        n_features=n_features,
+        hidden_layers=[64, 32, 16],
+        activation="relu",
+        dropout_rate=0.0,
+        use_batch_norm=False,
+        learning_rate=0.001
+    )
+    start_time = time.time()
+    deep_nn.fit(x_train, y_train, epochs=50, batch_size=32, verbose=0)
+    deep_time = time.time() - start_time
+    _, deep_accuracy = deep_nn.evaluate(x_test, y_test, verbose=0)
+    comparisons.append(ModelComparison(
+        model_name="Deep NN",
+        test_accuracy=float(deep_accuracy),
+        training_time=float(deep_time),
+        description="Three hidden layers (64, 32, 16), no regularization"
+    ))
+
+    # 4. Regularized NN (with dropout and batch norm)
+    print("Training Regularized NN...")
+    keras.backend.clear_session()
+    reg_nn = build_model(
+        n_features=n_features,
+        hidden_layers=[64, 32, 16],
+        activation="relu",
+        dropout_rate=0.3,
+        use_batch_norm=True,
+        learning_rate=0.001
+    )
+    start_time = time.time()
+    reg_nn.fit(x_train, y_train, epochs=75, batch_size=32, verbose=0)
+    reg_time = time.time() - start_time
+    _, reg_accuracy = reg_nn.evaluate(x_test, y_test, verbose=0)
+    comparisons.append(ModelComparison(
+        model_name="Regularized NN",
+        test_accuracy=float(reg_accuracy),
+        training_time=float(reg_time),
+        description="Three hidden layers with dropout (0.3) and batch normalization"
+    ))
+
+    # Clear memory
+    keras.backend.clear_session()
+
+    # Find best model
+    best_model = max(comparisons, key=lambda x: x.test_accuracy)
+
+    return CompareResponse(
+        comparisons=comparisons,
+        best_model=best_model.model_name
+    )
 
 
 # Serve frontend

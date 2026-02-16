@@ -3,18 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Week 5: Neural Networks - Breast Cancer Diagnosis | UCLA Anderson</title>
-    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <title>Week 5: Convolutional Neural Networks | UCLA Anderson MGMT298D</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -23,189 +20,124 @@
             color: #1a1a1a;
         }
 
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f5f5f5; }
+        ::-webkit-scrollbar-thumb { background: #2774AE; border-radius: 4px; }
 
-        ::-webkit-scrollbar-track {
-            background: #ffffff;
-        }
+        .app-container { min-height: 100vh; background: #ffffff; }
 
-        ::-webkit-scrollbar-thumb {
-            background: #2774AE;
-            border-radius: 3px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #3a8ac4;
-        }
-
-        /* Header */
         .header {
-            background: #ffffff;
-            border-bottom: 2px solid #2774AE;
+            background: #2774AE;
             padding: 1rem 2rem 1.5rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
 
         .header-content {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
-        .logo-section {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .header-title .course-label {
+        .header-left .course-label {
             font-size: 0.65rem;
-            color: #2774AE;
+            font-weight: 400;
+            color: #FFD100;
+            margin-bottom: 0.25rem;
             letter-spacing: 0.2em;
             text-transform: uppercase;
-            margin-bottom: 6px;
-            font-weight: 600;
         }
 
-        .header-title h1 {
-            font-size: 1.4rem;
-            font-weight: 600;
-            color: #005587;
-            letter-spacing: -0.01em;
-        }
+        .header-left h1 { font-size: 1.4rem; font-weight: 600; color: #f5f5f5; }
+        .header-left p { color: #c0c0c0; font-size: 0.85rem; margin-top: 0.25rem; }
+        .header-right .ucla-anderson { font-size: 1rem; color: #f5f5f5; font-weight: 500; }
 
-        .header-title p {
-            font-size: 0.85rem;
-            color: #666666;
-            margin-top: 4px;
-        }
-
-        .header-right {
-            text-align: right;
-        }
-
-        .header-right .ucla-label {
-            font-size: 0.65rem;
-            color: #666666;
-            letter-spacing: 0.15em;
-            text-transform: uppercase;
-            margin-bottom: 2px;
-        }
-
-        .header-right .anderson-label {
-            font-size: 0.9rem;
-            color: #2774AE;
-            font-weight: 500;
-        }
-
-        /* Controls Section - Light */
-        .controls-section {
-            background: #ffffff;
-        }
-
-        .controls-content {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px 24px;
+        .header-gold-line {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 4px;
+            background: #FFD100;
         }
 
         .tab-navigation {
             display: flex;
-            gap: 4px;
-            margin-bottom: 20px;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 1.5rem;
+            background: #ffffff;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+            flex-wrap: wrap;
         }
 
         .tab-btn {
-            padding: 10px 24px;
-            background: transparent;
+            padding: 0.8rem 1.5rem;
             border: 1px solid rgba(0, 0, 0, 0.08);
-            border-radius: 8px;
-            color: #666;
+            background: #ffffff;
+            color: #666666;
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            font-size: 0.9rem;
+            border-radius: 10px;
             cursor: pointer;
-            font-weight: 400;
             transition: all 0.2s ease;
-            font-family: inherit;
-            font-size: 0.85rem;
-            text-transform: capitalize;
         }
 
         .tab-btn:hover {
-            border-color: rgba(39, 116, 174, 0.5);
-            color: #1a1a1a;
+            background: rgba(39, 116, 174, 0.1);
+            color: #2774AE;
+            border-color: rgba(39, 116, 174, 0.3);
         }
 
         .tab-btn.active {
             background: #2774AE;
+            color: #ffffff;
             border-color: #2774AE;
-            color: white;
-            font-weight: 600;
         }
 
-        .simulator-layout {
-            display: grid;
-            grid-template-columns: 340px 1fr;
-            gap: 24px;
-            align-items: start;
-        }
+        .main-content { max-width: 1600px; margin: 0 auto; padding: 2rem; }
 
-        .control-panel {
+        .section-card {
             background: #ffffff;
-            border: 1px solid rgba(0, 0, 0, 0.08);
             border-radius: 12px;
             padding: 1.5rem;
+            border: 1px solid rgba(0, 0, 0, 0.08);
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            margin-bottom: 1.5rem;
         }
 
-        .panel-title {
-            font-size: 1rem;
-            font-weight: 600;
-            margin-bottom: 1.5rem;
-            color: #1a1a1a;
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: #2774AE;
             display: flex;
             align-items: center;
             gap: 0.5rem;
         }
 
-        .panel-title::before {
-            content: '';
-            width: 4px;
-            height: 20px;
-            background: #2774AE;
-            border-radius: 2px;
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .grid-2-fixed { display: grid; grid-template-columns: 380px 1fr; gap: 1.5rem; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+
+        @media (max-width: 1200px) {
+            .grid-2 { grid-template-columns: 1fr; }
+            .grid-2-fixed { grid-template-columns: 1fr; }
+            .grid-3, .grid-4 { grid-template-columns: repeat(2, 1fr); }
         }
 
-        .control-section {
-            margin-bottom: 1.5rem;
-            padding-bottom: 1.5rem;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        @media (max-width: 768px) {
+            .grid-3, .grid-4 { grid-template-columns: 1fr; }
         }
 
-        .control-section:last-child {
-            border-bottom: none;
-            margin-bottom: 0;
-            padding-bottom: 0;
-        }
-
-        .section-label {
-            font-size: 0.7rem;
-            font-weight: 600;
-            color: #2774AE;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            margin-bottom: 1rem;
-        }
-
-        .control-group {
-            margin-bottom: 1rem;
-        }
+        .control-group { margin-bottom: 1rem; }
 
         .control-label {
-            font-size: 0.85rem;
-            color: #666;
+            font-size: 0.8rem;
+            color: #666666;
             margin-bottom: 0.5rem;
             display: flex;
             justify-content: space-between;
@@ -215,569 +147,460 @@
         .control-value {
             font-family: 'JetBrains Mono', monospace;
             color: #2774AE;
-            font-size: 0.8rem;
+            font-weight: 600;
         }
 
-        .slider-container {
-            position: relative;
-        }
-
-        input[type="range"] {
+        .slider {
             width: 100%;
-            height: 4px;
-            background: #e0e0e0;
-            border-radius: 2px;
-            outline: none;
+            height: 6px;
             -webkit-appearance: none;
+            background: rgba(39, 116, 174, 0.2);
+            border-radius: 3px;
+            outline: none;
         }
 
-        input[type="range"]::-webkit-slider-thumb {
+        .slider::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 16px;
-            height: 16px;
+            width: 18px; height: 18px;
             background: #2774AE;
             border-radius: 50%;
             cursor: pointer;
-            border: 2px solid #ffffff;
-            box-shadow: 0 0 8px rgba(39, 116, 174, 0.5);
-            transition: transform 0.2s ease;
+            box-shadow: 0 2px 6px rgba(39, 116, 174, 0.4);
         }
 
-        input[type="range"]::-webkit-slider-thumb:hover {
-            transform: scale(1.2);
-        }
+        .button-group { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 
-        select {
-            width: 100%;
-            padding: 12px 14px;
-            background: #ffffff;
-            border: 1px solid rgba(0, 0, 0, 0.08);
+        .option-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid rgba(39, 116, 174, 0.3);
+            background: rgba(39, 116, 174, 0.05);
+            color: #666666;
             border-radius: 8px;
-            color: #1a1a1a;
-            font-family: inherit;
-            font-size: 0.9rem;
-            font-weight: 500;
+            font-size: 0.8rem;
+            font-family: 'JetBrains Mono', monospace;
             cursor: pointer;
-            outline: none;
             transition: all 0.2s ease;
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23666' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 12px center;
-            padding-right: 36px;
         }
 
-        select:hover, select:focus {
-            border-color: #2774AE;
-        }
+        .option-btn:hover { background: rgba(39, 116, 174, 0.15); color: #2774AE; }
+        .option-btn.active { background: #2774AE; color: #ffffff; border-color: #2774AE; }
 
-        .toggle-container {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
+        .toggle-container { display: flex; align-items: center; gap: 1rem; }
 
         .toggle {
             position: relative;
-            width: 48px;
-            height: 26px;
-            background: #d0d0d0;
+            width: 50px; height: 26px;
+            background: rgba(39, 116, 174, 0.2);
             border-radius: 13px;
             cursor: pointer;
             transition: all 0.3s ease;
-            border: 1px solid rgba(0, 0, 0, 0.08);
         }
 
-        .toggle.active {
-            background: #2774AE;
-        }
+        .toggle.active { background: #2774AE; }
 
-        .toggle::after {
-            content: '';
+        .toggle-knob {
             position: absolute;
-            top: 3px;
-            left: 3px;
-            width: 18px;
-            height: 18px;
-            background: white;
+            top: 3px; left: 3px;
+            width: 20px; height: 20px;
+            background: #ffffff;
             border-radius: 50%;
-            transition: transform 0.3s ease;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
 
-        .toggle.active::after {
-            transform: translateX(22px);
-        }
+        .toggle.active .toggle-knob { left: 27px; }
 
-        .layer-builder {
-            background: #ffffff;
-            border-radius: 10px;
+        .run-button {
+            width: 100%;
             padding: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .layer-row {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 0.75rem;
-            padding: 0.5rem;
-            background: #ffffff;
-            border-radius: 8px;
-            border: 1px solid rgba(0, 0, 0, 0.08);
-        }
-
-        .layer-row:last-child {
-            margin-bottom: 0;
-        }
-
-        .layer-number {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.75rem;
-            color: #2774AE;
-            min-width: 50px;
-        }
-
-        .layer-nodes-select {
-            flex: 1;
-            padding: 0.4rem 0.6rem;
-            font-size: 0.8rem;
-        }
-
-        .layer-remove-btn {
-            width: 28px;
-            height: 28px;
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            border-radius: 6px;
-            color: #005587;
+            background: #2774AE;
+            border: none;
+            border-radius: 10px;
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 1rem;
             cursor: pointer;
+            transition: all 0.2s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1rem;
-            transition: all 0.3s ease;
+            gap: 0.75rem;
         }
 
-        .layer-remove-btn:hover {
-            background: rgba(239, 68, 68, 0.2);
-        }
+        .run-button:hover { background: #005587; }
+        .run-button:disabled { opacity: 0.6; cursor: not-allowed; }
 
-        .add-layer-btn {
-            width: 100%;
-            padding: 0.6rem;
-            background: rgba(39, 116, 174, 0.08);
-            border: 1px dashed rgba(39, 116, 174, 0.4);
-            border-radius: 8px;
-            color: #2774AE;
-            cursor: pointer;
-            font-family: inherit;
-            font-size: 0.85rem;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-
-        .add-layer-btn:hover {
-            background: rgba(39, 116, 174, 0.15);
-            border-color: #2774AE;
-        }
-
-        .train-btn {
-            width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, #2774AE 0%, #005587 100%);
-            border: none;
-            border-radius: 8px;
-            color: white;
-            font-family: inherit;
-            font-size: 0.95rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 4px 16px rgba(39, 116, 174, 0.4);
-        }
-
-        .train-btn:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(39, 116, 174, 0.5);
-        }
-
-        .train-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            box-shadow: none;
-        }
-
-        .train-btn.training {
-            background: linear-gradient(135deg, #8BB8E8 0%, #2774AE 100%);
-        }
-
-        /* Light Results Section */
-        .results-section {
-            background: #ffffff;
-        }
-
-        .results-content {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 24px;
-        }
-
-        .network-viz-card {
-            background: #ffffff;
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-
-        .card-title {
-            font-size: 0.9rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            color: #1a1a1a;
-        }
-
-        .card-title .icon {
-            font-size: 1.2rem;
-        }
-
-        .param-count {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.8rem;
-            color: #2774AE;
-            background: rgba(39, 116, 174, 0.1);
-            padding: 0.4rem 0.8rem;
-            border-radius: 6px;
-        }
-
-        .network-svg-container {
-            width: 100%;
-            height: 400px;
-            background: #ffffff;
-            border-radius: 12px;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .network-legend {
-            display: flex;
-            gap: 1.5rem;
-            margin-top: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.8rem;
-            color: #666;
-        }
-
-        .legend-dot {
-            width: 12px;
-            height: 12px;
+        .loading-spinner {
+            width: 20px; height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #ffffff;
             border-radius: 50%;
+            animation: spin 1s linear infinite;
         }
 
-        .legend-bar {
-            width: 20px;
-            height: 4px;
-            border-radius: 2px;
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-        .charts-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 16px;
-            margin-bottom: 20px;
-        }
+        .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; }
 
-        .chart-card {
-            background: #ffffff;
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-        }
-
-        .chart-container {
-            height: 250px;
-        }
-
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 14px;
-            margin-bottom: 20px;
-        }
-
-        .metric-card {
-            background: #ffffff;
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            border-radius: 12px;
-            padding: 18px 14px;
+        .metric-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 1rem;
             text-align: center;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
         }
 
         .metric-value {
             font-size: 1.5rem;
             font-weight: 700;
-            color: #2774AE;
             font-family: 'JetBrains Mono', monospace;
-        }
-
-        .metric-value.positive {
             color: #2774AE;
         }
 
-        .metric-value.neutral {
-            color: #005587;
-        }
+        .metric-label { font-size: 0.7rem; color: #666666; margin-top: 0.25rem; }
+        .chart-container { height: 280px; position: relative; }
 
-        .metric-label {
-            font-size: 0.65rem;
-            color: #666;
-            margin-top: 6px;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            font-weight: 600;
-        }
-
-        .confusion-matrix {
-            background: #ffffff;
-            border-radius: 12px;
-            padding: 1rem;
-            overflow-x: auto;
-        }
-
-        .matrix-table {
+        .sample-image {
             width: 100%;
-            border-collapse: collapse;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.85rem;
+            aspect-ratio: 1;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 3px solid transparent;
+            transition: all 0.2s ease;
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
-        .matrix-table th {
-            padding: 0.75rem 1rem;
-            color: #666;
-            font-weight: 500;
-            font-size: 0.75rem;
-        }
+        .sample-image.correct { border-color: #27ae60; }
+        .sample-image.incorrect { border-color: #e74c3c; }
 
-        .matrix-table td {
-            padding: 1rem 1.5rem;
-            text-align: center;
-            border-radius: 4px;
-            font-size: 1rem;
-        }
-
-        .gradient-flow-container {
+        .sample-image-visual {
+            flex: 1;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 0.5rem;
-            padding: 1rem;
-            background: #ffffff;
-            border-radius: 10px;
+            background: #f8f9fa;
+            min-height: 60px;
         }
 
-        .gradient-bar {
-            width: 40px;
-            height: 100px;
-            border-radius: 4px;
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-        }
-
-        .gradient-fill {
-            border-radius: 4px;
-            transition: height 0.5s ease;
-        }
-
-        .gradient-label {
-            font-size: 0.65rem;
-            color: #666;
+        .sample-image-label {
+            padding: 0.4rem;
+            font-size: 0.7rem;
             text-align: center;
-            margin-top: 0.5rem;
+            background: #f8f9fa;
+            font-weight: 600;
+            text-transform: capitalize;
         }
 
-        .feature-importance {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.5rem;
-        }
+        .sample-image.correct .sample-image-label { background: rgba(39, 174, 96, 0.15); color: #27ae60; }
+        .sample-image.incorrect .sample-image-label { background: rgba(231, 76, 60, 0.15); color: #e74c3c; }
 
-        .feature-bar {
+        .filter-layer { margin-bottom: 1.5rem; }
+
+        .filter-layer-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.75rem;
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            font-size: 0.7rem;
         }
 
-        .feature-name {
-            width: 100px;
-            text-align: right;
-            color: #666;
+        .filter-layer-subtitle { font-size: 0.75rem; color: #888; font-weight: 400; }
+        .filter-grid { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+        .filter-item { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; }
+
+        .filter-visual {
+            width: 60px; height: 60px;
+            border-radius: 6px;
+            border: 1px solid rgba(0,0,0,0.1);
             overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
         }
 
-        .feature-bar-fill {
-            height: 12px;
-            background: linear-gradient(90deg, #2774AE, #8BB8E8);
-            border-radius: 2px;
+        .filter-name { font-size: 0.65rem; color: #666; }
+
+        .epoch-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(39, 116, 174, 0.1);
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: #2774AE;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .epoch-dot {
+            width: 8px; height: 8px;
+            background: #2774AE;
+            border-radius: 50%;
+            animation: pulse 1s ease-in-out infinite;
         }
 
         @keyframes pulse {
-            0%, 100% { opacity: 0.6; }
-            50% { opacity: 1; }
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
         }
 
-        @keyframes flowRight {
-            0% { stroke-dashoffset: 20; }
-            100% { stroke-dashoffset: 0; }
+        .pipeline-viz {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            overflow-x: auto;
+            padding: 1rem 0;
+            justify-content: flex-start;
+            min-height: 140px;
         }
 
-        @keyframes nodeFire {
-            0% { filter: brightness(1); }
-            50% { filter: brightness(1.5); }
-            100% { filter: brightness(1); }
+        .pipeline-block {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
 
-        .training-progress {
-            margin-top: 1rem;
-        }
-
-        .progress-bar {
-            height: 6px;
-            background: #e0e0e0;
-            border-radius: 3px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #2774AE, #8BB8E8);
-            border-radius: 3px;
-            transition: width 0.3s ease;
-        }
-
-        .progress-text {
-            font-size: 0.8rem;
+        .pipeline-block-label {
+            font-size: 0.55rem;
             color: #666;
-            margin-top: 0.5rem;
+            margin-top: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            white-space: nowrap;
+        }
+
+        .pipeline-arrow {
+            color: #999;
+            font-size: 0.9rem;
+            margin: 0 2px;
+            flex-shrink: 0;
+        }
+
+        /* Webcam Styles */
+        .webcam-container {
+            position: relative;
+            width: 100%;
+            max-width: 480px;
+            margin: 0 auto;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #000;
+        }
+
+        .webcam-video {
+            width: 100%;
+            display: block;
+            transform: scaleX(-1);
+        }
+
+        .webcam-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none;
+        }
+
+        .bounding-box {
+            position: absolute;
+            border: 3px solid #FFD100;
+            border-radius: 12px;
+            box-shadow: 0 0 0 4px rgba(255, 209, 0, 0.3);
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .bounding-box-label {
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: #FFD100;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            white-space: nowrap;
+        }
+
+        .bounding-box-corners::before,
+        .bounding-box-corners::after {
+            content: '';
+            position: absolute;
+            width: 20px; height: 20px;
+            border: 3px solid #FFD100;
+        }
+
+        .captured-image {
+            max-width: 100%;
+            border-radius: 12px;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .prediction-result {
+            background: linear-gradient(135deg, #2774AE, #005587);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 12px;
             text-align: center;
         }
 
-        .hidden {
-            display: none;
+        .prediction-class {
+            font-size: 2rem;
+            font-weight: 700;
+            text-transform: capitalize;
+            margin-bottom: 0.5rem;
         }
 
-        @media (max-width: 1200px) {
-            .simulator-layout {
-                grid-template-columns: 1fr;
-            }
+        .prediction-confidence { font-size: 1rem; opacity: 0.9; }
+        .confidence-bars { margin-top: 1.5rem; }
 
-            .control-panel {
-                position: static;
-            }
-
-            .charts-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .metrics-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .activation-cards {
-                grid-template-columns: 1fr;
-            }
+        .confidence-bar-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.5rem;
         }
 
-        .header-gold-line {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: #FFD100;
-            margin: 0;
-            padding: 0;
+        .confidence-bar-label {
+            width: 80px;
+            font-size: 0.75rem;
+            text-align: right;
+            color: #666;
         }
+
+        .confidence-bar-track {
+            flex: 1;
+            height: 20px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .confidence-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #2774AE, #005587);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 0.5rem;
+            font-size: 0.7rem;
+            color: white;
+            font-weight: 600;
+            transition: width 0.5s ease;
+            min-width: 40px;
+        }
+
+        .model-status {
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .model-status.trained {
+            background: rgba(39, 174, 96, 0.1);
+            border: 1px solid rgba(39, 174, 96, 0.3);
+            color: #27ae60;
+        }
+
+        .model-status.not-trained {
+            background: rgba(231, 76, 60, 0.1);
+            border: 1px solid rgba(231, 76, 60, 0.3);
+            color: #e74c3c;
+        }
+
+        .model-status-icon { font-size: 1.5rem; }
+        .model-status-text { flex: 1; }
+        .model-status-title { font-weight: 600; font-size: 0.9rem; }
+        .model-status-desc { font-size: 0.75rem; opacity: 0.8; }
+
+        .input-mode-toggle {
+            display: flex;
+            background: #f0f0f0;
+            border-radius: 10px;
+            padding: 4px;
+            margin-bottom: 1rem;
+        }
+
+        .input-mode-btn {
+            flex: 1;
+            padding: 0.75rem;
+            border: none;
+            background: transparent;
+            color: #666;
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .input-mode-btn.active { background: #2774AE; color: white; }
+
+        .footer { text-align: center; padding: 2rem; color: #888; font-size: 0.75rem; }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef, useMemo, useCallback } = React;
+        const { useState, useEffect, useRef, useMemo, useCallback, createContext, useContext } = React;
 
-        // UCLA Theme colors
-        const colors = {
-            // UCLA Brand colors (for header only)
-            primary: '#2774AE',
-            primaryLight: '#2774AE',
-            accent: '#FFD100',
-            accentDark: '#e6bc00',
-            darkBlue: '#005587',
-            lightBlue: '#8BB8E8',
-            // Simplified - all same color for body
-            positive: '#1a1a1a',
-            negative: '#1a1a1a',
-            warning: '#1a1a1a',
-            // Content areas - clean white backgrounds
-            cardBg: '#ffffff',
-            cardBorder: 'rgba(0,0,0,0.1)',
-            text: '#1a1a1a',
-            textMuted: '#666666',
-            // Legacy names mapped to simple scheme
-            darkBg: '#ffffff',
-            darkText: '#1a1a1a',
-            darkMuted: '#c0c0c0',
-            lightBg: '#ffffff',
-            lightCard: '#ffffff',
-            lightBorder: 'rgba(0,0,0,0.1)',
-            lightText: '#1a1a1a',
-            lightMuted: '#666666',
+        // Create context for sharing model state between tabs
+        const ModelContext = createContext();
+
+        // Lions, Tigers, and Bears - Oh My! (CIFAR-100 subset)
+        const CLASSES = ['bear', 'lion', 'tiger'];
+        const CLASS_COLORS = { bear: '#8B4513', lion: '#DAA520', tiger: '#FF8C00' };
+
+        // Sample images for the animals (placeholder)
+        const CLASS_IMAGES = {
+            bear: [
+                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAA3klEQVR4nO2WwQ6DIBBEXzf9/1/2aA8N7iwDaNuYTOKJsMzODAjGGF/lx1cLfAPgP4D5JsaYAMAY5e8A8xQRgCXLzEPiGONqHyPRB4jIIHOe/wL4DpARc1l/X4BVd1EAnDMLQMxf1+GvbNoNkMicPl+w2VqAJb8BwL4KY8xpnSy3B0AmXxSweSuzBYCdQHsKN2sBJJtnMbkqZbmj5/wWTqeLAjJVBhFZLmABLErJ50sHAO4+8SZn91ieFvDwk9cB4A1t/g0AbFQnkyzAMb+XLedPvrHCz4D3GsC/gHfkF1xzqXgFj9DlAAAAAElFTkSuQmCC',
+                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAA1ElEQVR4nO2W0Q6AIAhFXf//z+5DrcUFBdZa7eE9deFwATPnfH4rz9cCPAE+B5hj8ACAMcq/AcxRAAAy+xzGGKurjDj6ABFZxJwnP+G+A6RFnNe/FmDVnSsAMjMDQMy/zPCfbNqNJxWZYfMJq60AWPJLAO6rMIac1mlyewDk5LMCDu/K3ALA7kC7CjdrASTbdzG4KmV5oufyFlYXRQGpKoOIzBewABKl5POlAwD3+fEm5/RYHhbw8JPnAeANLf4NAGxVJpMswCW/l03Hd76xws+A1xrAX4AP5BfQNKTGIqb6yAAAAABJRU5ErkJggg=='
+            ],
+            lion: [
+                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAA+0lEQVR4nO2WQQ7CIBBFf2v3HsODuDMexJW6MR7Eq7jAhWiYDgPSmiZuHF/SFJgZHjMU5pw/5fjJwJsA/wG+CeDfAx4HaH4E4KcW7jwAYB0rANA6xphSumw55/XOIoprAFjtrIg0Ms75E+4rQEosdf2VAKvuXAGo5ywBEPO3cfhn/90GSDIzpZ8XbBYLYMl3AYivohh0Wif1bQEKyScFGK7KXAJg70BbhZu1AIq9PyZXpUz3dFy/hatJ0YJMlUGLyHgCC2BQSja/dABgPz8+5FiO5WEFPrzk9wFgDQX/DQDEqkwmWYBbfm/Wnd755hs/Az7XAH4D/EC+w6mOL+R9AAAAAElFTkSuQmCC',
+                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAA9ElEQVR4nGNgGAWjYBSMglFABmBkQBf4/1+TgfH/f0YGBob/DP8Z/jMw/P/P8J/xPyPDfwbG/4z/GRn+MzL+Z2T6z8T0n4npPxPTfyam/0xM/5mY/jMx/Wdi/s/E/J+Z+T8z839m5v/MLP+Zmf8zs/xnZvnPzPyfmeU/M8t/Zpb/zCz/WVj+M7P8Z2H5z8zynxks95+F9T8L638W1v8sbP9Z2P6zsP1nYfvPwvafhQ2o/j8r239Wjv+snP9ZOf+zcv5n5frPyvWfles/K9d/Vq7/bNz/2bj/s3H/Z+P+z8bzn43nPxvPfzae/2y8/9l4/7PxDkqNAwD4eE6hxFr0DAAAAABJRU5ErkJggg=='
+            ],
+            tiger: [
+                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAABCElEQVR4nO2WQQ6CMBAFP8bdx/AgboxH8CButIfwKi64EGhfSwsYE+Ni0oSkvJ/5A1Sc86ceP+nxBMA/wH8C/PfA5xGSF4L3KQBIM0JT7xUAaF0dB62rNcZt16VLa4xxe+SU4xIAVjsWES2VzrmXuFeAVMSl/OUAW+7cA5ASUwQg5r+u+J9s2oWnGJmRzx+sNhdgyd8D4LGKYtBdndS+B4CVfC9g88rMOQC2DrSlcLceQLL9CblrJc2cHk+f4WZU9CCzyiAi9gtsAAsl5/VLA4B9/LjJ2T2WpwfYfORxALhCS/8dACBWpS2TbIB7+U5Wnd/zzhueA99rAN8B7siv/wDutWghm2v38wAAAABJRU5ErkJggg==',
+                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAABC0lEQVR4nO2WQQ6CMBREPzbuPYYHcacewnW60R7Cq7jAhUCZlgK1JsaFk5CEtPz/5k9LxTn/6PST0c8A/gP8JcB/Dzwf4XkheJ+SwDQj1PVOAYDWxTho3axzzm3XpEtrjNse2eV4DQBWOysiWiqdc09xLwGpiHP5ywG23bkHgJSYEgAx/3XE/2TTLrw0yIx8fmG1WQGb/A4Aj1UUg+7qJPYdAKzk+wCbVqafAWDrQFsKN2sBJNt/kLtW0szp8eQZHkZFF2RWGUTEfoEJYKHkvD5pAGA/P97k7B7LwwtsevK4AFxCS38HAGJVWjPJCrjn97Lq+J5z3vAc+L4G8BPgAfI7vtv/AESJr/+mUi4FAAAAAElFTkSuQmCC'
+            ]
         };
 
-        // Breast Cancer class labels
-        const CANCER_CLASSES = ['Benign', 'Malignant'];
-
-        // Activation function colors - using UCLA theme
-        const ACTIVATION_COLORS = {
-            relu: colors.primary,
-            sigmoid: colors.darkBlue,
-            tanh: colors.lightBlue
+        // Get a sample image for a class
+        const getClassImage = (className) => {
+            const images = CLASS_IMAGES[className];
+            if (images && images.length > 0) {
+                return images[Math.floor(Math.random() * images.length)];
+            }
+            return generatePlaceholderImage(className);
         };
 
-        // Feature names (subset for display)
-        const KEY_FEATURES = [
-            'radius_mean', 'texture_mean', 'perimeter_mean', 'area_mean',
-            'smoothness_mean', 'compactness_mean', 'concavity_mean', 'symmetry_mean'
-        ];
+        // Simple placeholder if no image available
+        const generatePlaceholderImage = (className) => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 32;
+            canvas.height = 32;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = CLASS_COLORS[className] || '#888';
+            ctx.fillRect(0, 0, 32, 32);
+            ctx.fillStyle = 'rgba(255,255,255,0.9)';
+            ctx.font = '10px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(className.slice(0,4), 16, 20);
+            return canvas.toDataURL();
+        };
 
-        // Accuracy Chart - Incremental updates
-        const AccuracyChart = ({ trainingHistory, totalEpochs }) => {
+        // Training Curve Chart - Incremental updates (no full re-animation)
+        const TrainingChart = ({ trainingHistory, totalEpochs }) => {
             const canvasRef = useRef(null);
             const chartRef = useRef(null);
 
@@ -799,7 +622,7 @@
                                 data: [...emptyData],
                                 borderColor: '#2774AE',
                                 backgroundColor: 'rgba(39, 116, 174, 0.1)',
-                                fill: false, tension: 0.3, pointRadius: 3, pointBackgroundColor: '#2774AE',
+                                fill: false, tension: 0.3, pointRadius: 5, pointBackgroundColor: '#2774AE',
                                 spanGaps: false
                             },
                             {
@@ -807,7 +630,7 @@
                                 data: [...emptyData],
                                 borderColor: '#FFD100',
                                 backgroundColor: 'rgba(255, 209, 0, 0.1)',
-                                fill: false, tension: 0.3, pointRadius: 3, pointBackgroundColor: '#FFD100',
+                                fill: false, tension: 0.3, pointRadius: 5, pointBackgroundColor: '#FFD100',
                                 spanGaps: false
                             }
                         ]
@@ -815,12 +638,12 @@
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        animation: false,
+                        animation: false, // Disable animation for smooth incremental updates
                         plugins: {
                             legend: { display: true, position: 'top', labels: { color: '#666', usePointStyle: true, padding: 20 } },
                             tooltip: {
                                 backgroundColor: 'rgba(0,0,0,0.8)',
-                                callbacks: { label: (ctx) => ctx.raw !== null ? `${ctx.dataset.label}: ${(ctx.raw * 100).toFixed(1)}%` : '' }
+                                callbacks: { label: (ctx) => ctx.raw !== null ? `${ctx.dataset.label}: ${ctx.raw.toFixed(1)}%` : '' }
                             }
                         },
                         scales: {
@@ -830,10 +653,10 @@
                                 grid: { color: 'rgba(0,0,0,0.05)' }
                             },
                             y: {
-                                title: { display: true, text: 'Accuracy', color: '#666' },
+                                title: { display: true, text: 'Accuracy (%)', color: '#666' },
                                 min: 0,
-                                max: 1,
-                                ticks: { color: '#666', stepSize: 0.2, callback: (v) => (v * 100) + '%' },
+                                max: 100,
+                                ticks: { color: '#666', stepSize: 20 },
                                 grid: { color: 'rgba(0,0,0,0.05)' }
                             }
                         }
@@ -858,13 +681,13 @@
 
                 chart.data.datasets[0].data = trainData;
                 chart.data.datasets[1].data = valData;
-                chart.update('none');
+                chart.update('none'); // 'none' mode skips animation
             }, [trainingHistory, totalEpochs]);
 
             return <canvas ref={canvasRef} />;
         };
 
-        // Loss Chart - Incremental updates
+        // Loss Chart - Incremental updates (no full re-animation)
         const LossChart = ({ trainingHistory, totalEpochs }) => {
             const canvasRef = useRef(null);
             const chartRef = useRef(null);
@@ -882,8 +705,8 @@
                     data: {
                         labels: labels,
                         datasets: [
-                            { label: 'Training Loss', data: [...emptyData], borderColor: '#e74c3c', backgroundColor: 'rgba(231,76,60,0.1)', fill: false, tension: 0.3, pointRadius: 3, pointBackgroundColor: '#e74c3c', spanGaps: false },
-                            { label: 'Validation Loss', data: [...emptyData], borderColor: '#9b59b6', backgroundColor: 'rgba(155,89,182,0.1)', fill: false, tension: 0.3, pointRadius: 3, pointBackgroundColor: '#9b59b6', spanGaps: false }
+                            { label: 'Training Loss', data: [...emptyData], borderColor: '#e74c3c', backgroundColor: 'rgba(231,76,60,0.1)', fill: false, tension: 0.3, pointRadius: 5, spanGaps: false },
+                            { label: 'Validation Loss', data: [...emptyData], borderColor: '#9b59b6', backgroundColor: 'rgba(155,89,182,0.1)', fill: false, tension: 0.3, pointRadius: 5, spanGaps: false }
                         ]
                     },
                     options: {
@@ -899,8 +722,8 @@
                             y: {
                                 title: { display: true, text: 'Loss', color: '#666' },
                                 min: 0,
-                                max: 1.0,
-                                ticks: { color: '#666', stepSize: 0.2 },
+                                max: 2,
+                                ticks: { color: '#666', stepSize: 0.5 },
                                 grid: { color: 'rgba(0,0,0,0.05)' }
                             }
                         }
@@ -931,913 +754,1224 @@
             return <canvas ref={canvasRef} />;
         };
 
-        // Neural Network Visualization Component
-        const NeuralNetworkViz = ({ layers, activation, dropout, batchNorm, isTraining, currentEpoch, nFeatures = 30 }) => {
-            const svgRef = useRef(null);
-            const [animationPhase, setAnimationPhase] = useState(0);
-
-            // Animation loop during training
-            useEffect(() => {
-                if (isTraining) {
-                    const interval = setInterval(() => {
-                        setAnimationPhase(prev => (prev + 1) % 100);
-                    }, 50);
-                    return () => clearInterval(interval);
-                }
-            }, [isTraining]);
-
-            const networkLayout = useMemo(() => {
-                const allLayers = [
-                    { type: 'input', nodes: nFeatures, display: Math.min(nFeatures, 15), label: `Input (${nFeatures} features)` },
-                    ...layers.map((nodes, i) => ({
-                        type: 'hidden',
-                        nodes,
-                        display: Math.min(nodes, 12),
-                        label: `Hidden ${i + 1} (${nodes})`
-                    })),
-                    { type: 'output', nodes: 2, display: 2, label: 'Output (2)' }
-                ];
-                return allLayers;
-            }, [layers, nFeatures]);
-
-            const svgWidth = 800;
-            const svgHeight = 380;
-            const padding = { top: 40, bottom: 60, left: 50, right: 50 };
-
-            const layerSpacing = (svgWidth - padding.left - padding.right) / (networkLayout.length - 1);
-
-            // Calculate positions for all nodes
-            const nodePositions = useMemo(() => {
-                const positions = [];
-
-                networkLayout.forEach((layer, layerIdx) => {
-                    const x = padding.left + layerIdx * layerSpacing;
-                    const layerPositions = [];
-                    const nodeCount = layer.display;
-                    const nodeSpacing = Math.min(22, (svgHeight - padding.top - padding.bottom) / (nodeCount + 1));
-                    const startY = (svgHeight - (nodeCount - 1) * nodeSpacing) / 2;
-
-                    for (let i = 0; i < nodeCount; i++) {
-                        layerPositions.push({
-                            x,
-                            y: startY + i * nodeSpacing,
-                            isDropout: dropout > 0 && layer.type === 'hidden' && Math.random() < dropout,
-                            layerType: layer.type,
-                            nodeIdx: i,
-                            totalNodes: layer.nodes
-                        });
-                    }
-                    positions.push(layerPositions);
-                });
-
-                return positions;
-            }, [networkLayout, dropout, svgHeight, layerSpacing]);
-
-            // Get node color based on layer type and activation
-            const getNodeColor = (layerType, nodeIdx) => {
-                if (layerType === 'input') return '#6b7280';
-                if (layerType === 'output') {
-                    return nodeIdx === 0 ? '#22c55e' : '#ef4444'; // Benign green, Malignant red
-                }
-                return ACTIVATION_COLORS[activation] || colors.primary;
-            };
-
-            // Calculate which nodes are "firing" during animation
-            const getFiringIntensity = (layerIdx, nodeIdx) => {
-                if (!isTraining) return 0;
-                const phase = (animationPhase + layerIdx * 15 - nodeIdx * 5) % 100;
-                if (phase < 30) return phase / 30;
-                if (phase < 60) return 1 - (phase - 30) / 30;
-                return 0;
-            };
-
+        // Sample Image Component - now uses canvas-generated images
+        const SampleImage = ({ imageData, trueLabel, predictedLabel, showResult }) => {
+            const isCorrect = trueLabel === predictedLabel;
             return (
-                <svg
-                    ref={svgRef}
-                    width="100%"
-                    height="100%"
-                    viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-                    style={{ background: 'transparent' }}
-                >
-                    <defs>
-                        <linearGradient id="connectionGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor="#6b7280" stopOpacity="0.3" />
-                            <stop offset="50%" stopColor={colors.primary} stopOpacity="0.5" />
-                            <stop offset="100%" stopColor={colors.positive} stopOpacity="0.3" />
-                        </linearGradient>
-                        <filter id="glow">
-                            <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-                            <feMerge>
-                                <feMergeNode in="coloredBlur"/>
-                                <feMergeNode in="SourceGraphic"/>
-                            </feMerge>
-                        </filter>
-                        <filter id="strongGlow">
-                            <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
-                            <feMerge>
-                                <feMergeNode in="coloredBlur"/>
-                                <feMergeNode in="SourceGraphic"/>
-                            </feMerge>
-                        </filter>
-                    </defs>
-
-                    {/* Draw connections */}
-                    {nodePositions.slice(0, -1).map((layerNodes, layerIdx) =>
-                        layerNodes.map((node, nodeIdx) =>
-                            nodePositions[layerIdx + 1].map((nextNode, nextIdx) => {
-                                const opacity = isTraining
-                                    ? 0.1 + getFiringIntensity(layerIdx, nodeIdx) * 0.4
-                                    : 0.15;
-                                return (
-                                    <line
-                                        key={`conn-${layerIdx}-${nodeIdx}-${nextIdx}`}
-                                        x1={node.x}
-                                        y1={node.y}
-                                        x2={nextNode.x}
-                                        y2={nextNode.y}
-                                        stroke={isTraining ? ACTIVATION_COLORS[activation] : '#9ca3af'}
-                                        strokeWidth={isTraining ? 1 + getFiringIntensity(layerIdx, nodeIdx) : 0.5}
-                                        opacity={opacity}
-                                        style={isTraining ? {
-                                            animation: `flowRight ${0.5 + Math.random() * 0.5}s linear infinite`
-                                        } : {}}
-                                    />
-                                );
-                            })
-                        )
-                    )}
-
-                    {/* Draw batch normalization layers */}
-                    {batchNorm && networkLayout.slice(1, -1).map((layer, idx) => {
-                        const x = padding.left + (idx + 1) * layerSpacing - layerSpacing / 2;
-                        return (
-                            <g key={`bn-${idx}`}>
-                                <rect
-                                    x={x - 15}
-                                    y={svgHeight / 2 - 40}
-                                    width={30}
-                                    height={80}
-                                    rx={4}
-                                    fill="rgba(139, 184, 232, 0.2)"
-                                    stroke={colors.lightBlue}
-                                    strokeWidth={1}
-                                    strokeDasharray="4,2"
-                                />
-                                <text
-                                    x={x}
-                                    y={svgHeight / 2}
-                                    textAnchor="middle"
-                                    fill={colors.lightBlue}
-                                    fontSize="8"
-                                    fontWeight="500"
-                                >
-                                    BN
-                                </text>
-                            </g>
-                        );
-                    })}
-
-                    {/* Draw nodes */}
-                    {nodePositions.map((layerNodes, layerIdx) =>
-                        layerNodes.map((node, nodeIdx) => {
-                            const color = getNodeColor(node.layerType, nodeIdx);
-                            const firingIntensity = getFiringIntensity(layerIdx, nodeIdx);
-                            const radius = node.layerType === 'input' ? 4 : (node.layerType === 'output' ? 14 : 8);
-
-                            return (
-                                <g key={`node-${layerIdx}-${nodeIdx}`}>
-                                    <circle
-                                        cx={node.x}
-                                        cy={node.y}
-                                        r={radius + firingIntensity * 4}
-                                        fill={color}
-                                        opacity={node.isDropout ? 0.3 : 0.8 + firingIntensity * 0.2}
-                                        filter={firingIntensity > 0.5 ? 'url(#strongGlow)' : (firingIntensity > 0 ? 'url(#glow)' : 'none')}
-                                        strokeDasharray={node.isDropout ? '3,2' : 'none'}
-                                        stroke={node.isDropout ? color : 'none'}
-                                        strokeWidth={node.isDropout ? 1.5 : 0}
-                                    />
-                                    {node.layerType === 'output' && (
-                                        <text
-                                            x={node.x}
-                                            y={node.y + 4}
-                                            textAnchor="middle"
-                                            fill="white"
-                                            fontSize="8"
-                                            fontWeight="600"
-                                        >
-                                            {nodeIdx === 0 ? 'B' : 'M'}
-                                        </text>
-                                    )}
-                                </g>
-                            );
-                        })
-                    )}
-
-                    {/* Draw feature list representation */}
-                    <g transform={`translate(${padding.left - 40}, ${svgHeight / 2 - 50})`}>
-                        <rect
-                            width={30}
-                            height={80}
-                            fill="none"
-                            stroke="#6b7280"
-                            strokeWidth={1}
-                            opacity={0.5}
-                            rx={4}
-                        />
-                        {[0, 1, 2, 3, 4].map(row => (
-                            <rect
-                                key={`feature-${row}`}
-                                x={4}
-                                y={4 + row * 15}
-                                width={22}
-                                height={12}
-                                fill={`rgba(107, 114, 128, ${0.3 + Math.random() * 0.5})`}
-                                rx={2}
-                            />
-                        ))}
-                        <text
-                            x={15}
-                            y={95}
-                            textAnchor="middle"
-                            fill="#6b7280"
-                            fontSize="7"
-                        >
-                            30 features
-                        </text>
-                    </g>
-
-                    {/* Layer labels */}
-                    {networkLayout.map((layer, idx) => (
-                        <text
-                            key={`label-${idx}`}
-                            x={padding.left + idx * layerSpacing}
-                            y={svgHeight - 15}
-                            textAnchor="middle"
-                            fill={colors.lightMuted}
-                            fontSize="10"
-                            fontWeight="500"
-                        >
-                            {layer.label}
-                        </text>
-                    ))}
-
-                    {/* Output labels */}
-                    <text
-                        x={padding.left + (networkLayout.length - 1) * layerSpacing + 35}
-                        y={nodePositions[nodePositions.length - 1][0].y + 4}
-                        fill="#22c55e"
-                        fontSize="9"
-                        fontWeight="500"
-                    >
-                        Benign
-                    </text>
-                    <text
-                        x={padding.left + (networkLayout.length - 1) * layerSpacing + 35}
-                        y={nodePositions[nodePositions.length - 1][1].y + 4}
-                        fill="#ef4444"
-                        fontSize="9"
-                        fontWeight="500"
-                    >
-                        Malignant
-                    </text>
-
-                    {/* Training indicator */}
-                    {isTraining && (
-                        <g>
-                            <text
-                                x={svgWidth / 2}
-                                y={25}
-                                textAnchor="middle"
-                                fill={colors.primary}
-                                fontSize="12"
-                                fontWeight="600"
-                            >
-                                Training... Epoch {currentEpoch}
-                            </text>
-                            <circle
-                                cx={svgWidth / 2 - 80}
-                                cy={22}
-                                r={4}
-                                fill={colors.primary}
-                                opacity={0.5 + Math.sin(animationPhase / 10) * 0.5}
-                            />
-                        </g>
-                    )}
-                </svg>
-            );
-        };
-
-        // Confusion Matrix Component (2x2 for binary classification)
-        const ConfusionMatrix = ({ matrix }) => {
-            const total = matrix.flat().reduce((a, b) => a + b, 0);
-            const tn = matrix[0][0];
-            const fp = matrix[0][1];
-            const fn = matrix[1][0];
-            const tp = matrix[1][1];
-
-            const accuracy = ((tp + tn) / total * 100).toFixed(1);
-            const precision = (tp / (tp + fp) * 100).toFixed(1);
-            const recall = (tp / (tp + fn) * 100).toFixed(1);
-
-            return (
-                <div className="confusion-matrix">
-                    <table className="matrix-table" style={{ marginBottom: '1rem' }}>
-                        <thead>
-                            <tr>
-                                <th></th>
-                                <th style={{ color: '#22c55e' }}>Pred: Benign</th>
-                                <th style={{ color: '#ef4444' }}>Pred: Malignant</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <th style={{ color: '#22c55e' }}>Actual: Benign</th>
-                                <td style={{ backgroundColor: 'rgba(34, 197, 94, 0.3)', color: '#166534', fontWeight: 600 }}>
-                                    {tn} (TN)
-                                </td>
-                                <td style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#991b1b' }}>
-                                    {fp} (FP)
-                                </td>
-                            </tr>
-                            <tr>
-                                <th style={{ color: '#ef4444' }}>Actual: Malignant</th>
-                                <td style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#991b1b' }}>
-                                    {fn} (FN)
-                                </td>
-                                <td style={{ backgroundColor: 'rgba(34, 197, 94, 0.3)', color: '#166534', fontWeight: 600 }}>
-                                    {tp} (TP)
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <div style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center', fontSize: '0.8rem' }}>
-                        <div><strong>Accuracy:</strong> {accuracy}%</div>
-                        <div><strong>Precision:</strong> {precision}%</div>
-                        <div><strong>Recall:</strong> {recall}%</div>
+                <div className={`sample-image ${showResult ? (isCorrect ? 'correct' : 'incorrect') : ''}`}>
+                    <div className="sample-image-visual" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0f0f0' }}>
+                        <img src={imageData} alt={trueLabel} style={{ width: '100%', height: '100%', objectFit: 'contain', imageRendering: 'pixelated' }} />
+                    </div>
+                    <div className="sample-image-label">
+                        {showResult ? (isCorrect ? `✓ ${trueLabel}` : `✗ ${predictedLabel}`) : trueLabel}
                     </div>
                 </div>
             );
         };
 
-        // Gradient Flow Visualization
-        const GradientFlowViz = ({ layers, gradients }) => {
-            return (
-                <div className="gradient-flow-container">
-                    {['Input', ...layers.map((_, i) => `H${i + 1}`), 'Output'].map((label, idx) => (
-                        <div key={idx} style={{ textAlign: 'center' }}>
-                            <div
-                                className="gradient-bar"
-                                style={{ background: 'rgba(0, 0, 0, 0.1)' }}
-                            >
-                                <div
-                                    className="gradient-fill"
-                                    style={{
-                                        height: `${gradients[idx] * 100}%`,
-                                        background: `linear-gradient(180deg,
-                                            ${gradients[idx] > 0.7 ? '#22c55e' :
-                                              gradients[idx] > 0.3 ? '#eab308' : '#ef4444'},
-                                            transparent)`
-                                    }}
-                                />
-                            </div>
-                            <div className="gradient-label">{label}</div>
-                        </div>
-                    ))}
-                </div>
-            );
-        };
+        // Filter Visualization - Shows trained CNN filters
+        const FilterVisualization = ({ layer, trainedFilters }) => {
+            const canvasRefs = useRef([]);
+            const numFiltersToShow = 8;
 
-        // Feature Importance visualization
-        const FeatureImportance = ({ importance }) => {
-            const maxVal = Math.max(...importance.map(f => f.value));
+            // Get filter data for this layer
+            // New format: filterData is array of filters, each filter is [h][w][channels]
+            const filterData = useMemo(() => {
+                if (!trainedFilters || !trainedFilters[`layer${layer}`]) {
+                    return null;
+                }
+                return trainedFilters[`layer${layer}`];
+            }, [trainedFilters, layer]);
+
+            useEffect(() => {
+                if (!filterData || !Array.isArray(filterData)) return;
+
+                const numFilters = filterData.length;
+                const numToRender = Math.min(numFiltersToShow, numFilters);
+
+                for (let filterIdx = 0; filterIdx < numToRender; filterIdx++) {
+                    const canvas = canvasRefs.current[filterIdx];
+                    if (!canvas) continue;
+
+                    const filter = filterData[filterIdx];
+                    if (!filter) continue;
+
+                    const kernelH = filter.length;
+                    const kernelW = filter[0].length;
+                    const channels = filter[0][0];
+                    const isRGB = layer === 1 && Array.isArray(channels) && channels.length === 3;
+
+                    const ctx = canvas.getContext('2d');
+                    const displaySize = 48;
+                    canvas.width = displaySize;
+                    canvas.height = displaySize;
+
+                    // Find min/max for normalization
+                    let minVal = Infinity, maxVal = -Infinity;
+                    for (let h = 0; h < kernelH; h++) {
+                        for (let w = 0; w < kernelW; w++) {
+                            const val = filter[h][w];
+                            if (isRGB) {
+                                for (let c = 0; c < 3; c++) {
+                                    minVal = Math.min(minVal, val[c]);
+                                    maxVal = Math.max(maxVal, val[c]);
+                                }
+                            } else if (Array.isArray(val)) {
+                                // Average across channels for deeper layers
+                                const avg = val.reduce((a, b) => a + b, 0) / val.length;
+                                minVal = Math.min(minVal, avg);
+                                maxVal = Math.max(maxVal, avg);
+                            } else {
+                                minVal = Math.min(minVal, val);
+                                maxVal = Math.max(maxVal, val);
+                            }
+                        }
+                    }
+
+                    const range = maxVal - minVal || 1;
+                    const imageData = ctx.createImageData(displaySize, displaySize);
+                    const data = imageData.data;
+
+                    for (let py = 0; py < displaySize; py++) {
+                        for (let px = 0; px < displaySize; px++) {
+                            const idx = (py * displaySize + px) * 4;
+                            const kh = Math.floor(py / displaySize * kernelH);
+                            const kw = Math.floor(px / displaySize * kernelW);
+                            const val = filter[kh][kw];
+
+                            if (isRGB) {
+                                // RGB visualization for first layer
+                                data[idx] = Math.round(((val[0] - minVal) / range) * 255);
+                                data[idx + 1] = Math.round(((val[1] - minVal) / range) * 255);
+                                data[idx + 2] = Math.round(((val[2] - minVal) / range) * 255);
+                            } else {
+                                // Diverging colormap (blue-white-red) for deeper layers
+                                const avgVal = Array.isArray(val) ? val.reduce((a, b) => a + b, 0) / val.length : val;
+                                const normalized = (avgVal - minVal) / range;
+                                const centered = normalized * 2 - 1;
+
+                                if (centered < 0) {
+                                    data[idx] = Math.round(255 * (1 + centered));
+                                    data[idx + 1] = Math.round(255 * (1 + centered));
+                                    data[idx + 2] = 255;
+                                } else {
+                                    data[idx] = 255;
+                                    data[idx + 1] = Math.round(255 - centered * 127);
+                                    data[idx + 2] = Math.round(255 - centered * 127);
+                                }
+                            }
+                            data[idx + 3] = 255;
+                        }
+                    }
+
+                    ctx.putImageData(imageData, 0, 0);
+                }
+            }, [filterData, layer]);
+
+            // If no trained filters yet, show placeholder
+            if (!filterData) {
+                return (
+                    <div className="filter-grid">
+                        <div style={{
+                            padding: '1rem',
+                            color: '#888',
+                            fontSize: '0.85rem',
+                            fontStyle: 'italic',
+                            textAlign: 'center',
+                            width: '100%'
+                        }}>
+                            Train the model to see learned filters
+                        </div>
+                    </div>
+                );
+            }
+
+            const numFilters = filterData.length;
+            const numToShow = Math.min(numFiltersToShow, numFilters);
+
             return (
-                <div className="feature-importance">
-                    {importance.slice(0, 10).map((feature, idx) => (
-                        <div key={idx} className="feature-bar">
-                            <span className="feature-name" title={feature.name}>{feature.name}</span>
-                            <div
-                                className="feature-bar-fill"
-                                style={{ width: `${(feature.value / maxVal) * 80}px` }}
+                <div className="filter-grid">
+                    {Array.from({ length: numToShow }, (_, idx) => (
+                        <div key={idx} className="filter-item">
+                            <canvas
+                                ref={el => canvasRefs.current[idx] = el}
+                                className="filter-visual"
+                                style={{
+                                    width: '48px',
+                                    height: '48px',
+                                    borderRadius: '4px',
+                                    imageRendering: 'pixelated'
+                                }}
                             />
-                            <span style={{ fontSize: '0.65rem', color: '#666' }}>
-                                {(feature.value * 100).toFixed(0)}%
-                            </span>
+                            <div className="filter-name">Filter {idx + 1}</div>
                         </div>
                     ))}
+                    {numFilters > numFiltersToShow && (
+                        <div style={{
+                            padding: '0.5rem',
+                            color: '#888',
+                            fontSize: '0.75rem',
+                            alignSelf: 'center'
+                        }}>
+                            +{numFilters - numFiltersToShow} more
+                        </div>
+                    )}
                 </div>
             );
         };
 
-        // Main App Component
-        const App = () => {
+        // CNN Pipeline Visualization - Uniform 3D blocks with muted colors
+        const CNNPipeline = ({ config, isTraining }) => {
+            const canvasRef = useRef(null);
+            const animationRef = useRef(null);
+
+            const layers = useMemo(() => {
+                const result = [];
+                let currentSize = 32, currentChannels = 3;
+                let x = 30;
+
+                // UCLA color scheme
+                const colors = {
+                    input: '#4CAF50',    // green (input data)
+                    conv: '#2774AE',     // UCLA blue
+                    bn: '#005587',       // UCLA darker blue
+                    relu: '#FFD100',     // UCLA gold
+                    pool: '#8BB8E8',     // UCLA lighter blue
+                    flatten: '#536878',  // slate gray
+                    dense: '#2774AE',    // UCLA blue
+                    output: '#FFD100'    // UCLA gold
+                };
+
+                // Fixed block sizes - calibrated so 4 blocks spans full width
+                // Input
+                result.push({ type: 'Input', x, h: 90, w: 36, d: 15, color: colors.input });
+                x += 58;
+
+                for (let i = 0; i < config.convBlocks; i++) {
+                    const filters = config.filters * Math.pow(2, Math.min(i, 2));
+                    const h = Math.max(50, 95 - i * 12);
+                    const w = Math.min(55, 28 + filters / 8);
+                    const d = Math.min(22, 10 + filters / 16);
+
+                    result.push({ type: 'Conv', x, h, w, d, color: colors.conv, label: `Conv${i+1}` });
+                    x += w + 18;
+
+                    result.push({ type: 'ReLU', x, h: h - 10, w: 14, d: 8, color: colors.relu });
+                    x += 30;
+
+                    currentSize = Math.floor(currentSize / 2);
+                    const poolH = Math.max(40, h - 15);
+                    result.push({ type: 'Pool', x, h: poolH, w: 24, d: 12, color: colors.pool });
+                    x += 44;
+                    currentChannels = filters;
+                }
+
+                // Flatten
+                result.push({ type: 'Flatten', x, h: 110, w: 14, d: 8, color: colors.flatten });
+                x += 36;
+
+                // Dense
+                result.push({ type: 'Dense', x, h: 80, w: 28, d: 15, color: colors.dense });
+                x += 54;
+
+                // Output
+                result.push({ type: 'Output', x, h: 60, w: 24, d: 12, color: colors.output });
+
+                return result;
+            }, [config]);
+
+            useEffect(() => {
+                const canvas = canvasRef.current;
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                const dpr = window.devicePixelRatio || 1;
+
+                const rect = canvas.getBoundingClientRect();
+                canvas.width = rect.width * dpr;
+                canvas.height = rect.height * dpr;
+                ctx.scale(dpr, dpr);
+
+                let time = 0;
+
+                function shadeColor(color, percent) {
+                    const num = parseInt(color.replace('#', ''), 16);
+                    const amt = Math.round(2.55 * percent);
+                    const R = Math.min(255, Math.max(0, (num >> 16) + amt));
+                    const G = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amt));
+                    const B = Math.min(255, Math.max(0, (num & 0x0000FF) + amt));
+                    return `rgb(${R},${G},${B})`;
+                }
+
+                function drawBlock(x, y, w, h, d, color) {
+                    // Right face (darker)
+                    ctx.fillStyle = shadeColor(color, -18);
+                    ctx.beginPath();
+                    ctx.moveTo(x + w, y);
+                    ctx.lineTo(x + w + d * 0.7, y - d * 0.4);
+                    ctx.lineTo(x + w + d * 0.7, y + h - d * 0.4);
+                    ctx.lineTo(x + w, y + h);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // Top face (lighter)
+                    ctx.fillStyle = shadeColor(color, 12);
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x + d * 0.7, y - d * 0.4);
+                    ctx.lineTo(x + w + d * 0.7, y - d * 0.4);
+                    ctx.lineTo(x + w, y);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // Front face
+                    ctx.fillStyle = color;
+                    ctx.fillRect(x, y, w, h);
+
+                    // Subtle edge highlight
+                    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                    ctx.lineWidth = 0.5;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x + w, y);
+                    ctx.stroke();
+                }
+
+                const draw = () => {
+                    const width = rect.width;
+                    const height = rect.height;
+                    ctx.clearRect(0, 0, width, height);
+
+                    const centerY = height / 2 + 8;
+
+                    // Draw connection lines
+                    ctx.strokeStyle = 'rgba(120, 120, 120, 0.2)';
+                    ctx.lineWidth = 1;
+
+                    for (let i = 0; i < layers.length - 1; i++) {
+                        const from = layers[i];
+                        const to = layers[i + 1];
+                        const fromX = from.x + from.w + from.d * 0.7;
+                        const toX = to.x;
+
+                        ctx.beginPath();
+                        ctx.moveTo(fromX, centerY);
+                        ctx.lineTo(toX, centerY);
+                        ctx.stroke();
+
+                        // Flowing particles when training
+                        if (isTraining) {
+                            for (let p = 0; p < 2; p++) {
+                                const progress = ((time * 0.012 + p * 0.5 + i * 0.12) % 1);
+                                const px = fromX + (toX - fromX) * progress;
+                                const py = centerY + Math.sin(progress * Math.PI * 3 + time * 0.02) * 2;
+
+                                ctx.beginPath();
+                                ctx.arc(px, py, 2, 0, Math.PI * 2);
+                                const alpha = Math.sin(progress * Math.PI) * 0.45;
+                                ctx.fillStyle = `rgba(100, 120, 140, ${alpha})`;
+                                ctx.fill();
+                            }
+                        }
+                    }
+
+                    // Draw blocks
+                    layers.forEach((layer, idx) => {
+                        const breathe = isTraining ? Math.sin(time * 0.02 + idx * 0.3) * 1.5 : 0;
+                        const h = layer.h + breathe;
+                        const y = centerY - h / 2;
+
+                        drawBlock(layer.x, y, layer.w, h, layer.d, layer.color);
+                    });
+
+                    // Labels
+                    ctx.fillStyle = '#666';
+                    ctx.font = '9px -apple-system, BlinkMacSystemFont, sans-serif';
+                    ctx.textAlign = 'center';
+                    layers.forEach(layer => {
+                        const label = layer.label || layer.type;
+                        const labelX = layer.x + layer.w / 2 + layer.d * 0.35;
+                        ctx.fillText(label, labelX, centerY + layer.h / 2 + 14);
+                    });
+
+                    time++;
+                    animationRef.current = requestAnimationFrame(draw);
+                };
+
+                draw();
+
+                return () => {
+                    if (animationRef.current) cancelAnimationFrame(animationRef.current);
+                };
+            }, [layers, isTraining]);
+
+            return (
+                <canvas
+                    ref={canvasRef}
+                    style={{ width: '100%', height: '200px', display: 'block' }}
+                />
+            );
+        };
+
+        // ============================================
+        // Python Keras Backend for Real CNN Training
+        // ============================================
+
+        // Backend API URL - empty string means same origin (when served from Railway)
+        const API_BASE_URL = window.API_BASE_URL || '';
+
+        // CNN Builder Tab
+        const CNNBuilderTab = () => {
+            const { modelState, setModelState } = useContext(ModelContext);
+            const { config, setConfig, trainingHistory, setTrainingHistory, isModelTrained, setIsModelTrained, trainedFilters, setTrainedFilters } = modelState;
+
             const [isTraining, setIsTraining] = useState(false);
             const [currentEpoch, setCurrentEpoch] = useState(0);
+            const [sampleImages, setSampleImages] = useState([]);
+            const [classificationResults, setClassificationResults] = useState([]);
+            const [trainingStatus, setTrainingStatus] = useState('');
+            const [testAccuracy, setTestAccuracy] = useState(null);
+            const [sessionId, setSessionId] = useState(null);
+            const [backendStatus, setBackendStatus] = useState('checking');
+            const [queuePosition, setQueuePosition] = useState(0);
+            const [serverStats, setServerStats] = useState({ active: 0, max: 5 });
+            const [currentBatch, setCurrentBatch] = useState(0);
+            const [totalBatches, setTotalBatches] = useState(0);
 
-            // Network configuration
-            const [hiddenLayers, setHiddenLayers] = useState([64, 32]);
-            const [activation, setActivation] = useState('relu');
-            const [dropout, setDropout] = useState(0.2);
-            const [batchNorm, setBatchNorm] = useState(true);
-            const [learningRate, setLearningRate] = useState(0.001);
-            const [batchSize, setBatchSize] = useState(32);
-            const [epochs, setEpochs] = useState(50);
+            // Check backend health on mount and periodically
+            useEffect(() => {
+                const checkHealth = () => {
+                    fetch(`${API_BASE_URL}/api/health`)
+                        .then(r => r.json())
+                        .then(data => {
+                            setBackendStatus('connected');
+                            setServerStats({ active: data.active_trainings || 0, max: data.max_concurrent || 5, queue: data.queue_length || 0 });
+                            console.log('Backend connected:', data);
+                        })
+                        .catch(err => {
+                            setBackendStatus('disconnected');
+                            console.error('Backend not available:', err);
+                        });
+                };
+                checkHealth();
+                const interval = setInterval(checkHealth, 5000); // Check every 5 seconds
+                return () => clearInterval(interval);
+            }, []);
 
-            // Training results
-            const [trainingHistory, setTrainingHistory] = useState([]);
-            const [confusionMatrix, setConfusionMatrix] = useState([[0, 0], [0, 0]]);
-            const [gradientFlow, setGradientFlow] = useState([]);
-            const [featureImportance, setFeatureImportance] = useState([]);
-            const [metrics, setMetrics] = useState({
-                trainAcc: 0,
-                valAcc: 0,
-                trainLoss: 0,
-                valLoss: 0,
-                params: 0,
-                trainTime: 0
-            });
+            useEffect(() => {
+                // Fetch actual sample images from backend
+                const fetchSampleImages = async () => {
+                    try {
+                        const response = await fetch('/api/sample-images');
+                        const data = await response.json();
+                        if (data.samples) {
+                            const samples = data.samples.map(sample => ({
+                                imageData: sample.imageData,
+                                trueLabel: sample.className,
+                                predictedLabel: sample.className
+                            }));
+                            setSampleImages(samples);
+                        }
+                    } catch (error) {
+                        console.error('Error fetching sample images:', error);
+                        // Fallback to placeholder images (8 samples)
+                        const samples = [];
+                        CLASSES.forEach(cls => {
+                            samples.push({ imageData: getClassImage(cls), trueLabel: cls, predictedLabel: cls });
+                            samples.push({ imageData: getClassImage(cls), trueLabel: cls, predictedLabel: cls });
+                            samples.push({ imageData: getClassImage(cls), trueLabel: cls, predictedLabel: cls });
+                        });
+                        setSampleImages(samples.slice(0, 8));
+                    }
+                };
+                fetchSampleImages();
+            }, []);
 
-            // Calculate parameter count
-            const paramCount = useMemo(() => {
-                let params = 0;
-                let prevSize = 30; // 30 features
-                hiddenLayers.forEach(size => {
-                    params += prevSize * size + size; // weights + biases
-                    if (batchNorm) params += size * 4; // gamma, beta, running mean, var
-                    prevSize = size;
-                });
-                params += prevSize * 1 + 1; // output layer (binary)
+            const calculateParams = useMemo(() => {
+                let params = 0, inputChannels = 3;
+                for (let i = 0; i < config.convBlocks; i++) {
+                    const outputChannels = config.filters * Math.pow(2, Math.min(i, 2));
+                    params += config.kernelSize * config.kernelSize * inputChannels * outputChannels + outputChannels;
+                    inputChannels = outputChannels;
+                }
+                const finalSize = 32 / Math.pow(2, config.convBlocks);
+                params += finalSize * finalSize * inputChannels * 64 + 64; // Dense layer 64 units
+                params += 64 * 3 + 3; // Output layer 3 classes
                 return params;
-            }, [hiddenLayers, batchNorm]);
+            }, [config]);
 
-            // Add hidden layer
-            const addLayer = () => {
-                if (hiddenLayers.length < 5) {
-                    setHiddenLayers([...hiddenLayers, 32]);
+            // REAL TRAINING via Python Backend
+            const runTraining = async () => {
+                if (backendStatus !== 'connected') {
+                    setTrainingStatus('Error: Backend not connected. Start the Python server first.');
+                    return;
                 }
-            };
 
-            // Remove hidden layer
-            const removeLayer = (idx) => {
-                if (hiddenLayers.length > 1) {
-                    setHiddenLayers(hiddenLayers.filter((_, i) => i !== idx));
-                }
-            };
-
-            // Update layer size
-            const updateLayerSize = (idx, size) => {
-                const newLayers = [...hiddenLayers];
-                newLayers[idx] = parseInt(size);
-                setHiddenLayers(newLayers);
-            };
-
-            // Simulate training
-            const startTraining = async () => {
                 setIsTraining(true);
                 setTrainingHistory([]);
                 setCurrentEpoch(0);
+                setCurrentBatch(0);
+                setTotalBatches(0);
+                setClassificationResults([]);
+                setIsModelTrained(false);
+                setTrainedFilters(null);
+                setTestAccuracy(null);
+                setTrainingStatus('Starting training on Python backend...');
 
-                const history = [];
-                const startTime = Date.now();
+                try {
+                    // Start training session
+                    const response = await fetch(`${API_BASE_URL}/api/train`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(config)
+                    });
 
-                for (let epoch = 1; epoch <= epochs; epoch++) {
-                    await new Promise(resolve => setTimeout(resolve, 100));
+                    if (!response.ok) {
+                        throw new Error('Failed to start training');
+                    }
 
-                    setCurrentEpoch(epoch);
+                    const { session_id } = await response.json();
+                    setSessionId(session_id);
 
-                    // Simulate training metrics with realistic curves for cancer classification
-                    const progress = epoch / epochs;
-                    const noise = () => (Math.random() - 0.5) * 0.02;
+                    // Poll for progress - check every 200ms for smoother per-epoch updates
+                    let complete = false;
+                    while (!complete) {
+                        await new Promise(r => setTimeout(r, 200));
 
-                    const trainLoss = 0.7 * Math.exp(-4 * progress) + 0.05 + noise();
-                    const valLoss = 0.7 * Math.exp(-3.5 * progress) + 0.08 + noise();
-                    const trainAcc = 0.5 + 0.48 * (1 - Math.exp(-5 * progress)) + noise();
-                    const valAcc = 0.5 + 0.45 * (1 - Math.exp(-4 * progress)) + noise();
+                        const statusRes = await fetch(`${API_BASE_URL}/api/train/${session_id}`);
+                        const status = await statusRes.json();
 
-                    const epochData = {
-                        epoch,
-                        trainLoss: Math.max(0.02, trainLoss),
-                        valLoss: Math.max(0.05, valLoss),
-                        trainAcc: Math.min(0.99, Math.max(0.5, trainAcc)),
-                        valAcc: Math.min(0.97, Math.max(0.5, valAcc))
-                    };
+                        if (status.error) {
+                            throw new Error(status.error);
+                        }
 
-                    history.push(epochData);
-                    setTrainingHistory([...history]);
+                        // Update queue info
+                        setQueuePosition(status.queue_position || 0);
+                        setServerStats({ active: status.active_trainings || 0, max: status.max_concurrent || 5 });
 
-                    // Update gradient flow
-                    setGradientFlow([
-                        0.9 - epoch * 0.005 + Math.random() * 0.1,
-                        ...hiddenLayers.map((_, i) =>
-                            0.85 - i * 0.08 - epoch * 0.003 + Math.random() * 0.15
-                        ),
-                        0.8 + Math.random() * 0.15
-                    ]);
+                        // Update batch progress
+                        setCurrentBatch(status.current_batch || 0);
+                        setTotalBatches(status.total_batches || 0);
+
+                        // Show appropriate status message
+                        if (status.queue_position > 0) {
+                            setTrainingStatus(`In queue: position ${status.queue_position} (${status.active_trainings}/${status.max_concurrent} training)`);
+                        } else {
+                            setTrainingStatus(status.status);
+                        }
+                        setCurrentEpoch(status.current_epoch || 0);
+
+                        if (status.history && status.history.length > 0) {
+                            setTrainingHistory([...status.history]);
+                        }
+
+                        if (status.status === 'complete') {
+                            complete = true;
+
+                            // Set filters from backend
+                            if (status.filters) {
+                                setTrainedFilters(status.filters);
+                            }
+
+                            // Set test accuracy
+                            if (status.test_accuracy) {
+                                setTestAccuracy(status.test_accuracy);
+                            }
+
+                            // Set predictions - use actual images from backend
+                            if (status.sample_predictions) {
+                                const results = status.sample_predictions.map(pred => ({
+                                    imageData: pred.imageData,
+                                    trueLabel: CLASSES[pred.true],
+                                    predictedLabel: CLASSES[pred.predicted]
+                                }));
+                                setClassificationResults(results);
+                            }
+
+                            setIsModelTrained(true);
+                            setTrainingStatus('Training complete!');
+                        }
+
+                        if (status.status === 'error') {
+                            throw new Error(status.error || 'Training failed');
+                        }
+                    }
+
+                } catch (error) {
+                    console.error('Training error:', error);
+                    setTrainingStatus(`Error: ${error.message}`);
                 }
 
-                // Generate final confusion matrix for binary classification
-                // Simulating ~95% accuracy
-                const total = 114; // Test set size
-                const tp = Math.floor(40 + Math.random() * 5); // True positives (Malignant correctly identified)
-                const tn = Math.floor(65 + Math.random() * 5); // True negatives (Benign correctly identified)
-                const fp = Math.floor(2 + Math.random() * 3);  // False positives
-                const fn = Math.floor(2 + Math.random() * 3);  // False negatives
+                setIsTraining(false);
+            };
 
-                setConfusionMatrix([[tn, fp], [fn, tp]]);
+            const latestMetrics = trainingHistory.length > 0 ? trainingHistory[trainingHistory.length - 1] : null;
 
-                // Generate feature importance
-                const importance = KEY_FEATURES.map(name => ({
-                    name,
-                    value: 0.5 + Math.random() * 0.5
-                })).sort((a, b) => b.value - a.value);
-                setFeatureImportance(importance);
+            return (
+                <div>
+                    <div className="grid-2-fixed">
+                        <div className="section-card">
+                            <div className="section-title">Architecture Controls</div>
 
-                // Update final metrics
-                const lastEpoch = history[history.length - 1];
-                setMetrics({
-                    trainAcc: lastEpoch.trainAcc,
-                    valAcc: lastEpoch.valAcc,
-                    trainLoss: lastEpoch.trainLoss,
-                    valLoss: lastEpoch.valLoss,
-                    params: paramCount,
-                    trainTime: (Date.now() - startTime) / 1000
-                });
+                            <div className="control-group">
+                                <div className="control-label">
+                                    <span>Convolutional Blocks</span>
+                                    <span className="control-value">{config.convBlocks}</span>
+                                </div>
+                                <input type="range" className="slider" min="1" max="5" value={config.convBlocks}
+                                    onChange={(e) => setConfig({...config, convBlocks: parseInt(e.target.value)})} />
+                            </div>
 
+                            <div className="control-group">
+                                <div className="control-label">Base Filters</div>
+                                <div className="button-group">
+                                    {[16, 32, 64].map(f => (
+                                        <button key={f} className={`option-btn ${config.filters === f ? 'active' : ''}`}
+                                            onClick={() => setConfig({...config, filters: f})}>{f}</button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="control-group">
+                                <div className="control-label">Kernel Size</div>
+                                <div className="button-group">
+                                    {[3, 5].map(k => (
+                                        <button key={k} className={`option-btn ${config.kernelSize === k ? 'active' : ''}`}
+                                            onClick={() => setConfig({...config, kernelSize: k})}>{k}×{k}</button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="control-group">
+                                <div className="control-label">Pooling Type</div>
+                                <div className="button-group">
+                                    <button className={`option-btn ${config.poolType === 'max' ? 'active' : ''}`}
+                                        onClick={() => setConfig({...config, poolType: 'max'})}>Max</button>
+                                    <button className={`option-btn ${config.poolType === 'avg' ? 'active' : ''}`}
+                                        onClick={() => setConfig({...config, poolType: 'avg'})}>Average</button>
+                                </div>
+                            </div>
+
+                            <div className="control-group">
+                                <div className="control-label">
+                                    <span>Dropout Rate</span>
+                                    <span className="control-value">{config.dropout.toFixed(2)}</span>
+                                </div>
+                                <input type="range" className="slider" min="0" max="0.5" step="0.05" value={config.dropout}
+                                    onChange={(e) => setConfig({...config, dropout: parseFloat(e.target.value)})} />
+                            </div>
+
+                            <div className="control-group">
+                                <div className="control-label">
+                                    <span>Training Epochs</span>
+                                    <span className="control-value">{config.epochs}</span>
+                                </div>
+                                <input type="range" className="slider" min="1" max="10" step="1" value={config.epochs}
+                                    onChange={(e) => setConfig({...config, epochs: parseInt(e.target.value)})} />
+                            </div>
+
+                            <div className="control-group">
+                                <div className="control-label">
+                                    <span>Training Samples</span>
+                                    <span className="control-value">{config.numSamples.toLocaleString()}</span>
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                                    {[100, 300, 500].map(n => (
+                                        <button
+                                            key={n}
+                                            onClick={() => setConfig({...config, numSamples: n})}
+                                            style={{
+                                                flex: 1,
+                                                padding: '0.5rem',
+                                                border: config.numSamples === n ? '2px solid #2774AE' : '1px solid #ddd',
+                                                borderRadius: '6px',
+                                                background: config.numSamples === n ? '#2774AE' : '#f5f5f5',
+                                                color: config.numSamples === n ? 'white' : '#333',
+                                                cursor: 'pointer',
+                                                fontWeight: config.numSamples === n ? 'bold' : 'normal',
+                                                fontSize: '0.85rem',
+                                                transition: 'all 0.15s ease'
+                                            }}
+                                        >
+                                            {n.toLocaleString()}
+                                        </button>
+                                    ))}
+                                </div>
+                                <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '0.3rem' }}>
+                                    More samples = better accuracy, slower training (max 500 per class)
+                                </div>
+                            </div>
+
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: '0.5rem',
+                                marginBottom: '0.5rem',
+                                padding: '0.5rem 0.75rem',
+                                borderRadius: '6px',
+                                background: backendStatus === 'connected' ? '#e8f5e9' : backendStatus === 'checking' ? '#fff3e0' : '#ffebee',
+                                fontSize: '0.8rem'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <div style={{
+                                        width: '8px',
+                                        height: '8px',
+                                        borderRadius: '50%',
+                                        background: backendStatus === 'connected' ? '#4CAF50' : backendStatus === 'checking' ? '#FF9800' : '#f44336'
+                                    }} />
+                                    <span>
+                                        {backendStatus === 'connected' && 'Python backend connected'}
+                                        {backendStatus === 'checking' && 'Checking backend...'}
+                                        {backendStatus === 'disconnected' && 'Backend not connected — start Python server on port 5000'}
+                                    </span>
+                                </div>
+                                {backendStatus === 'connected' && (
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.5rem',
+                                        color: '#666',
+                                        fontSize: '0.75rem'
+                                    }}>
+                                        <span>🖥️ {serverStats.active}/{serverStats.max} active</span>
+                                        {serverStats.queue > 0 && <span>• {serverStats.queue} queued</span>}
+                                    </div>
+                                )}
+                            </div>
+
+                            <button className="run-button" onClick={runTraining} disabled={isTraining || backendStatus !== 'connected'}>
+                                {isTraining ? <><div className="loading-spinner" /> {trainingStatus}</> : <>▶ Train CNN (Python/Keras)</>}
+                            </button>
+
+                            {isTraining && totalBatches > 0 && (
+                                <div style={{ marginTop: '1rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', fontSize: '0.75rem', color: '#666' }}>
+                                        <span>Mini-batch SGD (batch size: 64)</span>
+                                        <span>{currentBatch} / {totalBatches} batches</span>
+                                    </div>
+                                    <div style={{ width: '100%', height: '8px', background: '#f0f0f0', borderRadius: '4px', overflow: 'hidden' }}>
+                                        <div style={{
+                                            width: `${(currentBatch / totalBatches) * 100}%`,
+                                            height: '100%',
+                                            background: 'linear-gradient(90deg, #2774AE, #FFD100)',
+                                            transition: 'width 0.1s ease',
+                                            borderRadius: '4px'
+                                        }} />
+                                    </div>
+                                </div>
+                            )}
+
+                            {isModelTrained && testAccuracy && (
+                                <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#4CAF50' }}>
+                                    ✓ Model trained — Test Accuracy: {testAccuracy.toFixed(1)}%
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="section-card">
+                            <div className="section-title">Model Metrics</div>
+
+                            {isTraining && (
+                                <div className="epoch-indicator">
+                                    <div className="epoch-dot" />
+                                    Training Epoch {currentEpoch} of {config.epochs}
+                                </div>
+                            )}
+
+                            <div className="metrics-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+                                <div className="metric-item">
+                                    <div className="metric-value">{latestMetrics ? latestMetrics.trainAcc.toFixed(1) : '0.0'}%</div>
+                                    <div className="metric-label">Train Accuracy</div>
+                                </div>
+                                <div className="metric-item">
+                                    <div className="metric-value">{latestMetrics ? latestMetrics.valAcc.toFixed(1) : '0.0'}%</div>
+                                    <div className="metric-label">Val Accuracy</div>
+                                </div>
+                                <div className="metric-item">
+                                    <div className="metric-value">{(calculateParams / 1000).toFixed(0)}K</div>
+                                    <div className="metric-label">Parameters</div>
+                                </div>
+                                <div className="metric-item">
+                                    <div className="metric-value">{latestMetrics ? latestMetrics.trainLoss.toFixed(3) : '0.000'}</div>
+                                    <div className="metric-label">Train Loss</div>
+                                </div>
+                            </div>
+
+                            <div style={{ marginTop: '1.5rem' }}>
+                                <div className="section-title" style={{ fontSize: '0.9rem' }}>Network Architecture</div>
+                                <CNNPipeline config={config} isTraining={isTraining} />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid-2" style={{ marginTop: '1.5rem' }}>
+                        <div className="section-card">
+                            <div className="section-title">📈 Accuracy vs Epoch</div>
+                            <div className="chart-container"><TrainingChart trainingHistory={trainingHistory} totalEpochs={config.epochs} /></div>
+                        </div>
+                        <div className="section-card">
+                            <div className="section-title">📉 Loss vs Epoch</div>
+                            <div className="chart-container"><LossChart trainingHistory={trainingHistory} totalEpochs={config.epochs} /></div>
+                        </div>
+                    </div>
+
+                    <div className="grid-2" style={{ marginTop: '1.5rem' }}>
+                        <div className="section-card">
+                            <div className="section-title">Training Samples (Bears, Lions, Tigers)</div>
+                            <div className="grid-4">
+                                {sampleImages.map((img, idx) => (
+                                    <SampleImage key={idx} imageData={img.imageData} trueLabel={img.trueLabel} predictedLabel={img.trueLabel} showResult={false} />
+                                ))}
+                            </div>
+                        </div>
+                        <div className="section-card">
+                            <div className="section-title">Classification Results</div>
+                            {classificationResults.length > 0 ? (
+                                <div className="grid-4">
+                                    {classificationResults.map((img, idx) => (
+                                        <SampleImage key={idx} imageData={img.imageData} trueLabel={img.trueLabel} predictedLabel={img.predictedLabel} showResult={true} />
+                                    ))}
+                                </div>
+                            ) : (
+                                <div style={{ textAlign: 'center', padding: '2rem', color: '#888' }}>Train the model to see classification results</div>
+                            )}
+                        </div>
+                    </div>
+
+                </div>
+            );
+        };
+
+        // Transfer Learning Tab (simplified)
+        const TransferLearningTab = () => {
+            const [selectedModel, setSelectedModel] = useState('resnet50');
+            const [strategy, setStrategy] = useState('finetune');
+            const [freezeLayers, setFreezeLayers] = useState(80);
+            const [isTraining, setIsTraining] = useState(false);
+            const [trainingHistory, setTrainingHistory] = useState([]);
+
+            const models = [
+                { id: 'vgg16', name: 'VGG16', params: '138M', accuracy: '71.3%', icon: '' },
+                { id: 'resnet50', name: 'ResNet50', params: '25.6M', accuracy: '76.1%', icon: '' },
+                { id: 'mobilenet', name: 'MobileNetV2', params: '3.4M', accuracy: '71.8%', icon: '' },
+                { id: 'efficientnet', name: 'EfficientNet-B0', params: '5.3M', accuracy: '77.1%', icon: '' }
+            ];
+
+            const totalLayers = selectedModel === 'vgg16' ? 16 : selectedModel === 'resnet50' ? 50 : selectedModel === 'mobilenet' ? 53 : 237;
+            const frozenLayers = Math.round(totalLayers * freezeLayers / 100);
+
+            const runTransferLearning = async () => {
+                setIsTraining(true);
+                setTrainingHistory([]);
+
+                const baseAcc = selectedModel === 'efficientnet' ? 88 : selectedModel === 'resnet50' ? 85 : 80;
+                const strategyBonus = strategy === 'finetune' ? 8 : 0;
+
+                for (let epoch = 1; epoch <= 15; epoch++) {
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                    const progress = epoch / 15;
+                    const curve = 1 - Math.exp(-4 * progress);
+
+                    setTrainingHistory(prev => [...prev, {
+                        trainAcc: Math.min(99, baseAcc + strategyBonus + curve * 10 + Math.random() * 2),
+                        valAcc: Math.min(96, baseAcc + strategyBonus - 5 + curve * 12 + Math.random() * 3),
+                        trainLoss: Math.max(0.02, 1.5 * (1 - curve) + Math.random() * 0.05),
+                        valLoss: Math.max(0.05, 1.8 * (1 - curve) + Math.random() * 0.08)
+                    }]);
+                }
                 setIsTraining(false);
             };
 
             return (
                 <div>
-                    {/* DARK HEADER */}
-                    <header style={{
-                        background: '#2774AE',
-                        padding: '1rem 2rem 1.5rem 2rem',
-                        position: 'sticky',
-                        top: 0,
-                        zIndex: 100
-                    }}>
-                        <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div>
-                                <p style={{ fontSize: '0.65rem', color: '#FFD100', fontWeight: 400, marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
-                                    MGMT298D: Science and Strategy of AI
-                                </p>
-                                <h1 style={{ fontSize: '1.4rem', fontWeight: 600, color: '#f5f5f5', letterSpacing: '0' }}>
-                                    Week 5: Neural Networks
-                                </h1>
-                                <p style={{ fontSize: '0.85rem', color: '#c0c0c0', marginTop: '0.25rem' }}>
-                                    Breast Cancer Diagnosis Classification
-                                </p>
+                    <div className="grid-2">
+                        <div className="section-card">
+                            <div className="section-title">Pre-trained Model Selection</div>
+                            <div className="grid-2" style={{ gap: '0.75rem' }}>
+                                {models.map(model => (
+                                    <div key={model.id} onClick={() => setSelectedModel(model.id)}
+                                        style={{
+                                            padding: '1rem', borderRadius: '10px', cursor: 'pointer', transition: 'all 0.2s',
+                                            border: selectedModel === model.id ? '2px solid #2774AE' : '2px solid #eee',
+                                            background: selectedModel === model.id ? 'rgba(39,116,174,0.05)' : '#fff'
+                                        }}>
+                                        <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>{model.icon}</div>
+                                        <div style={{ fontWeight: 600 }}>{model.name}</div>
+                                        <div style={{ fontSize: '0.75rem', color: '#888' }}>{model.params} params</div>
+                                        <div style={{ fontSize: '0.75rem', color: '#2774AE' }}>ImageNet: {model.accuracy}</div>
+                                    </div>
+                                ))}
                             </div>
-                            <div style={{ textAlign: 'right' }}>
-                                <span style={{
-                                    fontSize: '1rem',
-                                    fontWeight: 500,
-                                    color: '#f5f5f5'
-                                }}>
-                                    UCLA Anderson
-                                </span>
+
+                            <div style={{ marginTop: '1.5rem' }}>
+                                <div className="control-label">Transfer Strategy</div>
+                                <div className="button-group">
+                                    <button className={`option-btn ${strategy === 'feature' ? 'active' : ''}`} onClick={() => setStrategy('feature')}>Feature Extraction</button>
+                                    <button className={`option-btn ${strategy === 'finetune' ? 'active' : ''}`} onClick={() => setStrategy('finetune')}>Fine-tuning</button>
+                                </div>
                             </div>
+
+                            <div className="control-group" style={{ marginTop: '1rem' }}>
+                                <div className="control-label">
+                                    <span>Freeze Layers</span>
+                                    <span className="control-value">{freezeLayers}% ({frozenLayers}/{totalLayers})</span>
+                                </div>
+                                <input type="range" className="slider" min="50" max="100" value={freezeLayers}
+                                    onChange={(e) => setFreezeLayers(parseInt(e.target.value))} />
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                                <div style={{ flex: freezeLayers, background: 'linear-gradient(90deg, #8BB8E8, #2774AE)', padding: '0.5rem', borderRadius: '6px', color: 'white', fontSize: '0.75rem', textAlign: 'center' }}>Frozen</div>
+                                <div style={{ flex: 100 - freezeLayers, background: 'linear-gradient(90deg, #FFD100, #FFA500)', padding: '0.5rem', borderRadius: '6px', color: '#333', fontSize: '0.75rem', textAlign: 'center' }}>Trainable</div>
+                            </div>
+
+                            <button className="run-button" style={{ marginTop: '1.5rem' }} onClick={runTransferLearning} disabled={isTraining}>
+                                {isTraining ? <><div className="loading-spinner" /> Training...</> : <>▶ Run Transfer Learning</>}
+                            </button>
                         </div>
-                        <div className="header-gold-line"></div>
-                    </header>
 
-                    {/* MAIN CONTENT SECTION */}
-                    <div className="controls-section">
-                        <div className="controls-content">
-                                <div className="simulator-layout">
-                                    <aside className="control-panel">
-                                        <h2 className="panel-title">Network Configuration</h2>
-
-                                        <div className="control-section">
-                                            <div className="section-label">Architecture</div>
-
-                                            <div className="layer-builder">
-                                                {hiddenLayers.map((nodes, idx) => (
-                                                    <div key={idx} className="layer-row">
-                                                        <span className="layer-number">Layer {idx + 1}</span>
-                                                        <select
-                                                            className="layer-nodes-select"
-                                                            value={nodes}
-                                                            onChange={(e) => updateLayerSize(idx, e.target.value)}
-                                                        >
-                                                            <option value={8}>8 nodes</option>
-                                                            <option value={16}>16 nodes</option>
-                                                            <option value={32}>32 nodes</option>
-                                                            <option value={64}>64 nodes</option>
-                                                            <option value={128}>128 nodes</option>
-                                                        </select>
-                                                        {hiddenLayers.length > 1 && (
-                                                            <button
-                                                                className="layer-remove-btn"
-                                                                onClick={() => removeLayer(idx)}
-                                                            >
-                                                                x
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                ))}
-                                                {hiddenLayers.length < 5 && (
-                                                    <button className="add-layer-btn" onClick={addLayer}>
-                                                        + Add Hidden Layer
-                                                    </button>
-                                                )}
-                                            </div>
-
-                                            <div className="control-group">
-                                                <label className="control-label">Activation Function</label>
-                                                <select
-                                                    value={activation}
-                                                    onChange={(e) => setActivation(e.target.value)}
-                                                >
-                                                    <option value="relu">ReLU</option>
-                                                    <option value="sigmoid">Sigmoid</option>
-                                                    <option value="tanh">Tanh</option>
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <div className="control-section">
-                                            <div className="section-label">Regularization</div>
-
-                                            <div className="control-group">
-                                                <label className="control-label">
-                                                    Dropout Rate
-                                                    <span className="control-value">{dropout.toFixed(2)}</span>
-                                                </label>
-                                                <input
-                                                    type="range"
-                                                    min="0"
-                                                    max="0.5"
-                                                    step="0.05"
-                                                    value={dropout}
-                                                    onChange={(e) => setDropout(parseFloat(e.target.value))}
-                                                />
-                                            </div>
-
-                                            <div className="control-group">
-                                                <div className="toggle-container">
-                                                    <div
-                                                        className={`toggle ${batchNorm ? 'active' : ''}`}
-                                                        onClick={() => setBatchNorm(!batchNorm)}
-                                                    />
-                                                    <span className="control-label" style={{ marginBottom: 0 }}>
-                                                        Batch Normalization
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="control-section">
-                                            <div className="section-label">Training Parameters</div>
-
-                                            <div className="control-group">
-                                                <label className="control-label">
-                                                    Learning Rate
-                                                    <span className="control-value">{learningRate.toFixed(4)}</span>
-                                                </label>
-                                                <input
-                                                    type="range"
-                                                    min="-4"
-                                                    max="-1"
-                                                    step="0.1"
-                                                    value={Math.log10(learningRate)}
-                                                    onChange={(e) => setLearningRate(Math.pow(10, parseFloat(e.target.value)))}
-                                                />
-                                            </div>
-
-                                            <div className="control-group">
-                                                <label className="control-label">Batch Size</label>
-                                                <select
-                                                    value={batchSize}
-                                                    onChange={(e) => setBatchSize(parseInt(e.target.value))}
-                                                >
-                                                    <option value={16}>16</option>
-                                                    <option value={32}>32</option>
-                                                    <option value={64}>64</option>
-                                                    <option value={128}>128</option>
-                                                </select>
-                                            </div>
-
-                                            <div className="control-group">
-                                                <label className="control-label">
-                                                    Epochs
-                                                    <span className="control-value">{epochs}</span>
-                                                </label>
-                                                <input
-                                                    type="range"
-                                                    min="10"
-                                                    max="200"
-                                                    step="10"
-                                                    value={epochs}
-                                                    onChange={(e) => setEpochs(parseInt(e.target.value))}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <button
-                                            className={`train-btn ${isTraining ? 'training' : ''}`}
-                                            onClick={startTraining}
-                                            disabled={isTraining}
-                                        >
-                                            {isTraining ? `Training... Epoch ${currentEpoch}/${epochs}` : 'Train Model'}
-                                        </button>
-
-                                        {isTraining && (
-                                            <div className="training-progress">
-                                                <div className="progress-bar">
-                                                    <div
-                                                        className="progress-fill"
-                                                        style={{ width: `${(currentEpoch / epochs) * 100}%` }}
-                                                    />
-                                                </div>
-                                                <div className="progress-text">
-                                                    {Math.round((currentEpoch / epochs) * 100)}% complete
-                                                </div>
-                                            </div>
-                                        )}
-                                    </aside>
-
-                                    {/* Right side - Network viz + charts stacked */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                        {/* Neural Network Visualization */}
-                                        <div className="network-viz-card" style={{ margin: 0 }}>
-                                            <div className="card-header">
-                                                <h3 className="card-title">
-                                                    Network Architecture
-                                                </h3>
-                                                <span className="param-count">
-                                                    {paramCount.toLocaleString()} parameters
-                                                </span>
-                                            </div>
-                                            <div className="network-svg-container">
-                                                <NeuralNetworkViz
-                                                    layers={hiddenLayers}
-                                                    activation={activation}
-                                                    dropout={dropout}
-                                                    batchNorm={batchNorm}
-                                                    isTraining={isTraining}
-                                                    currentEpoch={currentEpoch}
-                                                    nFeatures={30}
-                                                />
-                                            </div>
-                                            <div className="network-legend">
-                                                <div className="legend-item">
-                                                    <div className="legend-dot" style={{ background: '#6b7280' }}></div>
-                                                    Input (30 features)
-                                                </div>
-                                                <div className="legend-item">
-                                                    <div className="legend-dot" style={{ background: ACTIVATION_COLORS[activation] }}></div>
-                                                    Hidden ({activation.toUpperCase()})
-                                                </div>
-                                                <div className="legend-item">
-                                                    <div className="legend-dot" style={{ background: '#22c55e' }}></div>
-                                                    Benign
-                                                </div>
-                                                <div className="legend-item">
-                                                    <div className="legend-dot" style={{ background: '#ef4444' }}></div>
-                                                    Malignant
-                                                </div>
-                                                {dropout > 0 && (
-                                                    <div className="legend-item">
-                                                        <div className="legend-dot" style={{
-                                                            background: 'transparent',
-                                                            border: `2px dashed ${colors.primary}`
-                                                        }}></div>
-                                                        Dropout Nodes
-                                                    </div>
-                                                )}
-                                                {batchNorm && (
-                                                    <div className="legend-item">
-                                                        <div className="legend-bar" style={{ background: colors.lightBlue }}></div>
-                                                        Batch Norm
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        {/* Training Charts - side by side below network */}
-                                        <div className="charts-grid" style={{ marginBottom: 0 }}>
-                                            <div className="chart-card">
-                                                <h3 className="card-title">Accuracy Over Epochs</h3>
-                                                <div className="chart-container">
-                                                    <AccuracyChart
-                                                        trainingHistory={trainingHistory}
-                                                        totalEpochs={epochs}
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div className="chart-card">
-                                                <h3 className="card-title">Loss Over Epochs</h3>
-                                                <div className="chart-container">
-                                                    <LossChart
-                                                        trainingHistory={trainingHistory}
-                                                        totalEpochs={epochs}
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Metrics row - below charts */}
-                                        <div className="metrics-grid" style={{ marginBottom: 0 }}>
-                                            <div className="metric-card">
-                                                <div className="metric-value">
-                                                    {(metrics.trainAcc * 100).toFixed(1)}%
-                                                </div>
-                                                <div className="metric-label">Train Accuracy</div>
-                                            </div>
-                                            <div className="metric-card">
-                                                <div className="metric-value positive">
-                                                    {(metrics.valAcc * 100).toFixed(1)}%
-                                                </div>
-                                                <div className="metric-label">Val Accuracy</div>
-                                            </div>
-                                            <div className="metric-card">
-                                                <div className="metric-value neutral">
-                                                    {metrics.valLoss.toFixed(3)}
-                                                </div>
-                                                <div className="metric-label">Val Loss</div>
-                                            </div>
-                                            <div className="metric-card">
-                                                <div className="metric-value" style={{ color: colors.text }}>
-                                                    {metrics.trainTime.toFixed(1)}s
-                                                </div>
-                                                <div className="metric-label">Training Time</div>
-                                            </div>
-                                        </div>
+                        <div className="section-card">
+                            <div className="section-title">📈 Training Progress</div>
+                            <div className="chart-container"><TrainingChart trainingHistory={trainingHistory} totalEpochs={15} /></div>
+                            {trainingHistory.length > 0 && (
+                                <div className="metrics-grid" style={{ marginTop: '1rem', gridTemplateColumns: 'repeat(2, 1fr)' }}>
+                                    <div className="metric-item">
+                                        <div className="metric-value">{trainingHistory[trainingHistory.length-1].valAcc.toFixed(1)}%</div>
+                                        <div className="metric-label">Final Val Accuracy</div>
+                                    </div>
+                                    <div className="metric-item">
+                                        <div className="metric-value">{strategy === 'feature' ? '~2 min' : '~10 min'}</div>
+                                        <div className="metric-label">Est. Training Time</div>
                                     </div>
                                 </div>
+                            )}
                         </div>
                     </div>
-
-                    {/* RESULTS SECTION */}
-                        <div className="results-section">
-                            <div className="results-content">
-
-                                {/* Confusion Matrix and Gradient Flow */}
-                                {trainingHistory.length > 0 && (
-                                    <div className="charts-grid">
-                                        <div className="chart-card">
-                                            <h3 className="card-title">
-                                                Confusion Matrix
-                                            </h3>
-                                            <ConfusionMatrix matrix={confusionMatrix} />
-                                        </div>
-
-                                        <div className="chart-card">
-                                            <h3 className="card-title">
-                                                Gradient Flow
-                                            </h3>
-                                            <GradientFlowViz
-                                                layers={hiddenLayers}
-                                                gradients={gradientFlow.length > 0 ? gradientFlow :
-                                                    [0.5, ...hiddenLayers.map(() => 0.5), 0.5]}
-                                            />
-                                            <div style={{
-                                                marginTop: '1rem',
-                                                fontSize: '0.8rem',
-                                                color: colors.lightMuted,
-                                                textAlign: 'center'
-                                            }}>
-                                                Green = healthy gradients, Red = vanishing gradients
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Feature Importance */}
-                                {featureImportance.length > 0 && (
-                                    <div className="chart-card">
-                                        <h3 className="card-title">
-                                            Top Feature Importance (Approximate)
-                                        </h3>
-                                        <div style={{ marginTop: '1rem' }}>
-                                            <FeatureImportance importance={featureImportance} />
-                                        </div>
-                                        <div style={{
-                                            marginTop: '1rem',
-                                            fontSize: '0.75rem',
-                                            color: colors.lightMuted,
-                                            textAlign: 'center'
-                                        }}>
-                                            Features like radius, perimeter, and area are often most predictive for tumor classification
-                                        </div>
-                                    </div>
-                                )}
-
-                            </div>
-                        </div>
-
-                    {/* Footer */}
-                    <p style={{ color: '#888', fontSize: '0.75rem', marginTop: '20px', textAlign: 'center' }}>
-                        MGMT298D: Science and Strategy of AI | UCLA Anderson School of Management
-                    </p>
                 </div>
             );
         };
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        // Facial Expression Recognition Tab
+        const FacialExpressionTab = () => {
+            const [isModelLoaded, setIsModelLoaded] = useState(false);
+            const [isLoading, setIsLoading] = useState(true);
+            const [loadingStatus, setLoadingStatus] = useState('Loading face detection models...');
+            const [isRunning, setIsRunning] = useState(false);
+            const [expressions, setExpressions] = useState(null);
+            const [error, setError] = useState(null);
+            
+            const videoRef = useRef(null);
+            const canvasRef = useRef(null);
+            const streamRef = useRef(null);
+            const animationRef = useRef(null);
+            
+            const expressionLabels = {
+                neutral: 'Neutral',
+                happy: 'Happy',
+                sad: 'Sad',
+                angry: 'Angry',
+                fearful: 'Fearful',
+                disgusted: 'Disgusted',
+                surprised: 'Surprised'
+            };
+            
+            const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model';
+            
+            // Load models on mount
+            useEffect(() => {
+                const loadModels = async () => {
+                    try {
+                        setLoadingStatus('Loading face detection model...');
+                        await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+                        
+                        setLoadingStatus('Loading expression recognition model...');
+                        await faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL);
+                        
+                        setIsModelLoaded(true);
+                        setIsLoading(false);
+                        setLoadingStatus('Models loaded! Click "Start Camera" to begin.');
+                    } catch (err) {
+                        console.error('Error loading models:', err);
+                        setError('Failed to load face detection models. Please refresh the page.');
+                        setIsLoading(false);
+                    }
+                };
+                
+                loadModels();
+                
+                return () => {
+                    stopCamera();
+                };
+            }, []);
+            
+            const startCamera = async () => {
+                try {
+                    setError(null);
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' }
+                    });
+                    
+                    streamRef.current = stream;
+                    if (videoRef.current) {
+                        videoRef.current.srcObject = stream;
+                        videoRef.current.onloadedmetadata = () => {
+                            if (canvasRef.current) {
+                                canvasRef.current.width = videoRef.current.videoWidth;
+                                canvasRef.current.height = videoRef.current.videoHeight;
+                            }
+                            setIsRunning(true);
+                            detectExpressions();
+                        };
+                    }
+                } catch (err) {
+                    console.error('Camera error:', err);
+                    setError('Could not access camera. Please allow camera permissions.');
+                }
+            };
+            
+            const stopCamera = () => {
+                setIsRunning(false);
+                if (animationRef.current) {
+                    cancelAnimationFrame(animationRef.current);
+                    animationRef.current = null;
+                }
+                if (streamRef.current) {
+                    streamRef.current.getTracks().forEach(track => track.stop());
+                    streamRef.current = null;
+                }
+                if (canvasRef.current) {
+                    const ctx = canvasRef.current.getContext('2d');
+                    ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+                }
+                setExpressions(null);
+            };
+            
+            const detectExpressions = async () => {
+                if (!videoRef.current || !canvasRef.current || !isModelLoaded) return;
+                
+                const detections = await faceapi
+                    .detectAllFaces(videoRef.current, new faceapi.TinyFaceDetectorOptions())
+                    .withFaceExpressions();
+                
+                const ctx = canvasRef.current.getContext('2d');
+                ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+                
+                if (detections.length > 0) {
+                    // Draw face boxes
+                    detections.forEach(detection => {
+                        const box = detection.detection.box;
+                        ctx.strokeStyle = '#2774AE';
+                        ctx.lineWidth = 3;
+                        ctx.strokeRect(box.x, box.y, box.width, box.height);
+                        
+                        // Draw expression label above box
+                        const sorted = Object.entries(detection.expressions).sort((a, b) => b[1] - a[1]);
+                        const [topExpr, topConf] = sorted[0];
+                        const label = `${topExpr} (${(topConf * 100).toFixed(0)}%)`;
+                        
+                        ctx.fillStyle = '#2774AE';
+                        ctx.fillRect(box.x, box.y - 25, ctx.measureText(label).width + 16, 22);
+                        ctx.fillStyle = 'white';
+                        ctx.font = '14px Inter, sans-serif';
+                        ctx.fillText(label, box.x + 8, box.y - 8);
+                    });
+                    
+                    setExpressions(detections[0].expressions);
+                } else {
+                    setExpressions(null);
+                }
+                
+                if (streamRef.current) {
+                    animationRef.current = requestAnimationFrame(detectExpressions);
+                }
+            };
+            
+            const sortedExpressions = expressions 
+                ? Object.entries(expressions).sort((a, b) => b[1] - a[1])
+                : null;
+            
+            const topExpression = sortedExpressions ? sortedExpressions[0] : null;
+            
+            return (
+                <div>
+                    <div className="grid-2">
+                        <div className="section-card">
+                            <div className="section-title">Live Camera Feed</div>
+                            
+                            <div style={{ position: 'relative', width: '100%', borderRadius: '8px', overflow: 'hidden', background: '#000' }}>
+                                <video 
+                                    ref={videoRef} 
+                                    autoPlay 
+                                    muted 
+                                    playsInline
+                                    style={{ width: '100%', display: 'block', transform: 'scaleX(-1)' }}
+                                />
+                                <canvas 
+                                    ref={canvasRef}
+                                    style={{ 
+                                        position: 'absolute', 
+                                        top: 0, 
+                                        left: 0, 
+                                        width: '100%', 
+                                        height: '100%',
+                                        transform: 'scaleX(-1)'
+                                    }}
+                                />
+                                {!isRunning && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: 0, left: 0, right: 0, bottom: 0,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        background: 'rgba(0,0,0,0.7)',
+                                        color: 'white',
+                                        fontSize: '1.2rem'
+                                    }}>
+                                        {isLoading ? 'Loading models...' : 'Camera not started'}
+                                    </div>
+                                )}
+                            </div>
+                            
+                            <div style={{
+                                marginTop: '1rem',
+                                padding: '0.75rem 1rem',
+                                background: isLoading ? '#fff3cd' : error ? '#f8d7da' : isRunning ? '#d4edda' : '#f8f9fa',
+                                borderRadius: '8px',
+                                fontSize: '0.85rem',
+                                color: isLoading ? '#856404' : error ? '#721c24' : isRunning ? '#155724' : '#666'
+                            }}>
+                                {error || loadingStatus}
+                            </div>
+                            
+                            <button 
+                                className="run-button" 
+                                style={{ marginTop: '1rem' }}
+                                onClick={isRunning ? stopCamera : startCamera}
+                                disabled={isLoading || !!error}
+                            >
+                                {isRunning ? 'Stop Camera' : 'Start Camera'}
+                            </button>
+                        </div>
+                        
+                        <div className="section-card">
+                            <div className="section-title">Expression Detection</div>
+                            
+                            {sortedExpressions && topExpression ? (
+                                <>
+                                    <div style={{ textAlign: 'center', padding: '1.5rem' }}>
+                                        <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#2774AE', textTransform: 'capitalize' }}>
+                                            {topExpression[0]}
+                                        </div>
+                                        <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '0.25rem' }}>
+                                            {(topExpression[1] * 100).toFixed(1)}% confidence
+                                        </div>
+                                    </div>
+                                    
+                                    <div style={{ marginTop: '1rem' }}>
+                                        {sortedExpressions.map(([expr, conf], idx) => (
+                                            <div key={expr} className="confidence-bar-item">
+                                                <div className="confidence-bar-label" style={{ width: '100px', textTransform: 'capitalize' }}>
+                                                    {expr}
+                                                </div>
+                                                <div className="confidence-bar-track">
+                                                    <div 
+                                                        className="confidence-bar-fill" 
+                                                        style={{ 
+                                                            width: `${Math.max(conf * 100, 2)}%`,
+                                                            background: idx === 0 ? '#2774AE' : '#94a3b8'
+                                                        }}
+                                                    >
+                                                        {conf > 0.1 ? `${(conf * 100).toFixed(0)}%` : ''}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </>
+                            ) : (
+                                <div style={{ textAlign: 'center', padding: '3rem', color: '#888' }}>
+                                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>
+                                        {isRunning ? '' : ''}
+                                    </div>
+                                    {isRunning 
+                                        ? 'No face detected — make sure your face is visible'
+                                        : 'Start the camera to detect expressions'}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    
+                </div>
+            );
+        };
+
+        // Main App with Context Provider
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('cnn');
+            const [config, setConfig] = useState({
+                convBlocks: 2, filters: 32, kernelSize: 3,
+                poolType: 'max', batchNorm: false, dropout: 0.25, epochs: 10, numSamples: 300
+            });
+            const [trainingHistory, setTrainingHistory] = useState([]);
+            const [isModelTrained, setIsModelTrained] = useState(false);
+            const [trainedFilters, setTrainedFilters] = useState(null);
+
+            const modelState = {
+                config, setConfig,
+                trainingHistory, setTrainingHistory,
+                isModelTrained, setIsModelTrained,
+                trainedFilters, setTrainedFilters
+            };
+
+            const tabs = [
+                { id: 'cnn', label: 'CNN Builder' },
+                { id: 'transfer', label: 'Transfer Learning' },
+                { id: 'expression', label: 'Expression Recognition' }
+            ];
+
+            return (
+                <ModelContext.Provider value={{ modelState, setModelState: () => {} }}>
+                    <div className="app-container">
+                        <header className="header">
+                            <div className="header-content">
+                                <div className="header-left">
+                                    <div className="course-label">MGMT298D: Science and Strategy of AI</div>
+                                    <h1>Week 5: Convolutional Neural Networks</h1>
+                                    <p>Train a CNN to classify animals from CIFAR-100</p>
+                                </div>
+                                <div className="header-right">
+                                    <span className="ucla-anderson">UCLA Anderson</span>
+                                </div>
+                            </div>
+                            <div className="header-gold-line"></div>
+                        </header>
+
+                        <nav className="tab-navigation">
+                            {tabs.map(tab => (
+                                <button key={tab.id}
+                                    className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
+                                    onClick={() => setActiveTab(tab.id)}>
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </nav>
+
+                        <main className="main-content">
+                            {activeTab === 'cnn' && <CNNBuilderTab />}
+                            {activeTab === 'transfer' && <TransferLearningTab />}
+                            {activeTab === 'expression' && <FacialExpressionTab />}
+                        </main>
+
+                        <div className="footer">
+                            MGMT298D: Science and Strategy of AI | UCLA Anderson School of Management
+                        </div>
+                    </div>
+                </ModelContext.Provider>
+            );
+        };
+
+        ReactDOM.render(<App />, document.getElementById('root'));
     </script>
 </body>
 </html>

@@ -3,24 +3,716 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Week 4: Dynamic Pricing - UCLA Anderson MGMT 298D</title>
+    <title>Week 4: Neural Networks - Breast Cancer Diagnosis | UCLA Anderson</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
+
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background: #ffffff;
             min-height: 100vh;
             color: #1a1a1a;
         }
-    
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #ffffff;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #2774AE;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3a8ac4;
+        }
+
+        /* Header */
+        .header {
+            background: #ffffff;
+            border-bottom: 2px solid #2774AE;
+            padding: 1rem 2rem 1.5rem 2rem;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header-title .course-label {
+            font-size: 0.65rem;
+            color: #2774AE;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        .header-title h1 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #005587;
+            letter-spacing: -0.01em;
+        }
+
+        .header-title p {
+            font-size: 0.85rem;
+            color: #666666;
+            margin-top: 4px;
+        }
+
+        .header-right {
+            text-align: right;
+        }
+
+        .header-right .ucla-label {
+            font-size: 0.65rem;
+            color: #666666;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+
+        .header-right .anderson-label {
+            font-size: 0.9rem;
+            color: #2774AE;
+            font-weight: 500;
+        }
+
+        /* Controls Section - Light */
+        .controls-section {
+            background: #ffffff;
+        }
+
+        .controls-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px 24px;
+        }
+
+        .tab-navigation {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            padding: 10px 24px;
+            background: transparent;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 8px;
+            color: #666;
+            cursor: pointer;
+            font-weight: 400;
+            transition: all 0.2s ease;
+            font-family: inherit;
+            font-size: 0.85rem;
+            text-transform: capitalize;
+        }
+
+        .tab-btn:hover {
+            border-color: rgba(39, 116, 174, 0.5);
+            color: #1a1a1a;
+        }
+
+        .tab-btn.active {
+            background: #2774AE;
+            border-color: #2774AE;
+            color: white;
+            font-weight: 600;
+        }
+
+        .simulator-layout {
+            display: grid;
+            grid-template-columns: 340px 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+
+        .control-panel {
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        .panel-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: #1a1a1a;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .panel-title::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: #2774AE;
+            border-radius: 2px;
+        }
+
+        .control-section {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        }
+
+        .control-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .section-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #2774AE;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 1rem;
+        }
+
+        .control-group {
+            margin-bottom: 1rem;
+        }
+
+        .control-label {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .control-value {
+            font-family: 'JetBrains Mono', monospace;
+            color: #2774AE;
+            font-size: 0.8rem;
+        }
+
+        .slider-container {
+            position: relative;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #2774AE;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 8px rgba(39, 116, 174, 0.5);
+            transition: transform 0.2s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        select {
+            width: 100%;
+            padding: 12px 14px;
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 8px;
+            color: #1a1a1a;
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.2s ease;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23666' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 36px;
+        }
+
+        select:hover, select:focus {
+            border-color: #2774AE;
+        }
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .toggle {
+            position: relative;
+            width: 48px;
+            height: 26px;
+            background: #d0d0d0;
+            border-radius: 13px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+        }
+
+        .toggle.active {
+            background: #2774AE;
+        }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 18px;
+            height: 18px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle.active::after {
+            transform: translateX(22px);
+        }
+
+        .layer-builder {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .layer-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+            padding: 0.5rem;
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+        }
+
+        .layer-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .layer-number {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: #2774AE;
+            min-width: 50px;
+        }
+
+        .layer-nodes-select {
+            flex: 1;
+            padding: 0.4rem 0.6rem;
+            font-size: 0.8rem;
+        }
+
+        .layer-remove-btn {
+            width: 28px;
+            height: 28px;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 6px;
+            color: #005587;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .layer-remove-btn:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        .add-layer-btn {
+            width: 100%;
+            padding: 0.6rem;
+            background: rgba(39, 116, 174, 0.08);
+            border: 1px dashed rgba(39, 116, 174, 0.4);
+            border-radius: 8px;
+            color: #2774AE;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .add-layer-btn:hover {
+            background: rgba(39, 116, 174, 0.15);
+            border-color: #2774AE;
+        }
+
+        .train-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #2774AE 0%, #005587 100%);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(39, 116, 174, 0.4);
+        }
+
+        .train-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(39, 116, 174, 0.5);
+        }
+
+        .train-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .train-btn.training {
+            background: linear-gradient(135deg, #8BB8E8 0%, #2774AE 100%);
+        }
+
+        /* Light Results Section */
+        .results-section {
+            background: #ffffff;
+        }
+
+        .results-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .network-viz-card {
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .card-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #1a1a1a;
+        }
+
+        .card-title .icon {
+            font-size: 1.2rem;
+        }
+
+        .param-count {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: #2774AE;
+            background: rgba(39, 116, 174, 0.1);
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+        }
+
+        .network-svg-container {
+            width: 100%;
+            height: 400px;
+            background: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .network-legend {
+            display: flex;
+            gap: 1.5rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .legend-bar {
+            width: 20px;
+            height: 4px;
+            border-radius: 2px;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .chart-card {
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        .chart-container {
+            height: 250px;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+
+        .metric-card {
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 12px;
+            padding: 18px 14px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2774AE;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .metric-value.positive {
+            color: #2774AE;
+        }
+
+        .metric-value.neutral {
+            color: #005587;
+        }
+
+        .metric-label {
+            font-size: 0.65rem;
+            color: #666;
+            margin-top: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-weight: 600;
+        }
+
+        .confusion-matrix {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 1rem;
+            overflow-x: auto;
+        }
+
+        .matrix-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+        }
+
+        .matrix-table th {
+            padding: 0.75rem 1rem;
+            color: #666;
+            font-weight: 500;
+            font-size: 0.75rem;
+        }
+
+        .matrix-table td {
+            padding: 1rem 1.5rem;
+            text-align: center;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .gradient-flow-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 1rem;
+            background: #ffffff;
+            border-radius: 10px;
+        }
+
+        .gradient-bar {
+            width: 40px;
+            height: 100px;
+            border-radius: 4px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+
+        .gradient-fill {
+            border-radius: 4px;
+            transition: height 0.5s ease;
+        }
+
+        .gradient-label {
+            font-size: 0.65rem;
+            color: #666;
+            text-align: center;
+            margin-top: 0.5rem;
+        }
+
+        .feature-importance {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+
+        .feature-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.7rem;
+        }
+
+        .feature-name {
+            width: 100px;
+            text-align: right;
+            color: #666;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .feature-bar-fill {
+            height: 12px;
+            background: linear-gradient(90deg, #2774AE, #8BB8E8);
+            border-radius: 2px;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        @keyframes flowRight {
+            0% { stroke-dashoffset: 20; }
+            100% { stroke-dashoffset: 0; }
+        }
+
+        @keyframes nodeFire {
+            0% { filter: brightness(1); }
+            50% { filter: brightness(1.5); }
+            100% { filter: brightness(1); }
+        }
+
+        .training-progress {
+            margin-top: 1rem;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #2774AE, #8BB8E8);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 0.5rem;
+            text-align: center;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 1200px) {
+            .simulator-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .control-panel {
+                position: static;
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .activation-cards {
+                grid-template-columns: 1fr;
+            }
+        }
+
         .header-gold-line {
             position: absolute;
             bottom: 0;
@@ -35,1143 +727,1117 @@
 </head>
 <body>
     <div id="root"></div>
+
     <script type="text/babel">
-const { useState, useEffect, useRef, useCallback } = React;
-
-// UCLA Theme Colors
-const theme = {
-    primary: '#2774AE',
-    accent: '#2774AE',
-    darkBlue: '#005587',
-    lightBlue: '#8BB8E8',
-    positive: '#2774AE',
-    negative: '#005587',
-    darkBg: '#ffffff',
-    darkCard: '#1a1d24',
-    darkText: '#005587',
-    darkMuted: '#c0c0c0',
-    lightBg: '#f8f9fa',
-    lightCard: '#ffffff'
-};
-
-// Chart.js Area Chart Component
-function AreaChart({ data, dataKey, xKey, color, yMin, yMax }) {
-    const canvasRef = useRef(null);
-    const chartRef = useRef(null);
-
-    useEffect(() => {
-        if (!canvasRef.current || !data.length) return;
-        if (chartRef.current) chartRef.current.destroy();
-
-        const ctx = canvasRef.current.getContext('2d');
-        chartRef.current = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: data.map(d => d[xKey]),
-                datasets: [{
-                    data: data.map(d => d[dataKey]),
-                    borderColor: color,
-                    backgroundColor: color + '40',
-                    fill: true,
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: {
-                        ticks: { color: '#666', font: { size: 10 } },
-                        grid: { color: '#e0e0e0' }
-                    },
-                    y: {
-                        min: yMin,
-                        max: yMax,
-                        ticks: { color: '#666', font: { size: 10 } },
-                        grid: { color: '#e0e0e0' }
-                    }
-                }
-            }
-        });
-        return () => { if (chartRef.current) chartRef.current.destroy(); };
-    }, [data, dataKey, xKey, color, yMin, yMax]);
-
-    return <div style={{height: '120px'}}><canvas ref={canvasRef} /></div>;
-}
-
-// Chart.js Area Chart Component with smaller height
-function SmallAreaChart({ data, dataKey, xKey, color, yMin, yMax }) {
-    const canvasRef = useRef(null);
-    const chartRef = useRef(null);
-
-    useEffect(() => {
-        if (!canvasRef.current || !data.length) return;
-        if (chartRef.current) chartRef.current.destroy();
-
-        const ctx = canvasRef.current.getContext('2d');
-        chartRef.current = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: data.map(d => d[xKey]),
-                datasets: [{
-                    data: data.map(d => d[dataKey]),
-                    borderColor: color,
-                    backgroundColor: color + '40',
-                    fill: true,
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: {
-                        ticks: { color: '#666', font: { size: 10 } },
-                        grid: { color: '#e0e0e0' }
-                    },
-                    y: {
-                        min: yMin,
-                        max: yMax,
-                        ticks: { color: '#666', font: { size: 10 } },
-                        grid: { color: '#e0e0e0' }
-                    }
-                }
-            }
-        });
-        return () => { if (chartRef.current) chartRef.current.destroy(); };
-    }, [data, dataKey, xKey, color, yMin, yMax]);
-
-    return <div style={{height: '100px'}}><canvas ref={canvasRef} /></div>;
-}
-
-const TOTAL_SEATS = 75;
-const TOTAL_DAYS = 180;
-const ARRIVAL_RATE = 1; // Poisson lambda
-const PRICES = [199, 249, 299, 349, 499, 699];
-
-// Sample from Poisson distribution
-const samplePoisson = (lambda) => {
-  const L = Math.exp(-lambda);
-  let k = 0;
-  let p = 1;
-  do {
-    k++;
-    p *= Math.random();
-  } while (p > L);
-  return k - 1;
-};
-
-const getCapacityBucket = (remaining, total) => {
-  const pct = remaining / total;
-  if (pct > 0.7) return 'high';
-  if (pct > 0.3) return 'medium';
-  return 'low';
-};
-
-const getTimeBucket = (daysLeft) => {
-  if (daysLeft >= 60) return 'far';
-  if (daysLeft >= 15) return 'medium';
-  return 'near';
-};
-
-const getState = (seatsRemaining, daysLeft) => getCapacityBucket(seatsRemaining, TOTAL_SEATS) + '-' + getTimeBucket(daysLeft);
-
-const generateCustomerWTP = (daysLeft) => {
-  const t = TOTAL_DAYS - daysLeft + 1;
-  const meanWTP = 100 + t + Math.pow(t / 50, 5);
-  const u1 = Math.random();
-  const u2 = Math.random();
-  const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-  return Math.max(0, meanWTP + z * 10);
-};
-
-const initQTable = () => {
-  const Q = {};
-  ['high', 'medium', 'low'].forEach(cap => {
-    ['far', 'medium', 'near'].forEach(time => {
-      // Optimistic initialization: start all Q-values high to encourage exploration
-      PRICES.forEach(price => { Q[cap + '-' + time + '-' + price] = 20000; });
-    });
-  });
-  return Q;
-};
-
-const getQValue = (Q, state, price) => Q[state + '-' + price] || 0;
-const setQValue = (Q, state, price, value) => { Q[state + '-' + price] = value; };
-
-const initBanditState = () => {
-  const state = { totalFlights: 0 };
-  // For Thompson Sampling per flight: track total revenue and number of flights per price
-  // Model revenue with Gaussian posterior (approximate)
-  PRICES.forEach(price => { state[price] = { totalRevenue: 0, flights: 0, revenues: [] }; });
-  return state;
-};
-
-const selectBanditPrice = (banditState) => {
-  // Thompson Sampling: sample from posterior for expected flight revenue
-  // Use Gaussian approximation: sample from N(mean_revenue, std_dev / sqrt(n))
-
-  let bestPrice = PRICES[0];
-  let bestSampledRevenue = -Infinity;
-
-  PRICES.forEach(price => {
-    const { totalRevenue, flights, revenues } = banditState[price];
-
-    if (flights === 0) {
-      // Haven't tried this price yet - give it a high optimistic sample
-      bestSampledRevenue = Infinity;
-      bestPrice = price;
-      return;
-    }
-
-    const meanRevenue = totalRevenue / flights;
-    // Calculate std dev of revenues
-    const variance = revenues.length > 1
-      ? revenues.reduce((sum, r) => sum + Math.pow(r - meanRevenue, 2), 0) / (revenues.length - 1)
-      : 10000; // High variance if only 1 sample
-    const stdDev = Math.sqrt(variance);
-
-    // Sample from posterior: N(mean, stdDev / sqrt(n))
-    const u1 = Math.random();
-    const u2 = Math.random();
-    const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-    const sampledRevenue = meanRevenue + z * stdDev / Math.sqrt(flights);
-
-    if (sampledRevenue > bestSampledRevenue) {
-      bestSampledRevenue = sampledRevenue;
-      bestPrice = price;
-    }
-  });
-
-  return bestPrice;
-};
-
-const Seat = ({ status }) => (
-  <div style={{
-    width: '14px', height: '16px',
-    backgroundColor: status === 'available' ? '#2d3748' : status === 'sold-new' ? theme.positive : theme.primary,
-    borderRadius: '3px 3px 1px 1px', margin: '1px',
-    border: status === 'sold-new' ? `2px solid ${theme.accent}` : '1px solid #4a5568',
-    transition: 'all 0.3s ease',
-    transform: status === 'sold-new' ? 'scale(1.15)' : 'scale(1)',
-  }} />
-);
-
-const AirplaneVisualization = ({ seats }) => {
-  const rows = [];
-  for (let i = 0; i < TOTAL_SEATS; i += 6) rows.push(seats.slice(i, i + 6));
-  return (
-    <div style={{ background: `linear-gradient(180deg, ${theme.darkBg} 0%, ${theme.darkCard} 100%)`, borderRadius: '40px 40px 15px 15px', padding: '20px 15px 15px 15px', position: 'relative', border: '2px solid #4a5568' }}>
-      <div style={{ position: 'absolute', top: '-10px', left: '50%', transform: 'translateX(-50%)', width: '40px', height: '20px', background: theme.darkCard, borderRadius: '20px 20px 0 0', border: '2px solid #4a5568', }} />
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1px' }}>
-        {rows.map((row, ri) => (
-          <div key={ri} style={{ display: 'flex', alignItems: 'center' }}>
-            <span style={{ fontSize: '7px', color: '#666', width: '14px', textAlign: 'right', marginRight: '3px' }}>{ri + 1}</span>
-            {row.slice(0, 3).map((seat, si) => <Seat key={si} status={seat} />)}
-            <div style={{ width: '6px' }} />
-            {row.slice(3).map((seat, si) => <Seat key={si + 3} status={seat} />)}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-function AirlinePricingSimulator() {
-  const [isRunning, setIsRunning] = useState(false);
-  const [speed, setSpeed] = useState(1);
-  const [policy, setPolicy] = useState('static');
-  const [flightNum, setFlightNum] = useState(0);
-  const [currentDay, setCurrentDay] = useState(1);
-  const [customerIndex, setCustomerIndex] = useState(0);
-  const dailyCustomersRef = useRef(0);
-  const [seats, setSeats] = useState(Array(TOTAL_SEATS).fill('available'));
-  const [currentPrice, setCurrentPrice] = useState(199);
-  const [staticPrice, setStaticPrice] = useState(199);
-  const [lastCustomer, setLastCustomer] = useState(null);
-  const [flightRevenue, setFlightRevenue] = useState(0);
-  const [flightTickets, setFlightTickets] = useState(0);
-  const [dayRevenue, setDayRevenue] = useState(0);
-  const [revenueHistory, setRevenueHistory] = useState([]);
-  const [qParams, setQParams] = useState({ learningRate: 0.3, discount: 0.9, epsilon: 0.1 });
-  const [banditExploration, setBanditExploration] = useState(50);
-  const [showParams, setShowParams] = useState(false);
-  const [policyResults, setPolicyResults] = useState({});
-  const maxFlights = 20;
-
-  // Optimizer state
-  const [optimizerRunning, setOptimizerRunning] = useState(false);
-  const [optimizerProgress, setOptimizerProgress] = useState({ generation: 0, totalGenerations: 20 });
-  const [optimizerResults, setOptimizerResults] = useState([]);
-  const [bestParams, setBestParams] = useState(null);
-  const [optimizerConfig, setOptimizerConfig] = useState({
-    populationSize: 20,
-    generations: 20,
-    flightsPerEval: 100,
-    mutationRate: 0.2
-  });
-
-  const Q = useRef(initQTable());
-  const banditState = useRef(initBanditState());
-  const banditFlightPrice = useRef(null);  // Track bandit's chosen price for the flight
-  const dayStartState = useRef(null);
-  const dayPrice = useRef(null);
-  const stopRef = useRef(false);
-  const dayRevenueRef = useRef(0);
-  const flightHistory = useRef([]);  // Track (state, action) pairs for Q-learning
-
-  const seatsRemaining = seats.filter(s => s === 'available').length;
-  const daysLeft = TOTAL_DAYS - currentDay + 1;
-
-  const resetFlight = useCallback(() => {
-    setCurrentDay(1);
-    setCustomerIndex(0);
-    dailyCustomersRef.current = 0;
-    setSeats(Array(TOTAL_SEATS).fill('available'));
-    setFlightRevenue(0);
-    setFlightTickets(0);
-    setDayRevenue(0);
-    setLastCustomer(null);
-    dayStartState.current = null;
-    dayPrice.current = null;
-    banditFlightPrice.current = null;
-    dayRevenueRef.current = 0;
-    flightHistory.current = [];
-  }, []);
-
-  const fullReset = useCallback(() => {
-    setIsRunning(false);
-    stopRef.current = true;
-    setFlightNum(0);
-    setRevenueHistory([]);
-    Q.current = initQTable();
-    banditState.current = initBanditState();
-    resetFlight();
-  }, [resetFlight]);
-
-  const selectDailyPrice = useCallback((seatsRem, dLeft) => {
-    const state = getState(seatsRem, dLeft);
-    if (policy === 'static') return staticPrice;
-    if (policy === 'bandit') {
-      // For bandit, use the same price for the entire flight
-      if (banditFlightPrice.current === null) {
-        banditFlightPrice.current = selectBanditPrice(banditState.current);
-      }
-      return banditFlightPrice.current;
-    }
-    if (policy === 'qlearning') {
-      if (Math.random() < qParams.epsilon) return PRICES[Math.floor(Math.random() * PRICES.length)];
-      let bestPrice = PRICES[0], bestQ = -Infinity;
-      PRICES.forEach(p => { const qVal = getQValue(Q.current, state, p); if (qVal > bestQ) { bestQ = qVal; bestPrice = p; } });
-      return bestPrice;
-    }
-    return staticPrice;
-  }, [policy, staticPrice, qParams.epsilon]);
-
-  const endDay = useCallback((finalDayRevenue, seatsRem, dLeft) => {
-    if (policy === 'qlearning' && dayStartState.current !== null && dayPrice.current !== null) {
-      // Store state-action pair for end-of-flight update
-      flightHistory.current.push({ state: dayStartState.current, action: dayPrice.current });
-    }
-  }, [policy]);
-
-  const simulationStep = useCallback(() => {
-    if (stopRef.current) { setIsRunning(false); return; }
-
-    // Stop if we've reached max flights
-    if (flightNum >= maxFlights) {
-      setIsRunning(false);
-      return;
-    }
-
-    const seatsRem = seats.filter(s => s === 'available').length;
-    const dLeft = TOTAL_DAYS - currentDay + 1;
-
-    if (currentDay > TOTAL_DAYS || seatsRem === 0) {
-      // End of flight: update bandit state with flight revenue
-      if (policy === 'bandit' && banditFlightPrice.current !== null) {
-        const price = banditFlightPrice.current;
-        banditState.current[price].totalRevenue += flightRevenue;
-        banditState.current[price].flights++;
-        banditState.current[price].revenues.push(flightRevenue);
-        banditState.current.totalFlights++;
-      }
-      // End of flight: update Q-values using total flight revenue
-      if (policy === 'qlearning' && flightHistory.current.length > 0) {
-        const totalRevenue = flightRevenue;
-        // Only update each unique state-action pair ONCE per flight
-        const visited = new Set();
-        const history = flightHistory.current;
-        for (let i = 0; i < history.length; i++) {
-          const { state, action } = history[i];
-          const key = state + '-' + action;
-          if (!visited.has(key)) {
-            visited.add(key);
-            const oldQ = getQValue(Q.current, state, action);
-            const newQ = oldQ + qParams.learningRate * (totalRevenue - oldQ);
-            setQValue(Q.current, state, action, newQ);
-          }
-        }
-      }
-      setRevenueHistory(prev => [...prev, { flight: flightNum + 1, revenue: flightRevenue, tickets: flightTickets, policy, occupancy: Math.round((flightTickets / TOTAL_SEATS) * 100) }]);
-      setFlightNum(prev => prev + 1);
-      resetFlight();
-      return;
-    }
-
-    if (customerIndex === 0) {
-      // Start of new day - exactly 1 customer per day
-      dailyCustomersRef.current = 1;
-      const newPrice = selectDailyPrice(seatsRem, dLeft);
-      setCurrentPrice(newPrice);
-      setDayRevenue(0);
-      dayRevenueRef.current = 0;
-      dayStartState.current = getState(seatsRem, dLeft);
-      dayPrice.current = newPrice;
-    }
-
-    if (customerIndex < dailyCustomersRef.current && seatsRem > 0) {
-      const wtp = generateCustomerWTP(dLeft);
-      const price = dayPrice.current || currentPrice;
-      const bought = wtp >= price;
-      setLastCustomer({ wtp: wtp.toFixed(0), price, bought });
-
-      if (bought) {
-        setSeats(prev => {
-          const newSeats = [...prev];
-          const idx = newSeats.findIndex(s => s === 'available');
-          if (idx !== -1) newSeats[idx] = speed === Infinity ? 'sold' : 'sold-new';
-          return newSeats;
-        });
-        setFlightRevenue(prev => prev + price);
-        setFlightTickets(prev => prev + 1);
-        setDayRevenue(prev => prev + price);
-        dayRevenueRef.current += price;
-        // Skip animation at max speed
-        if (speed !== Infinity) {
-          setTimeout(() => setSeats(curr => curr.map(s => s === 'sold-new' ? 'sold' : s)), 150);
-        }
-      }
-      setCustomerIndex(prev => prev + 1);
-    }
-
-    if (customerIndex >= dailyCustomersRef.current) {
-      const newSeatsRem = seats.filter(s => s === 'available').length - (seats.some(s => s === 'sold-new') ? 1 : 0);
-      endDay(dayRevenueRef.current, newSeatsRem, dLeft);
-      setCurrentDay(prev => prev + 1);
-      setCustomerIndex(0);
-      dailyCustomersRef.current = 0;
-    }
-  }, [seats, currentDay, customerIndex, flightNum, flightRevenue, flightTickets, currentPrice, policy, selectDailyPrice, endDay, resetFlight, qParams, maxFlights]);
-
-  // Batch simulate multiple flights synchronously (for max speed)
-  const batchSimulateFlights = useCallback((numFlights) => {
-    const results = [];
-    const currentQ = Q.current;
-    const currentBandit = banditState.current;
-
-    for (let f = 0; f < numFlights; f++) {
-      let seatsRem = TOTAL_SEATS;
-      let revenue = 0;
-      let tickets = 0;
-      const history = [];
-
-      // For bandit, select price once at start of flight
-      const flightPrice = policy === 'bandit' ? selectBanditPrice(currentBandit) : null;
-
-      for (let day = 1; day <= TOTAL_DAYS && seatsRem > 0; day++) {
-        const dLeft = TOTAL_DAYS - day + 1;
-        const state = getState(seatsRem, dLeft);
-
-        // Select price based on policy (bandit uses flightPrice set at start)
-        let price;
-        if (policy === 'static') {
-          price = staticPrice;
-        } else if (policy === 'bandit') {
-          price = flightPrice;
-        } else if (policy === 'qlearning') {
-          if (Math.random() < qParams.epsilon) {
-            price = PRICES[Math.floor(Math.random() * PRICES.length)];
-          } else {
-            let bestPrice = PRICES[0], bestQ = -Infinity;
-            PRICES.forEach(p => {
-              const qVal = getQValue(currentQ, state, p);
-              if (qVal > bestQ) { bestQ = qVal; bestPrice = p; }
-            });
-            price = bestPrice;
-          }
-        } else {
-          price = staticPrice;
-        }
-
-        history.push({ state, action: price });
-
-        // Generate 1 customer per day
-        const wtp = generateCustomerWTP(dLeft);
-        const bought = wtp >= price && seatsRem > 0;
-
-        if (bought) {
-          revenue += price;
-          tickets++;
-          seatsRem--;
-        }
-      }
-
-      // Update bandit state at end of flight
-      if (policy === 'bandit') {
-        currentBandit[flightPrice].totalRevenue += revenue;
-        currentBandit[flightPrice].flights++;
-        currentBandit[flightPrice].revenues.push(revenue);
-        currentBandit.totalFlights++;
-      }
-
-      // Update Q-table at end of flight
-      if (policy === 'qlearning' && history.length > 0) {
-        const visited = new Set();
-        for (const { state, action } of history) {
-          const key = state + '-' + action;
-          if (!visited.has(key)) {
-            visited.add(key);
-            const oldQ = getQValue(currentQ, state, action);
-            const newQ = oldQ + qParams.learningRate * (revenue - oldQ);
-            setQValue(currentQ, state, action, newQ);
-          }
-        }
-      }
-
-      results.push({
-        flight: flightNum + results.length + 1,
-        revenue,
-        tickets,
-        policy,
-        occupancy: Math.round((tickets / TOTAL_SEATS) * 100)
-      });
-    }
-
-    return results;
-  }, [policy, staticPrice, qParams, flightNum]);
-
-  useEffect(() => {
-    if (!isRunning) return;
-    stopRef.current = false;
-
-    const runStep = () => {
-      if (speed === Infinity) {
-        // Batch process 100 flights at once
-        const flightsRemaining = maxFlights - flightNum;
-        if (flightsRemaining <= 0) {
-          setIsRunning(false);
-          return;
-        }
-        const batchSize = Math.min(100, flightsRemaining);
-        const results = batchSimulateFlights(batchSize);
-        setRevenueHistory(prev => [...prev, ...results]);
-        setFlightNum(prev => prev + batchSize);
-        setSeats(Array(TOTAL_SEATS).fill('available'));
-        setCurrentDay(1);
-        setFlightRevenue(0);
-        setFlightTickets(0);
-      } else {
-        simulationStep();
-      }
-    };
-
-    const interval = setInterval(runStep, speed === Infinity ? 1 : 120 / speed);
-    return () => clearInterval(interval);
-  }, [isRunning, speed, simulationStep, batchSimulateFlights, maxFlights, flightNum]);
-
-  // Save policy results when simulation completes
-  useEffect(() => {
-    const policyData = revenueHistory.filter(r => r.policy === policy);
-    if (policyData.length >= maxFlights) {
-      const avgRev = policyData.reduce((s, x) => s + x.revenue, 0) / policyData.length;
-      const avgOcc = policyData.reduce((s, x) => s + x.occupancy, 0) / policyData.length;
-      const last5 = policyData.slice(-5);
-      const last5AvgRev = last5.reduce((s, x) => s + x.revenue, 0) / last5.length;
-      const last5AvgOcc = last5.reduce((s, x) => s + x.occupancy, 0) / last5.length;
-      setPolicyResults(prev => ({
-        ...prev,
-        [policy]: {
-          flights: policyData.length,
-          avgRevenue: avgRev,
-          avgOccupancy: avgOcc,
-          last5AvgRevenue: last5AvgRev,
-          last5AvgOccupancy: last5AvgOcc
-        }
-      }));
-    }
-  }, [revenueHistory, policy, maxFlights]);
-
-  const getPolicyName = (p) => ({ static: 'Static', bandit: 'Bandit (TS)', qlearning: 'Q-Learning' }[p] || p);
-  const getPolicyColor = (p) => ({ static: '#666', bandit: theme.accent, qlearning: theme.positive }[p] || '#888');
-  const getRecentAvg = (n = 10) => { const r = revenueHistory.filter(x => x.policy === policy).slice(-n); return r.length ? r.reduce((s, x) => s + x.revenue, 0) / r.length : 0; };
-  const getAllTimeAvg = () => { const r = revenueHistory.filter(x => x.policy === policy); return r.length ? r.reduce((s, x) => s + x.revenue, 0) / r.length : 0; };
-
-  // Generate WTP for a given day and totalDays
-  const generateWTP = (day, totalDays) => {
-    // Scale so that WTP explosion happens proportionally regardless of totalDays
-    // At day = totalDays, we want (day/divisor)^6 to give a good high value
-    // Use divisor = totalDays/3 so last day gives (3)^6 = 729
-    const divisor = totalDays / 3;
-    const meanWTP = 50 + Math.pow(day / divisor, 6);
-    const u1 = Math.random();
-    const u2 = Math.random();
-    const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-    return Math.max(0, meanWTP + z * 40);
-  };
-
-  // Get time bucket for given days left - MUST match main simulation's getTimeBucket
-  const getTimeBucketForDays = (daysLeft, totalDays) => {
-    if (daysLeft >= 60) return 'far';
-    if (daysLeft >= 15) return 'medium';
-    return 'near';
-  };
-
-  // Get state for given seats remaining, days left, and totals
-  const getStateForConfig = (seatsRem, daysLeft, totalSeats, totalDays) => {
-    const capPct = seatsRem / totalSeats;
-    const cap = capPct > 0.7 ? 'high' : capPct > 0.3 ? 'medium' : 'low';
-    const time = getTimeBucketForDays(daysLeft, totalDays);
-    return cap + '-' + time;
-  };
-
-  // Simulate a static pricing flight
-  const simulateStaticFlight = (staticPrice, totalSeats, totalDays) => {
-    let seatsRem = totalSeats;
-    let revenue = 0;
-
-    for (let day = 1; day <= totalDays && seatsRem > 0; day++) {
-      const numCustomers = samplePoisson(ARRIVAL_RATE);
-      for (let c = 0; c < numCustomers && seatsRem > 0; c++) {
-        const wtp = generateWTP(day, totalDays);
-        if (wtp >= staticPrice) {
-          revenue += staticPrice;
-          seatsRem--;
-        }
-      }
-    }
-    return revenue;
-  };
-
-  // Evaluate best static price for given config
-  const evaluateBestStatic = (totalSeats, totalDays, numFlights) => {
-    let bestPrice = PRICES[0];
-    let bestRevenue = 0;
-
-    for (const price of PRICES) {
-      let totalRev = 0;
-      for (let f = 0; f < numFlights; f++) {
-        totalRev += simulateStaticFlight(price, totalSeats, totalDays);
-      }
-      const avgRev = totalRev / numFlights;
-      if (avgRev > bestRevenue) {
-        bestRevenue = avgRev;
-        bestPrice = price;
-      }
-    }
-    return { bestPrice, bestRevenue };
-  };
-
-  // Simulate a full flight with given Q-learning parameters and config
-  const simulateFlightWithConfig = (params, QTable, totalSeats, totalDays) => {
-    let seatsRem = totalSeats;
-    let revenue = 0;
-    const history = [];
-
-    for (let day = 1; day <= totalDays && seatsRem > 0; day++) {
-      const dLeft = totalDays - day + 1;
-      const state = getStateForConfig(seatsRem, dLeft, totalSeats, totalDays);
-
-      // Select price (epsilon-greedy)
-      let price;
-      if (Math.random() < params.epsilon) {
-        price = PRICES[Math.floor(Math.random() * PRICES.length)];
-      } else {
-        let bestPrice = PRICES[0], bestQ = -Infinity;
-        PRICES.forEach(p => {
-          const qVal = getQValue(QTable, state, p);
-          if (qVal > bestQ) { bestQ = qVal; bestPrice = p; }
-        });
-        price = bestPrice;
-      }
-
-      history.push({ state, action: price });
-
-      // Generate Poisson number of customers
-      const numCustomers = samplePoisson(ARRIVAL_RATE);
-      for (let c = 0; c < numCustomers && seatsRem > 0; c++) {
-        const wtp = generateWTP(day, totalDays);
-        if (wtp >= price) {
-          revenue += price;
-          seatsRem--;
-        }
-      }
-    }
-
-    return { revenue, history };
-  };
-
-  // Simulate a full flight with given Q-learning parameters (synchronous, no React state)
-  const simulateFlight = (params, QTable) => {
-    return simulateFlightWithConfig(params, QTable, TOTAL_SEATS, TOTAL_DAYS);
-  };
-
-  // Train Q-table and return average revenue for Q-learning
-  const evaluateQLearning = (params, totalSeats, totalDays, numFlights) => {
-    const QTable = initQTable();
-    const revenues = [];
-
-    for (let f = 0; f < numFlights; f++) {
-      const { revenue, history } = simulateFlightWithConfig(params, QTable, totalSeats, totalDays);
-      revenues.push(revenue);
-
-      // Only update each unique state-action pair ONCE per flight
-      const visited = new Set();
-      for (let i = 0; i < history.length; i++) {
-        const { state, action } = history[i];
-        const key = state + '-' + action;
-        if (!visited.has(key)) {
-          visited.add(key);
-          const oldQ = getQValue(QTable, state, action);
-          const newQ = oldQ + params.learningRate * (revenue - oldQ);
-          setQValue(QTable, state, action, newQ);
-        }
-      }
-    }
-
-    // Return average of last half of flights (after learning)
-    const lastHalf = revenues.slice(Math.floor(numFlights / 2));
-    return lastHalf.reduce((a, b) => a + b, 0) / lastHalf.length;
-  };
-
-  // Train Q-table over multiple flights and return average revenue (original function for compatibility)
-  const evaluateParams = (params, numFlights) => {
-    return evaluateQLearning(params, TOTAL_SEATS, TOTAL_DAYS, numFlights);
-  };
-
-  // Genetic algorithm optimizer - finds config that maximizes Q-learning advantage over static
-  const runOptimizer = async () => {
-    setOptimizerRunning(true);
-    setOptimizerResults([]);
-    setBestParams(null);
-
-    const { populationSize, generations, flightsPerEval, mutationRate } = optimizerConfig;
-
-    // Initialize population with random Q-learning parameters (use fixed TOTAL_SEATS and TOTAL_DAYS)
-    let population = Array(populationSize).fill(null).map(() => ({
-      learningRate: Math.random() * 0.49 + 0.01,
-      discount: Math.random() * 0.49 + 0.5,
-      epsilon: Math.random() * 0.4,
-      seats: TOTAL_SEATS,   // Use same as main simulation
-      days: TOTAL_DAYS       // Use same as main simulation
-    }));
-
-    const results = [];
-
-    for (let gen = 0; gen < generations; gen++) {
-      setOptimizerProgress({ generation: gen + 1, totalGenerations: generations });
-
-      // Evaluate fitness for each individual (Q-learning revenue - best static revenue)
-      const fitness = await new Promise(resolve => {
-        setTimeout(() => {
-          resolve(population.map(params => {
-            // Q-learning: train for flightsPerEval, measure last half
-            const qRevenue = evaluateQLearning(params, params.seats, params.days, flightsPerEval);
-            // Static: simulate same number of flights as Q-learning's evaluation period (last half)
-            const evalFlights = Math.floor(flightsPerEval / 2);
-            const { bestRevenue: staticRevenue, bestPrice } = evaluateBestStatic(params.seats, params.days, evalFlights);
-            return {
-              advantage: qRevenue - staticRevenue,
-              qRevenue,
-              staticRevenue,
-              bestStaticPrice: bestPrice
-            };
-          }));
-        }, 0);
-      });
-
-      // Sort by advantage (descending)
-      const sorted = population.map((p, i) => ({ params: p, ...fitness[i] }))
-        .sort((a, b) => b.advantage - a.advantage);
-
-      const bestGen = sorted[0];
-      results.push({
-        generation: gen + 1,
-        bestFitness: bestGen.advantage,
-        qRevenue: bestGen.qRevenue,
-        staticRevenue: bestGen.staticRevenue,
-        bestStaticPrice: bestGen.bestStaticPrice,
-        avgFitness: fitness.reduce((a, b) => a + b.advantage, 0) / fitness.length,
-        bestParams: { ...bestGen.params }
-      });
-      setOptimizerResults([...results]);
-
-      if (gen === generations - 1) {
-        setBestParams(bestGen.params);
-        break;
-      }
-
-      // Selection: keep top 50%
-      const survivors = sorted.slice(0, Math.floor(populationSize / 2));
-
-      // Crossover and mutation to create new population
-      const newPopulation = survivors.map(s => ({ ...s.params }));
-
-      while (newPopulation.length < populationSize) {
-        const parent1 = survivors[Math.floor(Math.random() * survivors.length)].params;
-        const parent2 = survivors[Math.floor(Math.random() * survivors.length)].params;
-
-        // Crossover
-        const child = {
-          learningRate: Math.random() < 0.5 ? parent1.learningRate : parent2.learningRate,
-          discount: Math.random() < 0.5 ? parent1.discount : parent2.discount,
-          epsilon: Math.random() < 0.5 ? parent1.epsilon : parent2.epsilon,
-          seats: Math.random() < 0.5 ? parent1.seats : parent2.seats,
-          days: Math.random() < 0.5 ? parent1.days : parent2.days
+        const { useState, useEffect, useRef, useMemo, useCallback } = React;
+
+        // UCLA Theme colors
+        const colors = {
+            // UCLA Brand colors (for header only)
+            primary: '#2774AE',
+            primaryLight: '#2774AE',
+            accent: '#FFD100',
+            accentDark: '#e6bc00',
+            darkBlue: '#005587',
+            lightBlue: '#8BB8E8',
+            // Simplified - all same color for body
+            positive: '#1a1a1a',
+            negative: '#1a1a1a',
+            warning: '#1a1a1a',
+            // Content areas - clean white backgrounds
+            cardBg: '#ffffff',
+            cardBorder: 'rgba(0,0,0,0.1)',
+            text: '#1a1a1a',
+            textMuted: '#666666',
+            // Legacy names mapped to simple scheme
+            darkBg: '#ffffff',
+            darkText: '#1a1a1a',
+            darkMuted: '#c0c0c0',
+            lightBg: '#ffffff',
+            lightCard: '#ffffff',
+            lightBorder: 'rgba(0,0,0,0.1)',
+            lightText: '#1a1a1a',
+            lightMuted: '#666666',
         };
 
-        // Mutation (only Q-learning params, seats/days are fixed)
-        if (Math.random() < mutationRate) {
-          child.learningRate = Math.max(0.01, Math.min(0.5, child.learningRate + (Math.random() - 0.5) * 0.1));
-        }
-        if (Math.random() < mutationRate) {
-          child.discount = Math.max(0.5, Math.min(0.99, child.discount + (Math.random() - 0.5) * 0.1));
-        }
-        if (Math.random() < mutationRate) {
-          child.epsilon = Math.max(0, Math.min(0.4, child.epsilon + (Math.random() - 0.5) * 0.1));
-        }
+        // Breast Cancer class labels
+        const CANCER_CLASSES = ['Benign', 'Malignant'];
 
-        newPopulation.push(child);
-      }
+        // Activation function colors - using UCLA theme
+        const ACTIVATION_COLORS = {
+            relu: colors.primary,
+            sigmoid: colors.darkBlue,
+            tanh: colors.lightBlue
+        };
 
-      population = newPopulation;
-    }
+        // Feature names (subset for display)
+        const KEY_FEATURES = [
+            'radius_mean', 'texture_mean', 'perimeter_mean', 'area_mean',
+            'smoothness_mean', 'compactness_mean', 'concavity_mean', 'symmetry_mean'
+        ];
 
-    setOptimizerRunning(false);
-  };
+        // Accuracy Chart - Incremental updates
+        const AccuracyChart = ({ trainingHistory, totalEpochs }) => {
+            const canvasRef = useRef(null);
+            const chartRef = useRef(null);
 
-  // Test results state
-  const [testResults, setTestResults] = useState(null);
+            // Initialize chart once
+            useEffect(() => {
+                if (!canvasRef.current) return;
 
-  // Test function to verify optimizer matches main simulation
-  const runComparisonTest = () => {
-    const testParams = { ...qParams };
-    const numFlights = 100;
+                const labels = Array.from({ length: totalEpochs }, (_, i) => `${i + 1}`);
+                const emptyData = Array(totalEpochs).fill(null);
 
-    // Run optimizer's version
-    const optimizerRevenue = evaluateQLearning(testParams, TOTAL_SEATS, TOTAL_DAYS, numFlights);
+                const ctx = canvasRef.current.getContext('2d');
+                chartRef.current = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Training Accuracy',
+                                data: [...emptyData],
+                                borderColor: '#2774AE',
+                                backgroundColor: 'rgba(39, 116, 174, 0.1)',
+                                fill: false, tension: 0.3, pointRadius: 3, pointBackgroundColor: '#2774AE',
+                                spanGaps: false
+                            },
+                            {
+                                label: 'Validation Accuracy',
+                                data: [...emptyData],
+                                borderColor: '#FFD100',
+                                backgroundColor: 'rgba(255, 209, 0, 0.1)',
+                                fill: false, tension: 0.3, pointRadius: 3, pointBackgroundColor: '#FFD100',
+                                spanGaps: false
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: false,
+                        plugins: {
+                            legend: { display: true, position: 'top', labels: { color: '#666', usePointStyle: true, padding: 20 } },
+                            tooltip: {
+                                backgroundColor: 'rgba(0,0,0,0.8)',
+                                callbacks: { label: (ctx) => ctx.raw !== null ? `${ctx.dataset.label}: ${(ctx.raw * 100).toFixed(1)}%` : '' }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: { display: true, text: 'Epoch', color: '#666' },
+                                ticks: { color: '#666' },
+                                grid: { color: 'rgba(0,0,0,0.05)' }
+                            },
+                            y: {
+                                title: { display: true, text: 'Accuracy', color: '#666' },
+                                min: 0,
+                                max: 1,
+                                ticks: { color: '#666', stepSize: 0.2, callback: (v) => (v * 100) + '%' },
+                                grid: { color: 'rgba(0,0,0,0.05)' }
+                            }
+                        }
+                    }
+                });
 
-    // Run a simplified version matching main simulation logic exactly
-    const QTable2 = initQTable();
-    const revenues2 = [];
+                return () => { if (chartRef.current) chartRef.current.destroy(); };
+            }, [totalEpochs]);
 
-    for (let f = 0; f < numFlights; f++) {
-      let seatsRem = TOTAL_SEATS;
-      let revenue = 0;
-      const history = [];
+            // Update data incrementally
+            useEffect(() => {
+                if (!chartRef.current) return;
 
-      for (let currentDay = 1; currentDay <= TOTAL_DAYS && seatsRem > 0; currentDay++) {
-        const dLeft = TOTAL_DAYS - currentDay + 1;
-        const state = getState(seatsRem, dLeft);  // Use main simulation's getState
+                const chart = chartRef.current;
+                const trainData = Array(totalEpochs).fill(null);
+                const valData = Array(totalEpochs).fill(null);
 
-        // Select price (same logic as selectDailyPrice)
-        let price;
-        if (Math.random() < testParams.epsilon) {
-          price = PRICES[Math.floor(Math.random() * PRICES.length)];
-        } else {
-          let bestPrice = PRICES[0], bestQ = -Infinity;
-          PRICES.forEach(p => {
-            const qVal = getQValue(QTable2, state, p);
-            if (qVal > bestQ) { bestQ = qVal; bestPrice = p; }
-          });
-          price = bestPrice;
-        }
+                trainingHistory.forEach((h, i) => {
+                    trainData[i] = h.trainAcc;
+                    valData[i] = h.valAcc;
+                });
 
-        history.push({ state, action: price });
+                chart.data.datasets[0].data = trainData;
+                chart.data.datasets[1].data = valData;
+                chart.update('none');
+            }, [trainingHistory, totalEpochs]);
 
-        // Generate Poisson number of customers (same as main simulation)
-        const numCustomers = samplePoisson(ARRIVAL_RATE);
-        for (let c = 0; c < numCustomers && seatsRem > 0; c++) {
-          const wtp = generateCustomerWTP(dLeft);
-          if (wtp >= price) {
-            revenue += price;
-            seatsRem--;
-          }
-        }
-      }
+            return <canvas ref={canvasRef} />;
+        };
 
-      revenues2.push(revenue);
+        // Loss Chart - Incremental updates
+        const LossChart = ({ trainingHistory, totalEpochs }) => {
+            const canvasRef = useRef(null);
+            const chartRef = useRef(null);
 
-      // Update Q-table (same logic as main simulation)
-      const visited = new Set();
-      for (let i = 0; i < history.length; i++) {
-        const { state, action } = history[i];
-        const key = state + '-' + action;
-        if (!visited.has(key)) {
-          visited.add(key);
-          const oldQ = getQValue(QTable2, state, action);
-          const newQ = oldQ + testParams.learningRate * (revenue - oldQ);
-          setQValue(QTable2, state, action, newQ);
-        }
-      }
-    }
+            // Initialize chart once
+            useEffect(() => {
+                if (!canvasRef.current) return;
 
-    const lastHalf2 = revenues2.slice(Math.floor(numFlights / 2));
-    const mainSimRevenue = lastHalf2.reduce((a, b) => a + b, 0) / lastHalf2.length;
+                const labels = Array.from({ length: totalEpochs }, (_, i) => `${i + 1}`);
+                const emptyData = Array(totalEpochs).fill(null);
 
-    setTestResults({
-      optimizer: optimizerRevenue.toFixed(0),
-      mainSim: mainSimRevenue.toFixed(0),
-      params: testParams
-    });
-  };
+                const ctx = canvasRef.current.getContext('2d');
+                chartRef.current = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            { label: 'Training Loss', data: [...emptyData], borderColor: '#e74c3c', backgroundColor: 'rgba(231,76,60,0.1)', fill: false, tension: 0.3, pointRadius: 3, pointBackgroundColor: '#e74c3c', spanGaps: false },
+                            { label: 'Validation Loss', data: [...emptyData], borderColor: '#9b59b6', backgroundColor: 'rgba(155,89,182,0.1)', fill: false, tension: 0.3, pointRadius: 3, pointBackgroundColor: '#9b59b6', spanGaps: false }
+                        ]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        animation: false,
+                        plugins: { legend: { display: true, position: 'top', labels: { color: '#666', usePointStyle: true, padding: 20 } } },
+                        scales: {
+                            x: {
+                                title: { display: true, text: 'Epoch', color: '#666' },
+                                ticks: { color: '#666' },
+                                grid: { color: 'rgba(0,0,0,0.05)' }
+                            },
+                            y: {
+                                title: { display: true, text: 'Loss', color: '#666' },
+                                min: 0,
+                                max: 1.0,
+                                ticks: { color: '#666', stepSize: 0.2 },
+                                grid: { color: 'rgba(0,0,0,0.05)' }
+                            }
+                        }
+                    }
+                });
 
-  const applyBestParams = () => {
-    if (bestParams) {
-      setQParams({
-        learningRate: bestParams.learningRate,
-        discount: bestParams.discount,
-        epsilon: bestParams.epsilon
-      });
-      setPolicy('qlearning');
-      fullReset();
-    }
-  };
+                return () => { if (chartRef.current) chartRef.current.destroy(); };
+            }, [totalEpochs]);
 
-  return (
-    <div style={{ minHeight: '100vh', background: '#f5f5f5', color: '#1a1a1a', fontFamily: 'system-ui, sans-serif' }}>
-      {/* Header */}
-      <header style={{
-          background: '#2774AE',
-          padding: '1rem 2rem 1.5rem 2rem',
-          position: 'sticky',
-          top: 0,
-          zIndex: 100
-      }}>
-          <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                  <p style={{ fontSize: '0.65rem', color: '#FFD100', fontWeight: 400, marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
-                      MGMT298D: Science and Strategy of AI
-                  </p>
-                  <h1 style={{ fontSize: '1.4rem', fontWeight: 600, color: '#f5f5f5', letterSpacing: '0' }}>
-                      Week 4: Dynamic Pricing
-                  </h1>
-                  <p style={{ fontSize: '0.85rem', color: '#c0c0c0', marginTop: '0.25rem' }}>
-                      Airline Revenue Management with Reinforcement Learning
-                  </p>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                  <span style={{
-                      fontSize: '1rem',
-                      fontWeight: 500,
-                      color: '#f5f5f5'
-                  }}>
-                      UCLA Anderson
-                  </span>
-              </div>
-          </div>
-          <div class="header-gold-line"></div>
-      </header>
+            // Update data incrementally
+            useEffect(() => {
+                if (!chartRef.current) return;
 
-      {/* Controls Section - Light */}
-      <div style={{ background: '#ffffff', padding: '16px 24px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-              {/* Main Controls */}
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                <select value={policy} onChange={(e) => { setPolicy(e.target.value); fullReset(); }} style={{ background: '#ffffff', border: `2px solid ${getPolicyColor(policy)}`, color: '#1a1a1a', padding: '8px 14px', borderRadius: '6px', fontSize: '0.85rem', cursor: 'pointer' }}>
-                  <option value="static">Static</option>
-                  <option value="bandit">Bandit (Thompson)</option>
-                  <option value="qlearning">Q-Learning</option>
-                </select>
-                <button onClick={() => { stopRef.current = false; setIsRunning(!isRunning); }} style={{ background: isRunning ? `linear-gradient(135deg, ${theme.negative}, #005587)` : `linear-gradient(135deg, ${theme.primary}, ${theme.darkBlue})`, border: 'none', color: 'white', padding: '8px 24px', borderRadius: '6px', fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer', boxShadow: '0 2px 8px rgba(39, 116, 174, 0.3)', transition: 'all 0.2s' }}>{isRunning ? 'PAUSE' : 'RUN'}</button>
-                <button onClick={fullReset} style={{ background: '#f5f5f5', border: '1px solid rgba(0,0,0,0.1)', color: '#1a1a1a', padding: '8px 16px', borderRadius: '6px', fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s' }}>RESET</button>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#f5f5f5', padding: '6px 12px', borderRadius: '6px', border: '1px solid rgba(0,0,0,0.1)' }}>
-                  <span style={{ fontSize: '0.75rem', color: '#666' }}>Speed:</span>
-                  {[1, 10, 50].map(s => (<button key={s} onClick={() => setSpeed(s)} style={{ background: speed === s ? theme.primary : 'transparent', border: 'none', color: speed === s ? '#ffffff' : '#666', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', transition: 'all 0.2s' }}>{s}x</button>))}
-                </div>
-                {policy === 'static' && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f5f5f5', padding: '6px 12px', borderRadius: '6px', border: '1px solid rgba(0,0,0,0.1)' }}>
-                    <span style={{ fontSize: '0.8rem', color: theme.primary, fontWeight: '600' }}>${staticPrice}</span>
-                    <input type="range" min={0} max={70} step="1" value={staticPrice === 0 ? 0 : Math.round((staticPrice + 1) / 10)} onChange={(e) => { const v = parseInt(e.target.value); setStaticPrice(v === 0 ? 0 : v * 10 - 1); }} disabled={isRunning} style={{ width: '150px', accentColor: theme.primary }} />
-                  </div>
-                )}
-                {policy === 'qlearning' && <button onClick={() => setShowParams(!showParams)} style={{ background: showParams ? theme.primary : '#f5f5f5', border: '1px solid rgba(0,0,0,0.1)', color: showParams ? '#ffffff' : '#1a1a1a', padding: '8px 14px', borderRadius: '6px', fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s' }}>Settings</button>}
-              </div>
+                const chart = chartRef.current;
+                const trainData = Array(totalEpochs).fill(null);
+                const valData = Array(totalEpochs).fill(null);
 
-              {showParams && policy === 'qlearning' && (
-                <div style={{ maxWidth: '600px', margin: '16px auto 0', background: '#f5f5f5', borderRadius: '8px', padding: '16px', border: `1px solid ${theme.positive}40` }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
-                    {[['learningRate', 'alpha', 0.01, 0.5], ['discount', 'gamma', 0.5, 0.99], ['epsilon', 'epsilon', 0, 0.4]].map(([k, l, min, max]) => (
-                      <div key={k}><label style={{ fontSize: '0.75rem', color: '#666' }}>{l}: <span style={{ color: theme.primary }}>{qParams[k].toFixed(3)}</span></label><input type="range" min={min} max={max} step="0.01" value={qParams[k]} onChange={(e) => setQParams(p => ({ ...p, [k]: parseFloat(e.target.value) }))} disabled={isRunning} style={{ width: '100%', accentColor: theme.primary }} /></div>
+                trainingHistory.forEach((h, i) => {
+                    trainData[i] = h.trainLoss;
+                    valData[i] = h.valLoss;
+                });
+
+                chart.data.datasets[0].data = trainData;
+                chart.data.datasets[1].data = valData;
+                chart.update('none');
+            }, [trainingHistory, totalEpochs]);
+
+            return <canvas ref={canvasRef} />;
+        };
+
+        // Neural Network Visualization Component
+        const NeuralNetworkViz = ({ layers, activation, dropout, batchNorm, isTraining, currentEpoch, nFeatures = 30 }) => {
+            const svgRef = useRef(null);
+            const [animationPhase, setAnimationPhase] = useState(0);
+
+            // Animation loop during training
+            useEffect(() => {
+                if (isTraining) {
+                    const interval = setInterval(() => {
+                        setAnimationPhase(prev => (prev + 1) % 100);
+                    }, 50);
+                    return () => clearInterval(interval);
+                }
+            }, [isTraining]);
+
+            const networkLayout = useMemo(() => {
+                const allLayers = [
+                    { type: 'input', nodes: nFeatures, display: Math.min(nFeatures, 15), label: `Input (${nFeatures} features)` },
+                    ...layers.map((nodes, i) => ({
+                        type: 'hidden',
+                        nodes,
+                        display: Math.min(nodes, 12),
+                        label: `Hidden ${i + 1} (${nodes})`
+                    })),
+                    { type: 'output', nodes: 2, display: 2, label: 'Output (2)' }
+                ];
+                return allLayers;
+            }, [layers, nFeatures]);
+
+            const svgWidth = 800;
+            const svgHeight = 380;
+            const padding = { top: 40, bottom: 60, left: 50, right: 50 };
+
+            const layerSpacing = (svgWidth - padding.left - padding.right) / (networkLayout.length - 1);
+
+            // Calculate positions for all nodes
+            const nodePositions = useMemo(() => {
+                const positions = [];
+
+                networkLayout.forEach((layer, layerIdx) => {
+                    const x = padding.left + layerIdx * layerSpacing;
+                    const layerPositions = [];
+                    const nodeCount = layer.display;
+                    const nodeSpacing = Math.min(22, (svgHeight - padding.top - padding.bottom) / (nodeCount + 1));
+                    const startY = (svgHeight - (nodeCount - 1) * nodeSpacing) / 2;
+
+                    for (let i = 0; i < nodeCount; i++) {
+                        layerPositions.push({
+                            x,
+                            y: startY + i * nodeSpacing,
+                            isDropout: dropout > 0 && layer.type === 'hidden' && Math.random() < dropout,
+                            layerType: layer.type,
+                            nodeIdx: i,
+                            totalNodes: layer.nodes
+                        });
+                    }
+                    positions.push(layerPositions);
+                });
+
+                return positions;
+            }, [networkLayout, dropout, svgHeight, layerSpacing]);
+
+            // Get node color based on layer type and activation
+            const getNodeColor = (layerType, nodeIdx) => {
+                if (layerType === 'input') return '#6b7280';
+                if (layerType === 'output') {
+                    return nodeIdx === 0 ? '#22c55e' : '#ef4444'; // Benign green, Malignant red
+                }
+                return ACTIVATION_COLORS[activation] || colors.primary;
+            };
+
+            // Calculate which nodes are "firing" during animation
+            const getFiringIntensity = (layerIdx, nodeIdx) => {
+                if (!isTraining) return 0;
+                const phase = (animationPhase + layerIdx * 15 - nodeIdx * 5) % 100;
+                if (phase < 30) return phase / 30;
+                if (phase < 60) return 1 - (phase - 30) / 30;
+                return 0;
+            };
+
+            return (
+                <svg
+                    ref={svgRef}
+                    width="100%"
+                    height="100%"
+                    viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+                    style={{ background: 'transparent' }}
+                >
+                    <defs>
+                        <linearGradient id="connectionGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stopColor="#6b7280" stopOpacity="0.3" />
+                            <stop offset="50%" stopColor={colors.primary} stopOpacity="0.5" />
+                            <stop offset="100%" stopColor={colors.positive} stopOpacity="0.3" />
+                        </linearGradient>
+                        <filter id="glow">
+                            <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                            <feMerge>
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                        </filter>
+                        <filter id="strongGlow">
+                            <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+                            <feMerge>
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                        </filter>
+                    </defs>
+
+                    {/* Draw connections */}
+                    {nodePositions.slice(0, -1).map((layerNodes, layerIdx) =>
+                        layerNodes.map((node, nodeIdx) =>
+                            nodePositions[layerIdx + 1].map((nextNode, nextIdx) => {
+                                const opacity = isTraining
+                                    ? 0.1 + getFiringIntensity(layerIdx, nodeIdx) * 0.4
+                                    : 0.15;
+                                return (
+                                    <line
+                                        key={`conn-${layerIdx}-${nodeIdx}-${nextIdx}`}
+                                        x1={node.x}
+                                        y1={node.y}
+                                        x2={nextNode.x}
+                                        y2={nextNode.y}
+                                        stroke={isTraining ? ACTIVATION_COLORS[activation] : '#9ca3af'}
+                                        strokeWidth={isTraining ? 1 + getFiringIntensity(layerIdx, nodeIdx) : 0.5}
+                                        opacity={opacity}
+                                        style={isTraining ? {
+                                            animation: `flowRight ${0.5 + Math.random() * 0.5}s linear infinite`
+                                        } : {}}
+                                    />
+                                );
+                            })
+                        )
+                    )}
+
+                    {/* Draw batch normalization layers */}
+                    {batchNorm && networkLayout.slice(1, -1).map((layer, idx) => {
+                        const x = padding.left + (idx + 1) * layerSpacing - layerSpacing / 2;
+                        return (
+                            <g key={`bn-${idx}`}>
+                                <rect
+                                    x={x - 15}
+                                    y={svgHeight / 2 - 40}
+                                    width={30}
+                                    height={80}
+                                    rx={4}
+                                    fill="rgba(139, 184, 232, 0.2)"
+                                    stroke={colors.lightBlue}
+                                    strokeWidth={1}
+                                    strokeDasharray="4,2"
+                                />
+                                <text
+                                    x={x}
+                                    y={svgHeight / 2}
+                                    textAnchor="middle"
+                                    fill={colors.lightBlue}
+                                    fontSize="8"
+                                    fontWeight="500"
+                                >
+                                    BN
+                                </text>
+                            </g>
+                        );
+                    })}
+
+                    {/* Draw nodes */}
+                    {nodePositions.map((layerNodes, layerIdx) =>
+                        layerNodes.map((node, nodeIdx) => {
+                            const color = getNodeColor(node.layerType, nodeIdx);
+                            const firingIntensity = getFiringIntensity(layerIdx, nodeIdx);
+                            const radius = node.layerType === 'input' ? 4 : (node.layerType === 'output' ? 14 : 8);
+
+                            return (
+                                <g key={`node-${layerIdx}-${nodeIdx}`}>
+                                    <circle
+                                        cx={node.x}
+                                        cy={node.y}
+                                        r={radius + firingIntensity * 4}
+                                        fill={color}
+                                        opacity={node.isDropout ? 0.3 : 0.8 + firingIntensity * 0.2}
+                                        filter={firingIntensity > 0.5 ? 'url(#strongGlow)' : (firingIntensity > 0 ? 'url(#glow)' : 'none')}
+                                        strokeDasharray={node.isDropout ? '3,2' : 'none'}
+                                        stroke={node.isDropout ? color : 'none'}
+                                        strokeWidth={node.isDropout ? 1.5 : 0}
+                                    />
+                                    {node.layerType === 'output' && (
+                                        <text
+                                            x={node.x}
+                                            y={node.y + 4}
+                                            textAnchor="middle"
+                                            fill="white"
+                                            fontSize="8"
+                                            fontWeight="600"
+                                        >
+                                            {nodeIdx === 0 ? 'B' : 'M'}
+                                        </text>
+                                    )}
+                                </g>
+                            );
+                        })
+                    )}
+
+                    {/* Draw feature list representation */}
+                    <g transform={`translate(${padding.left - 40}, ${svgHeight / 2 - 50})`}>
+                        <rect
+                            width={30}
+                            height={80}
+                            fill="none"
+                            stroke="#6b7280"
+                            strokeWidth={1}
+                            opacity={0.5}
+                            rx={4}
+                        />
+                        {[0, 1, 2, 3, 4].map(row => (
+                            <rect
+                                key={`feature-${row}`}
+                                x={4}
+                                y={4 + row * 15}
+                                width={22}
+                                height={12}
+                                fill={`rgba(107, 114, 128, ${0.3 + Math.random() * 0.5})`}
+                                rx={2}
+                            />
+                        ))}
+                        <text
+                            x={15}
+                            y={95}
+                            textAnchor="middle"
+                            fill="#6b7280"
+                            fontSize="7"
+                        >
+                            30 features
+                        </text>
+                    </g>
+
+                    {/* Layer labels */}
+                    {networkLayout.map((layer, idx) => (
+                        <text
+                            key={`label-${idx}`}
+                            x={padding.left + idx * layerSpacing}
+                            y={svgHeight - 15}
+                            textAnchor="middle"
+                            fill={colors.lightMuted}
+                            fontSize="10"
+                            fontWeight="500"
+                        >
+                            {layer.label}
+                        </text>
                     ))}
-                  </div>
-                </div>
-              )}
-        </div>
-      </div>
 
-      {/* Results Section - Light */}
-      <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: '20px' }}>
-              {/* Left Column - Flight Visualization */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                    <span style={{ fontSize: '0.8rem', color: '#666' }}>Flight #{flightNum + 1}</span>
-                    <span style={{ fontSize: '0.8rem', color: theme.accent, fontWeight: '600' }}>Day {currentDay}/{TOTAL_DAYS}</span>
-                  </div>
-                  <AirplaneVisualization seats={seats} />
-                  <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: '12px', fontSize: '0.75rem' }}>
-                    <div style={{ textAlign: 'center' }}><div style={{ color: '#666' }}>Sold</div><div style={{ color: theme.positive, fontWeight: '700', fontSize: '1.1rem' }}>{TOTAL_SEATS - seatsRemaining}</div></div>
-                    <div style={{ textAlign: 'center' }}><div style={{ color: '#666' }}>Left</div><div style={{ color: '#666', fontWeight: '700', fontSize: '1.1rem' }}>{seatsRemaining}</div></div>
-                  </div>
-                </div>
-                <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-                  <div style={{ fontSize: '0.65rem', color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em' }}>This Flight</div>
-                  <div style={{ fontSize: '1.6rem', fontWeight: '700', color: theme.positive }}>${flightRevenue.toLocaleString()}</div>
-                  <div style={{ fontSize: '0.75rem', color: '#666' }}>{flightTickets} tix @ ${flightTickets ? (flightRevenue / flightTickets).toFixed(0) : 0} avg</div>
-                </div>
-                <div style={{ background: '#ffffff', borderRadius: '12px', padding: '14px', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-                  <div style={{ fontSize: '0.6rem', color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em' }}>State</div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: '600', color: theme.primary }}>{getState(seatsRemaining, daysLeft)}</div>
-                </div>
-              </div>
+                    {/* Output labels */}
+                    <text
+                        x={padding.left + (networkLayout.length - 1) * layerSpacing + 35}
+                        y={nodePositions[nodePositions.length - 1][0].y + 4}
+                        fill="#22c55e"
+                        fontSize="9"
+                        fontWeight="500"
+                    >
+                        Benign
+                    </text>
+                    <text
+                        x={padding.left + (networkLayout.length - 1) * layerSpacing + 35}
+                        y={nodePositions[nodePositions.length - 1][1].y + 4}
+                        fill="#ef4444"
+                        fontSize="9"
+                        fontWeight="500"
+                    >
+                        Malignant
+                    </text>
 
-              {/* Right Column - Metrics and Charts */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {/* Metric Cards Row */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
-                  <div style={{ background: '#ffffff', borderRadius: '10px', padding: '14px', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', textAlign: 'center' }}><div style={{ fontSize: '0.6rem', color: '#666', textTransform: 'uppercase' }}>Flights</div><div style={{ fontSize: '1.2rem', fontWeight: '700', color: theme.primary }}>{revenueHistory.filter(r => r.policy === policy).length}/{maxFlights}</div></div>
-                  <div style={{ background: '#ffffff', borderRadius: '10px', padding: '14px', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', textAlign: 'center' }}><div style={{ fontSize: '0.6rem', color: '#666', textTransform: 'uppercase' }}>Last</div><div style={{ fontSize: '1.2rem', fontWeight: '700', color: theme.positive }}>${getRecentAvg(1).toFixed(0)}</div></div>
-                  <div style={{ background: '#ffffff', borderRadius: '10px', padding: '14px', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', textAlign: 'center' }}><div style={{ fontSize: '0.6rem', color: '#666', textTransform: 'uppercase' }}>Avg (Last 5)</div><div style={{ fontSize: '1.2rem', fontWeight: '700', color: theme.accent }}>${getRecentAvg(5).toFixed(0)}</div></div>
-                  <div style={{ background: '#ffffff', borderRadius: '10px', padding: '14px', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', textAlign: 'center' }}><div style={{ fontSize: '0.6rem', color: '#666', textTransform: 'uppercase' }}>Avg (All)</div><div style={{ fontSize: '1.2rem', fontWeight: '700', color: theme.darkBlue }}>${getAllTimeAvg().toFixed(0)}</div></div>
-                  <div style={{ background: '#ffffff', borderRadius: '10px', padding: '14px', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', textAlign: 'center' }}><div style={{ fontSize: '0.6rem', color: '#666', textTransform: 'uppercase' }}>Policy</div><div style={{ fontSize: '0.9rem', fontWeight: '600', color: getPolicyColor(policy) }}>{getPolicyName(policy)}</div></div>
-                </div>
+                    {/* Training indicator */}
+                    {isTraining && (
+                        <g>
+                            <text
+                                x={svgWidth / 2}
+                                y={25}
+                                textAnchor="middle"
+                                fill={colors.primary}
+                                fontSize="12"
+                                fontWeight="600"
+                            >
+                                Training... Epoch {currentEpoch}
+                            </text>
+                            <circle
+                                cx={svgWidth / 2 - 80}
+                                cy={22}
+                                r={4}
+                                fill={colors.primary}
+                                opacity={0.5 + Math.sin(animationPhase / 10) * 0.5}
+                            />
+                        </g>
+                    )}
+                </svg>
+            );
+        };
 
-                {/* Main Chart */}
-                <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', flex: 1 }}>
-                  <h3 style={{ margin: '0 0 10px 0', fontSize: '0.8rem', color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Cumulative Average Revenue {policy === 'qlearning' && <span style={{ color: theme.positive, textTransform: 'none' }}>- Watch it learn!</span>}</h3>
-                  <AreaChart
-                    data={revenueHistory.filter(r => r.policy === policy).map((r, i, arr) => ({ ...r, avgRevenue: arr.slice(0, i + 1).reduce((sum, x) => sum + x.revenue, 0) / (i + 1) }))}
-                    dataKey="avgRevenue"
-                    xKey="flight"
-                    color={getPolicyColor(policy)}
-                    yMin={10000}
-                    yMax={25000}
-                  />
-                </div>
+        // Confusion Matrix Component (2x2 for binary classification)
+        const ConfusionMatrix = ({ matrix }) => {
+            const total = matrix.flat().reduce((a, b) => a + b, 0);
+            const tn = matrix[0][0];
+            const fp = matrix[0][1];
+            const fn = matrix[1][0];
+            const tp = matrix[1][1];
 
-                {/* Smaller Charts */}
-                <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-                  <h3 style={{ margin: '0 0 10px 0', fontSize: '0.8rem', color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Revenue Per Flight</h3>
-                  <SmallAreaChart
-                    data={revenueHistory.filter(r => r.policy === policy)}
-                    dataKey="revenue"
-                    xKey="flight"
-                    color={getPolicyColor(policy)}
-                  />
-                </div>
+            const accuracy = ((tp + tn) / total * 100).toFixed(1);
+            const precision = (tp / (tp + fp) * 100).toFixed(1);
+            const recall = (tp / (tp + fn) * 100).toFixed(1);
 
-                <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-                  <h3 style={{ margin: '0 0 10px 0', fontSize: '0.8rem', color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Rolling Avg (Last 5)</h3>
-                  <SmallAreaChart
-                    data={revenueHistory.filter(r => r.policy === policy).map((r, i, arr) => ({ ...r, last5Avg: arr.slice(Math.max(0, i - 4), i + 1).reduce((sum, x) => sum + x.revenue, 0) / Math.min(i + 1, 5) }))}
-                    dataKey="last5Avg"
-                    xKey="flight"
-                    color={theme.darkBlue}
-                  />
-                </div>
-
-                <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-                  <h3 style={{ margin: '0 0 10px 0', fontSize: '0.8rem', color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Occupancy % By Flight</h3>
-                  <SmallAreaChart
-                    data={revenueHistory.filter(r => r.policy === policy)}
-                    dataKey="occupancy"
-                    xKey="flight"
-                    color={theme.accent}
-                    yMin={0}
-                    yMax={100}
-                  />
-                </div>
-
-                {/* Q-Learning Table */}
-                {policy === 'qlearning' && (
-                  <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: `1px solid ${theme.positive}30` }}>
-                    <h3 style={{ margin: '0 0 12px 0', fontSize: '0.8rem', color: theme.positive, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Q-Table: Learned Best Price Per State</h3>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'auto repeat(3, 1fr)', gap: '4px', fontSize: '0.7rem' }}>
-                      <div></div>
-                      {['far', 'medium', 'near'].map(t => <div key={t} style={{ textAlign: 'center', color: '#666', padding: '4px', fontSize: '0.65rem' }}>{t === 'far' ? '>=60d' : t === 'medium' ? '15-59d' : '<15d'}</div>)}
-                      {['high', 'medium', 'low'].map(cap => (
-                        <React.Fragment key={cap}>
-                          <div style={{ color: '#666', padding: '4px', fontSize: '0.65rem' }}>{cap === 'high' ? '>70%' : cap === 'medium' ? '30-70%' : '<30%'}</div>
-                          {['far', 'medium', 'near'].map(time => {
-                            const state = cap + '-' + time;
-                            let bestPrice = PRICES[0], bestQ = -Infinity;
-                            PRICES.forEach(p => { const q = getQValue(Q.current, state, p); if (q > bestQ) { bestQ = q; bestPrice = p; } });
-                            const isCurrent = getState(seatsRemaining, daysLeft) === state;
-                            return <div key={time} style={{ textAlign: 'center', padding: '8px 4px', background: isCurrent ? `${theme.positive}20` : '#f5f5f5', borderRadius: '4px', color: theme.accent, fontWeight: '700', border: isCurrent ? `2px solid ${theme.positive}` : '1px solid #e0e0e0' }}>${bestPrice}</div>;
-                          })}
-                        </React.Fragment>
-                      ))}
+            return (
+                <div className="confusion-matrix">
+                    <table className="matrix-table" style={{ marginBottom: '1rem' }}>
+                        <thead>
+                            <tr>
+                                <th></th>
+                                <th style={{ color: '#22c55e' }}>Pred: Benign</th>
+                                <th style={{ color: '#ef4444' }}>Pred: Malignant</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <th style={{ color: '#22c55e' }}>Actual: Benign</th>
+                                <td style={{ backgroundColor: 'rgba(34, 197, 94, 0.3)', color: '#166534', fontWeight: 600 }}>
+                                    {tn} (TN)
+                                </td>
+                                <td style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#991b1b' }}>
+                                    {fp} (FP)
+                                </td>
+                            </tr>
+                            <tr>
+                                <th style={{ color: '#ef4444' }}>Actual: Malignant</th>
+                                <td style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#991b1b' }}>
+                                    {fn} (FN)
+                                </td>
+                                <td style={{ backgroundColor: 'rgba(34, 197, 94, 0.3)', color: '#166534', fontWeight: 600 }}>
+                                    {tp} (TP)
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center', fontSize: '0.8rem' }}>
+                        <div><strong>Accuracy:</strong> {accuracy}%</div>
+                        <div><strong>Precision:</strong> {precision}%</div>
+                        <div><strong>Recall:</strong> {recall}%</div>
                     </div>
-                  </div>
-                )}
+                </div>
+            );
+        };
 
-                {/* Bandit Stats */}
-                {policy === 'bandit' && (
-                  <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: `1px solid ${theme.accent}30` }}>
-                    <h3 style={{ margin: '0 0 12px 0', fontSize: '0.8rem', color: '#666666', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Thompson Sampling: Avg Flight Revenue</h3>
-                    <div style={{ display: 'flex', justifyContent: 'space-around', fontSize: '0.75rem', flexWrap: 'wrap', gap: '8px' }}>
-                      {PRICES.map(p => { const d = banditState.current[p]; return (<div key={p} style={{ textAlign: 'center', minWidth: '50px', background: '#f5f5f5', padding: '8px', borderRadius: '6px' }}><div style={{ color: '#666' }}>${p}</div><div style={{ color: theme.accent, fontWeight: '700' }}>${d.flights ? (d.totalRevenue / d.flights).toFixed(0) : '?'}</div><div style={{ color: '#999', fontSize: '0.6rem' }}>n={d.flights}</div></div>); })}
+        // Gradient Flow Visualization
+        const GradientFlowViz = ({ layers, gradients }) => {
+            return (
+                <div className="gradient-flow-container">
+                    {['Input', ...layers.map((_, i) => `H${i + 1}`), 'Output'].map((label, idx) => (
+                        <div key={idx} style={{ textAlign: 'center' }}>
+                            <div
+                                className="gradient-bar"
+                                style={{ background: 'rgba(0, 0, 0, 0.1)' }}
+                            >
+                                <div
+                                    className="gradient-fill"
+                                    style={{
+                                        height: `${gradients[idx] * 100}%`,
+                                        background: `linear-gradient(180deg,
+                                            ${gradients[idx] > 0.7 ? '#22c55e' :
+                                              gradients[idx] > 0.3 ? '#eab308' : '#ef4444'},
+                                            transparent)`
+                                    }}
+                                />
+                            </div>
+                            <div className="gradient-label">{label}</div>
+                        </div>
+                    ))}
+                </div>
+            );
+        };
+
+        // Feature Importance visualization
+        const FeatureImportance = ({ importance }) => {
+            const maxVal = Math.max(...importance.map(f => f.value));
+            return (
+                <div className="feature-importance">
+                    {importance.slice(0, 10).map((feature, idx) => (
+                        <div key={idx} className="feature-bar">
+                            <span className="feature-name" title={feature.name}>{feature.name}</span>
+                            <div
+                                className="feature-bar-fill"
+                                style={{ width: `${(feature.value / maxVal) * 80}px` }}
+                            />
+                            <span style={{ fontSize: '0.65rem', color: '#666' }}>
+                                {(feature.value * 100).toFixed(0)}%
+                            </span>
+                        </div>
+                    ))}
+                </div>
+            );
+        };
+
+        // Main App Component
+        const App = () => {
+            const [isTraining, setIsTraining] = useState(false);
+            const [currentEpoch, setCurrentEpoch] = useState(0);
+
+            // Network configuration
+            const [hiddenLayers, setHiddenLayers] = useState([64, 32]);
+            const [activation, setActivation] = useState('relu');
+            const [dropout, setDropout] = useState(0.2);
+            const [batchNorm, setBatchNorm] = useState(true);
+            const [learningRate, setLearningRate] = useState(0.001);
+            const [batchSize, setBatchSize] = useState(32);
+            const [epochs, setEpochs] = useState(50);
+
+            // Training results
+            const [trainingHistory, setTrainingHistory] = useState([]);
+            const [confusionMatrix, setConfusionMatrix] = useState([[0, 0], [0, 0]]);
+            const [gradientFlow, setGradientFlow] = useState([]);
+            const [featureImportance, setFeatureImportance] = useState([]);
+            const [metrics, setMetrics] = useState({
+                trainAcc: 0,
+                valAcc: 0,
+                trainLoss: 0,
+                valLoss: 0,
+                params: 0,
+                trainTime: 0
+            });
+
+            // Calculate parameter count
+            const paramCount = useMemo(() => {
+                let params = 0;
+                let prevSize = 30; // 30 features
+                hiddenLayers.forEach(size => {
+                    params += prevSize * size + size; // weights + biases
+                    if (batchNorm) params += size * 4; // gamma, beta, running mean, var
+                    prevSize = size;
+                });
+                params += prevSize * 1 + 1; // output layer (binary)
+                return params;
+            }, [hiddenLayers, batchNorm]);
+
+            // Add hidden layer
+            const addLayer = () => {
+                if (hiddenLayers.length < 5) {
+                    setHiddenLayers([...hiddenLayers, 32]);
+                }
+            };
+
+            // Remove hidden layer
+            const removeLayer = (idx) => {
+                if (hiddenLayers.length > 1) {
+                    setHiddenLayers(hiddenLayers.filter((_, i) => i !== idx));
+                }
+            };
+
+            // Update layer size
+            const updateLayerSize = (idx, size) => {
+                const newLayers = [...hiddenLayers];
+                newLayers[idx] = parseInt(size);
+                setHiddenLayers(newLayers);
+            };
+
+            // Simulate training
+            const startTraining = async () => {
+                setIsTraining(true);
+                setTrainingHistory([]);
+                setCurrentEpoch(0);
+
+                const history = [];
+                const startTime = Date.now();
+
+                for (let epoch = 1; epoch <= epochs; epoch++) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+
+                    setCurrentEpoch(epoch);
+
+                    // Simulate training metrics with realistic curves for cancer classification
+                    const progress = epoch / epochs;
+                    const noise = () => (Math.random() - 0.5) * 0.02;
+
+                    const trainLoss = 0.7 * Math.exp(-4 * progress) + 0.05 + noise();
+                    const valLoss = 0.7 * Math.exp(-3.5 * progress) + 0.08 + noise();
+                    const trainAcc = 0.5 + 0.48 * (1 - Math.exp(-5 * progress)) + noise();
+                    const valAcc = 0.5 + 0.45 * (1 - Math.exp(-4 * progress)) + noise();
+
+                    const epochData = {
+                        epoch,
+                        trainLoss: Math.max(0.02, trainLoss),
+                        valLoss: Math.max(0.05, valLoss),
+                        trainAcc: Math.min(0.99, Math.max(0.5, trainAcc)),
+                        valAcc: Math.min(0.97, Math.max(0.5, valAcc))
+                    };
+
+                    history.push(epochData);
+                    setTrainingHistory([...history]);
+
+                    // Update gradient flow
+                    setGradientFlow([
+                        0.9 - epoch * 0.005 + Math.random() * 0.1,
+                        ...hiddenLayers.map((_, i) =>
+                            0.85 - i * 0.08 - epoch * 0.003 + Math.random() * 0.15
+                        ),
+                        0.8 + Math.random() * 0.15
+                    ]);
+                }
+
+                // Generate final confusion matrix for binary classification
+                // Simulating ~95% accuracy
+                const total = 114; // Test set size
+                const tp = Math.floor(40 + Math.random() * 5); // True positives (Malignant correctly identified)
+                const tn = Math.floor(65 + Math.random() * 5); // True negatives (Benign correctly identified)
+                const fp = Math.floor(2 + Math.random() * 3);  // False positives
+                const fn = Math.floor(2 + Math.random() * 3);  // False negatives
+
+                setConfusionMatrix([[tn, fp], [fn, tp]]);
+
+                // Generate feature importance
+                const importance = KEY_FEATURES.map(name => ({
+                    name,
+                    value: 0.5 + Math.random() * 0.5
+                })).sort((a, b) => b.value - a.value);
+                setFeatureImportance(importance);
+
+                // Update final metrics
+                const lastEpoch = history[history.length - 1];
+                setMetrics({
+                    trainAcc: lastEpoch.trainAcc,
+                    valAcc: lastEpoch.valAcc,
+                    trainLoss: lastEpoch.trainLoss,
+                    valLoss: lastEpoch.valLoss,
+                    params: paramCount,
+                    trainTime: (Date.now() - startTime) / 1000
+                });
+
+                setIsTraining(false);
+            };
+
+            return (
+                <div>
+                    {/* DARK HEADER */}
+                    <header style={{
+                        background: '#2774AE',
+                        padding: '1rem 2rem 1.5rem 2rem',
+                        position: 'sticky',
+                        top: 0,
+                        zIndex: 100
+                    }}>
+                        <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <p style={{ fontSize: '0.65rem', color: '#FFD100', fontWeight: 400, marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
+                                    MGMT298D: Science and Strategy of AI
+                                </p>
+                                <h1 style={{ fontSize: '1.4rem', fontWeight: 600, color: '#f5f5f5', letterSpacing: '0' }}>
+                                    Week 4: Neural Networks
+                                </h1>
+                                <p style={{ fontSize: '0.85rem', color: '#c0c0c0', marginTop: '0.25rem' }}>
+                                    Breast Cancer Diagnosis Classification
+                                </p>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                                <span style={{
+                                    fontSize: '1rem',
+                                    fontWeight: 500,
+                                    color: '#f5f5f5'
+                                }}>
+                                    UCLA Anderson
+                                </span>
+                            </div>
+                        </div>
+                        <div className="header-gold-line"></div>
+                    </header>
+
+                    {/* MAIN CONTENT SECTION */}
+                    <div className="controls-section">
+                        <div className="controls-content">
+                                <div className="simulator-layout">
+                                    <aside className="control-panel">
+                                        <h2 className="panel-title">Network Configuration</h2>
+
+                                        <div className="control-section">
+                                            <div className="section-label">Architecture</div>
+
+                                            <div className="layer-builder">
+                                                {hiddenLayers.map((nodes, idx) => (
+                                                    <div key={idx} className="layer-row">
+                                                        <span className="layer-number">Layer {idx + 1}</span>
+                                                        <select
+                                                            className="layer-nodes-select"
+                                                            value={nodes}
+                                                            onChange={(e) => updateLayerSize(idx, e.target.value)}
+                                                        >
+                                                            <option value={8}>8 nodes</option>
+                                                            <option value={16}>16 nodes</option>
+                                                            <option value={32}>32 nodes</option>
+                                                            <option value={64}>64 nodes</option>
+                                                            <option value={128}>128 nodes</option>
+                                                        </select>
+                                                        {hiddenLayers.length > 1 && (
+                                                            <button
+                                                                className="layer-remove-btn"
+                                                                onClick={() => removeLayer(idx)}
+                                                            >
+                                                                x
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                                {hiddenLayers.length < 5 && (
+                                                    <button className="add-layer-btn" onClick={addLayer}>
+                                                        + Add Hidden Layer
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            <div className="control-group">
+                                                <label className="control-label">Activation Function</label>
+                                                <select
+                                                    value={activation}
+                                                    onChange={(e) => setActivation(e.target.value)}
+                                                >
+                                                    <option value="relu">ReLU</option>
+                                                    <option value="sigmoid">Sigmoid</option>
+                                                    <option value="tanh">Tanh</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div className="control-section">
+                                            <div className="section-label">Regularization</div>
+
+                                            <div className="control-group">
+                                                <label className="control-label">
+                                                    Dropout Rate
+                                                    <span className="control-value">{dropout.toFixed(2)}</span>
+                                                </label>
+                                                <input
+                                                    type="range"
+                                                    min="0"
+                                                    max="0.5"
+                                                    step="0.05"
+                                                    value={dropout}
+                                                    onChange={(e) => setDropout(parseFloat(e.target.value))}
+                                                />
+                                            </div>
+
+                                            <div className="control-group">
+                                                <div className="toggle-container">
+                                                    <div
+                                                        className={`toggle ${batchNorm ? 'active' : ''}`}
+                                                        onClick={() => setBatchNorm(!batchNorm)}
+                                                    />
+                                                    <span className="control-label" style={{ marginBottom: 0 }}>
+                                                        Batch Normalization
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="control-section">
+                                            <div className="section-label">Training Parameters</div>
+
+                                            <div className="control-group">
+                                                <label className="control-label">
+                                                    Learning Rate
+                                                    <span className="control-value">{learningRate.toFixed(4)}</span>
+                                                </label>
+                                                <input
+                                                    type="range"
+                                                    min="-4"
+                                                    max="-1"
+                                                    step="0.1"
+                                                    value={Math.log10(learningRate)}
+                                                    onChange={(e) => setLearningRate(Math.pow(10, parseFloat(e.target.value)))}
+                                                />
+                                            </div>
+
+                                            <div className="control-group">
+                                                <label className="control-label">Batch Size</label>
+                                                <select
+                                                    value={batchSize}
+                                                    onChange={(e) => setBatchSize(parseInt(e.target.value))}
+                                                >
+                                                    <option value={16}>16</option>
+                                                    <option value={32}>32</option>
+                                                    <option value={64}>64</option>
+                                                    <option value={128}>128</option>
+                                                </select>
+                                            </div>
+
+                                            <div className="control-group">
+                                                <label className="control-label">
+                                                    Epochs
+                                                    <span className="control-value">{epochs}</span>
+                                                </label>
+                                                <input
+                                                    type="range"
+                                                    min="10"
+                                                    max="200"
+                                                    step="10"
+                                                    value={epochs}
+                                                    onChange={(e) => setEpochs(parseInt(e.target.value))}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            className={`train-btn ${isTraining ? 'training' : ''}`}
+                                            onClick={startTraining}
+                                            disabled={isTraining}
+                                        >
+                                            {isTraining ? `Training... Epoch ${currentEpoch}/${epochs}` : 'Train Model'}
+                                        </button>
+
+                                        {isTraining && (
+                                            <div className="training-progress">
+                                                <div className="progress-bar">
+                                                    <div
+                                                        className="progress-fill"
+                                                        style={{ width: `${(currentEpoch / epochs) * 100}%` }}
+                                                    />
+                                                </div>
+                                                <div className="progress-text">
+                                                    {Math.round((currentEpoch / epochs) * 100)}% complete
+                                                </div>
+                                            </div>
+                                        )}
+                                    </aside>
+
+                                    {/* Right side - Network viz + charts stacked */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                        {/* Neural Network Visualization */}
+                                        <div className="network-viz-card" style={{ margin: 0 }}>
+                                            <div className="card-header">
+                                                <h3 className="card-title">
+                                                    Network Architecture
+                                                </h3>
+                                                <span className="param-count">
+                                                    {paramCount.toLocaleString()} parameters
+                                                </span>
+                                            </div>
+                                            <div className="network-svg-container">
+                                                <NeuralNetworkViz
+                                                    layers={hiddenLayers}
+                                                    activation={activation}
+                                                    dropout={dropout}
+                                                    batchNorm={batchNorm}
+                                                    isTraining={isTraining}
+                                                    currentEpoch={currentEpoch}
+                                                    nFeatures={30}
+                                                />
+                                            </div>
+                                            <div className="network-legend">
+                                                <div className="legend-item">
+                                                    <div className="legend-dot" style={{ background: '#6b7280' }}></div>
+                                                    Input (30 features)
+                                                </div>
+                                                <div className="legend-item">
+                                                    <div className="legend-dot" style={{ background: ACTIVATION_COLORS[activation] }}></div>
+                                                    Hidden ({activation.toUpperCase()})
+                                                </div>
+                                                <div className="legend-item">
+                                                    <div className="legend-dot" style={{ background: '#22c55e' }}></div>
+                                                    Benign
+                                                </div>
+                                                <div className="legend-item">
+                                                    <div className="legend-dot" style={{ background: '#ef4444' }}></div>
+                                                    Malignant
+                                                </div>
+                                                {dropout > 0 && (
+                                                    <div className="legend-item">
+                                                        <div className="legend-dot" style={{
+                                                            background: 'transparent',
+                                                            border: `2px dashed ${colors.primary}`
+                                                        }}></div>
+                                                        Dropout Nodes
+                                                    </div>
+                                                )}
+                                                {batchNorm && (
+                                                    <div className="legend-item">
+                                                        <div className="legend-bar" style={{ background: colors.lightBlue }}></div>
+                                                        Batch Norm
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Training Charts - side by side below network */}
+                                        <div className="charts-grid" style={{ marginBottom: 0 }}>
+                                            <div className="chart-card">
+                                                <h3 className="card-title">Accuracy Over Epochs</h3>
+                                                <div className="chart-container">
+                                                    <AccuracyChart
+                                                        trainingHistory={trainingHistory}
+                                                        totalEpochs={epochs}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="chart-card">
+                                                <h3 className="card-title">Loss Over Epochs</h3>
+                                                <div className="chart-container">
+                                                    <LossChart
+                                                        trainingHistory={trainingHistory}
+                                                        totalEpochs={epochs}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Metrics row - below charts */}
+                                        <div className="metrics-grid" style={{ marginBottom: 0 }}>
+                                            <div className="metric-card">
+                                                <div className="metric-value">
+                                                    {(metrics.trainAcc * 100).toFixed(1)}%
+                                                </div>
+                                                <div className="metric-label">Train Accuracy</div>
+                                            </div>
+                                            <div className="metric-card">
+                                                <div className="metric-value positive">
+                                                    {(metrics.valAcc * 100).toFixed(1)}%
+                                                </div>
+                                                <div className="metric-label">Val Accuracy</div>
+                                            </div>
+                                            <div className="metric-card">
+                                                <div className="metric-value neutral">
+                                                    {metrics.valLoss.toFixed(3)}
+                                                </div>
+                                                <div className="metric-label">Val Loss</div>
+                                            </div>
+                                            <div className="metric-card">
+                                                <div className="metric-value" style={{ color: colors.text }}>
+                                                    {metrics.trainTime.toFixed(1)}s
+                                                </div>
+                                                <div className="metric-label">Training Time</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                        </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            </div>
 
-            {/* Policy Comparison Table */}
-            <div style={{ marginTop: '20px', background: '#ffffff', borderRadius: '12px', padding: '20px', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-              <h4 style={{ margin: '0 0 16px 0', fontSize: '0.9rem', color: '#333', fontWeight: '600' }}>Policy Comparison</h4>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                <thead>
-                  <tr style={{ }}>
-                    <th style={{ padding: '12px', textAlign: 'left', color: '#666' }}>Policy</th>
-                    <th style={{ padding: '12px', textAlign: 'right', color: '#666' }}>Flights</th>
-                    <th style={{ padding: '12px', textAlign: 'right', color: '#666' }}>Avg Revenue</th>
-                    <th style={{ padding: '12px', textAlign: 'right', color: '#666' }}>Avg Occ</th>
-                    <th style={{ padding: '12px', textAlign: 'right', color: theme.darkBlue }}>Last 5 Rev</th>
-                    <th style={{ padding: '12px', textAlign: 'right', color: theme.darkBlue }}>Last 5 Occ</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {['static', 'bandit', 'qlearning'].map(p => {
-                    const result = policyResults[p];
-                    return (
-                      <tr key={p} style={{ }}>
-                        <td style={{ padding: '12px', color: getPolicyColor(p), fontWeight: '600' }}>{getPolicyName(p)}</td>
-                        <td style={{ padding: '12px', textAlign: 'right', color: '#333' }}>{result ? result.flights : '-'}</td>
-                        <td style={{ padding: '12px', textAlign: 'right', color: theme.positive, fontWeight: '600' }}>{result ? '$' + result.avgRevenue.toFixed(0) : '-'}</td>
-                        <td style={{ padding: '12px', textAlign: 'right', color: theme.accent }}>{result ? result.avgOccupancy.toFixed(1) + '%' : '-'}</td>
-                        <td style={{ padding: '12px', textAlign: 'right', color: theme.darkBlue, fontWeight: '600' }}>{result ? '$' + result.last5AvgRevenue.toFixed(0) : '-'}</td>
-                        <td style={{ padding: '12px', textAlign: 'right', color: theme.darkBlue }}>{result ? result.last5AvgOccupancy.toFixed(1) + '%' : '-'}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-        <p style={{ color: '#888', fontSize: '0.75rem', marginTop: '20px' }}>
-            MGMT298D: Science and Strategy of AI | UCLA Anderson School of Management
-        </p>
-      </div>
-    </div>
-  );
-}
+                    {/* RESULTS SECTION */}
+                        <div className="results-section">
+                            <div className="results-content">
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<AirlinePricingSimulator />);
+                                {/* Confusion Matrix and Gradient Flow */}
+                                {trainingHistory.length > 0 && (
+                                    <div className="charts-grid">
+                                        <div className="chart-card">
+                                            <h3 className="card-title">
+                                                Confusion Matrix
+                                            </h3>
+                                            <ConfusionMatrix matrix={confusionMatrix} />
+                                        </div>
+
+                                        <div className="chart-card">
+                                            <h3 className="card-title">
+                                                Gradient Flow
+                                            </h3>
+                                            <GradientFlowViz
+                                                layers={hiddenLayers}
+                                                gradients={gradientFlow.length > 0 ? gradientFlow :
+                                                    [0.5, ...hiddenLayers.map(() => 0.5), 0.5]}
+                                            />
+                                            <div style={{
+                                                marginTop: '1rem',
+                                                fontSize: '0.8rem',
+                                                color: colors.lightMuted,
+                                                textAlign: 'center'
+                                            }}>
+                                                Green = healthy gradients, Red = vanishing gradients
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Feature Importance */}
+                                {featureImportance.length > 0 && (
+                                    <div className="chart-card">
+                                        <h3 className="card-title">
+                                            Top Feature Importance (Approximate)
+                                        </h3>
+                                        <div style={{ marginTop: '1rem' }}>
+                                            <FeatureImportance importance={featureImportance} />
+                                        </div>
+                                        <div style={{
+                                            marginTop: '1rem',
+                                            fontSize: '0.75rem',
+                                            color: colors.lightMuted,
+                                            textAlign: 'center'
+                                        }}>
+                                            Features like radius, perimeter, and area are often most predictive for tumor classification
+                                        </div>
+                                    </div>
+                                )}
+
+                            </div>
+                        </div>
+
+                    {/* Footer */}
+                    <p style={{ color: '#888', fontSize: '0.75rem', marginTop: '20px', textAlign: 'center' }}>
+                        MGMT298D: Science and Strategy of AI | UCLA Anderson School of Management
+                    </p>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 </html>

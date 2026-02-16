@@ -3,1880 +3,1175 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Week 3: Clustering & Collaborative Filtering | UCLA Anderson</title>
-    <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
+    <title>Week 3: Dynamic Pricing - UCLA Anderson MGMT 298D</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --primary: #2774AE;
-            --darkBlue: #005587;
-            --lightBlue: #8BB8E8;
-            --gold: #FFD100;
-            --success: #27ae60;
-            --lightBg: #f5f5f5;
-            --lightCard: #ffffff;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background: #ffffff;
             min-height: 100vh;
             color: #1a1a1a;
         }
-
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.05); }
-        ::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 4px; }
-
-        .header {
-            background: var(--primary);
-            padding: 1rem 2rem 1.5rem 2rem;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .header-content {
-            max-width: 1400px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
+    
         .header-gold-line {
             position: absolute;
             bottom: 0;
             left: 0;
             right: 0;
             height: 4px;
-            background: var(--gold);
-        }
-
-        .main-tabs {
-            display: flex;
-            gap: 4px;
-            background: rgba(0, 0, 0, 0.1);
-            padding: 4px;
-            border-radius: 10px;
-            margin: 20px auto;
-            max-width: 500px;
-        }
-
-        .main-tab {
-            flex: 1;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            background: transparent;
-            color: #666;
-        }
-
-        .main-tab.active {
-            background: var(--primary);
-            color: white;
-            box-shadow: 0 2px 8px rgba(39, 116, 174, 0.3);
-        }
-
-        .main-tab:hover:not(.active) {
-            background: rgba(39, 116, 174, 0.1);
-            color: var(--primary);
-        }
-
-        .data-source-bar {
-            margin-bottom: 20px;
-            background: rgba(39, 116, 174, 0.1);
-            border: 1px solid rgba(39, 116, 174, 0.3);
-            border-radius: 8px;
-            padding: 12px 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-
-        .data-source-bar.netflix {
-            background: rgba(39, 174, 96, 0.1);
-            border-color: rgba(39, 174, 96, 0.3);
-        }
-
-        .data-toggle-btn {
-            padding: 8px 16px;
-            border-radius: 6px;
-            border: 1px solid #ddd;
-            background: white;
-            color: #666;
-            font-weight: 400;
-            cursor: pointer;
-            font-size: 0.85rem;
-            transition: all 0.2s ease;
-        }
-
-        .data-toggle-btn.active {
-            border-width: 2px;
-            font-weight: 600;
-        }
-
-        .data-toggle-btn.synthetic.active {
-            border-color: var(--primary);
-            background: rgba(39, 116, 174, 0.15);
-            color: var(--primary);
-        }
-
-        .data-toggle-btn.netflix.active {
-            border-color: var(--success);
-            background: rgba(39, 174, 96, 0.15);
-            color: var(--success);
-        }
-
-        .data-toggle-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .controls-section {
-            background: var(--lightBg);
-            padding: 20px 40px;
-        }
-
-        .control-panel {
-            background: #ffffff;
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-            margin-bottom: 20px;
-        }
-
-        .control-panel h3 {
-            font-size: 1rem;
-            font-weight: 600;
-            margin-bottom: 16px;
-            color: #1a1a1a;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .controls-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-        }
-
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .control-group label {
-            font-size: 0.85rem;
-            color: #666;
-            font-weight: 500;
-        }
-
-        .control-group select,
-        .control-group input[type="number"] {
-            width: 100%;
-            padding: 10px 12px;
-            background: #ffffff;
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-            color: #1a1a1a;
-            font-size: 0.9rem;
-            cursor: pointer;
-        }
-
-        .control-group select:focus,
-        .control-group input:focus {
-            border-color: var(--primary);
-            outline: none;
-        }
-
-        input[type="range"] {
-            -webkit-appearance: none;
-            height: 8px;
-            background: rgba(0, 0, 0, 0.1);
-            border-radius: 4px;
-            width: 100%;
-        }
-
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 20px;
-            height: 20px;
-            background: linear-gradient(135deg, var(--primary), var(--lightBlue));
-            border-radius: 50%;
-            cursor: pointer;
-            box-shadow: 0 2px 10px rgba(39, 116, 174, 0.5);
-        }
-
-        .slider-value {
-            font-size: 0.9rem;
-            color: var(--primary);
-            font-weight: 600;
-            text-align: right;
-        }
-
-        .results-section {
-            background: var(--lightBg);
-            padding: 30px 40px;
-        }
-
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
-            margin-bottom: 25px;
-        }
-
-        @media (max-width: 900px) {
-            .metrics-grid { grid-template-columns: repeat(2, 1fr); }
-        }
-
-        .metric-card {
-            background: #ffffff;
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            border-radius: 12px;
-            padding: 20px;
-            text-align: center;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        }
-
-        .metric-card:hover {
-            border-color: var(--primary);
-            transform: translateY(-2px);
-        }
-
-        .metric-card .value {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--primary);
-            margin-bottom: 5px;
-        }
-
-        .metric-card .label {
-            font-size: 0.85rem;
-            color: #666;
-        }
-
-        .main-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 25px;
-        }
-
-        @media (max-width: 1200px) {
-            .main-grid { grid-template-columns: 1fr; }
-        }
-
-        .chart-card {
-            background: #ffffff;
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        }
-
-        .chart-card.hero {
-            grid-column: 1 / -1;
-        }
-
-        .chart-card h3 {
-            font-size: 1rem;
-            font-weight: 600;
-            color: #1a1a1a;
-            margin-bottom: 15px;
-        }
-
-        .scatter-container {
-            position: relative;
-            width: 100%;
-            height: 450px;
-            background: #ffffff;
-            border-radius: 12px;
-            overflow: hidden;
-        }
-
-        .scatter-svg {
-            width: 100%;
-            height: 100%;
-        }
-
-        .cluster-point {
-            transition: all 0.5s ease;
-        }
-
-        .centroid {
-            filter: drop-shadow(0 0 10px currentColor);
-        }
-
-        .cluster-legend {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin-top: 15px;
-            justify-content: center;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.85rem;
-            color: #666;
-            cursor: pointer;
-        }
-
-        .legend-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-        }
-
-        .anim-btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .anim-btn.play {
-            background: linear-gradient(135deg, var(--primary), var(--lightBlue));
-            color: white;
-            box-shadow: 0 4px 15px rgba(39, 116, 174, 0.4);
-        }
-
-        .anim-btn.play:hover {
-            transform: translateY(-2px);
-        }
-
-        .anim-btn.reset {
-            background: #ffffff;
-            color: #666;
-            border: 1px solid rgba(0, 0, 0, 0.1);
-        }
-
-        .anim-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .speed-selector {
-            display: flex;
-            gap: 5px;
-        }
-
-        .speed-btn {
-            padding: 8px 16px;
-            background: #ffffff;
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            border-radius: 6px;
-            color: #666;
-            font-size: 0.8rem;
-            cursor: pointer;
-        }
-
-        .speed-btn.active {
-            background: rgba(39, 116, 174, 0.1);
-            border-color: var(--primary);
-            color: var(--primary);
-        }
-
-        .algorithm-status {
-            background: rgba(39, 116, 174, 0.05);
-            border: 1px solid rgba(39, 116, 174, 0.2);
-            border-radius: 10px;
-            padding: 15px 20px;
-            margin-top: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-
-        .status-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .status-label {
-            font-size: 0.85rem;
-            color: #666;
-        }
-
-        .status-value {
-            font-size: 1rem;
-            font-weight: 600;
-            color: var(--primary);
-        }
-
-        /* Heatmap styles */
-        .heatmap-container {
-            overflow-x: auto;
-        }
-
-        .heatmap-table {
-            border-collapse: collapse;
-            font-size: 0.75rem;
-        }
-
-        .heatmap-table th,
-        .heatmap-table td {
-            padding: 8px;
-            text-align: center;
-            border: 1px solid #eee;
-            min-width: 60px;
-        }
-
-        .heatmap-table th {
-            background: #f5f5f5;
-            font-weight: 600;
-            color: #333;
-        }
-
-        .heatmap-cell {
-            font-weight: 500;
-        }
-
-        /* Recommendation list */
-        .recommendation-list {
-            list-style: none;
-        }
-
-        .recommendation-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 16px;
-            border-bottom: 1px solid #eee;
-            transition: background 0.2s ease;
-        }
-
-        .recommendation-item:hover {
-            background: rgba(39, 116, 174, 0.05);
-        }
-
-        .recommendation-item:last-child {
-            border-bottom: none;
-        }
-
-        .rec-rank {
-            width: 30px;
-            height: 30px;
-            background: var(--primary);
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 0.85rem;
-        }
-
-        .rec-info {
-            flex: 1;
-            margin-left: 12px;
-        }
-
-        .rec-title {
-            font-weight: 600;
-            color: #333;
-        }
-
-        .rec-subtitle {
-            font-size: 0.8rem;
-            color: #888;
-        }
-
-        .rec-rating {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .rec-stars {
-            color: var(--gold);
-        }
-
-        .rec-score {
-            font-weight: 600;
-            color: var(--primary);
-        }
-
-        /* Neighbors list */
-        .neighbors-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .neighbor-card {
-            background: rgba(39, 116, 174, 0.05);
-            border: 1px solid rgba(39, 116, 174, 0.2);
-            border-radius: 8px;
-            padding: 12px;
-            text-align: center;
-        }
-
-        .neighbor-id {
-            font-weight: 600;
-            color: var(--primary);
-            font-size: 0.9rem;
-        }
-
-        .neighbor-sim {
-            font-size: 0.75rem;
-            color: #666;
-            margin-top: 4px;
-        }
-
-        .loading {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 60px;
-            color: #666;
-        }
-
-        .loading-spinner {
-            width: 50px;
-            height: 50px;
-            border: 3px solid rgba(39, 116, 174, 0.2);
-            border-top-color: var(--primary);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 15px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .footer {
-            color: #888;
-            font-size: 0.75rem;
-            margin-top: 20px;
-            text-align: center;
-            padding-bottom: 20px;
-        }
-
-        /* CF Evaluation Styles */
-        .cf-section-title {
-            font-size: 1rem;
-            font-weight: 600;
-            color: #1a1a1a;
-            margin-bottom: 6px;
-        }
-
-        .cf-section-desc {
-            font-size: 0.82rem;
-            color: #888;
-            margin-bottom: 16px;
-            line-height: 1.5;
-        }
-
-        .mae-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.85rem;
-        }
-
-        .mae-table th {
-            text-align: left;
-            padding: 8px 10px;
-            border-bottom: 2px solid #eee;
-            color: #666;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-weight: 600;
-        }
-
-        .mae-table td {
-            padding: 7px 10px;
-            border-bottom: 1px solid #f0f0f0;
-        }
-
-        .mae-bar-track {
-            display: inline-block;
-            width: 80px;
-            height: 8px;
-            background: #f0f0f0;
-            border-radius: 4px;
-            vertical-align: middle;
-            margin-right: 8px;
-            overflow: hidden;
-        }
-
-        .mae-bar-fill {
-            height: 100%;
-            border-radius: 4px;
-            transition: width 0.4s ease;
-        }
-
-        .predict-result-box {
-            background: linear-gradient(135deg, rgba(39, 116, 174, 0.05), rgba(39, 174, 96, 0.05));
-            border: 1px solid rgba(39, 116, 174, 0.15);
-            border-radius: 12px;
-            padding: 20px;
-            margin-top: 15px;
-        }
-
-        .big-predicted-rating {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: var(--primary);
-            line-height: 1;
-        }
-
-        .confidence-badge {
-            display: inline-block;
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
-        .confidence-high { background: rgba(39, 174, 96, 0.15); color: #27ae60; }
-        .confidence-medium { background: rgba(243, 156, 18, 0.15); color: #f39c12; }
-        .confidence-low { background: rgba(231, 76, 60, 0.15); color: #e74c3c; }
-
-        .user-taste-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 3px 0;
-            font-size: 0.82rem;
-        }
-
-        .user-taste-row .movie-name {
-            width: 160px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            color: #333;
-        }
-
-        .user-taste-row .taste-bar {
-            flex: 1;
-            max-width: 80px;
-            height: 6px;
-            background: #f0f0f0;
-            border-radius: 3px;
-            overflow: hidden;
-        }
-
-        .user-taste-row .taste-fill {
-            height: 100%;
-            border-radius: 3px;
+            background: #FFD100;
+            margin: 0;
+            padding: 0;
         }
     </style>
 </head>
 <body>
     <div id="root"></div>
-
     <script type="text/babel">
-        const { useState, useEffect, useRef, useCallback, useMemo } = React;
+const { useState, useEffect, useRef, useCallback } = React;
 
-        // API Configuration
-        const API_BASE = window.location.origin;
+// UCLA Theme Colors
+const theme = {
+    primary: '#2774AE',
+    accent: '#2774AE',
+    darkBlue: '#005587',
+    lightBlue: '#8BB8E8',
+    positive: '#2774AE',
+    negative: '#005587',
+    darkBg: '#ffffff',
+    darkCard: '#1a1d24',
+    darkText: '#005587',
+    darkMuted: '#c0c0c0',
+    lightBg: '#f8f9fa',
+    lightCard: '#ffffff'
+};
 
-        // Cluster colors - UCLA themed
-        const CLUSTER_COLORS = [
-            '#2774AE', '#005587', '#8BB8E8', '#27ae60', '#e74c3c',
-            '#9b59b6', '#f39c12', '#1abc9c', '#34495e', '#e91e63'
-        ];
+// Chart.js Area Chart Component
+function AreaChart({ data, dataKey, xKey, color, yMin, yMax }) {
+    const canvasRef = useRef(null);
+    const chartRef = useRef(null);
 
-        // ==================== CHART COMPONENTS ====================
+    useEffect(() => {
+        if (!canvasRef.current || !data.length) return;
+        if (chartRef.current) chartRef.current.destroy();
 
-        function LineChartComponent({ data, dataKey, xKey, title }) {
-            const canvasRef = useRef(null);
-            const chartRef = useRef(null);
-
-            useEffect(() => {
-                if (!canvasRef.current || !data.length) return;
-                if (chartRef.current) chartRef.current.destroy();
-
-                const ctx = canvasRef.current.getContext('2d');
-                chartRef.current = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: data.map(d => d[xKey]),
-                        datasets: [{
-                            label: title,
-                            data: data.map(d => d[dataKey]),
-                            borderColor: '#2774AE',
-                            backgroundColor: 'rgba(39, 116, 174, 0.1)',
-                            tension: 0.4,
-                            fill: true,
-                            pointBackgroundColor: '#2774AE',
-                            pointRadius: 5,
-                            pointHoverRadius: 8
-                        }]
+        const ctx = canvasRef.current.getContext('2d');
+        chartRef.current = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.map(d => d[xKey]),
+                datasets: [{
+                    data: data.map(d => d[dataKey]),
+                    borderColor: color,
+                    backgroundColor: color + '40',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: {
+                        ticks: { color: '#666', font: { size: 10 } },
+                        grid: { color: '#e0e0e0' }
                     },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: {
-                            x: { grid: { color: 'rgba(0, 0, 0, 0.05)' }, ticks: { color: '#666' } },
-                            y: { grid: { color: 'rgba(0, 0, 0, 0.05)' }, ticks: { color: '#666' } }
-                        }
+                    y: {
+                        min: yMin,
+                        max: yMax,
+                        ticks: { color: '#666', font: { size: 10 } },
+                        grid: { color: '#e0e0e0' }
                     }
-                });
-                return () => { if (chartRef.current) chartRef.current.destroy(); };
-            }, [data, dataKey, xKey, title]);
-
-            return <div style={{height: '250px'}}><canvas ref={canvasRef} /></div>;
-        }
-
-        function BarChartComponent({ data, dataKey, xKey, title, highlightValue }) {
-            const canvasRef = useRef(null);
-            const chartRef = useRef(null);
-
-            useEffect(() => {
-                if (!canvasRef.current || !data.length) return;
-                if (chartRef.current) chartRef.current.destroy();
-
-                const ctx = canvasRef.current.getContext('2d');
-                chartRef.current = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: data.map(d => d[xKey]),
-                        datasets: [{
-                            label: title,
-                            data: data.map(d => d[dataKey]),
-                            backgroundColor: data.map(d => d[xKey] === highlightValue ? '#2774AE' : '#8BB8E8'),
-                            borderRadius: 4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: {
-                            x: { grid: { display: false }, ticks: { color: '#666' } },
-                            y: { grid: { color: 'rgba(0, 0, 0, 0.05)' }, ticks: { color: '#666' }, min: -0.2, max: 1 }
-                        }
-                    }
-                });
-                return () => { if (chartRef.current) chartRef.current.destroy(); };
-            }, [data, dataKey, xKey, title, highlightValue]);
-
-            return <div style={{height: '250px'}}><canvas ref={canvasRef} /></div>;
-        }
-
-        function PieChartComponent({ data }) {
-            const canvasRef = useRef(null);
-            const chartRef = useRef(null);
-
-            useEffect(() => {
-                if (!canvasRef.current || !data.length) return;
-                if (chartRef.current) chartRef.current.destroy();
-
-                const ctx = canvasRef.current.getContext('2d');
-                chartRef.current = new Chart(ctx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: data.map(d => d.name),
-                        datasets: [{
-                            data: data.map(d => d.value),
-                            backgroundColor: data.map(d => d.color),
-                            borderColor: '#ffffff',
-                            borderWidth: 3
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        cutout: '60%',
-                        plugins: {
-                            legend: { display: true, position: 'right', labels: { color: '#666', padding: 15, usePointStyle: true } }
-                        }
-                    }
-                });
-                return () => { if (chartRef.current) chartRef.current.destroy(); };
-            }, [data]);
-
-            return <div style={{height: '250px'}}><canvas ref={canvasRef} /></div>;
-        }
-
-        function MultiLineChartComponent({ data, datasets, xKey, title }) {
-            const canvasRef = useRef(null);
-            const chartRef = useRef(null);
-
-            useEffect(() => {
-                if (!canvasRef.current || !data.length) return;
-                if (chartRef.current) chartRef.current.destroy();
-
-                const colors = ['#2774AE', '#e74c3c', '#27ae60', '#f39c12'];
-                const ctx = canvasRef.current.getContext('2d');
-                chartRef.current = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: data.map(d => d[xKey]),
-                        datasets: datasets.map((ds, i) => ({
-                            label: ds.label,
-                            data: data.map(d => d[ds.key]),
-                            borderColor: colors[i % colors.length],
-                            backgroundColor: 'transparent',
-                            tension: 0.3,
-                            pointRadius: 2,
-                            pointHoverRadius: 6,
-                            borderWidth: 2.5,
-                        }))
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: true, position: 'top', labels: { color: '#666', usePointStyle: true, padding: 15 } },
-                        },
-                        scales: {
-                            x: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#666' }, title: { display: true, text: 'k (neighbors)', color: '#666' } },
-                            y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#666' }, title: { display: true, text: 'Mean Absolute Error', color: '#666' } }
-                        }
-                    }
-                });
-                return () => { if (chartRef.current) chartRef.current.destroy(); };
-            }, [data, datasets, xKey]);
-
-            return <div style={{height: '300px'}}><canvas ref={canvasRef} /></div>;
-        }
-
-        // ==================== MOCK DATA GENERATORS ====================
-
-        const generateSyntheticClusterData = (numPoints = 150) => {
-            const data = [];
-            const clusterCenters = [
-                { x: 0.2, y: 0.8, genre: 'Action Lovers' },
-                { x: 0.8, y: 0.7, genre: 'Comedy Fans' },
-                { x: 0.5, y: 0.2, genre: 'Drama Enthusiasts' },
-                { x: 0.3, y: 0.4, genre: 'Horror Buffs' },
-            ];
-
-            for (let i = 0; i < numPoints; i++) {
-                const clusterIdx = Math.floor(Math.random() * clusterCenters.length);
-                const center = clusterCenters[clusterIdx];
-
-                data.push({
-                    id: i,
-                    x: center.x + (Math.random() - 0.5) * 0.3,
-                    y: center.y + (Math.random() - 0.5) * 0.3,
-                    cluster: -1,
-                    userId: `User_${1000 + i}`,
-                    trueCluster: clusterIdx
-                });
+                }
             }
-            return data;
-        };
+        });
+        return () => { if (chartRef.current) chartRef.current.destroy(); };
+    }, [data, dataKey, xKey, color, yMin, yMax]);
 
-        const generateSyntheticCFData = () => {
-            const users = [];
-            const items = ['The Matrix', 'Titanic', 'The Godfather', 'Pulp Fiction', 'Forrest Gump',
-                          'Inception', 'The Dark Knight', 'Fight Club', 'Goodfellas', 'The Shawshank Redemption'];
+    return <div style={{height: '120px'}}><canvas ref={canvasRef} /></div>;
+}
 
-            for (let i = 0; i < 50; i++) {
-                const ratings = {};
-                items.forEach(item => {
-                    if (Math.random() > 0.3) { // 70% chance of rating
-                        ratings[item] = Math.floor(Math.random() * 5) + 1;
+// Chart.js Area Chart Component with smaller height
+function SmallAreaChart({ data, dataKey, xKey, color, yMin, yMax }) {
+    const canvasRef = useRef(null);
+    const chartRef = useRef(null);
+
+    useEffect(() => {
+        if (!canvasRef.current || !data.length) return;
+        if (chartRef.current) chartRef.current.destroy();
+
+        const ctx = canvasRef.current.getContext('2d');
+        chartRef.current = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.map(d => d[xKey]),
+                datasets: [{
+                    data: data.map(d => d[dataKey]),
+                    borderColor: color,
+                    backgroundColor: color + '40',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: {
+                        ticks: { color: '#666', font: { size: 10 } },
+                        grid: { color: '#e0e0e0' }
+                    },
+                    y: {
+                        min: yMin,
+                        max: yMax,
+                        ticks: { color: '#666', font: { size: 10 } },
+                        grid: { color: '#e0e0e0' }
                     }
-                });
-                users.push({
-                    id: i,
-                    userId: `User_${1000 + i}`,
-                    ratings
-                });
+                }
             }
-            return { users, items };
-        };
+        });
+        return () => { if (chartRef.current) chartRef.current.destroy(); };
+    }, [data, dataKey, xKey, color, yMin, yMax]);
 
-        // ==================== K-MEANS ALGORITHMS ====================
+    return <div style={{height: '100px'}}><canvas ref={canvasRef} /></div>;
+}
 
-        const euclideanDistance = (p1, p2) => Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+const TOTAL_SEATS = 75;
+const TOTAL_DAYS = 180;
+const ARRIVAL_RATE = 1; // Poisson lambda
+const PRICES = [199, 249, 299, 349, 499, 699];
 
-        const initializeCentroids = (data, k) => {
-            const shuffled = [...data].sort(() => Math.random() - 0.5);
-            return shuffled.slice(0, k).map((d, i) => ({
-                id: i, x: d.x, y: d.y, prevX: d.x, prevY: d.y
-            }));
-        };
+// Sample from Poisson distribution
+const samplePoisson = (lambda) => {
+  const L = Math.exp(-lambda);
+  let k = 0;
+  let p = 1;
+  do {
+    k++;
+    p *= Math.random();
+  } while (p > L);
+  return k - 1;
+};
 
-        const assignClusters = (data, centroids) => {
-            return data.map(point => {
-                let minDist = Infinity;
-                let cluster = 0;
-                centroids.forEach((centroid, idx) => {
-                    const dist = euclideanDistance(point, centroid);
-                    if (dist < minDist) {
-                        minDist = dist;
-                        cluster = idx;
-                    }
-                });
-                return { ...point, cluster, distance: minDist };
+const getCapacityBucket = (remaining, total) => {
+  const pct = remaining / total;
+  if (pct > 0.7) return 'high';
+  if (pct > 0.3) return 'medium';
+  return 'low';
+};
+
+const getTimeBucket = (daysLeft) => {
+  if (daysLeft >= 60) return 'far';
+  if (daysLeft >= 15) return 'medium';
+  return 'near';
+};
+
+const getState = (seatsRemaining, daysLeft) => getCapacityBucket(seatsRemaining, TOTAL_SEATS) + '-' + getTimeBucket(daysLeft);
+
+const generateCustomerWTP = (daysLeft) => {
+  const t = TOTAL_DAYS - daysLeft + 1;
+  const meanWTP = 100 + t + Math.pow(t / 50, 5);
+  const u1 = Math.random();
+  const u2 = Math.random();
+  const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+  return Math.max(0, meanWTP + z * 10);
+};
+
+const initQTable = () => {
+  const Q = {};
+  ['high', 'medium', 'low'].forEach(cap => {
+    ['far', 'medium', 'near'].forEach(time => {
+      // Optimistic initialization: start all Q-values high to encourage exploration
+      PRICES.forEach(price => { Q[cap + '-' + time + '-' + price] = 20000; });
+    });
+  });
+  return Q;
+};
+
+const getQValue = (Q, state, price) => Q[state + '-' + price] || 0;
+const setQValue = (Q, state, price, value) => { Q[state + '-' + price] = value; };
+
+const initBanditState = () => {
+  const state = { totalFlights: 0 };
+  // For Thompson Sampling per flight: track total revenue and number of flights per price
+  // Model revenue with Gaussian posterior (approximate)
+  PRICES.forEach(price => { state[price] = { totalRevenue: 0, flights: 0, revenues: [] }; });
+  return state;
+};
+
+const selectBanditPrice = (banditState) => {
+  // Thompson Sampling: sample from posterior for expected flight revenue
+  // Use Gaussian approximation: sample from N(mean_revenue, std_dev / sqrt(n))
+
+  let bestPrice = PRICES[0];
+  let bestSampledRevenue = -Infinity;
+
+  PRICES.forEach(price => {
+    const { totalRevenue, flights, revenues } = banditState[price];
+
+    if (flights === 0) {
+      // Haven't tried this price yet - give it a high optimistic sample
+      bestSampledRevenue = Infinity;
+      bestPrice = price;
+      return;
+    }
+
+    const meanRevenue = totalRevenue / flights;
+    // Calculate std dev of revenues
+    const variance = revenues.length > 1
+      ? revenues.reduce((sum, r) => sum + Math.pow(r - meanRevenue, 2), 0) / (revenues.length - 1)
+      : 10000; // High variance if only 1 sample
+    const stdDev = Math.sqrt(variance);
+
+    // Sample from posterior: N(mean, stdDev / sqrt(n))
+    const u1 = Math.random();
+    const u2 = Math.random();
+    const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+    const sampledRevenue = meanRevenue + z * stdDev / Math.sqrt(flights);
+
+    if (sampledRevenue > bestSampledRevenue) {
+      bestSampledRevenue = sampledRevenue;
+      bestPrice = price;
+    }
+  });
+
+  return bestPrice;
+};
+
+const Seat = ({ status }) => (
+  <div style={{
+    width: '14px', height: '16px',
+    backgroundColor: status === 'available' ? '#2d3748' : status === 'sold-new' ? theme.positive : theme.primary,
+    borderRadius: '3px 3px 1px 1px', margin: '1px',
+    border: status === 'sold-new' ? `2px solid ${theme.accent}` : '1px solid #4a5568',
+    transition: 'all 0.3s ease',
+    transform: status === 'sold-new' ? 'scale(1.15)' : 'scale(1)',
+  }} />
+);
+
+const AirplaneVisualization = ({ seats }) => {
+  const rows = [];
+  for (let i = 0; i < TOTAL_SEATS; i += 6) rows.push(seats.slice(i, i + 6));
+  return (
+    <div style={{ background: `linear-gradient(180deg, ${theme.darkBg} 0%, ${theme.darkCard} 100%)`, borderRadius: '40px 40px 15px 15px', padding: '20px 15px 15px 15px', position: 'relative', border: '2px solid #4a5568' }}>
+      <div style={{ position: 'absolute', top: '-10px', left: '50%', transform: 'translateX(-50%)', width: '40px', height: '20px', background: theme.darkCard, borderRadius: '20px 20px 0 0', border: '2px solid #4a5568', }} />
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1px' }}>
+        {rows.map((row, ri) => (
+          <div key={ri} style={{ display: 'flex', alignItems: 'center' }}>
+            <span style={{ fontSize: '7px', color: '#666', width: '14px', textAlign: 'right', marginRight: '3px' }}>{ri + 1}</span>
+            {row.slice(0, 3).map((seat, si) => <Seat key={si} status={seat} />)}
+            <div style={{ width: '6px' }} />
+            {row.slice(3).map((seat, si) => <Seat key={si + 3} status={seat} />)}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+function AirlinePricingSimulator() {
+  const [isRunning, setIsRunning] = useState(false);
+  const [speed, setSpeed] = useState(1);
+  const [policy, setPolicy] = useState('static');
+  const [flightNum, setFlightNum] = useState(0);
+  const [currentDay, setCurrentDay] = useState(1);
+  const [customerIndex, setCustomerIndex] = useState(0);
+  const dailyCustomersRef = useRef(0);
+  const [seats, setSeats] = useState(Array(TOTAL_SEATS).fill('available'));
+  const [currentPrice, setCurrentPrice] = useState(199);
+  const [staticPrice, setStaticPrice] = useState(199);
+  const [lastCustomer, setLastCustomer] = useState(null);
+  const [flightRevenue, setFlightRevenue] = useState(0);
+  const [flightTickets, setFlightTickets] = useState(0);
+  const [dayRevenue, setDayRevenue] = useState(0);
+  const [revenueHistory, setRevenueHistory] = useState([]);
+  const [qParams, setQParams] = useState({ learningRate: 0.3, discount: 0.9, epsilon: 0.1 });
+  const [banditExploration, setBanditExploration] = useState(50);
+  const [showParams, setShowParams] = useState(false);
+  const [policyResults, setPolicyResults] = useState({});
+  const maxFlights = 20;
+
+  // Optimizer state
+  const [optimizerRunning, setOptimizerRunning] = useState(false);
+  const [optimizerProgress, setOptimizerProgress] = useState({ generation: 0, totalGenerations: 20 });
+  const [optimizerResults, setOptimizerResults] = useState([]);
+  const [bestParams, setBestParams] = useState(null);
+  const [optimizerConfig, setOptimizerConfig] = useState({
+    populationSize: 20,
+    generations: 20,
+    flightsPerEval: 100,
+    mutationRate: 0.2
+  });
+
+  const Q = useRef(initQTable());
+  const banditState = useRef(initBanditState());
+  const banditFlightPrice = useRef(null);  // Track bandit's chosen price for the flight
+  const dayStartState = useRef(null);
+  const dayPrice = useRef(null);
+  const stopRef = useRef(false);
+  const dayRevenueRef = useRef(0);
+  const flightHistory = useRef([]);  // Track (state, action) pairs for Q-learning
+
+  const seatsRemaining = seats.filter(s => s === 'available').length;
+  const daysLeft = TOTAL_DAYS - currentDay + 1;
+
+  const resetFlight = useCallback(() => {
+    setCurrentDay(1);
+    setCustomerIndex(0);
+    dailyCustomersRef.current = 0;
+    setSeats(Array(TOTAL_SEATS).fill('available'));
+    setFlightRevenue(0);
+    setFlightTickets(0);
+    setDayRevenue(0);
+    setLastCustomer(null);
+    dayStartState.current = null;
+    dayPrice.current = null;
+    banditFlightPrice.current = null;
+    dayRevenueRef.current = 0;
+    flightHistory.current = [];
+  }, []);
+
+  const fullReset = useCallback(() => {
+    setIsRunning(false);
+    stopRef.current = true;
+    setFlightNum(0);
+    setRevenueHistory([]);
+    Q.current = initQTable();
+    banditState.current = initBanditState();
+    resetFlight();
+  }, [resetFlight]);
+
+  const selectDailyPrice = useCallback((seatsRem, dLeft) => {
+    const state = getState(seatsRem, dLeft);
+    if (policy === 'static') return staticPrice;
+    if (policy === 'bandit') {
+      // For bandit, use the same price for the entire flight
+      if (banditFlightPrice.current === null) {
+        banditFlightPrice.current = selectBanditPrice(banditState.current);
+      }
+      return banditFlightPrice.current;
+    }
+    if (policy === 'qlearning') {
+      if (Math.random() < qParams.epsilon) return PRICES[Math.floor(Math.random() * PRICES.length)];
+      let bestPrice = PRICES[0], bestQ = -Infinity;
+      PRICES.forEach(p => { const qVal = getQValue(Q.current, state, p); if (qVal > bestQ) { bestQ = qVal; bestPrice = p; } });
+      return bestPrice;
+    }
+    return staticPrice;
+  }, [policy, staticPrice, qParams.epsilon]);
+
+  const endDay = useCallback((finalDayRevenue, seatsRem, dLeft) => {
+    if (policy === 'qlearning' && dayStartState.current !== null && dayPrice.current !== null) {
+      // Store state-action pair for end-of-flight update
+      flightHistory.current.push({ state: dayStartState.current, action: dayPrice.current });
+    }
+  }, [policy]);
+
+  const simulationStep = useCallback(() => {
+    if (stopRef.current) { setIsRunning(false); return; }
+
+    // Stop if we've reached max flights
+    if (flightNum >= maxFlights) {
+      setIsRunning(false);
+      return;
+    }
+
+    const seatsRem = seats.filter(s => s === 'available').length;
+    const dLeft = TOTAL_DAYS - currentDay + 1;
+
+    if (currentDay > TOTAL_DAYS || seatsRem === 0) {
+      // End of flight: update bandit state with flight revenue
+      if (policy === 'bandit' && banditFlightPrice.current !== null) {
+        const price = banditFlightPrice.current;
+        banditState.current[price].totalRevenue += flightRevenue;
+        banditState.current[price].flights++;
+        banditState.current[price].revenues.push(flightRevenue);
+        banditState.current.totalFlights++;
+      }
+      // End of flight: update Q-values using total flight revenue
+      if (policy === 'qlearning' && flightHistory.current.length > 0) {
+        const totalRevenue = flightRevenue;
+        // Only update each unique state-action pair ONCE per flight
+        const visited = new Set();
+        const history = flightHistory.current;
+        for (let i = 0; i < history.length; i++) {
+          const { state, action } = history[i];
+          const key = state + '-' + action;
+          if (!visited.has(key)) {
+            visited.add(key);
+            const oldQ = getQValue(Q.current, state, action);
+            const newQ = oldQ + qParams.learningRate * (totalRevenue - oldQ);
+            setQValue(Q.current, state, action, newQ);
+          }
+        }
+      }
+      setRevenueHistory(prev => [...prev, { flight: flightNum + 1, revenue: flightRevenue, tickets: flightTickets, policy, occupancy: Math.round((flightTickets / TOTAL_SEATS) * 100) }]);
+      setFlightNum(prev => prev + 1);
+      resetFlight();
+      return;
+    }
+
+    if (customerIndex === 0) {
+      // Start of new day - exactly 1 customer per day
+      dailyCustomersRef.current = 1;
+      const newPrice = selectDailyPrice(seatsRem, dLeft);
+      setCurrentPrice(newPrice);
+      setDayRevenue(0);
+      dayRevenueRef.current = 0;
+      dayStartState.current = getState(seatsRem, dLeft);
+      dayPrice.current = newPrice;
+    }
+
+    if (customerIndex < dailyCustomersRef.current && seatsRem > 0) {
+      const wtp = generateCustomerWTP(dLeft);
+      const price = dayPrice.current || currentPrice;
+      const bought = wtp >= price;
+      setLastCustomer({ wtp: wtp.toFixed(0), price, bought });
+
+      if (bought) {
+        setSeats(prev => {
+          const newSeats = [...prev];
+          const idx = newSeats.findIndex(s => s === 'available');
+          if (idx !== -1) newSeats[idx] = speed === Infinity ? 'sold' : 'sold-new';
+          return newSeats;
+        });
+        setFlightRevenue(prev => prev + price);
+        setFlightTickets(prev => prev + 1);
+        setDayRevenue(prev => prev + price);
+        dayRevenueRef.current += price;
+        // Skip animation at max speed
+        if (speed !== Infinity) {
+          setTimeout(() => setSeats(curr => curr.map(s => s === 'sold-new' ? 'sold' : s)), 150);
+        }
+      }
+      setCustomerIndex(prev => prev + 1);
+    }
+
+    if (customerIndex >= dailyCustomersRef.current) {
+      const newSeatsRem = seats.filter(s => s === 'available').length - (seats.some(s => s === 'sold-new') ? 1 : 0);
+      endDay(dayRevenueRef.current, newSeatsRem, dLeft);
+      setCurrentDay(prev => prev + 1);
+      setCustomerIndex(0);
+      dailyCustomersRef.current = 0;
+    }
+  }, [seats, currentDay, customerIndex, flightNum, flightRevenue, flightTickets, currentPrice, policy, selectDailyPrice, endDay, resetFlight, qParams, maxFlights]);
+
+  // Batch simulate multiple flights synchronously (for max speed)
+  const batchSimulateFlights = useCallback((numFlights) => {
+    const results = [];
+    const currentQ = Q.current;
+    const currentBandit = banditState.current;
+
+    for (let f = 0; f < numFlights; f++) {
+      let seatsRem = TOTAL_SEATS;
+      let revenue = 0;
+      let tickets = 0;
+      const history = [];
+
+      // For bandit, select price once at start of flight
+      const flightPrice = policy === 'bandit' ? selectBanditPrice(currentBandit) : null;
+
+      for (let day = 1; day <= TOTAL_DAYS && seatsRem > 0; day++) {
+        const dLeft = TOTAL_DAYS - day + 1;
+        const state = getState(seatsRem, dLeft);
+
+        // Select price based on policy (bandit uses flightPrice set at start)
+        let price;
+        if (policy === 'static') {
+          price = staticPrice;
+        } else if (policy === 'bandit') {
+          price = flightPrice;
+        } else if (policy === 'qlearning') {
+          if (Math.random() < qParams.epsilon) {
+            price = PRICES[Math.floor(Math.random() * PRICES.length)];
+          } else {
+            let bestPrice = PRICES[0], bestQ = -Infinity;
+            PRICES.forEach(p => {
+              const qVal = getQValue(currentQ, state, p);
+              if (qVal > bestQ) { bestQ = qVal; bestPrice = p; }
             });
+            price = bestPrice;
+          }
+        } else {
+          price = staticPrice;
+        }
+
+        history.push({ state, action: price });
+
+        // Generate 1 customer per day
+        const wtp = generateCustomerWTP(dLeft);
+        const bought = wtp >= price && seatsRem > 0;
+
+        if (bought) {
+          revenue += price;
+          tickets++;
+          seatsRem--;
+        }
+      }
+
+      // Update bandit state at end of flight
+      if (policy === 'bandit') {
+        currentBandit[flightPrice].totalRevenue += revenue;
+        currentBandit[flightPrice].flights++;
+        currentBandit[flightPrice].revenues.push(revenue);
+        currentBandit.totalFlights++;
+      }
+
+      // Update Q-table at end of flight
+      if (policy === 'qlearning' && history.length > 0) {
+        const visited = new Set();
+        for (const { state, action } of history) {
+          const key = state + '-' + action;
+          if (!visited.has(key)) {
+            visited.add(key);
+            const oldQ = getQValue(currentQ, state, action);
+            const newQ = oldQ + qParams.learningRate * (revenue - oldQ);
+            setQValue(currentQ, state, action, newQ);
+          }
+        }
+      }
+
+      results.push({
+        flight: flightNum + results.length + 1,
+        revenue,
+        tickets,
+        policy,
+        occupancy: Math.round((tickets / TOTAL_SEATS) * 100)
+      });
+    }
+
+    return results;
+  }, [policy, staticPrice, qParams, flightNum]);
+
+  useEffect(() => {
+    if (!isRunning) return;
+    stopRef.current = false;
+
+    const runStep = () => {
+      if (speed === Infinity) {
+        // Batch process 100 flights at once
+        const flightsRemaining = maxFlights - flightNum;
+        if (flightsRemaining <= 0) {
+          setIsRunning(false);
+          return;
+        }
+        const batchSize = Math.min(100, flightsRemaining);
+        const results = batchSimulateFlights(batchSize);
+        setRevenueHistory(prev => [...prev, ...results]);
+        setFlightNum(prev => prev + batchSize);
+        setSeats(Array(TOTAL_SEATS).fill('available'));
+        setCurrentDay(1);
+        setFlightRevenue(0);
+        setFlightTickets(0);
+      } else {
+        simulationStep();
+      }
+    };
+
+    const interval = setInterval(runStep, speed === Infinity ? 1 : 120 / speed);
+    return () => clearInterval(interval);
+  }, [isRunning, speed, simulationStep, batchSimulateFlights, maxFlights, flightNum]);
+
+  // Save policy results when simulation completes
+  useEffect(() => {
+    const policyData = revenueHistory.filter(r => r.policy === policy);
+    if (policyData.length >= maxFlights) {
+      const avgRev = policyData.reduce((s, x) => s + x.revenue, 0) / policyData.length;
+      const avgOcc = policyData.reduce((s, x) => s + x.occupancy, 0) / policyData.length;
+      const last5 = policyData.slice(-5);
+      const last5AvgRev = last5.reduce((s, x) => s + x.revenue, 0) / last5.length;
+      const last5AvgOcc = last5.reduce((s, x) => s + x.occupancy, 0) / last5.length;
+      setPolicyResults(prev => ({
+        ...prev,
+        [policy]: {
+          flights: policyData.length,
+          avgRevenue: avgRev,
+          avgOccupancy: avgOcc,
+          last5AvgRevenue: last5AvgRev,
+          last5AvgOccupancy: last5AvgOcc
+        }
+      }));
+    }
+  }, [revenueHistory, policy, maxFlights]);
+
+  const getPolicyName = (p) => ({ static: 'Static', bandit: 'Bandit (TS)', qlearning: 'Q-Learning' }[p] || p);
+  const getPolicyColor = (p) => ({ static: '#666', bandit: theme.accent, qlearning: theme.positive }[p] || '#888');
+  const getRecentAvg = (n = 10) => { const r = revenueHistory.filter(x => x.policy === policy).slice(-n); return r.length ? r.reduce((s, x) => s + x.revenue, 0) / r.length : 0; };
+  const getAllTimeAvg = () => { const r = revenueHistory.filter(x => x.policy === policy); return r.length ? r.reduce((s, x) => s + x.revenue, 0) / r.length : 0; };
+
+  // Generate WTP for a given day and totalDays
+  const generateWTP = (day, totalDays) => {
+    // Scale so that WTP explosion happens proportionally regardless of totalDays
+    // At day = totalDays, we want (day/divisor)^6 to give a good high value
+    // Use divisor = totalDays/3 so last day gives (3)^6 = 729
+    const divisor = totalDays / 3;
+    const meanWTP = 50 + Math.pow(day / divisor, 6);
+    const u1 = Math.random();
+    const u2 = Math.random();
+    const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+    return Math.max(0, meanWTP + z * 40);
+  };
+
+  // Get time bucket for given days left - MUST match main simulation's getTimeBucket
+  const getTimeBucketForDays = (daysLeft, totalDays) => {
+    if (daysLeft >= 60) return 'far';
+    if (daysLeft >= 15) return 'medium';
+    return 'near';
+  };
+
+  // Get state for given seats remaining, days left, and totals
+  const getStateForConfig = (seatsRem, daysLeft, totalSeats, totalDays) => {
+    const capPct = seatsRem / totalSeats;
+    const cap = capPct > 0.7 ? 'high' : capPct > 0.3 ? 'medium' : 'low';
+    const time = getTimeBucketForDays(daysLeft, totalDays);
+    return cap + '-' + time;
+  };
+
+  // Simulate a static pricing flight
+  const simulateStaticFlight = (staticPrice, totalSeats, totalDays) => {
+    let seatsRem = totalSeats;
+    let revenue = 0;
+
+    for (let day = 1; day <= totalDays && seatsRem > 0; day++) {
+      const numCustomers = samplePoisson(ARRIVAL_RATE);
+      for (let c = 0; c < numCustomers && seatsRem > 0; c++) {
+        const wtp = generateWTP(day, totalDays);
+        if (wtp >= staticPrice) {
+          revenue += staticPrice;
+          seatsRem--;
+        }
+      }
+    }
+    return revenue;
+  };
+
+  // Evaluate best static price for given config
+  const evaluateBestStatic = (totalSeats, totalDays, numFlights) => {
+    let bestPrice = PRICES[0];
+    let bestRevenue = 0;
+
+    for (const price of PRICES) {
+      let totalRev = 0;
+      for (let f = 0; f < numFlights; f++) {
+        totalRev += simulateStaticFlight(price, totalSeats, totalDays);
+      }
+      const avgRev = totalRev / numFlights;
+      if (avgRev > bestRevenue) {
+        bestRevenue = avgRev;
+        bestPrice = price;
+      }
+    }
+    return { bestPrice, bestRevenue };
+  };
+
+  // Simulate a full flight with given Q-learning parameters and config
+  const simulateFlightWithConfig = (params, QTable, totalSeats, totalDays) => {
+    let seatsRem = totalSeats;
+    let revenue = 0;
+    const history = [];
+
+    for (let day = 1; day <= totalDays && seatsRem > 0; day++) {
+      const dLeft = totalDays - day + 1;
+      const state = getStateForConfig(seatsRem, dLeft, totalSeats, totalDays);
+
+      // Select price (epsilon-greedy)
+      let price;
+      if (Math.random() < params.epsilon) {
+        price = PRICES[Math.floor(Math.random() * PRICES.length)];
+      } else {
+        let bestPrice = PRICES[0], bestQ = -Infinity;
+        PRICES.forEach(p => {
+          const qVal = getQValue(QTable, state, p);
+          if (qVal > bestQ) { bestQ = qVal; bestPrice = p; }
+        });
+        price = bestPrice;
+      }
+
+      history.push({ state, action: price });
+
+      // Generate Poisson number of customers
+      const numCustomers = samplePoisson(ARRIVAL_RATE);
+      for (let c = 0; c < numCustomers && seatsRem > 0; c++) {
+        const wtp = generateWTP(day, totalDays);
+        if (wtp >= price) {
+          revenue += price;
+          seatsRem--;
+        }
+      }
+    }
+
+    return { revenue, history };
+  };
+
+  // Simulate a full flight with given Q-learning parameters (synchronous, no React state)
+  const simulateFlight = (params, QTable) => {
+    return simulateFlightWithConfig(params, QTable, TOTAL_SEATS, TOTAL_DAYS);
+  };
+
+  // Train Q-table and return average revenue for Q-learning
+  const evaluateQLearning = (params, totalSeats, totalDays, numFlights) => {
+    const QTable = initQTable();
+    const revenues = [];
+
+    for (let f = 0; f < numFlights; f++) {
+      const { revenue, history } = simulateFlightWithConfig(params, QTable, totalSeats, totalDays);
+      revenues.push(revenue);
+
+      // Only update each unique state-action pair ONCE per flight
+      const visited = new Set();
+      for (let i = 0; i < history.length; i++) {
+        const { state, action } = history[i];
+        const key = state + '-' + action;
+        if (!visited.has(key)) {
+          visited.add(key);
+          const oldQ = getQValue(QTable, state, action);
+          const newQ = oldQ + params.learningRate * (revenue - oldQ);
+          setQValue(QTable, state, action, newQ);
+        }
+      }
+    }
+
+    // Return average of last half of flights (after learning)
+    const lastHalf = revenues.slice(Math.floor(numFlights / 2));
+    return lastHalf.reduce((a, b) => a + b, 0) / lastHalf.length;
+  };
+
+  // Train Q-table over multiple flights and return average revenue (original function for compatibility)
+  const evaluateParams = (params, numFlights) => {
+    return evaluateQLearning(params, TOTAL_SEATS, TOTAL_DAYS, numFlights);
+  };
+
+  // Genetic algorithm optimizer - finds config that maximizes Q-learning advantage over static
+  const runOptimizer = async () => {
+    setOptimizerRunning(true);
+    setOptimizerResults([]);
+    setBestParams(null);
+
+    const { populationSize, generations, flightsPerEval, mutationRate } = optimizerConfig;
+
+    // Initialize population with random Q-learning parameters (use fixed TOTAL_SEATS and TOTAL_DAYS)
+    let population = Array(populationSize).fill(null).map(() => ({
+      learningRate: Math.random() * 0.49 + 0.01,
+      discount: Math.random() * 0.49 + 0.5,
+      epsilon: Math.random() * 0.4,
+      seats: TOTAL_SEATS,   // Use same as main simulation
+      days: TOTAL_DAYS       // Use same as main simulation
+    }));
+
+    const results = [];
+
+    for (let gen = 0; gen < generations; gen++) {
+      setOptimizerProgress({ generation: gen + 1, totalGenerations: generations });
+
+      // Evaluate fitness for each individual (Q-learning revenue - best static revenue)
+      const fitness = await new Promise(resolve => {
+        setTimeout(() => {
+          resolve(population.map(params => {
+            // Q-learning: train for flightsPerEval, measure last half
+            const qRevenue = evaluateQLearning(params, params.seats, params.days, flightsPerEval);
+            // Static: simulate same number of flights as Q-learning's evaluation period (last half)
+            const evalFlights = Math.floor(flightsPerEval / 2);
+            const { bestRevenue: staticRevenue, bestPrice } = evaluateBestStatic(params.seats, params.days, evalFlights);
+            return {
+              advantage: qRevenue - staticRevenue,
+              qRevenue,
+              staticRevenue,
+              bestStaticPrice: bestPrice
+            };
+          }));
+        }, 0);
+      });
+
+      // Sort by advantage (descending)
+      const sorted = population.map((p, i) => ({ params: p, ...fitness[i] }))
+        .sort((a, b) => b.advantage - a.advantage);
+
+      const bestGen = sorted[0];
+      results.push({
+        generation: gen + 1,
+        bestFitness: bestGen.advantage,
+        qRevenue: bestGen.qRevenue,
+        staticRevenue: bestGen.staticRevenue,
+        bestStaticPrice: bestGen.bestStaticPrice,
+        avgFitness: fitness.reduce((a, b) => a + b.advantage, 0) / fitness.length,
+        bestParams: { ...bestGen.params }
+      });
+      setOptimizerResults([...results]);
+
+      if (gen === generations - 1) {
+        setBestParams(bestGen.params);
+        break;
+      }
+
+      // Selection: keep top 50%
+      const survivors = sorted.slice(0, Math.floor(populationSize / 2));
+
+      // Crossover and mutation to create new population
+      const newPopulation = survivors.map(s => ({ ...s.params }));
+
+      while (newPopulation.length < populationSize) {
+        const parent1 = survivors[Math.floor(Math.random() * survivors.length)].params;
+        const parent2 = survivors[Math.floor(Math.random() * survivors.length)].params;
+
+        // Crossover
+        const child = {
+          learningRate: Math.random() < 0.5 ? parent1.learningRate : parent2.learningRate,
+          discount: Math.random() < 0.5 ? parent1.discount : parent2.discount,
+          epsilon: Math.random() < 0.5 ? parent1.epsilon : parent2.epsilon,
+          seats: Math.random() < 0.5 ? parent1.seats : parent2.seats,
+          days: Math.random() < 0.5 ? parent1.days : parent2.days
         };
 
-        const updateCentroids = (data, centroids, k) => {
-            const newCentroids = [];
-            for (let i = 0; i < k; i++) {
-                const clusterPoints = data.filter(d => d.cluster === i);
-                if (clusterPoints.length > 0) {
-                    const avgX = clusterPoints.reduce((sum, p) => sum + p.x, 0) / clusterPoints.length;
-                    const avgY = clusterPoints.reduce((sum, p) => sum + p.y, 0) / clusterPoints.length;
-                    newCentroids.push({ id: i, x: avgX, y: avgY, prevX: centroids[i].x, prevY: centroids[i].y });
-                } else {
-                    newCentroids.push(centroids[i]);
-                }
-            }
-            return newCentroids;
-        };
+        // Mutation (only Q-learning params, seats/days are fixed)
+        if (Math.random() < mutationRate) {
+          child.learningRate = Math.max(0.01, Math.min(0.5, child.learningRate + (Math.random() - 0.5) * 0.1));
+        }
+        if (Math.random() < mutationRate) {
+          child.discount = Math.max(0.5, Math.min(0.99, child.discount + (Math.random() - 0.5) * 0.1));
+        }
+        if (Math.random() < mutationRate) {
+          child.epsilon = Math.max(0, Math.min(0.4, child.epsilon + (Math.random() - 0.5) * 0.1));
+        }
 
-        const calculateInertia = (data) => data.reduce((sum, point) => sum + (point.distance || 0) ** 2, 0);
+        newPopulation.push(child);
+      }
 
-        const calculateSilhouette = (data, k) => {
-            if (k <= 1 || data.length === 0) return 0;
-            let totalSilhouette = 0;
-            let validPoints = 0;
+      population = newPopulation;
+    }
 
-            data.forEach(point => {
-                const sameCluster = data.filter(d => d.cluster === point.cluster && d.id !== point.id);
-                const otherClusters = [...new Set(data.map(d => d.cluster))].filter(c => c !== point.cluster);
-                if (sameCluster.length === 0) return;
+    setOptimizerRunning(false);
+  };
 
-                const a = sameCluster.reduce((sum, p) => sum + euclideanDistance(point, p), 0) / sameCluster.length;
-                let b = Infinity;
-                otherClusters.forEach(cluster => {
-                    const clusterPoints = data.filter(d => d.cluster === cluster);
-                    if (clusterPoints.length > 0) {
-                        const avgDist = clusterPoints.reduce((sum, p) => sum + euclideanDistance(point, p), 0) / clusterPoints.length;
-                        b = Math.min(b, avgDist);
-                    }
-                });
+  // Test results state
+  const [testResults, setTestResults] = useState(null);
 
-                if (b !== Infinity) {
-                    totalSilhouette += (b - a) / Math.max(a, b);
-                    validPoints++;
-                }
-            });
+  // Test function to verify optimizer matches main simulation
+  const runComparisonTest = () => {
+    const testParams = { ...qParams };
+    const numFlights = 100;
 
-            return validPoints > 0 ? totalSilhouette / validPoints : 0;
-        };
+    // Run optimizer's version
+    const optimizerRevenue = evaluateQLearning(testParams, TOTAL_SEATS, TOTAL_DAYS, numFlights);
 
-        // ==================== COLLABORATIVE FILTERING ALGORITHMS ====================
+    // Run a simplified version matching main simulation logic exactly
+    const QTable2 = initQTable();
+    const revenues2 = [];
 
-        const cosineSimilarity = (ratings1, ratings2, items) => {
-            let dotProduct = 0;
-            let norm1 = 0;
-            let norm2 = 0;
-            let commonItems = 0;
+    for (let f = 0; f < numFlights; f++) {
+      let seatsRem = TOTAL_SEATS;
+      let revenue = 0;
+      const history = [];
 
-            items.forEach(item => {
-                const r1 = ratings1[item];
-                const r2 = ratings2[item];
-                if (r1 !== undefined && r2 !== undefined) {
-                    dotProduct += r1 * r2;
-                    norm1 += r1 * r1;
-                    norm2 += r2 * r2;
-                    commonItems++;
-                }
-            });
+      for (let currentDay = 1; currentDay <= TOTAL_DAYS && seatsRem > 0; currentDay++) {
+        const dLeft = TOTAL_DAYS - currentDay + 1;
+        const state = getState(seatsRem, dLeft);  // Use main simulation's getState
 
-            if (commonItems < 2 || norm1 === 0 || norm2 === 0) return 0;
-            return dotProduct / (Math.sqrt(norm1) * Math.sqrt(norm2));
-        };
+        // Select price (same logic as selectDailyPrice)
+        let price;
+        if (Math.random() < testParams.epsilon) {
+          price = PRICES[Math.floor(Math.random() * PRICES.length)];
+        } else {
+          let bestPrice = PRICES[0], bestQ = -Infinity;
+          PRICES.forEach(p => {
+            const qVal = getQValue(QTable2, state, p);
+            if (qVal > bestQ) { bestQ = qVal; bestPrice = p; }
+          });
+          price = bestPrice;
+        }
 
-        const findKNearestNeighbors = (targetUser, users, items, k) => {
-            const similarities = users
-                .filter(u => u.id !== targetUser.id)
-                .map(u => ({
-                    user: u,
-                    similarity: cosineSimilarity(targetUser.ratings, u.ratings, items)
-                }))
-                .filter(s => s.similarity > 0)
-                .sort((a, b) => b.similarity - a.similarity)
-                .slice(0, k);
+        history.push({ state, action: price });
 
-            return similarities;
-        };
+        // Generate Poisson number of customers (same as main simulation)
+        const numCustomers = samplePoisson(ARRIVAL_RATE);
+        for (let c = 0; c < numCustomers && seatsRem > 0; c++) {
+          const wtp = generateCustomerWTP(dLeft);
+          if (wtp >= price) {
+            revenue += price;
+            seatsRem--;
+          }
+        }
+      }
 
-        const predictRating = (targetUser, neighbors, item) => {
-            const validNeighbors = neighbors.filter(n => n.user.ratings[item] !== undefined);
-            if (validNeighbors.length === 0) return null;
+      revenues2.push(revenue);
 
-            const weightedSum = validNeighbors.reduce((sum, n) => sum + n.similarity * n.user.ratings[item], 0);
-            const simSum = validNeighbors.reduce((sum, n) => sum + n.similarity, 0);
+      // Update Q-table (same logic as main simulation)
+      const visited = new Set();
+      for (let i = 0; i < history.length; i++) {
+        const { state, action } = history[i];
+        const key = state + '-' + action;
+        if (!visited.has(key)) {
+          visited.add(key);
+          const oldQ = getQValue(QTable2, state, action);
+          const newQ = oldQ + testParams.learningRate * (revenue - oldQ);
+          setQValue(QTable2, state, action, newQ);
+        }
+      }
+    }
 
-            return simSum > 0 ? weightedSum / simSum : null;
-        };
+    const lastHalf2 = revenues2.slice(Math.floor(numFlights / 2));
+    const mainSimRevenue = lastHalf2.reduce((a, b) => a + b, 0) / lastHalf2.length;
 
-        const getRecommendations = (targetUser, users, items, k) => {
-            const neighbors = findKNearestNeighbors(targetUser, users, items, k);
-            const unratedItems = items.filter(item => targetUser.ratings[item] === undefined);
+    setTestResults({
+      optimizer: optimizerRevenue.toFixed(0),
+      mainSim: mainSimRevenue.toFixed(0),
+      params: testParams
+    });
+  };
 
-            const predictions = unratedItems.map(item => {
-                const predicted = predictRating(targetUser, neighbors, item);
-                return { item, predicted };
-            }).filter(p => p.predicted !== null)
-              .sort((a, b) => b.predicted - a.predicted);
+  const applyBestParams = () => {
+    if (bestParams) {
+      setQParams({
+        learningRate: bestParams.learningRate,
+        discount: bestParams.discount,
+        epsilon: bestParams.epsilon
+      });
+      setPolicy('qlearning');
+      fullReset();
+    }
+  };
 
-            return { recommendations: predictions.slice(0, 5), neighbors };
-        };
+  return (
+    <div style={{ minHeight: '100vh', background: '#f5f5f5', color: '#1a1a1a', fontFamily: 'system-ui, sans-serif' }}>
+      {/* Header */}
+      <header style={{
+          background: '#2774AE',
+          padding: '1rem 2rem 1.5rem 2rem',
+          position: 'sticky',
+          top: 0,
+          zIndex: 100
+      }}>
+          <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                  <p style={{ fontSize: '0.65rem', color: '#FFD100', fontWeight: 400, marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
+                      MGMT298D: Science and Strategy of AI
+                  </p>
+                  <h1 style={{ fontSize: '1.4rem', fontWeight: 600, color: '#f5f5f5', letterSpacing: '0' }}>
+                      Week 3: Dynamic Pricing
+                  </h1>
+                  <p style={{ fontSize: '0.85rem', color: '#c0c0c0', marginTop: '0.25rem' }}>
+                      Airline Revenue Management with Reinforcement Learning
+                  </p>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                  <span style={{
+                      fontSize: '1rem',
+                      fontWeight: 500,
+                      color: '#f5f5f5'
+                  }}>
+                      UCLA Anderson
+                  </span>
+              </div>
+          </div>
+          <div class="header-gold-line"></div>
+      </header>
 
-        // ==================== SCATTER PLOT COMPONENT ====================
-
-        const AnimatedScatterPlot = ({ data, centroids, animationPhase, highlightedCluster }) => {
-            const margin = { top: 20, right: 20, bottom: 40, left: 40 };
-            const width = 800;
-            const height = 450;
-            const plotWidth = width - margin.left - margin.right;
-            const plotHeight = height - margin.top - margin.bottom;
-
-            const xScale = (x) => margin.left + x * plotWidth;
-            const yScale = (y) => margin.top + (1 - y) * plotHeight;
-
-            return (
-                <div className="scatter-container">
-                    <svg className="scatter-svg" viewBox={`0 0 ${width} ${height}`}>
-                        <defs>
-                            <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(0,0,0,0.05)" strokeWidth="1"/>
-                            </pattern>
-                        </defs>
-                        <rect x={margin.left} y={margin.top} width={plotWidth} height={plotHeight} fill="url(#grid)" />
-
-                        <line x1={margin.left} y1={height - margin.bottom} x2={width - margin.right} y2={height - margin.bottom} stroke="rgba(0,0,0,0.2)" />
-                        <line x1={margin.left} y1={margin.top} x2={margin.left} y2={height - margin.bottom} stroke="rgba(0,0,0,0.2)" />
-                        <text x={width / 2} y={height - 5} fill="#666" fontSize="12" textAnchor="middle">PCA Component 1</text>
-                        <text x={15} y={height / 2} fill="#666" fontSize="12" textAnchor="middle" transform={`rotate(-90, 15, ${height/2})`}>PCA Component 2</text>
-
-                        {centroids.map((centroid, idx) => (
-                            centroid.prevX !== centroid.x || centroid.prevY !== centroid.y ? (
-                                <line key={`path-${idx}`} x1={xScale(centroid.prevX)} y1={yScale(centroid.prevY)}
-                                    x2={xScale(centroid.x)} y2={yScale(centroid.y)}
-                                    stroke={CLUSTER_COLORS[idx % CLUSTER_COLORS.length]} strokeWidth="2" strokeDasharray="5,3" opacity="0.5" />
-                            ) : null
-                        ))}
-
-                        {data.map((point) => (
-                            <circle key={point.id} className="cluster-point" cx={xScale(point.x)} cy={yScale(point.y)}
-                                r={highlightedCluster !== null && point.cluster === highlightedCluster ? 8 : 5}
-                                fill={point.cluster >= 0 ? CLUSTER_COLORS[point.cluster % CLUSTER_COLORS.length] : '#94a3b8'}
-                                opacity={highlightedCluster !== null && point.cluster !== highlightedCluster ? 0.3 : 0.8}
-                                style={{ transition: 'all 0.3s ease' }} />
-                        ))}
-
-                        {centroids.map((centroid, idx) => (
-                            <g key={`centroid-${idx}`}>
-                                <rect className="centroid" x={xScale(centroid.x) - 10} y={yScale(centroid.y) - 10}
-                                    width={20} height={20} fill={CLUSTER_COLORS[idx % CLUSTER_COLORS.length]}
-                                    stroke="white" strokeWidth="2" transform={`rotate(45, ${xScale(centroid.x)}, ${yScale(centroid.y)})`}
-                                    style={{ transition: 'all 0.5s ease' }} />
-                                <text x={xScale(centroid.x)} y={yScale(centroid.y) - 20} fill="#333" fontSize="12" fontWeight="bold" textAnchor="middle">
-                                    C{idx + 1}
-                                </text>
-                            </g>
-                        ))}
-                    </svg>
+      {/* Controls Section - Light */}
+      <div style={{ background: '#ffffff', padding: '16px 24px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+              {/* Main Controls */}
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <select value={policy} onChange={(e) => { setPolicy(e.target.value); fullReset(); }} style={{ background: '#ffffff', border: `2px solid ${getPolicyColor(policy)}`, color: '#1a1a1a', padding: '8px 14px', borderRadius: '6px', fontSize: '0.85rem', cursor: 'pointer' }}>
+                  <option value="static">Static</option>
+                  <option value="bandit">Bandit (Thompson)</option>
+                  <option value="qlearning">Q-Learning</option>
+                </select>
+                <button onClick={() => { stopRef.current = false; setIsRunning(!isRunning); }} style={{ background: isRunning ? `linear-gradient(135deg, ${theme.negative}, #005587)` : `linear-gradient(135deg, ${theme.primary}, ${theme.darkBlue})`, border: 'none', color: 'white', padding: '8px 24px', borderRadius: '6px', fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer', boxShadow: '0 2px 8px rgba(39, 116, 174, 0.3)', transition: 'all 0.2s' }}>{isRunning ? 'PAUSE' : 'RUN'}</button>
+                <button onClick={fullReset} style={{ background: '#f5f5f5', border: '1px solid rgba(0,0,0,0.1)', color: '#1a1a1a', padding: '8px 16px', borderRadius: '6px', fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s' }}>RESET</button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#f5f5f5', padding: '6px 12px', borderRadius: '6px', border: '1px solid rgba(0,0,0,0.1)' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#666' }}>Speed:</span>
+                  {[1, 10, 50].map(s => (<button key={s} onClick={() => setSpeed(s)} style={{ background: speed === s ? theme.primary : 'transparent', border: 'none', color: speed === s ? '#ffffff' : '#666', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', transition: 'all 0.2s' }}>{s}x</button>))}
                 </div>
-            );
-        };
+                {policy === 'static' && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f5f5f5', padding: '6px 12px', borderRadius: '6px', border: '1px solid rgba(0,0,0,0.1)' }}>
+                    <span style={{ fontSize: '0.8rem', color: theme.primary, fontWeight: '600' }}>${staticPrice}</span>
+                    <input type="range" min={0} max={70} step="1" value={staticPrice === 0 ? 0 : Math.round((staticPrice + 1) / 10)} onChange={(e) => { const v = parseInt(e.target.value); setStaticPrice(v === 0 ? 0 : v * 10 - 1); }} disabled={isRunning} style={{ width: '150px', accentColor: theme.primary }} />
+                  </div>
+                )}
+                {policy === 'qlearning' && <button onClick={() => setShowParams(!showParams)} style={{ background: showParams ? theme.primary : '#f5f5f5', border: '1px solid rgba(0,0,0,0.1)', color: showParams ? '#ffffff' : '#1a1a1a', padding: '8px 14px', borderRadius: '6px', fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s' }}>Settings</button>}
+              </div>
 
-        // ==================== SIMILARITY HEATMAP COMPONENT ====================
-
-        const SimilarityHeatmap = ({ users, items, selectedUser }) => {
-            const displayUsers = users.slice(0, 10);
-
-            const getColor = (similarity) => {
-                if (similarity >= 0.8) return '#27ae60';
-                if (similarity >= 0.6) return '#2ecc71';
-                if (similarity >= 0.4) return '#f1c40f';
-                if (similarity >= 0.2) return '#e67e22';
-                return '#e74c3c';
-            };
-
-            return (
-                <div className="heatmap-container">
-                    <table className="heatmap-table">
-                        <thead>
-                            <tr>
-                                <th></th>
-                                {displayUsers.map(u => (
-                                    <th key={u.id} style={{
-                                        background: u.id === selectedUser?.id ? '#2774AE' : '#f5f5f5',
-                                        color: u.id === selectedUser?.id ? 'white' : '#333'
-                                    }}>
-                                        {u.userId.replace('User_', 'U')}
-                                    </th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {displayUsers.map(u1 => (
-                                <tr key={u1.id}>
-                                    <th style={{
-                                        background: u1.id === selectedUser?.id ? '#2774AE' : '#f5f5f5',
-                                        color: u1.id === selectedUser?.id ? 'white' : '#333'
-                                    }}>
-                                        {u1.userId.replace('User_', 'U')}
-                                    </th>
-                                    {displayUsers.map(u2 => {
-                                        const sim = u1.id === u2.id ? 1 : cosineSimilarity(u1.ratings, u2.ratings, items);
-                                        return (
-                                            <td key={u2.id} className="heatmap-cell" style={{
-                                                background: getColor(sim),
-                                                color: sim >= 0.6 ? 'white' : '#333'
-                                            }}>
-                                                {sim.toFixed(2)}
-                                            </td>
-                                        );
-                                    })}
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+              {showParams && policy === 'qlearning' && (
+                <div style={{ maxWidth: '600px', margin: '16px auto 0', background: '#f5f5f5', borderRadius: '8px', padding: '16px', border: `1px solid ${theme.positive}40` }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+                    {[['learningRate', 'alpha', 0.01, 0.5], ['discount', 'gamma', 0.5, 0.99], ['epsilon', 'epsilon', 0, 0.4]].map(([k, l, min, max]) => (
+                      <div key={k}><label style={{ fontSize: '0.75rem', color: '#666' }}>{l}: <span style={{ color: theme.primary }}>{qParams[k].toFixed(3)}</span></label><input type="range" min={min} max={max} step="0.01" value={qParams[k]} onChange={(e) => setQParams(p => ({ ...p, [k]: parseFloat(e.target.value) }))} disabled={isRunning} style={{ width: '100%', accentColor: theme.primary }} /></div>
+                    ))}
+                  </div>
                 </div>
-            );
-        };
+              )}
+        </div>
+      </div>
 
-        // ==================== K-MEANS TAB COMPONENT ====================
-
-        const KMeansTab = () => {
-            const [dataSource, setDataSource] = useState('synthetic');
-            const [apiConnected, setApiConnected] = useState(false);
-            const [isLoading, setIsLoading] = useState(false);
-
-            const [k, setK] = useState(4);
-            const [speed, setSpeed] = useState('medium');
-            const [rawData, setRawData] = useState([]);
-            const [data, setData] = useState([]);
-            const [centroids, setCentroids] = useState([]);
-            const [iteration, setIteration] = useState(0);
-            const [isPlaying, setIsPlaying] = useState(false);
-            const [isConverged, setIsConverged] = useState(false);
-            const [animationPhase, setAnimationPhase] = useState('idle');
-            const [highlightedCluster, setHighlightedCluster] = useState(null);
-
-            const [metrics, setMetrics] = useState({ inertia: 0, silhouette: 0, numClusters: 0, iterations: 0 });
-            const [elbowData, setElbowData] = useState([]);
-            const [silhouetteData, setSilhouetteData] = useState([]);
-            const [clusterSizes, setClusterSizes] = useState([]);
-
-            const animationRef = useRef(null);
-            const speedMs = { slow: 1500, medium: 800, fast: 300 };
-
-            // Check API connection
-            useEffect(() => {
-                fetch(`${API_BASE}/`)
-                    .then(r => r.ok && setApiConnected(true))
-                    .catch(() => setApiConnected(false));
-            }, []);
-
-            // Load data based on source
-            const loadData = useCallback(async () => {
-                setIsLoading(true);
-                setIsPlaying(false);
-                setIsConverged(false);
-                setIteration(0);
-                setCentroids([]);
-
-                if (dataSource === 'netflix' && apiConnected) {
-                    try {
-                        const elbowResponse = await fetch(`${API_BASE}/elbow`);
-                        const elbowApiData = await elbowResponse.json();
-
-                        setElbowData(elbowApiData.k_values.map((kVal, i) => ({
-                            k: kVal, inertia: elbowApiData.inertia_values[i], silhouette: elbowApiData.silhouette_scores[i]
-                        })));
-                        setSilhouetteData(elbowApiData.k_values.map((kVal, i) => ({ k: kVal, score: elbowApiData.silhouette_scores[i] })));
-
-                        const clusterResponse = await fetch(`${API_BASE}/cluster`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ algorithm: 'kmeans', n_clusters: k })
-                        });
-                        const clusterResult = await clusterResponse.json();
-
-                        const clusterCenters = [
-                            { x: 0.2, y: 0.8 }, { x: 0.8, y: 0.7 }, { x: 0.5, y: 0.2 },
-                            { x: 0.3, y: 0.5 }, { x: 0.7, y: 0.4 }, { x: 0.5, y: 0.7 }
-                        ];
-
-                        const netflixData = clusterResult.cluster_assignments.map((cluster, i) => {
-                            const center = clusterCenters[cluster % clusterCenters.length];
-                            return {
-                                id: i, x: center.x + (Math.random() - 0.5) * 0.25, y: center.y + (Math.random() - 0.5) * 0.25,
-                                cluster, userId: `User_${i + 1}`
-                            };
-                        });
-
-                        setRawData(netflixData);
-                        setData(netflixData);
-                        setMetrics({
-                            inertia: clusterResult.inertia?.toFixed(2) || 'N/A',
-                            silhouette: clusterResult.silhouette_score?.toFixed(3) || 'N/A',
-                            numClusters: clusterResult.n_clusters_found,
-                            iterations: 'API'
-                        });
-
-                        updateClusterSizes(netflixData);
-                    } catch (err) {
-                        console.error('Netflix data load failed:', err);
-                        loadSyntheticData();
-                    }
-                } else {
-                    loadSyntheticData();
-                }
-
-                setIsLoading(false);
-            }, [dataSource, apiConnected, k]);
-
-            const loadSyntheticData = () => {
-                const mockData = generateSyntheticClusterData(150);
-                setRawData(mockData);
-                setData(mockData);
-
-                const elbowResults = [];
-                for (let testK = 1; testK <= 10; testK++) {
-                    let testCentroids = initializeCentroids(mockData, testK);
-                    let testData = mockData;
-                    for (let i = 0; i < 10; i++) {
-                        testData = assignClusters(testData, testCentroids);
-                        testCentroids = updateCentroids(testData, testCentroids, testK);
-                    }
-                    elbowResults.push({ k: testK, inertia: calculateInertia(testData), silhouette: calculateSilhouette(testData, testK) });
-                }
-                setElbowData(elbowResults);
-                setSilhouetteData(elbowResults.map(d => ({ k: d.k, score: d.silhouette })));
-                setMetrics({ inertia: 0, silhouette: 0, numClusters: 0, iterations: 0 });
-                setClusterSizes([]);
-            };
-
-            const updateClusterSizes = (clusteredData) => {
-                const sizes = [];
-                const uniqueClusters = [...new Set(clusteredData.map(d => d.cluster))].filter(c => c >= 0).sort();
-                uniqueClusters.forEach(c => {
-                    const count = clusteredData.filter(d => d.cluster === c).length;
-                    sizes.push({ name: `Cluster ${c + 1}`, value: count, color: CLUSTER_COLORS[c % CLUSTER_COLORS.length] });
-                });
-                setClusterSizes(sizes);
-            };
-
-            useEffect(() => { loadData(); }, [dataSource]);
-
-            const handleReset = useCallback(() => {
-                setIsPlaying(false);
-                setIsConverged(false);
-                setIteration(0);
-                setAnimationPhase('idle');
-                if (animationRef.current) clearTimeout(animationRef.current);
-
-                const resetData = rawData.map(d => ({ ...d, cluster: -1, distance: 0 }));
-                setData(resetData);
-                const newCentroids = initializeCentroids(resetData, k);
-                setCentroids(newCentroids);
-                setMetrics({ inertia: 0, silhouette: 0, numClusters: 0, iterations: 0 });
-                setClusterSizes([]);
-            }, [rawData, k]);
-
-            const runStep = useCallback(() => {
-                if (isConverged) return;
-
-                setAnimationPhase('assigning');
-                setTimeout(() => {
-                    const newData = assignClusters(data, centroids);
-                    setData(newData);
-
-                    setTimeout(() => {
-                        setAnimationPhase('updating');
-                        const newCentroids = updateCentroids(newData, centroids, k);
-                        const movement = newCentroids.reduce((sum, c, i) => sum + euclideanDistance(c, centroids[i]), 0);
-
-                        setCentroids(newCentroids);
-                        setIteration(prev => prev + 1);
-
-                        const inertia = calculateInertia(newData);
-                        const silhouette = calculateSilhouette(newData, k);
-
-                        setMetrics({
-                            inertia: inertia.toFixed(2),
-                            silhouette: silhouette.toFixed(3),
-                            numClusters: k,
-                            iterations: iteration + 1
-                        });
-
-                        updateClusterSizes(newData);
-
-                        if (movement < 0.001) {
-                            setIsConverged(true);
-                            setIsPlaying(false);
-                            setAnimationPhase('converged');
-                        } else {
-                            setTimeout(() => setAnimationPhase('idle'), 200);
-                        }
-                    }, speedMs[speed] / 3);
-                }, speedMs[speed] / 3);
-            }, [data, centroids, k, iteration, isConverged, speed]);
-
-            useEffect(() => {
-                if (isPlaying && !isConverged) {
-                    animationRef.current = setTimeout(runStep, speedMs[speed]);
-                }
-                return () => { if (animationRef.current) clearTimeout(animationRef.current); };
-            }, [isPlaying, isConverged, runStep, speed]);
-
-            const handlePlay = () => {
-                if (iteration === 0) {
-                    handleReset();
-                    setTimeout(() => setIsPlaying(true), 100);
-                } else {
-                    setIsPlaying(!isPlaying);
-                }
-            };
-
-            return (
-                <div>
-                    <div className="controls-section">
-                        <div className={`data-source-bar ${dataSource === 'netflix' ? 'netflix' : ''}`}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <span style={{ fontWeight: '600' }}>Data Source:</span>
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                    <button className={`data-toggle-btn synthetic ${dataSource === 'synthetic' ? 'active' : ''}`}
-                                        onClick={() => setDataSource('synthetic')} disabled={isLoading}>
-                                        Synthetic Data
-                                    </button>
-                                    <button className={`data-toggle-btn netflix ${dataSource === 'netflix' ? 'active' : ''}`}
-                                        onClick={() => setDataSource('netflix')} disabled={isLoading || !apiConnected}>
-                                        Netflix Ratings
-                                    </button>
-                                </div>
-                            </div>
-                            <div style={{ fontSize: '0.8rem', color: '#666' }}>
-                                {isLoading ? 'Loading data...' : `${rawData.length} user profiles`}
-                                {!apiConnected && <span style={{ marginLeft: '8px', color: '#999' }}>(API offline)</span>}
-                            </div>
-                        </div>
-
-                        <div className="control-panel">
-                            <h3>⚙️ K-Means Configuration</h3>
-                            <div className="controls-grid">
-                                <div className="control-group">
-                                    <label>Number of Clusters (k)</label>
-                                    <input type="range" min="2" max="8" value={k} onChange={(e) => setK(parseInt(e.target.value))} />
-                                    <div className="slider-value">{k} clusters</div>
-                                </div>
-                                <div className="control-group">
-                                    <label>Animation Speed</label>
-                                    <div className="speed-selector">
-                                        {['slow', 'medium', 'fast'].map(s => (
-                                            <button key={s} className={`speed-btn ${speed === s ? 'active' : ''}`} onClick={() => setSpeed(s)}>
-                                                {s.charAt(0).toUpperCase() + s.slice(1)}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div style={{ display: 'flex', gap: '10px', marginTop: '20px', flexWrap: 'wrap' }}>
-                                <button className={`anim-btn ${isPlaying ? 'reset' : 'play'}`} onClick={handlePlay} disabled={isConverged || dataSource === 'netflix'}>
-                                    {isPlaying ? '⏸ Pause' : '▶ Play'}
-                                </button>
-                                <button className="anim-btn play" onClick={runStep} disabled={isPlaying || isConverged || dataSource === 'netflix'}>
-                                    ⏭ Step
-                                </button>
-                                <button className="anim-btn reset" onClick={handleReset} disabled={dataSource === 'netflix'}>
-                                    ↺ Reset
-                                </button>
-                            </div>
-
-                            {dataSource === 'synthetic' && (
-                                <div className="algorithm-status">
-                                    <div className="status-item">
-                                        <span className="status-label">Phase:</span>
-                                        <span className="status-value">
-                                            {animationPhase === 'idle' && 'Ready'}
-                                            {animationPhase === 'assigning' && 'Assigning Points...'}
-                                            {animationPhase === 'updating' && 'Moving Centroids...'}
-                                            {animationPhase === 'converged' && '✓ Converged!'}
-                                        </span>
-                                    </div>
-                                    <div className="status-item">
-                                        <span className="status-label">Iteration:</span>
-                                        <span className="status-value">{iteration}</span>
-                                    </div>
-                                    <div className="status-item">
-                                        <span className="status-label">Status:</span>
-                                        <span className="status-value">{isConverged ? '✓ Done' : isPlaying ? 'Running' : 'Paused'}</span>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="results-section">
-                        <div className="metrics-grid">
-                            <div className="metric-card"><div className="value">{metrics.inertia}</div><div className="label">Inertia (WCSS)</div></div>
-                            <div className="metric-card"><div className="value">{metrics.silhouette}</div><div className="label">Silhouette Score</div></div>
-                            <div className="metric-card"><div className="value">{metrics.numClusters}</div><div className="label">Clusters</div></div>
-                            <div className="metric-card"><div className="value">{metrics.iterations}</div><div className="label">Iterations</div></div>
-                        </div>
-
-                        <div className="main-grid">
-                            <div className="chart-card hero">
-                                <h3>Clustering Visualization (2D PCA Projection)</h3>
-                                {isLoading ? (
-                                    <div className="loading"><div className="loading-spinner"></div>Loading data...</div>
-                                ) : (
-                                    <>
-                                        <AnimatedScatterPlot data={data} centroids={centroids} animationPhase={animationPhase} highlightedCluster={highlightedCluster} />
-                                        <div className="cluster-legend">
-                                            {clusterSizes.map((cluster, idx) => (
-                                                <div key={idx} className="legend-item" onMouseEnter={() => setHighlightedCluster(idx)} onMouseLeave={() => setHighlightedCluster(null)}>
-                                                    <div className="legend-dot" style={{ background: cluster.color }}></div>
-                                                    {cluster.name} ({cluster.value})
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-
-                            <div className="chart-card">
-                                <h3>Elbow Method (Inertia vs k)</h3>
-                                <LineChartComponent data={elbowData} dataKey="inertia" xKey="k" title="Inertia" />
-                            </div>
-
-                            <div className="chart-card">
-                                <h3>Silhouette Score by k</h3>
-                                <BarChartComponent data={silhouetteData} dataKey="score" xKey="k" title="Silhouette" highlightValue={k} />
-                            </div>
-
-                            <div className="chart-card">
-                                <h3>Cluster Size Distribution</h3>
-                                {clusterSizes.length > 0 ? <PieChartComponent data={clusterSizes} /> : (
-                                    <div style={{ height: '250px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888' }}>
-                                        Run clustering to see distribution
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
+      {/* Results Section - Light */}
+      <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: '20px' }}>
+              {/* Left Column - Flight Visualization */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                    <span style={{ fontSize: '0.8rem', color: '#666' }}>Flight #{flightNum + 1}</span>
+                    <span style={{ fontSize: '0.8rem', color: theme.accent, fontWeight: '600' }}>Day {currentDay}/{TOTAL_DAYS}</span>
+                  </div>
+                  <AirplaneVisualization seats={seats} />
+                  <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: '12px', fontSize: '0.75rem' }}>
+                    <div style={{ textAlign: 'center' }}><div style={{ color: '#666' }}>Sold</div><div style={{ color: theme.positive, fontWeight: '700', fontSize: '1.1rem' }}>{TOTAL_SEATS - seatsRemaining}</div></div>
+                    <div style={{ textAlign: 'center' }}><div style={{ color: '#666' }}>Left</div><div style={{ color: '#666', fontWeight: '700', fontSize: '1.1rem' }}>{seatsRemaining}</div></div>
+                  </div>
                 </div>
-            );
-        };
-
-        // ==================== COLLABORATIVE FILTERING TAB COMPONENT ====================
-
-        const CollaborativeFilteringTab = () => {
-            const [apiConnected, setApiConnected] = useState(false);
-            const [movies, setMovies] = useState([]);
-            const [userIds, setUserIds] = useState([]);
-
-            // CF Evaluation state
-            const [cfK, setCfK] = useState(10);
-            const [cfTestFrac, setCfTestFrac] = useState(20);
-            const [cfResult, setCfResult] = useState(null);
-            const [cfEvalLoading, setCfEvalLoading] = useState(false);
-
-            // K Sweep state
-            const [sweepData, setSweepData] = useState([]);
-            const [sweepLoading, setSweepLoading] = useState(false);
-            const [bestSweepK, setBestSweepK] = useState(null);
-
-            // Prediction state
-            const [predUser, setPredUser] = useState('');
-            const [predMovie, setPredMovie] = useState('');
-            const [predK, setPredK] = useState(10);
-            const [predResult, setPredResult] = useState(null);
-            const [predLoading, setPredLoading] = useState(false);
-
-            useEffect(() => {
-                fetch(`${API_BASE}/`)
-                    .then(r => { if (r.ok) setApiConnected(true); })
-                    .catch(() => {});
-            }, []);
-
-            useEffect(() => {
-                if (!apiConnected) return;
-                Promise.all([
-                    fetch(`${API_BASE}/movies`).then(r => r.json()),
-                    fetch(`${API_BASE}/users`).then(r => r.json()),
-                ]).then(([moviesData, usersData]) => {
-                    setMovies(moviesData);
-                    setUserIds(usersData.user_ids);
-                    setPredUser(usersData.user_ids[0]);
-                    setPredMovie(moviesData[0]);
-                }).catch(err => console.error('Load failed:', err));
-            }, [apiConnected]);
-
-            const runCFEval = async () => {
-                setCfEvalLoading(true);
-                try {
-                    const res = await fetch(`${API_BASE}/cf_evaluate`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ k: cfK, test_fraction: cfTestFrac / 100 })
-                    });
-                    setCfResult(await res.json());
-                } catch (err) { console.error(err); }
-                setCfEvalLoading(false);
-            };
-
-            const runSweep = async () => {
-                setSweepLoading(true);
-                try {
-                    const res = await fetch(`${API_BASE}/cf_sweep`, { method: 'POST' });
-                    const data = await res.json();
-                    setSweepData(data);
-                    const best = data.reduce((a, b) => (b.test_mae && b.test_mae < (a.test_mae || 999)) ? b : a, data[0]);
-                    setBestSweepK(best);
-                } catch (err) { console.error(err); }
-                setSweepLoading(false);
-            };
-
-            const runPredict = async (userId, movie, k) => {
-                const uid = userId || predUser;
-                const mov = movie || predMovie;
-                const kVal = k || predK;
-                setPredLoading(true);
-                try {
-                    const res = await fetch(`${API_BASE}/predict_movie?user_id=${uid}&movie=${encodeURIComponent(mov)}&k=${kVal}`, { method: 'POST' });
-                    setPredResult(await res.json());
-                } catch (err) { console.error(err); }
-                setPredLoading(false);
-            };
-
-            const randomPredict = () => {
-                const rUser = userIds[Math.floor(Math.random() * userIds.length)];
-                const rMovie = movies[Math.floor(Math.random() * movies.length)];
-                setPredUser(rUser);
-                setPredMovie(rMovie);
-                runPredict(rUser, rMovie, predK);
-            };
-
-            if (!apiConnected) {
-                return (
-                    <div style={{ padding: '60px 40px', textAlign: 'center', color: '#888' }}>
-                        <div className="loading-spinner" style={{ margin: '0 auto 15px' }}></div>
-                        Connecting to API... Make sure the backend is running.
-                    </div>
-                );
-            }
-
-            return (
-                <div>
-                    <div className="controls-section">
-                        <div className="data-source-bar netflix">
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <span style={{ fontWeight: '600' }}>📊 Netflix Ratings Data</span>
-                                <span style={{ fontSize: '0.85rem', color: '#666' }}>
-                                    {userIds.length} users · {movies.length} movies · Real ratings (1–5 stars)
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* Predict a Movie Rating */}
-                        <div className="control-panel">
-                            <h3>🎬 Predict a Movie Rating</h3>
-                            <p className="cf-section-desc">Pick a user and a movie to see what our KNN model predicts they'd rate it. Hit "Random" for a surprise!</p>
-                            <div className="controls-grid">
-                                <div className="control-group">
-                                    <label>User</label>
-                                    <select value={predUser} onChange={e => setPredUser(parseInt(e.target.value))}>
-                                        {userIds.slice(0, 50).map(u => <option key={u} value={u}>User {u}</option>)}
-                                    </select>
-                                </div>
-                                <div className="control-group">
-                                    <label>Movie</label>
-                                    <select value={predMovie} onChange={e => setPredMovie(e.target.value)}>
-                                        {movies.map(m => <option key={m} value={m}>{m}</option>)}
-                                    </select>
-                                </div>
-                                <div className="control-group">
-                                    <label>K Neighbors</label>
-                                    <input type="range" min="3" max="50" value={predK} onChange={e => setPredK(parseInt(e.target.value))} />
-                                    <div className="slider-value">{predK} neighbors</div>
-                                </div>
-                                <div className="control-group">
-                                    <label>&nbsp;</label>
-                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                        <button className="anim-btn play" onClick={() => runPredict()} disabled={predLoading}>
-                                            ⭐ Predict
-                                        </button>
-                                        <button className="anim-btn reset" onClick={randomPredict} disabled={predLoading}>
-                                            🎲 Random
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {predLoading && <div className="loading"><div className="loading-spinner"></div>Predicting...</div>}
-
-                            {predResult && !predLoading && (
-                                <div className="predict-result-box">
-                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '30px', flexWrap: 'wrap' }}>
-                                        <div>
-                                            <div style={{ fontSize: '0.8rem', color: '#888', marginBottom: '4px' }}>
-                                                Predicted rating for <strong style={{ color: '#333' }}>{predMovie}</strong>
-                                            </div>
-                                            <div className="big-predicted-rating">
-                                                {predResult.predicted.toFixed(1)}
-                                                <span style={{ fontSize: '1rem', marginLeft: '4px' }}>/ 5</span>
-                                            </div>
-                                            <div style={{ marginTop: '4px' }}>
-                                                {'★'.repeat(Math.round(predResult.predicted))}{'☆'.repeat(5 - Math.round(predResult.predicted))}
-                                            </div>
-                                            <span className={`confidence-badge confidence-${predResult.confidence}`} style={{ marginTop: '8px' }}>
-                                                {predResult.confidence} confidence
-                                            </span>
-                                        </div>
-
-                                        <div style={{ flex: 1, minWidth: '200px' }}>
-                                            {predResult.actual !== null && (
-                                                <div style={{ marginBottom: '12px', padding: '10px 14px', background: Math.abs(predResult.predicted - predResult.actual) < 0.5 ? 'rgba(39,174,96,0.1)' : 'rgba(243,156,18,0.1)', borderRadius: '8px' }}>
-                                                    <span style={{ color: '#666', fontSize: '0.82rem' }}>Actual rating: </span>
-                                                    <strong style={{ fontSize: '1.1rem', color: '#333' }}>{predResult.actual} / 5</strong>
-                                                    <span style={{ marginLeft: '8px' }}>{'★'.repeat(predResult.actual)}</span>
-                                                    <span style={{ marginLeft: '12px', color: '#666', fontSize: '0.82rem' }}>Error: </span>
-                                                    <strong style={{ color: Math.abs(predResult.predicted - predResult.actual) < 0.5 ? '#27ae60' : '#e67e22' }}>
-                                                        {Math.abs(predResult.predicted - predResult.actual).toFixed(2)}
-                                                    </strong>
-                                                </div>
-                                            )}
-                                            {predResult.actual === null && (
-                                                <div style={{ fontSize: '0.82rem', color: '#888', marginBottom: '10px', fontStyle: 'italic' }}>
-                                                    This user hasn't rated this movie — no actual to compare.
-                                                </div>
-                                            )}
-
-                                            <div style={{ fontSize: '0.75rem', color: '#999', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                                User {predUser}'s Top Rated
-                                            </div>
-                                            {(predResult.user_top_rated || []).map(([m, r], i) => (
-                                                <div key={i} className="user-taste-row">
-                                                    <span className="movie-name">{m}</span>
-                                                    <div className="taste-bar"><div className="taste-fill" style={{ width: `${r/5*100}%`, background: '#27ae60' }}></div></div>
-                                                    <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{r}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div style={{ marginTop: '10px', fontSize: '0.8rem', color: '#999' }}>
-                                        Similar users: {(predResult.similar_user_ids || []).join(', ')}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Train/Test Evaluation */}
-                        <div className="control-panel">
-                            <h3>📐 Train / Test Error (MAE)</h3>
-                            <p className="cf-section-desc">
-                                We split ratings into training and test sets. The model learns from training data, then we measure
-                                <strong> Mean Absolute Error</strong> — the average gap between predicted and actual ratings — on both sets.
-                                Lower is better. If train error is much lower than test error, the model may be overfitting.
-                            </p>
-                            <div className="controls-grid">
-                                <div className="control-group">
-                                    <label>K Neighbors</label>
-                                    <input type="range" min="1" max="80" value={cfK} onChange={e => setCfK(parseInt(e.target.value))} />
-                                    <div className="slider-value">{cfK} neighbors</div>
-                                </div>
-                                <div className="control-group">
-                                    <label>Test Fraction</label>
-                                    <input type="range" min="5" max="50" step="5" value={cfTestFrac} onChange={e => setCfTestFrac(parseInt(e.target.value))} />
-                                    <div className="slider-value">{cfTestFrac}%</div>
-                                </div>
-                                <div className="control-group">
-                                    <label>&nbsp;</label>
-                                    <button className="anim-btn play" onClick={runCFEval} disabled={cfEvalLoading}>
-                                        🔬 Evaluate
-                                    </button>
-                                </div>
-                            </div>
-
-                            {cfEvalLoading && <div className="loading"><div className="loading-spinner"></div>Evaluating (may take a few seconds)...</div>}
-                        </div>
-                    </div>
-
-                    <div className="results-section">
-                        {cfResult && (
-                            <>
-                                <div className="metrics-grid">
-                                    <div className="metric-card"><div className="value">{cfResult.k}</div><div className="label">K Neighbors</div></div>
-                                    <div className="metric-card">
-                                        <div className="value" style={{ color: '#2774AE' }}>{cfResult.train_mae.toFixed(4)}</div>
-                                        <div className="label">Train MAE</div>
-                                    </div>
-                                    <div className="metric-card">
-                                        <div className="value" style={{ color: cfResult.test_mae < 0.7 ? '#27ae60' : cfResult.test_mae < 0.85 ? '#f39c12' : '#e74c3c' }}>
-                                            {cfResult.test_mae.toFixed(4)}
-                                        </div>
-                                        <div className="label">Test MAE</div>
-                                    </div>
-                                    <div className="metric-card">
-                                        <div className="value" style={{ color: (cfResult.test_mae - cfResult.train_mae) > 0.15 ? '#e74c3c' : '#27ae60' }}>
-                                            {(cfResult.test_mae - cfResult.train_mae).toFixed(4)}
-                                        </div>
-                                        <div className="label">Gap (Overfitting?)</div>
-                                    </div>
-                                </div>
-
-                                <div className="main-grid">
-                                    <div className="chart-card hero">
-                                        <h3>Per-Movie Test MAE</h3>
-                                        <p style={{ fontSize: '0.8rem', color: '#888', marginBottom: '12px' }}>
-                                            How well does the model predict each movie? Lower MAE = easier to predict. Sorted by number of test ratings.
-                                        </p>
-                                        {cfResult.movie_mae && cfResult.movie_mae.length > 0 && (
-                                            <table className="mae-table">
-                                                <thead><tr><th>Movie</th><th>MAE</th><th>Test Ratings</th></tr></thead>
-                                                <tbody>
-                                                    {cfResult.movie_mae.map((m, i) => {
-                                                        const maxMAE = Math.max(...cfResult.movie_mae.map(x => x.mae));
-                                                        const pct = (m.mae / maxMAE) * 100;
-                                                        const color = m.mae < 0.6 ? '#27ae60' : m.mae < 0.75 ? '#f39c12' : '#e74c3c';
-                                                        return (
-                                                            <tr key={i}>
-                                                                <td style={{ fontWeight: 500, color: '#333' }}>{m.movie}</td>
-                                                                <td>
-                                                                    <span className="mae-bar-track">
-                                                                        <span className="mae-bar-fill" style={{ width: `${pct}%`, background: color }}></span>
-                                                                    </span>
-                                                                    {m.mae.toFixed(3)}
-                                                                </td>
-                                                                <td style={{ color: '#888' }}>{m.n}</td>
-                                                            </tr>
-                                                        );
-                                                    })}
-                                                </tbody>
-                                            </table>
-                                        )}
-                                    </div>
-                                </div>
-                            </>
-                        )}
-
-                        {/* K Sweep */}
-                        <div className="chart-card" style={{ marginTop: '25px' }}>
-                            <h3>🔍 Tuning k: Train vs. Test Error Sweep</h3>
-                            <p style={{ fontSize: '0.82rem', color: '#888', marginBottom: '12px' }}>
-                                Sweep k from 1 to 50 and plot both train and test MAE. Look for the k where test error is minimized —
-                                that's the sweet spot. If train error keeps falling but test error rises, the model is overfitting.
-                            </p>
-                            {!sweepData.length && !sweepLoading && (
-                                <button className="anim-btn play" onClick={runSweep}>
-                                    ▶ Run k Sweep (takes ~15 seconds)
-                                </button>
-                            )}
-                            {sweepLoading && <div className="loading"><div className="loading-spinner"></div>Evaluating k = 1 to 50...</div>}
-                            {sweepData.length > 0 && (
-                                <>
-                                    <MultiLineChartComponent
-                                        data={sweepData}
-                                        datasets={[
-                                            { key: 'train_mae', label: 'Train MAE' },
-                                            { key: 'test_mae', label: 'Test MAE' },
-                                        ]}
-                                        xKey="k"
-                                    />
-                                    {bestSweepK && (
-                                        <div className="algorithm-status" style={{ marginTop: '15px' }}>
-                                            <div className="status-item">
-                                                <span className="status-label">Best k:</span>
-                                                <span className="status-value">{bestSweepK.k}</span>
-                                            </div>
-                                            <div className="status-item">
-                                                <span className="status-label">Best Test MAE:</span>
-                                                <span className="status-value" style={{ color: '#27ae60' }}>{bestSweepK.test_mae?.toFixed(4)}</span>
-                                            </div>
-                                            <div className="status-item">
-                                                <span className="status-label">Train MAE at best k:</span>
-                                                <span className="status-value">{bestSweepK.train_mae?.toFixed(4)}</span>
-                                            </div>
-                                            <button className="anim-btn reset" onClick={runSweep} style={{ marginLeft: 'auto' }}>↺ Re-run</button>
-                                        </div>
-                                    )}
-                                </>
-                            )}
-                        </div>
-                    </div>
+                <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                  <div style={{ fontSize: '0.65rem', color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em' }}>This Flight</div>
+                  <div style={{ fontSize: '1.6rem', fontWeight: '700', color: theme.positive }}>${flightRevenue.toLocaleString()}</div>
+                  <div style={{ fontSize: '0.75rem', color: '#666' }}>{flightTickets} tix @ ${flightTickets ? (flightRevenue / flightTickets).toFixed(0) : 0} avg</div>
                 </div>
-            );
-        };
-
-        // ==================== MAIN APP COMPONENT ====================
-
-        const App = () => {
-            const [activeTab, setActiveTab] = useState('kmeans');
-
-            return (
-                <div>
-                    <header className="header">
-                        <div className="header-content">
-                            <div>
-                                <p style={{ fontSize: '0.65rem', color: '#FFD100', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
-                                    MGMT298D: Science and Strategy of AI
-                                </p>
-                                <h1 style={{ fontSize: '1.4rem', fontWeight: 600, color: '#f5f5f5' }}>
-                                    Week 3: Clustering & Collaborative Filtering
-                                </h1>
-                                <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)', marginTop: '0.25rem' }}>
-                                    User Segmentation with K-Means & Recommendations with User-Based CF
-                                </p>
-                            </div>
-                            <div style={{ textAlign: 'right' }}>
-                                <span style={{ fontSize: '1rem', fontWeight: 500, color: '#f5f5f5' }}>UCLA Anderson</span>
-                            </div>
-                        </div>
-                        <div className="header-gold-line"></div>
-                    </header>
-
-                    <div className="main-tabs">
-                        <button className={`main-tab ${activeTab === 'kmeans' ? 'active' : ''}`} onClick={() => setActiveTab('kmeans')}>
-                            K-Means Clustering
-                        </button>
-                        <button className={`main-tab ${activeTab === 'cf' ? 'active' : ''}`} onClick={() => setActiveTab('cf')}>
-                            Collaborative Filtering
-                        </button>
-                    </div>
-
-                    {activeTab === 'kmeans' && <KMeansTab />}
-                    {activeTab === 'cf' && <CollaborativeFilteringTab />}
-
-                    <p className="footer">
-                        MGMT298D: Science and Strategy of AI | UCLA Anderson School of Management
-                    </p>
+                <div style={{ background: '#ffffff', borderRadius: '12px', padding: '14px', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                  <div style={{ fontSize: '0.6rem', color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em' }}>State</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: '600', color: theme.primary }}>{getState(seatsRemaining, daysLeft)}</div>
                 </div>
-            );
-        };
+              </div>
 
-        ReactDOM.render(<App />, document.getElementById('root'));
+              {/* Right Column - Metrics and Charts */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {/* Metric Cards Row */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
+                  <div style={{ background: '#ffffff', borderRadius: '10px', padding: '14px', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', textAlign: 'center' }}><div style={{ fontSize: '0.6rem', color: '#666', textTransform: 'uppercase' }}>Flights</div><div style={{ fontSize: '1.2rem', fontWeight: '700', color: theme.primary }}>{revenueHistory.filter(r => r.policy === policy).length}/{maxFlights}</div></div>
+                  <div style={{ background: '#ffffff', borderRadius: '10px', padding: '14px', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', textAlign: 'center' }}><div style={{ fontSize: '0.6rem', color: '#666', textTransform: 'uppercase' }}>Last</div><div style={{ fontSize: '1.2rem', fontWeight: '700', color: theme.positive }}>${getRecentAvg(1).toFixed(0)}</div></div>
+                  <div style={{ background: '#ffffff', borderRadius: '10px', padding: '14px', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', textAlign: 'center' }}><div style={{ fontSize: '0.6rem', color: '#666', textTransform: 'uppercase' }}>Avg (Last 5)</div><div style={{ fontSize: '1.2rem', fontWeight: '700', color: theme.accent }}>${getRecentAvg(5).toFixed(0)}</div></div>
+                  <div style={{ background: '#ffffff', borderRadius: '10px', padding: '14px', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', textAlign: 'center' }}><div style={{ fontSize: '0.6rem', color: '#666', textTransform: 'uppercase' }}>Avg (All)</div><div style={{ fontSize: '1.2rem', fontWeight: '700', color: theme.darkBlue }}>${getAllTimeAvg().toFixed(0)}</div></div>
+                  <div style={{ background: '#ffffff', borderRadius: '10px', padding: '14px', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', textAlign: 'center' }}><div style={{ fontSize: '0.6rem', color: '#666', textTransform: 'uppercase' }}>Policy</div><div style={{ fontSize: '0.9rem', fontWeight: '600', color: getPolicyColor(policy) }}>{getPolicyName(policy)}</div></div>
+                </div>
+
+                {/* Main Chart */}
+                <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', flex: 1 }}>
+                  <h3 style={{ margin: '0 0 10px 0', fontSize: '0.8rem', color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Cumulative Average Revenue {policy === 'qlearning' && <span style={{ color: theme.positive, textTransform: 'none' }}>- Watch it learn!</span>}</h3>
+                  <AreaChart
+                    data={revenueHistory.filter(r => r.policy === policy).map((r, i, arr) => ({ ...r, avgRevenue: arr.slice(0, i + 1).reduce((sum, x) => sum + x.revenue, 0) / (i + 1) }))}
+                    dataKey="avgRevenue"
+                    xKey="flight"
+                    color={getPolicyColor(policy)}
+                    yMin={10000}
+                    yMax={25000}
+                  />
+                </div>
+
+                {/* Smaller Charts */}
+                <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                  <h3 style={{ margin: '0 0 10px 0', fontSize: '0.8rem', color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Revenue Per Flight</h3>
+                  <SmallAreaChart
+                    data={revenueHistory.filter(r => r.policy === policy)}
+                    dataKey="revenue"
+                    xKey="flight"
+                    color={getPolicyColor(policy)}
+                  />
+                </div>
+
+                <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                  <h3 style={{ margin: '0 0 10px 0', fontSize: '0.8rem', color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Rolling Avg (Last 5)</h3>
+                  <SmallAreaChart
+                    data={revenueHistory.filter(r => r.policy === policy).map((r, i, arr) => ({ ...r, last5Avg: arr.slice(Math.max(0, i - 4), i + 1).reduce((sum, x) => sum + x.revenue, 0) / Math.min(i + 1, 5) }))}
+                    dataKey="last5Avg"
+                    xKey="flight"
+                    color={theme.darkBlue}
+                  />
+                </div>
+
+                <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                  <h3 style={{ margin: '0 0 10px 0', fontSize: '0.8rem', color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Occupancy % By Flight</h3>
+                  <SmallAreaChart
+                    data={revenueHistory.filter(r => r.policy === policy)}
+                    dataKey="occupancy"
+                    xKey="flight"
+                    color={theme.accent}
+                    yMin={0}
+                    yMax={100}
+                  />
+                </div>
+
+                {/* Q-Learning Table */}
+                {policy === 'qlearning' && (
+                  <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: `1px solid ${theme.positive}30` }}>
+                    <h3 style={{ margin: '0 0 12px 0', fontSize: '0.8rem', color: theme.positive, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Q-Table: Learned Best Price Per State</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'auto repeat(3, 1fr)', gap: '4px', fontSize: '0.7rem' }}>
+                      <div></div>
+                      {['far', 'medium', 'near'].map(t => <div key={t} style={{ textAlign: 'center', color: '#666', padding: '4px', fontSize: '0.65rem' }}>{t === 'far' ? '>=60d' : t === 'medium' ? '15-59d' : '<15d'}</div>)}
+                      {['high', 'medium', 'low'].map(cap => (
+                        <React.Fragment key={cap}>
+                          <div style={{ color: '#666', padding: '4px', fontSize: '0.65rem' }}>{cap === 'high' ? '>70%' : cap === 'medium' ? '30-70%' : '<30%'}</div>
+                          {['far', 'medium', 'near'].map(time => {
+                            const state = cap + '-' + time;
+                            let bestPrice = PRICES[0], bestQ = -Infinity;
+                            PRICES.forEach(p => { const q = getQValue(Q.current, state, p); if (q > bestQ) { bestQ = q; bestPrice = p; } });
+                            const isCurrent = getState(seatsRemaining, daysLeft) === state;
+                            return <div key={time} style={{ textAlign: 'center', padding: '8px 4px', background: isCurrent ? `${theme.positive}20` : '#f5f5f5', borderRadius: '4px', color: theme.accent, fontWeight: '700', border: isCurrent ? `2px solid ${theme.positive}` : '1px solid #e0e0e0' }}>${bestPrice}</div>;
+                          })}
+                        </React.Fragment>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Bandit Stats */}
+                {policy === 'bandit' && (
+                  <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: `1px solid ${theme.accent}30` }}>
+                    <h3 style={{ margin: '0 0 12px 0', fontSize: '0.8rem', color: '#666666', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Thompson Sampling: Avg Flight Revenue</h3>
+                    <div style={{ display: 'flex', justifyContent: 'space-around', fontSize: '0.75rem', flexWrap: 'wrap', gap: '8px' }}>
+                      {PRICES.map(p => { const d = banditState.current[p]; return (<div key={p} style={{ textAlign: 'center', minWidth: '50px', background: '#f5f5f5', padding: '8px', borderRadius: '6px' }}><div style={{ color: '#666' }}>${p}</div><div style={{ color: theme.accent, fontWeight: '700' }}>${d.flights ? (d.totalRevenue / d.flights).toFixed(0) : '?'}</div><div style={{ color: '#999', fontSize: '0.6rem' }}>n={d.flights}</div></div>); })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Policy Comparison Table */}
+            <div style={{ marginTop: '20px', background: '#ffffff', borderRadius: '12px', padding: '20px', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+              <h4 style={{ margin: '0 0 16px 0', fontSize: '0.9rem', color: '#333', fontWeight: '600' }}>Policy Comparison</h4>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                <thead>
+                  <tr style={{ }}>
+                    <th style={{ padding: '12px', textAlign: 'left', color: '#666' }}>Policy</th>
+                    <th style={{ padding: '12px', textAlign: 'right', color: '#666' }}>Flights</th>
+                    <th style={{ padding: '12px', textAlign: 'right', color: '#666' }}>Avg Revenue</th>
+                    <th style={{ padding: '12px', textAlign: 'right', color: '#666' }}>Avg Occ</th>
+                    <th style={{ padding: '12px', textAlign: 'right', color: theme.darkBlue }}>Last 5 Rev</th>
+                    <th style={{ padding: '12px', textAlign: 'right', color: theme.darkBlue }}>Last 5 Occ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {['static', 'bandit', 'qlearning'].map(p => {
+                    const result = policyResults[p];
+                    return (
+                      <tr key={p} style={{ }}>
+                        <td style={{ padding: '12px', color: getPolicyColor(p), fontWeight: '600' }}>{getPolicyName(p)}</td>
+                        <td style={{ padding: '12px', textAlign: 'right', color: '#333' }}>{result ? result.flights : '-'}</td>
+                        <td style={{ padding: '12px', textAlign: 'right', color: theme.positive, fontWeight: '600' }}>{result ? '$' + result.avgRevenue.toFixed(0) : '-'}</td>
+                        <td style={{ padding: '12px', textAlign: 'right', color: theme.accent }}>{result ? result.avgOccupancy.toFixed(1) + '%' : '-'}</td>
+                        <td style={{ padding: '12px', textAlign: 'right', color: theme.darkBlue, fontWeight: '600' }}>{result ? '$' + result.last5AvgRevenue.toFixed(0) : '-'}</td>
+                        <td style={{ padding: '12px', textAlign: 'right', color: theme.darkBlue }}>{result ? result.last5AvgOccupancy.toFixed(1) + '%' : '-'}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+        <p style={{ color: '#888', fontSize: '0.75rem', marginTop: '20px' }}>
+            MGMT298D: Science and Strategy of AI | UCLA Anderson School of Management
+        </p>
+      </div>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<AirlinePricingSimulator />);
     </script>
 </body>
 </html>
