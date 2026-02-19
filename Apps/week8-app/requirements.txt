@@ -1,9 +1,0 @@
-fastapi
-uvicorn[standard]
-pydantic
-google-generativeai
-chromadb
-sentence-transformers
-pdfplumber
-numpy
-python-multipart
