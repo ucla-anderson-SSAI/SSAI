@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Week 8: RAG Tuning Explorer - UCLA Anderson MBA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        * {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        .ucla-blue { color: #2774AE; }
+        .bg-ucla-blue { background-color: #2774AE; }
+        .bg-ucla-gold { background-color: #FFD100; }
+        .border-b-ucla-gold { border-bottom: 4px solid #FFD100; }
+        .text-ucla-gold { color: #FFD100; }
+
+        .chunk-map-container {
+            position: relative;
+            height: 60px;
+            background: #f3f4f6;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 12px;
+        }
+        .chunk-bar {
+            position: absolute;
+            height: 100%;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: white;
+            font-weight: 500;
+        }
+        .chunk-bar-retrieved {
+            background: #2774AE;
+            cursor: pointer;
+        }
+        .chunk-bar-unretrieved {
+            background: #d1d5db;
+        }
+
+        .similarity-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .similarity-high { background: #d1fae5; color: #065f46; }
+        .similarity-medium { background: #fef3c7; color: #92400e; }
+        .similarity-low { background: #fee2e2; color: #991b1b; }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .drop-zone {
+            position: relative;
+            border: 2px dashed #bfdbfe;
+            border-radius: 8px;
+            padding: 32px 16px;
+            text-align: center;
+            transition: all 0.2s;
+            background: #f0f9ff;
+        }
+        .drop-zone.drag-over {
+            border-color: #2774AE;
+            background: #eff6ff;
+        }
+        .drop-zone input[type="file"] {
+            display: none;
+        }
+
+        .spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #2774AE;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .suggested-chip {
+            display: inline-block;
+            background: #f3f4f6;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            border: 1px solid #e5e7eb;
+            transition: all 0.2s;
+        }
+        .suggested-chip:hover {
+            background: #e5e7eb;
+            border-color: #2774AE;
+        }
+
+        .chunk-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .answer-container {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body class="bg-white">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // ====================================================================
+        // API HELPER FUNCTIONS
+        // ====================================================================
+
+        const API_BASE_URL = "http://localhost:8000";
+
+        async function uploadPDF(file) {
+            const formData = new FormData();
+            formData.append("file", file);
+            const response = await fetch(`${API_BASE_URL}/upload`, {
+                method: "POST",
+                body: formData
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || "Upload failed");
+            }
+            return response.json();
+        }
+
+        async function askQuestion(docId, question, chunkSize, chunkOverlap) {
+            const response = await fetch(`${API_BASE_URL}/ask`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    doc_id: docId,
+                    question: question,
+                    chunk_size: chunkSize,
+                    chunk_overlap: chunkOverlap
+                })
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || "Query failed");
+            }
+            return response.json();
+        }
+
+        async function listDocuments() {
+            const response = await fetch(`${API_BASE_URL}/docs`);
+            if (!response.ok) throw new Error("Failed to fetch documents");
+            return response.json();
+        }
+
+        async function deleteDocument(docId) {
+            const response = await fetch(`${API_BASE_URL}/doc/${docId}`, {
+                method: "DELETE"
+            });
+            if (!response.ok) throw new Error("Failed to delete document");
+            return response.json();
+        }
+
+        // ====================================================================
+        // SIMILARITY BADGE COMPONENT
+        // ====================================================================
+
+        function SimilarityBadge({ score }) {
+            let className = "similarity-badge ";
+            if (score >= 0.7) {
+                className += "similarity-high";
+            } else if (score >= 0.5) {
+                className += "similarity-medium";
+            } else {
+                className += "similarity-low";
+            }
+            return (
+                <span className={className}>
+                    {(score * 100).toFixed(1)}%
+                </span>
+            );
+        }
+
+        // ====================================================================
+        // CHUNK MAP VISUALIZATION
+        // ====================================================================
+
+        function ChunkMap({ allChunkRanges, retrievedIndices, totalWords }) {
+            if (!allChunkRanges || allChunkRanges.length === 0) {
+                return <div className="text-sm text-gray-500">No chunks to display</div>;
+            }
+
+            const retrievedSet = new Set(retrievedIndices);
+
+            // Calculate visual width for each chunk as percentage
+            const chunks = allChunkRanges.map((range, idx) => {
+                const start = range[0];
+                const end = range[1];
+                const width = ((end - start) / totalWords) * 100;
+                return { idx, start, end, width };
+            });
+
+            return (
+                <div className="chunk-map-container">
+                    {chunks.map((chunk) => (
+                        <div
+                            key={chunk.idx}
+                            className={`chunk-bar ${retrievedSet.has(chunk.idx) ? "chunk-bar-retrieved" : "chunk-bar-unretrieved"}`}
+                            style={{
+                                left: `${(chunk.start / totalWords) * 100}%`,
+                                width: `${chunk.width}%`,
+                                minWidth: "2px"
+                            }}
+                            title={`Chunk ${chunk.idx}: words ${chunk.start}-${chunk.end}`}
+                        >
+                            {chunk.width > 5 && `C${chunk.idx}`}
+                        </div>
+                    ))}
+                </div>
+            );
+        }
+
+        // ====================================================================
+        // MAIN APP COMPONENT
+        // ====================================================================
+
+        function RAGTuningExplorer() {
+            // Documents
+            const [documents, setDocuments] = useState([]);
+            const [activeDocId, setActiveDocId] = useState(null);
+            const [uploading, setUploading] = useState(false);
+            const [uploadError, setUploadError] = useState(null);
+
+            // Parameters
+            const [chunkSize, setChunkSize] = useState(200);
+            const [chunkOverlap, setChunkOverlap] = useState(50);
+
+            // Question and results
+            const [question, setQuestion] = useState("");
+            const [loading, setLoading] = useState(false);
+            const [rerunning, setRerunning] = useState(false);
+            const [answer, setAnswer] = useState(null);
+            const [chunksUsed, setChunksUsed] = useState([]);
+            const [totalChunks, setTotalChunks] = useState(0);
+            const [allChunkRanges, setAllChunkRanges] = useState([]);
+            const [retrievedIndices, setRetrievedIndices] = useState([]);
+            const [error, setError] = useState(null);
+
+            // Debounce timer for auto-rerun
+            const debounceTimer = useRef(null);
+
+            // Load documents on mount
+            useEffect(() => {
+                loadDocuments();
+            }, []);
+
+            // Auto-rerun when parameters change (if question exists)
+            useEffect(() => {
+                if (!question || !activeDocId) return;
+
+                clearTimeout(debounceTimer.current);
+                debounceTimer.current = setTimeout(() => {
+                    handleAsk(true);
+                }, 500);
+
+                return () => clearTimeout(debounceTimer.current);
+            }, [chunkSize, chunkOverlap]);
+
+            async function loadDocuments() {
+                try {
+                    const docs = await listDocuments();
+                    setDocuments(docs);
+                    if (docs.length > 0 && !activeDocId) {
+                        setActiveDocId(docs[0].doc_id);
+                    }
+                } catch (err) {
+                    console.error("Failed to load documents:", err);
+                }
+            }
+
+            async function handleFileUpload(e) {
+                const file = e.target.files?.[0];
+                if (!file) return;
+
+                if (documents.length >= 5) {
+                    setUploadError("Maximum 5 documents allowed");
+                    return;
+                }
+
+                setUploading(true);
+                setUploadError(null);
+
+                try {
+                    const result = await uploadPDF(file);
+                    setDocuments([...documents, { doc_id: result.doc_id, doc_name: result.doc_name, word_count: result.word_count }]);
+                    setActiveDocId(result.doc_id);
+                } catch (err) {
+                    setUploadError(err.message);
+                } finally {
+                    setUploading(false);
+                }
+            }
+
+            async function handleDeleteDocument(docId) {
+                try {
+                    await deleteDocument(docId);
+                    const updated = documents.filter(d => d.doc_id !== docId);
+                    setDocuments(updated);
+                    if (activeDocId === docId) {
+                        setActiveDocId(updated.length > 0 ? updated[0].doc_id : null);
+                    }
+                    // Clear results
+                    setAnswer(null);
+                    setChunksUsed([]);
+                    setQuestion("");
+                } catch (err) {
+                    setError(err.message);
+                }
+            }
+
+            async function handleAsk(isRerun = false) {
+                if (!activeDocId || !question.trim()) return;
+
+                if (isRerun) {
+                    setRerunning(true);
+                } else {
+                    setLoading(true);
+                }
+                setError(null);
+
+                try {
+                    const result = await askQuestion(activeDocId, question, chunkSize, chunkOverlap);
+                    setAnswer(result.answer);
+                    setChunksUsed(result.chunks_used);
+                    setTotalChunks(result.total_chunks);
+                    setAllChunkRanges(result.all_chunk_word_ranges);
+                    setRetrievedIndices(result.retrieved_chunk_indices);
+                } catch (err) {
+                    setError(err.message);
+                } finally {
+                    setLoading(false);
+                    setRerunning(false);
+                }
+            }
+
+            function handleSuggestedQuestion(q) {
+                setQuestion(q);
+                // Trigger ask after setting question (use setTimeout for state update)
+                setTimeout(() => {
+                    if (activeDocId) {
+                        handleAsk(false);
+                    }
+                }, 0);
+            }
+
+            const activeDoc = documents.find(d => d.doc_id === activeDocId);
+            const totalWords = activeDoc?.word_count || 0;
+
+            return (
+                <div className="min-h-screen bg-white">
+                    {/* Header */}
+                    <div className="bg-white border-b-ucla-gold">
+                        <div className="max-w-7xl mx-auto px-6 py-6">
+                            <div className="flex items-baseline justify-between">
+                                <div>
+                                    <h1 className="text-3xl font-bold ucla-blue mb-2">Week 8: RAG Tuning Explorer</h1>
+                                    <p className="text-gray-600">MGMT298D: Science and Strategy of AI</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-sm font-semibold text-gray-700">UCLA Anderson MBA</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Main Content */}
+                    <div className="max-w-7xl mx-auto px-6 py-8">
+                        <div className="grid grid-cols-3 gap-8">
+                            {/* LEFT COLUMN: Upload, Parameters, Question */}
+                            <div className="col-span-1">
+                                {/* Upload Section */}
+                                <div className="mb-8">
+                                    <h2 className="text-lg font-bold text-gray-800 mb-4">Upload Documents</h2>
+                                    <label className="drop-zone cursor-pointer" id="dropZone">
+                                        <input
+                                            type="file"
+                                            accept=".pdf"
+                                            onChange={handleFileUpload}
+                                            disabled={uploading || documents.length >= 5}
+                                        />
+                                        {uploading ? (
+                                            <div className="flex justify-center items-center">
+                                                <div className="spinner"></div>
+                                                <span className="ml-2 text-sm text-gray-600">Uploading...</span>
+                                            </div>
+                                        ) : (
+                                            <div>
+                                                <p className="text-sm font-medium text-gray-700">Drop PDF here or click to browse</p>
+                                                <p className="text-xs text-gray-500 mt-1">Max 5 files, 50 MB each</p>
+                                            </div>
+                                        )}
+                                    </label>
+                                    {uploadError && (
+                                        <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
+                                            {uploadError}
+                                        </div>
+                                    )}
+
+                                    {/* Document List */}
+                                    {documents.length > 0 && (
+                                        <div className="mt-4">
+                                            <h3 className="text-sm font-semibold text-gray-700 mb-3">Uploaded Documents ({documents.length}/5)</h3>
+                                            <div className="space-y-2">
+                                                {documents.map(doc => (
+                                                    <div
+                                                        key={doc.doc_id}
+                                                        className={`p-3 border rounded cursor-pointer transition ${
+                                                            activeDocId === doc.doc_id
+                                                                ? "border-2 border-blue-600 bg-blue-50"
+                                                                : "border-gray-200 hover:border-gray-300"
+                                                        }`}
+                                                        onClick={() => setActiveDocId(doc.doc_id)}
+                                                    >
+                                                        <div className="flex items-start justify-between">
+                                                            <div className="flex-1">
+                                                                <p className="text-sm font-medium text-gray-800 truncate">{doc.doc_name}</p>
+                                                                <p className="text-xs text-gray-500">{doc.word_count.toLocaleString()} words</p>
+                                                            </div>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleDeleteDocument(doc.doc_id);
+                                                                }}
+                                                                className="text-gray-400 hover:text-red-600 text-lg"
+                                                                title="Delete"
+                                                            >
+                                                                ×
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Parameters Section */}
+                                {activeDoc && (
+                                    <div className="mb-8">
+                                        <h2 className="text-lg font-bold text-gray-800 mb-4">RAG Parameters</h2>
+                                        <div className="space-y-6">
+                                            {/* Chunk Size */}
+                                            <div>
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <label className="text-sm font-medium text-gray-700">Chunk Size (words)</label>
+                                                    <span className="text-lg font-semibold text-blue-600">{chunkSize}</span>
+                                                </div>
+                                                <input
+                                                    type="range"
+                                                    min="100"
+                                                    max="600"
+                                                    step="50"
+                                                    value={chunkSize}
+                                                    onChange={(e) => setChunkSize(Number(e.target.value))}
+                                                    className="w-full"
+                                                />
+                                                <p className="text-xs text-gray-500 mt-2">
+                                                    Larger chunks capture more context but may include less relevant information.
+                                                </p>
+                                            </div>
+
+                                            {/* Chunk Overlap */}
+                                            <div>
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <label className="text-sm font-medium text-gray-700">Chunk Overlap (words)</label>
+                                                    <span className="text-lg font-semibold text-blue-600">{chunkOverlap}</span>
+                                                </div>
+                                                <input
+                                                    type="range"
+                                                    min="0"
+                                                    max="200"
+                                                    step="25"
+                                                    value={chunkOverlap}
+                                                    onChange={(e) => setChunkOverlap(Number(e.target.value))}
+                                                    className="w-full"
+                                                />
+                                                <p className="text-xs text-gray-500 mt-2">
+                                                    Overlap helps preserve context across chunk boundaries.
+                                                </p>
+                                            </div>
+
+                                            {/* Stats */}
+                                            <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                                                <p className="text-xs text-gray-700">
+                                                    <span className="font-semibold">Chunks created:</span> {totalChunks}
+                                                </p>
+                                                <p className="text-xs text-gray-700 mt-1">
+                                                    <span className="font-semibold">Document:</span> {totalWords.toLocaleString()} words
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Question Input */}
+                                {activeDoc && (
+                                    <div>
+                                        <h2 className="text-lg font-bold text-gray-800 mb-4">Ask a Question</h2>
+                                        <textarea
+                                            value={question}
+                                            onChange={(e) => setQuestion(e.target.value)}
+                                            placeholder="Enter your question about the 10-K filing..."
+                                            className="w-full h-24 p-3 border border-gray-300 rounded resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                        <button
+                                            onClick={() => handleAsk(false)}
+                                            disabled={loading || !question.trim()}
+                                            className="w-full mt-3 bg-blue-600 text-white font-medium py-2 rounded hover:bg-blue-700 disabled:bg-gray-400 transition"
+                                        >
+                                            {loading ? "Asking..." : "Ask"}
+                                        </button>
+                                        {rerunning && (
+                                            <p className="text-xs text-blue-600 mt-2 text-center">
+                                                Re-running with new parameters...
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+
+                                {!activeDoc && (
+                                    <div className="text-center p-6 bg-gray-50 rounded border border-gray-200">
+                                        <p className="text-sm text-gray-500">Upload a PDF to get started</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* RIGHT COLUMN: Answer, Chunks, Chunk Map */}
+                            <div className="col-span-2 space-y-6">
+                                {error && (
+                                    <div className="p-4 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
+                                        <p className="font-medium">Error</p>
+                                        <p className="text-xs mt-1">{error}</p>
+                                    </div>
+                                )}
+
+                                {/* Answer Section */}
+                                {answer !== null && (
+                                    <div className="fade-in">
+                                        <h2 className="text-lg font-bold text-gray-800 mb-4">Answer</h2>
+                                        <div className="answer-container">
+                                            {loading ? (
+                                                <div className="flex items-center">
+                                                    <div className="spinner"></div>
+                                                    <span className="ml-2 text-sm text-gray-600">Generating answer...</span>
+                                                </div>
+                                            ) : (
+                                                <p className="text-gray-800 whitespace-pre-wrap">{answer}</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Retrieved Chunks Section */}
+                                {chunksUsed.length > 0 && (
+                                    <div className="fade-in">
+                                        <h2 className="text-lg font-bold text-gray-800 mb-4">Retrieved Chunks (Top 3)</h2>
+                                        <div className="space-y-3">
+                                            {chunksUsed.map((chunk, idx) => (
+                                                <div key={idx} className="chunk-card">
+                                                    <div className="flex items-start justify-between mb-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-xs font-bold bg-gray-200 text-gray-800 px-2 py-1 rounded">
+                                                                #{idx + 1}
+                                                            </span>
+                                                            <SimilarityBadge score={chunk.similarity} />
+                                                        </div>
+                                                        <span className="text-xs text-gray-500">
+                                                            Words {chunk.start_word}–{chunk.end_word}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-sm text-gray-700 leading-relaxed">{chunk.text}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Chunk Map */}
+                                {allChunkRanges.length > 0 && (
+                                    <div className="fade-in">
+                                        <h2 className="text-lg font-bold text-gray-800 mb-4">Chunk Map</h2>
+                                        <p className="text-xs text-gray-500 mb-2">
+                                            Blue = retrieved chunks, Gray = other chunks
+                                        </p>
+                                        <ChunkMap
+                                            allChunkRanges={allChunkRanges}
+                                            retrievedIndices={retrievedIndices}
+                                            totalWords={totalWords}
+                                        />
+                                    </div>
+                                )}
+
+                                {/* Suggested Questions */}
+                                {!answer && (
+                                    <div>
+                                        <h2 className="text-lg font-bold text-gray-800 mb-4">Suggested Questions</h2>
+                                        <div className="space-y-2">
+                                            {[
+                                                "What were the company's total revenues for the fiscal year?",
+                                                "What is the company's gross margin and what drove the change?",
+                                                "What are the main risk factors affecting future revenue?",
+                                                "How much cash does the company have and what is the burn rate?",
+                                                "What are management's priorities for the coming year?"
+                                            ].map((q, idx) => (
+                                                <button
+                                                    key={idx}
+                                                    onClick={() => handleSuggestedQuestion(q)}
+                                                    className="suggested-chip w-full text-left"
+                                                >
+                                                    {q}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Render app
+        ReactDOM.createRoot(document.getElementById("root")).render(<RAGTuningExplorer />);
+    </script>
+</body>
+</html>
