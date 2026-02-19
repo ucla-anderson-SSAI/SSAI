@@ -3,202 +3,267 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Week 7: RAG — SEC Due Diligence</title>
+  <title>Week 7: RAG — SEC Due Diligence | UCLA Anderson MGMT298D</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>
-    /* ── Reset & Base ── */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #f5f6fa;
-      color: #1a1a2e;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #ffffff;
       min-height: 100vh;
+      color: #1a1a1a;
     }
+
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #f5f5f5; }
+    ::-webkit-scrollbar-thumb { background: #2774AE; border-radius: 4px; }
 
     /* ── Header ── */
-    header {
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
-      color: white;
-      padding: 28px 40px 22px;
+    .header {
+      background: #2774AE;
+      padding: 1rem 2rem 1.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
-    header .eyebrow {
-      font-size: 11px;
-      letter-spacing: 2.5px;
+    .header-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header-left .course-label {
+      font-size: 0.65rem;
+      font-weight: 400;
+      color: #FFD100;
+      margin-bottom: 0.25rem;
+      letter-spacing: 0.2em;
       text-transform: uppercase;
-      opacity: 0.6;
-      margin-bottom: 6px;
     }
-    header h1 { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
-    header p { font-size: 14px; opacity: 0.7; }
-
-    /* ── Layout ── */
-    .container { max-width: 1400px; margin: 0 auto; padding: 32px 40px; }
-    .grid-2 { display: grid; grid-template-columns: 340px 1fr; gap: 28px; align-items: start; }
-
-    /* ── Cards ── */
-    .card {
-      background: white;
-      border-radius: 14px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
-      padding: 24px;
+    .header-left h1 { font-size: 1.4rem; font-weight: 600; color: #f5f5f5; }
+    .header-left p { color: #c0c0c0; font-size: 0.85rem; margin-top: 0.25rem; }
+    .header-right { font-size: 1rem; color: #f5f5f5; font-weight: 500; }
+    .header-gold-line {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 4px;
+      background: #FFD100;
     }
-    .card-title {
-      font-size: 13px;
+
+    /* ── Main layout ── */
+    .main-content { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+    .layout { display: grid; grid-template-columns: 340px 1fr; gap: 1.5rem; align-items: start; }
+
+    /* ── Section cards ── */
+    .section-card {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 1.5rem;
+      border: 1px solid rgba(0,0,0,0.08);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      margin-bottom: 1.5rem;
+    }
+    .section-title {
+      font-size: 1rem;
       font-weight: 700;
-      letter-spacing: 1.2px;
-      text-transform: uppercase;
-      color: #0f3460;
-      margin-bottom: 18px;
+      margin-bottom: 1rem;
+      color: #2774AE;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 0.5rem;
     }
-    .card-title svg { flex-shrink: 0; }
 
     /* ── Upload zone ── */
     .upload-zone {
-      border: 2px dashed #c5cfe8;
+      border: 2px dashed rgba(39,116,174,0.35);
       border-radius: 10px;
-      padding: 28px 16px;
+      padding: 24px 16px;
       text-align: center;
       cursor: pointer;
+      background: rgba(39,116,174,0.03);
       transition: all 0.2s;
-      background: #f8f9ff;
     }
     .upload-zone:hover, .upload-zone.drag-over {
-      border-color: #0f3460;
-      background: #eef1fb;
+      border-color: #2774AE;
+      background: rgba(39,116,174,0.08);
     }
     .upload-zone p { font-size: 13px; color: #666; margin-top: 8px; }
     .upload-zone .hint { font-size: 11px; color: #aaa; margin-top: 4px; }
     #file-input { display: none; }
 
     /* ── Company chips ── */
-    .company-list { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+    .company-list { margin-top: 12px; display: flex; flex-direction: column; gap: 7px; }
     .company-chip {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background: #f0f4ff;
+      background: rgba(39,116,174,0.06);
+      border: 1px solid rgba(39,116,174,0.15);
       border-radius: 8px;
       padding: 8px 12px;
       font-size: 13px;
       font-weight: 500;
     }
-    .company-chip .meta { font-size: 11px; color: #888; margin-top: 1px; }
-    .company-chip .left { display: flex; flex-direction: column; }
-    .chip-dot {
-      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
-    }
+    .chip-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
     .remove-btn {
-      background: none; border: none; cursor: pointer; color: #aaa; font-size: 16px; line-height: 1;
+      background: none; border: none; cursor: pointer;
+      color: #aaa; font-size: 17px; line-height: 1;
       padding: 0 2px; transition: color 0.15s;
     }
     .remove-btn:hover { color: #e74c3c; }
-    .upload-status {
-      margin-top: 10px;
-      font-size: 12px;
-      color: #0f3460;
-      min-height: 18px;
-      font-weight: 500;
+    .upload-status { margin-top: 8px; font-size: 12px; color: #2774AE; min-height: 16px; font-weight: 500; }
+
+    /* ── Controls ── */
+    .control-group { margin-bottom: 1.1rem; }
+    .control-label {
+      font-size: 0.8rem;
+      color: #666;
+      margin-bottom: 0.45rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
+    .control-value {
+      font-family: 'JetBrains Mono', monospace;
+      color: #2774AE;
+      font-weight: 600;
+    }
+    .slider {
+      width: 100%;
+      height: 6px;
+      -webkit-appearance: none;
+      background: rgba(39,116,174,0.2);
+      border-radius: 3px;
+      outline: none;
+    }
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px; height: 18px;
+      background: #2774AE;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(39,116,174,0.4);
+    }
+    .control-hint { font-size: 0.7rem; color: #aaa; margin-top: 4px; line-height: 1.4; }
 
-    /* ── Right panel ── */
-    .right-panel { display: flex; flex-direction: column; gap: 20px; }
+    .divider { border: none; border-top: 1px solid rgba(0,0,0,0.07); margin: 1rem 0; }
 
-    /* ── Query box ── */
-    .query-row { display: flex; gap: 10px; align-items: flex-end; }
+    /* ── Buttons ── */
+    .run-button {
+      width: 100%;
+      padding: 0.85rem 1rem;
+      background: #2774AE;
+      border: none;
+      border-radius: 10px;
+      color: #ffffff;
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+    }
+    .run-button:hover { background: #005587; }
+    .run-button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .loading-spinner {
+      width: 18px; height: 18px;
+      border: 2.5px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Suggestions ── */
+    .suggestions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .suggest-chip {
+      background: rgba(39,116,174,0.07);
+      border: 1px solid rgba(39,116,174,0.2);
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      color: #2774AE;
+      transition: background 0.15s;
+      font-family: 'Inter', sans-serif;
+    }
+    .suggest-chip:hover { background: rgba(39,116,174,0.15); }
+
+    /* ── Textarea ── */
     textarea {
-      flex: 1;
-      border: 1.5px solid #dde3f0;
+      width: 100%;
+      border: 1.5px solid rgba(0,0,0,0.12);
       border-radius: 10px;
       padding: 12px 14px;
       font-size: 14px;
-      font-family: inherit;
+      font-family: 'Inter', sans-serif;
       resize: vertical;
-      min-height: 70px;
-      color: #1a1a2e;
+      min-height: 72px;
+      color: #1a1a1a;
       transition: border-color 0.2s;
       outline: none;
     }
-    textarea:focus { border-color: #0f3460; }
-    .btn {
-      background: #0f3460;
-      color: white;
-      border: none;
-      border-radius: 10px;
-      padding: 12px 22px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s, opacity 0.2s;
-      white-space: nowrap;
-      height: fit-content;
-    }
-    .btn:hover { background: #16213e; }
-    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
-    .btn-sm {
-      font-size: 12px;
-      padding: 7px 14px;
-      border-radius: 7px;
-    }
+    textarea:focus { border-color: #2774AE; }
 
-    /* ── Suggested questions ── */
-    .suggestions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
-    .suggest-chip {
-      background: #eef1fb;
-      border: 1px solid #c5cfe8;
-      border-radius: 20px;
-      padding: 5px 13px;
-      font-size: 12px;
-      cursor: pointer;
-      color: #0f3460;
-      transition: background 0.15s;
+    /* ── Explainer banner ── */
+    .explainer {
+      background: rgba(39,116,174,0.06);
+      border-left: 3px solid #2774AE;
+      border-radius: 0 8px 8px 0;
+      padding: 12px 14px;
+      font-size: 12.5px;
+      line-height: 1.65;
+      color: #444;
+      margin-bottom: 1.5rem;
     }
-    .suggest-chip:hover { background: #dce3f7; }
+    .explainer strong { color: #2774AE; }
 
-    /* ── Results ── */
-    .results-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 14px;
-    }
+    /* ── Results area ── */
     .results-question {
-      font-size: 14px;
+      font-size: 13.5px;
       font-weight: 600;
-      color: #0f3460;
+      color: #2774AE;
       font-style: italic;
+      margin-bottom: 1rem;
+      padding: 10px 14px;
+      background: rgba(39,116,174,0.06);
+      border-radius: 8px;
     }
-    .company-results { display: flex; flex-direction: column; gap: 20px; }
+
+    .company-results { display: flex; flex-direction: column; gap: 1.25rem; }
+
     .company-block {
-      border: 1.5px solid #e0e6f5;
+      border: 1px solid rgba(0,0,0,0.08);
       border-radius: 12px;
       overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
     .company-block-header {
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 12px 18px;
-      background: #f5f7ff;
-      border-bottom: 1.5px solid #e0e6f5;
+      padding: 10px 16px;
+      background: rgba(39,116,174,0.06);
+      border-bottom: 1px solid rgba(0,0,0,0.07);
       font-weight: 700;
       font-size: 14px;
+      color: #2774AE;
     }
-    .comparison-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-    }
-    .answer-col {
-      padding: 18px;
-    }
-    .answer-col:first-child {
-      border-right: 1.5px solid #e0e6f5;
-    }
+
+    .comparison-grid { display: grid; grid-template-columns: 1fr 1fr; }
+    .answer-col { padding: 16px; }
+    .answer-col:first-child { border-right: 1px solid rgba(0,0,0,0.07); }
+
     .answer-label {
       font-size: 11px;
       font-weight: 700;
-      letter-spacing: 1.2px;
+      letter-spacing: 1px;
       text-transform: uppercase;
       margin-bottom: 10px;
       display: flex;
@@ -207,82 +272,81 @@
     }
     .label-zs { color: #e67e22; }
     .label-rag { color: #27ae60; }
+
     .answer-text {
       font-size: 13.5px;
-      line-height: 1.7;
-      color: #2c3e50;
+      line-height: 1.75;
+      color: #333;
       white-space: pre-wrap;
     }
+
     .latency-badge {
       display: inline-block;
       font-size: 10px;
-      background: #f0f4ff;
-      color: #666;
+      font-family: 'JetBrains Mono', monospace;
+      background: rgba(39,116,174,0.08);
+      color: #2774AE;
       border-radius: 4px;
       padding: 2px 6px;
-      margin-left: 6px;
+      margin-left: 4px;
       font-weight: 400;
     }
 
-    /* Sources accordion */
+    /* sources accordion */
     .sources-toggle {
-      margin-top: 12px;
-      font-size: 11px;
-      color: #0f3460;
+      margin-top: 10px;
+      font-size: 11.5px;
+      color: #2774AE;
       cursor: pointer;
-      text-decoration: underline;
       background: none;
       border: none;
       padding: 0;
-      font-family: inherit;
+      font-family: 'Inter', sans-serif;
+      text-decoration: underline;
     }
     .sources-content {
       display: none;
       margin-top: 8px;
-      background: #f8f9ff;
+      background: rgba(39,116,174,0.04);
       border-radius: 7px;
       padding: 10px 12px;
       font-size: 11.5px;
       line-height: 1.6;
       color: #555;
-      max-height: 220px;
+      max-height: 210px;
       overflow-y: auto;
     }
     .sources-content.open { display: block; }
-    .source-chunk { margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #e0e6f5; }
+    .source-chunk {
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(0,0,0,0.07);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+    }
     .source-chunk:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
 
-    /* ── States ── */
+    /* empty state */
     .empty-state {
       text-align: center;
       padding: 50px 20px;
-      color: #aaa;
+      color: #bbb;
       font-size: 14px;
     }
-    .empty-state svg { opacity: 0.25; margin-bottom: 12px; }
-    .spinner {
-      display: inline-block;
-      width: 18px; height: 18px;
-      border: 2.5px solid rgba(255,255,255,0.35);
-      border-top-color: white;
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-      vertical-align: middle;
-      margin-right: 6px;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    .empty-state svg { opacity: 0.2; margin-bottom: 12px; }
 
-    .tag-rag {
-      display: inline-block;
-      background: #e8f5e9;
-      color: #27ae60;
-      font-size: 10px;
+    /* parameter section labels */
+    .param-section-label {
+      font-size: 0.7rem;
       font-weight: 700;
-      letter-spacing: 0.8px;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
-      border-radius: 4px;
-      padding: 2px 6px;
+      color: #999;
+      margin-bottom: 0.75rem;
+      margin-top: 0.25rem;
     }
+
+    /* badges */
     .tag-zs {
       display: inline-block;
       background: #fff3e0;
@@ -292,109 +356,203 @@
       letter-spacing: 0.8px;
       text-transform: uppercase;
       border-radius: 4px;
-      padding: 2px 6px;
+      padding: 2px 7px;
+    }
+    .tag-rag {
+      display: inline-block;
+      background: #e8f5e9;
+      color: #27ae60;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      border-radius: 4px;
+      padding: 2px 7px;
     }
 
-    /* ── Explainer banner ── */
-    .explainer {
-      background: linear-gradient(135deg, #eef4ff, #f5f0ff);
-      border-left: 4px solid #0f3460;
-      border-radius: 0 10px 10px 0;
-      padding: 14px 18px;
-      font-size: 13px;
-      line-height: 1.6;
-      color: #2c3e50;
+    @media (max-width: 1100px) {
+      .layout { grid-template-columns: 1fr; }
     }
-    .explainer strong { color: #0f3460; }
-
-    @media (max-width: 900px) {
-      .grid-2 { grid-template-columns: 1fr; }
+    @media (max-width: 700px) {
       .comparison-grid { grid-template-columns: 1fr; }
-      .answer-col:first-child { border-right: none; border-bottom: 1.5px solid #e0e6f5; }
-      .container { padding: 20px; }
+      .answer-col:first-child { border-right: none; border-bottom: 1px solid rgba(0,0,0,0.07); }
+      .main-content { padding: 1rem; }
     }
   </style>
 </head>
 <body>
 
-<header>
-  <div class="eyebrow">MGMT298D · Science and Strategy of AI</div>
-  <h1>Week 7: Retrieval-Augmented Generation (RAG)</h1>
-  <p>Upload SEC filings and ask due diligence questions — compare answers with and without document context</p>
+<!-- ── Header ── -->
+<header class="header" style="position:relative;">
+  <div class="header-content">
+    <div class="header-left">
+      <div class="course-label">MGMT298D · Science and Strategy of AI · UCLA Anderson</div>
+      <h1>Week 7: Retrieval-Augmented Generation (RAG)</h1>
+      <p>Upload SEC filings · Tune RAG parameters · Compare answers with and without document context</p>
+    </div>
+    <div class="header-right">UCLA Anderson</div>
+  </div>
+  <div class="header-gold-line"></div>
 </header>
 
-<div class="container">
-  <div class="grid-2">
+<!-- ── Body ── -->
+<div class="main-content">
 
-    <!-- ── LEFT: Upload & Companies ── -->
-    <div style="display:flex;flex-direction:column;gap:20px;">
+  <div class="explainer">
+    <strong>How RAG works:</strong> PDFs are chunked into overlapping text windows, embedded as vectors, and stored in memory. When you ask a question, the closest chunks are retrieved by cosine similarity and injected into Gemini's prompt as context — grounding the answer in the actual filing. The <strong>Zero-Shot</strong> column shows what the model says with no document context.
+  </div>
 
-      <div class="card">
-        <div class="card-title">
+  <div class="layout">
+
+    <!-- ── LEFT PANEL ── -->
+    <div>
+
+      <!-- Upload -->
+      <div class="section-card">
+        <div class="section-title">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           Upload SEC Filings
         </div>
 
         <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
-          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#0f3460" stroke-width="1.5" opacity="0.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#2774AE" stroke-width="1.5" opacity="0.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
           <p>Click to upload PDFs, or drag &amp; drop</p>
-          <p class="hint">Multiple SEC reports supported — each treated as a separate company</p>
+          <p class="hint">Multiple SEC reports supported — each = one company</p>
         </div>
         <input type="file" id="file-input" accept=".pdf" multiple />
-
         <div class="upload-status" id="upload-status"></div>
-
         <div class="company-list" id="company-list"></div>
       </div>
 
-      <div class="explainer">
-        <strong>How RAG works:</strong> Your PDFs are split into chunks, embedded as vectors, and stored. When you ask a question, the most relevant chunks are retrieved and sent to Gemini as context — grounding the answer in the actual filing.
+      <!-- RAG Parameters -->
+      <div class="section-card">
+        <div class="section-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+          RAG Parameters
+        </div>
+
+        <div class="param-section-label">Chunking</div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Chunk Size <span style="font-size:10px;color:#aaa">(words)</span></span>
+            <span class="control-value" id="val-chunk-size">200</span>
+          </div>
+          <input type="range" class="slider" id="sl-chunk-size" min="50" max="500" step="50" value="200"
+            oninput="document.getElementById('val-chunk-size').textContent=this.value" />
+          <div class="control-hint">Larger chunks = more context per piece, but noisier retrieval.</div>
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Chunk Overlap <span style="font-size:10px;color:#aaa">(words)</span></span>
+            <span class="control-value" id="val-overlap">50</span>
+          </div>
+          <input type="range" class="slider" id="sl-overlap" min="0" max="200" step="10" value="50"
+            oninput="document.getElementById('val-overlap').textContent=this.value" />
+          <div class="control-hint">Overlap prevents important context from being cut at chunk boundaries.</div>
+        </div>
+
+        <hr class="divider" />
+        <div class="param-section-label">Retrieval</div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Top-K Chunks Retrieved</span>
+            <span class="control-value" id="val-topk">5</span>
+          </div>
+          <input type="range" class="slider" id="sl-topk" min="1" max="15" step="1" value="5"
+            oninput="document.getElementById('val-topk').textContent=this.value" />
+          <div class="control-hint">More chunks = broader context; too many adds noise.</div>
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Similarity Threshold</span>
+            <span class="control-value" id="val-sim">0.0</span>
+          </div>
+          <input type="range" class="slider" id="sl-sim" min="0" max="0.8" step="0.05" value="0"
+            oninput="document.getElementById('val-sim').textContent=parseFloat(this.value).toFixed(2)" />
+          <div class="control-hint">Minimum cosine similarity to include a chunk. 0 = no filter.</div>
+        </div>
+
+        <hr class="divider" />
+        <div class="param-section-label">Generation</div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Temperature</span>
+            <span class="control-value" id="val-temp">0.1</span>
+          </div>
+          <input type="range" class="slider" id="sl-temp" min="0" max="1.5" step="0.05" value="0.1"
+            oninput="document.getElementById('val-temp').textContent=parseFloat(this.value).toFixed(2)" />
+          <div class="control-hint">Low = factual &amp; deterministic. High = varied responses.</div>
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Max Output Tokens</span>
+            <span class="control-value" id="val-tokens">400</span>
+          </div>
+          <input type="range" class="slider" id="sl-tokens" min="100" max="1000" step="50" value="400"
+            oninput="document.getElementById('val-tokens').textContent=this.value" />
+        </div>
+
+        <div style="margin-top:0.5rem;font-size:11px;color:#aaa;">
+          ⚠ Changing chunking parameters requires re-uploading files to take effect.
+        </div>
       </div>
 
     </div>
 
-    <!-- ── RIGHT: Query & Results ── -->
-    <div class="right-panel">
+    <!-- ── RIGHT PANEL ── -->
+    <div>
 
-      <div class="card">
-        <div class="card-title">
+      <!-- Query -->
+      <div class="section-card">
+        <div class="section-title">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           Ask a Due Diligence Question
         </div>
 
-        <div class="query-row">
-          <textarea id="question-input" placeholder="e.g. What are the company's primary sources of revenue and how have they changed year over year?" rows="3"></textarea>
-          <button class="btn" id="ask-btn" onclick="askQuestion()" disabled>Ask</button>
-        </div>
+        <textarea id="question-input" placeholder="e.g. What are the company's primary risk factors and how have they changed year over year?" rows="3"></textarea>
 
         <div class="suggestions">
-          <span class="suggest-chip" onclick="setQuestion(this)">What are the main risk factors?</span>
-          <span class="suggest-chip" onclick="setQuestion(this)">How has revenue trended over the past 3 years?</span>
-          <span class="suggest-chip" onclick="setQuestion(this)">What is the company's debt situation?</span>
-          <span class="suggest-chip" onclick="setQuestion(this)">Who are the key executives and what is their compensation?</span>
-          <span class="suggest-chip" onclick="setQuestion(this)">What markets does the company operate in?</span>
-          <span class="suggest-chip" onclick="setQuestion(this)">Are there any ongoing legal proceedings or regulatory risks?</span>
+          <span class="suggest-chip" onclick="setQ(this)">What are the main risk factors?</span>
+          <span class="suggest-chip" onclick="setQ(this)">How has revenue trended over the past 3 years?</span>
+          <span class="suggest-chip" onclick="setQ(this)">What is the company's debt and liquidity situation?</span>
+          <span class="suggest-chip" onclick="setQ(this)">Who are the key executives and their compensation?</span>
+          <span class="suggest-chip" onclick="setQ(this)">What markets and geographies does the company operate in?</span>
+          <span class="suggest-chip" onclick="setQ(this)">Are there any ongoing legal proceedings or regulatory risks?</span>
+        </div>
+
+        <div style="margin-top:1rem;">
+          <button class="run-button" id="ask-btn" onclick="askQuestion()" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Run Query
+          </button>
         </div>
       </div>
 
-      <div class="card" id="results-card">
-        <div class="results-header">
-          <div class="card-title" style="margin-bottom:0;">
+      <!-- Results -->
+      <div class="section-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+          <div class="section-title" style="margin-bottom:0;">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
             Results
           </div>
-          <div style="display:flex;gap:10px;align-items:center;">
+          <div style="display:flex;align-items:center;gap:8px;">
             <span class="tag-zs">Zero-Shot</span>
-            <span style="font-size:12px;color:#aaa;">vs</span>
+            <span style="font-size:11px;color:#ccc;">vs</span>
             <span class="tag-rag">RAG</span>
           </div>
         </div>
 
-        <div id="results-question" class="results-question" style="display:none;margin-bottom:14px;"></div>
+        <div id="results-question" style="display:none;" class="results-question"></div>
         <div id="results-body">
           <div class="empty-state">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-            <p>Upload SEC filings and ask a question to see the comparison</p>
+            <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <p>Upload at least one SEC filing and ask a question to see the side-by-side comparison</p>
           </div>
         </div>
       </div>
@@ -404,57 +562,55 @@
 </div>
 
 <script>
-  const API = "";  // same origin
-  const COLORS = ["#3498db","#9b59b6","#e74c3c","#1abc9c","#f39c12","#e91e63","#00bcd4","#ff5722"];
+  const API = "";
+  const COLORS = ["#2774AE","#9b59b6","#e74c3c","#1abc9c","#f39c12","#e91e63","#00bcd4","#ff5722"];
   let companies = [];
   let colorMap = {};
 
-  // ── Drag & drop ────────────────────────────────────────────────────────────
+  // ── Drag & drop ───────────────────────────────────────────────────────────
   const zone = document.getElementById("upload-zone");
   zone.addEventListener("dragover", e => { e.preventDefault(); zone.classList.add("drag-over"); });
   zone.addEventListener("dragleave", () => zone.classList.remove("drag-over"));
-  zone.addEventListener("drop", e => {
-    e.preventDefault();
-    zone.classList.remove("drag-over");
-    handleFiles(e.dataTransfer.files);
-  });
+  zone.addEventListener("drop", e => { e.preventDefault(); zone.classList.remove("drag-over"); handleFiles(e.dataTransfer.files); });
   document.getElementById("file-input").addEventListener("change", e => handleFiles(e.target.files));
 
-  // ── Upload ─────────────────────────────────────────────────────────────────
+  // ── Upload ────────────────────────────────────────────────────────────────
   async function handleFiles(fileList) {
     if (!fileList.length) return;
     const status = document.getElementById("upload-status");
-    status.textContent = `Uploading and processing ${fileList.length} file(s)…`;
+    status.textContent = `Uploading ${fileList.length} file(s) and building index…`;
+    status.style.color = "#2774AE";
+
+    const chunkSize = parseInt(document.getElementById("sl-chunk-size").value);
+    const overlap   = parseInt(document.getElementById("sl-overlap").value);
 
     const form = new FormData();
     for (const f of fileList) form.append("files", f);
+    form.append("chunk_size", chunkSize);
+    form.append("overlap", overlap);
 
     try {
       const res = await fetch(`${API}/upload`, { method: "POST", body: form });
       const data = await res.json();
 
       data.uploaded.forEach(u => {
-        if (!companies.includes(u.company)) {
-          companies.push(u.company);
-          colorMap[u.company] = COLORS[Object.keys(colorMap).length % COLORS.length];
-        }
+        if (!companies.includes(u.company)) colorMap[u.company] = COLORS[Object.keys(colorMap).length % COLORS.length];
       });
 
       renderCompanyList(data.companies_available);
-      updateAskButton();
+      updateAskBtn();
 
       if (data.errors.length) {
-        status.textContent = `✓ ${data.uploaded.length} uploaded. ⚠ ${data.errors.length} failed.`;
+        status.textContent = `✓ ${data.uploaded.length} uploaded · ⚠ ${data.errors.length} failed`;
         status.style.color = "#e67e22";
       } else {
-        status.textContent = `✓ ${data.uploaded.length} filing(s) ready`;
+        status.textContent = `✓ ${data.uploaded.length} filing(s) indexed and ready`;
         status.style.color = "#27ae60";
       }
-    } catch (e) {
-      status.textContent = "Upload failed — check the server is running.";
+    } catch(e) {
+      status.textContent = "Upload failed — is the backend running?";
       status.style.color = "#e74c3c";
     }
-
     document.getElementById("file-input").value = "";
   }
 
@@ -468,13 +624,11 @@
       const chip = document.createElement("div");
       chip.className = "company-chip";
       chip.innerHTML = `
-        <div class="left">
-          <span>${c}</span>
-        </div>
         <div style="display:flex;align-items:center;gap:8px;">
           <div class="chip-dot" style="background:${color}"></div>
-          <button class="remove-btn" onclick="removeCompany('${c}')" title="Remove">×</button>
-        </div>`;
+          <span>${escHtml(c)}</span>
+        </div>
+        <button class="remove-btn" onclick="removeCompany('${escHtml(c)}')" title="Remove">×</button>`;
       list.appendChild(chip);
     });
   }
@@ -485,47 +639,54 @@
     const res = await fetch(`${API}/companies`);
     const data = await res.json();
     renderCompanyList(data.companies.map(c => c.name));
-    updateAskButton();
-    document.getElementById("upload-status").textContent = `Removed ${name}`;
-    document.getElementById("upload-status").style.color = "#888";
+    updateAskBtn();
+    const s = document.getElementById("upload-status");
+    s.textContent = `Removed ${name}`; s.style.color = "#999";
   }
 
-  // ── Query ──────────────────────────────────────────────────────────────────
-  function setQuestion(el) {
-    document.getElementById("question-input").value = el.textContent;
-  }
-
-  function updateAskButton() {
+  function updateAskBtn() {
     document.getElementById("ask-btn").disabled = companies.length === 0;
   }
 
+  function setQ(el) { document.getElementById("question-input").value = el.textContent; }
+
+  // ── Query ─────────────────────────────────────────────────────────────────
   async function askQuestion() {
     const q = document.getElementById("question-input").value.trim();
     if (!q) { alert("Please enter a question."); return; }
-    if (!companies.length) { alert("Please upload at least one SEC filing."); return; }
+    if (!companies.length) { alert("Please upload at least one filing."); return; }
 
     const btn = document.getElementById("ask-btn");
     btn.disabled = true;
-    btn.innerHTML = `<span class="spinner"></span>Thinking…`;
+    btn.innerHTML = `<div class="loading-spinner"></div> Querying Gemini…`;
 
     const body = document.getElementById("results-body");
-    body.innerHTML = `<div class="empty-state"><p>Querying Gemini with and without RAG…</p></div>`;
+    body.innerHTML = `<div class="empty-state"><p style="color:#2774AE">Running zero-shot + RAG queries…</p></div>`;
     document.getElementById("results-question").style.display = "none";
+
+    const payload = {
+      question: q,
+      companies,
+      top_k:       parseInt(document.getElementById("sl-topk").value),
+      sim_threshold: parseFloat(document.getElementById("sl-sim").value),
+      temperature:   parseFloat(document.getElementById("sl-temp").value),
+      max_tokens:    parseInt(document.getElementById("sl-tokens").value),
+    };
 
     try {
       const res = await fetch(`${API}/query`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: q, companies })
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       renderResults(data);
-    } catch (e) {
-      body.innerHTML = `<div class="empty-state" style="color:#e74c3c">Error contacting server. Is the backend running?</div>`;
+    } catch(e) {
+      body.innerHTML = `<div class="empty-state" style="color:#e74c3c">Error contacting server.</div>`;
     }
 
     btn.disabled = false;
-    btn.innerHTML = "Ask";
+    btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run Query`;
   }
 
   function renderResults(data) {
@@ -535,28 +696,24 @@
 
     const body = document.getElementById("results-body");
     body.innerHTML = "";
-
     const container = document.createElement("div");
     container.className = "company-results";
 
     data.results.forEach(r => {
-      const color = colorMap[r.company] || "#888";
+      const color = colorMap[r.company] || "#2774AE";
       const block = document.createElement("div");
       block.className = "company-block";
 
       if (r.error) {
         block.innerHTML = `
-          <div class="company-block-header">
-            <div class="chip-dot" style="background:${color}"></div>
-            ${r.company}
-          </div>
-          <div style="padding:16px;color:#e74c3c;font-size:13px;">${r.error}</div>`;
+          <div class="company-block-header"><div class="chip-dot" style="background:${color}"></div>${escHtml(r.company)}</div>
+          <div style="padding:14px;color:#e74c3c;font-size:13px;">${escHtml(r.error)}</div>`;
       } else {
-        const sourcesId = `src-${Math.random().toString(36).slice(2)}`;
+        const srcId = `src-${Math.random().toString(36).slice(2)}`;
         const chunks = r.rag.retrieved_chunks || [];
-        const sourcesHtml = chunks.map((c, i) =>
-          `<div class="source-chunk"><strong>Chunk ${i+1}:</strong> ${escHtml(c)}</div>`
-        ).join("");
+        const srcHtml = chunks.length
+          ? chunks.map((c,i) => `<div class="source-chunk"><strong>Chunk ${i+1}:</strong> ${escHtml(c)}</div>`).join("")
+          : "<div style='color:#aaa;font-size:11px'>No chunks met the similarity threshold.</div>";
 
         block.innerHTML = `
           <div class="company-block-header">
@@ -566,61 +723,49 @@
           <div class="comparison-grid">
             <div class="answer-col">
               <div class="answer-label label-zs">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                Zero-Shot (no document)
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                Zero-Shot
                 <span class="latency-badge">${r.zero_shot.latency_ms}ms</span>
               </div>
               <div class="answer-text">${escHtml(r.zero_shot.answer)}</div>
             </div>
             <div class="answer-col">
               <div class="answer-label label-rag">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                RAG (with SEC context)
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                RAG
                 <span class="latency-badge">${r.rag.latency_ms}ms</span>
+                <span style="font-size:9px;color:#aaa;font-weight:400;font-family:'JetBrains Mono',monospace;margin-left:2px">${chunks.length} chunks</span>
               </div>
               <div class="answer-text">${escHtml(r.rag.answer)}</div>
-              <button class="sources-toggle" onclick="toggleSources('${sourcesId}')">▶ View retrieved chunks (${chunks.length})</button>
-              <div class="sources-content" id="${sourcesId}">${sourcesHtml}</div>
+              <button class="sources-toggle" onclick="toggleSrc('${srcId}')">▶ View retrieved chunks (${chunks.length})</button>
+              <div class="sources-content" id="${srcId}">${srcHtml}</div>
             </div>
           </div>`;
       }
-
       container.appendChild(block);
     });
 
     body.appendChild(container);
   }
 
-  function toggleSources(id) {
+  function toggleSrc(id) {
     const el = document.getElementById(id);
     const btn = el.previousElementSibling;
-    if (el.classList.contains("open")) {
-      el.classList.remove("open");
-      btn.textContent = btn.textContent.replace("▼", "▶");
-    } else {
-      el.classList.add("open");
-      btn.textContent = btn.textContent.replace("▶", "▼");
-    }
+    const open = el.classList.toggle("open");
+    btn.textContent = (open ? "▼" : "▶") + btn.textContent.slice(1);
   }
 
   function escHtml(s) {
-    return String(s)
-      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
-      .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
   }
 
-  // Enter key submits
   document.getElementById("question-input").addEventListener("keydown", e => {
     if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) askQuestion();
   });
 
-  // Sync state on load
-  fetch(`${API}/companies`).then(r => r.json()).then(data => {
-    if (data.companies.length) {
-      renderCompanyList(data.companies.map(c => c.name));
-      updateAskButton();
-    }
-  }).catch(() => {});
+  fetch(`${API}/companies`).then(r=>r.json()).then(d => {
+    if (d.companies.length) { renderCompanyList(d.companies.map(c=>c.name)); updateAskBtn(); }
+  }).catch(()=>{});
 </script>
 </body>
 </html>

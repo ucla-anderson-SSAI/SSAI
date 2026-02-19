@@ -71,15 +71,24 @@ def cosine_similarity_vec(a: np.ndarray, b: np.ndarray) -> float:
     return float(np.dot(a, b) / denom)
 
 
-def retrieve_top_chunks(query: str, company: str, top_k: int = 5) -> List[str]:
+def retrieve_top_chunks(
+    query: str,
+    company: str,
+    top_k: int = 5,
+    sim_threshold: float = 0.0,
+) -> List[str]:
     if company not in doc_store:
         return []
     q_emb = embedder.encode([query])[0]
     embeddings = doc_store[company]["embeddings"]
     chunks = doc_store[company]["chunks"]
     scores = [cosine_similarity_vec(q_emb, e) for e in embeddings]
-    top_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:top_k]
-    return [chunks[i] for i in top_indices]
+    # filter by similarity threshold, then take top_k
+    ranked = sorted(
+        [(i, s) for i, s in enumerate(scores) if s >= sim_threshold],
+        key=lambda x: x[1], reverse=True
+    )[:top_k]
+    return [chunks[i] for i, _ in ranked]
 
 
 def infer_company_name(filename: str, text: str) -> str:
@@ -93,8 +102,11 @@ def infer_company_name(filename: str, text: str) -> str:
 
 class QueryRequest(BaseModel):
     question: str
-    companies: List[str]  # which uploaded companies to query
-    top_k: int = 5
+    companies: List[str]       # which uploaded companies to query
+    top_k: int = 5             # number of chunks to retrieve
+    sim_threshold: float = 0.0 # minimum cosine similarity to include a chunk
+    temperature: float = 0.1   # generation temperature
+    max_tokens: int = 400      # max output tokens
 
 
 class QueryResponse(BaseModel):
@@ -105,10 +117,15 @@ class QueryResponse(BaseModel):
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 @app.post("/upload")
-async def upload_documents(files: List[UploadFile] = File(...)):
+async def upload_documents(
+    files: List[UploadFile] = File(...),
+    chunk_size: int = 200,
+    overlap: int = 50,
+):
     """Upload one or more SEC PDFs. Extracts, chunks, and embeds each."""
     uploaded = []
     errors = []
+    stride = max(1, chunk_size - overlap)
 
     for file in files:
         try:
@@ -119,7 +136,7 @@ async def upload_documents(files: List[UploadFile] = File(...)):
                 continue
 
             company = infer_company_name(file.filename, text)
-            chunks = chunk_text(text)
+            chunks = chunk_text(text, chunk_size=chunk_size, stride=stride)
             embeddings = embedder.encode(chunks, show_progress_bar=False)
 
             doc_store[company] = {
@@ -195,8 +212,8 @@ Answer:"""
             zs_resp = llm.generate_content(
                 zs_prompt,
                 generation_config=genai.types.GenerationConfig(
-                    temperature=0.2,
-                    max_output_tokens=300,
+                    temperature=request.temperature,
+                    max_output_tokens=request.max_tokens,
                 ),
             )
             zs_answer = zs_resp.text.strip()
@@ -205,7 +222,11 @@ Answer:"""
         zs_time = round((time.time() - zs_start) * 1000)
 
         # ── RAG ────────────────────────────────────────────────────────────
-        retrieved_chunks = retrieve_top_chunks(request.question, company, top_k=request.top_k)
+        retrieved_chunks = retrieve_top_chunks(
+            request.question, company,
+            top_k=request.top_k,
+            sim_threshold=request.sim_threshold,
+        )
         context = "\n\n---\n\n".join(retrieved_chunks)
 
         rag_prompt = f"""You are a financial analyst performing due diligence on {company}.
@@ -224,8 +245,8 @@ Answer:"""
             rag_resp = llm.generate_content(
                 rag_prompt,
                 generation_config=genai.types.GenerationConfig(
-                    temperature=0.1,
-                    max_output_tokens=400,
+                    temperature=request.temperature,
+                    max_output_tokens=request.max_tokens,
                 ),
             )
             rag_answer = rag_resp.text.strip()
