@@ -650,6 +650,7 @@
 
     let uploadedCount = 0;
     let errorCount    = 0;
+    let lastError     = "";
 
     try {
       const res = await fetch(`${API}/upload-stream`, { method: "POST", body: form });
@@ -698,23 +699,29 @@
             );
           } else if (event === "file_error") {
             errorCount++;
-            showProgress(`⚠ Error on ${data.file}: ${data.error}`, 100, "error");
+            lastError = data.error;
+            showProgress(`⚠ ${data.file}: ${data.error}`, 100, "error");
           } else if (event === "done") {
             // data.companies_available = [{ key, name }, ...]
             renderCompanyList(data.companies_available);
             updateAskBtn();
 
-            if (errorCount > 0) {
-              showProgress(`✓ ${uploadedCount} indexed · ⚠ ${errorCount} failed`, 100, errorCount && !uploadedCount ? "error" : "done");
-              status.textContent = `${uploadedCount} filed(s) ready · ${errorCount} error(s)`;
+            if (errorCount > 0 && uploadedCount === 0) {
+              // All files failed — keep error bar visible with the actual error
+              showProgress(`⚠ Error: ${lastError}`, 100, "error");
+              status.textContent = `Upload failed: ${lastError}`;
+              status.style.color = "#e74c3c";
+            } else if (errorCount > 0) {
+              showProgress(`✓ ${uploadedCount} indexed · ⚠ ${errorCount} failed: ${lastError}`, 100, "error");
+              status.textContent = `${uploadedCount} filing(s) ready · Error: ${lastError}`;
               status.style.color = "#e67e22";
+              setTimeout(hideProgress, 6000);
             } else {
               showProgress(`✓ ${uploadedCount} filing(s) indexed and ready`, 100, "done");
               status.textContent = `✓ ${uploadedCount} filing(s) indexed`;
               status.style.color = "#27ae60";
+              setTimeout(hideProgress, 3000);
             }
-            // Fade progress bar out after 3s
-            setTimeout(hideProgress, 3000);
           }
         }
       }
