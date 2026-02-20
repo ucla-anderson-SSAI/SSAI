@@ -714,8 +714,14 @@
           } else if (event === "done") {
             gotDone = true;
             stopAnim();
-            renderCompanyList(data.companies_available);
-            updateAskBtn();
+            // Always re-fetch /companies as source of truth (avoids stale SSE state)
+            fetch(`${API}/companies`).then(r => r.json()).then(d => {
+              renderCompanyList(d.companies.map(c => ({ key: c.key, name: c.name })));
+              updateAskBtn();
+            }).catch(() => {
+              renderCompanyList(data.companies_available);
+              updateAskBtn();
+            });
 
             if (errorCount > 0 && uploadedCount === 0) {
               showProgress(`⚠ Error: ${lastError}`, 100, "error");
@@ -912,24 +918,43 @@
 
   // Convert basic markdown to HTML for answer display
   function renderMarkdown(s) {
-    // Escape HTML first, then re-apply formatting
+    // Work on raw string first (before HTML escaping) so regex patterns are clean,
+    // then escape only the text nodes we insert.
+
+    // Split into lines to handle lists, process inline formatting per line
+    const lines = s.split("\n");
+    const out = [];
+    for (const line of lines) {
+      // Detect list items before any other processing
+      const numberedMatch = line.match(/^(\d+)\.\s+([\s\S]+)$/);
+      const bulletMatch   = line.match(/^[\*\-•]\s+([\s\S]+)$/);
+
+      if (numberedMatch) {
+        out.push(`<li style="margin-left:1.2em;margin-bottom:2px">${inlineMarkdown(numberedMatch[2])}</li>`);
+      } else if (bulletMatch) {
+        out.push(`<li style="margin-left:1.2em;margin-bottom:2px">${inlineMarkdown(bulletMatch[1])}</li>`);
+      } else {
+        out.push(inlineMarkdown(line));
+      }
+    }
+
+    // Join lines, wrapping consecutive <li> runs in <ul>
+    let h = out.join("\n");
+    h = h.replace(/(<li[^>]*>[\s\S]*?<\/li>\n?)+/g, m => `<ul style="margin:4px 0;padding-left:1.2em;list-style:disc">${m}</ul>`);
+    // Convert remaining newlines to <br>
+    h = h.replace(/\n/g, "<br>");
+    return h;
+  }
+
+  // Apply inline markdown (bold, italic, code) to a single line of plain text
+  function inlineMarkdown(s) {
     let h = escHtml(s);
-    // Bold: **text** or __text__
+    // Bold must come before italic so ** isn't consumed by single-* rule
     h = h.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
     h = h.replace(/__(.+?)__/g, "<strong>$1</strong>");
-    // Italic: *text* or _text_ (single, not double)
-    h = h.replace(/\*([^*\n]+?)\*/g, "<em>$1</em>");
-    h = h.replace(/_([^_\n]+?)_/g, "<em>$1</em>");
-    // Inline code: `code`
+    h = h.replace(/\*([^*]+?)\*/g, "<em>$1</em>");
+    h = h.replace(/_([^_]+?)_/g, "<em>$1</em>");
     h = h.replace(/`([^`]+?)`/g, "<code style='background:rgba(39,116,174,0.08);padding:1px 4px;border-radius:3px;font-family:JetBrains Mono,monospace;font-size:12px'>$1</code>");
-    // Numbered list items: lines starting with "1. " etc.
-    h = h.replace(/^(\d+)\.\s+(.+)$/gm, "<li style='margin-left:1.2em;margin-bottom:2px'>$2</li>");
-    // Bullet list items: lines starting with "* " or "- " or "• "
-    h = h.replace(/^[\*\-•]\s+(.+)$/gm, "<li style='margin-left:1.2em;margin-bottom:2px'>$1</li>");
-    // Wrap consecutive <li> elements in a list container
-    h = h.replace(/(<li[^>]*>.*<\/li>\n?)+/g, m => `<ul style='margin:4px 0;padding:0;list-style:disc'>${m}</ul>`);
-    // Line breaks
-    h = h.replace(/\n/g, "<br>");
     return h;
   }
 

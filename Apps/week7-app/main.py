@@ -371,6 +371,7 @@ async def query(request: QueryRequest):
         zs_prompt = f"""You are a financial analyst. Answer the following due diligence question about {company_name}.
 Answer based only on your general training knowledge — do not fabricate specific figures.
 If you are uncertain, say so.
+Keep your answer to 100 words or fewer.
 
 Question: {request.question}
 
@@ -401,6 +402,7 @@ Answer:"""
         rag_prompt = f"""You are a financial analyst performing due diligence on {company_name}.
 Use ONLY the following excerpts from {company_name}'s SEC 10-K filing to answer the question.
 If the answer is not in the excerpts, say so clearly — do not rely on outside knowledge.
+Keep your answer to 100 words or fewer.
 
 SEC FILING EXCERPTS:
 {context}
