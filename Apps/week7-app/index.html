@@ -93,6 +93,37 @@
     .upload-zone .hint { font-size: 11px; color: #aaa; margin-top: 4px; }
     #file-input { display: none; }
 
+    /* ── Progress bar ── */
+    .progress-wrap {
+      display: none;
+      margin-top: 10px;
+    }
+    .progress-wrap.visible { display: block; }
+    .progress-label {
+      font-size: 11.5px;
+      color: #555;
+      margin-bottom: 5px;
+      line-height: 1.4;
+      font-family: 'Inter', sans-serif;
+      min-height: 16px;
+    }
+    .progress-track {
+      width: 100%;
+      height: 7px;
+      background: rgba(39,116,174,0.12);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: #2774AE;
+      border-radius: 10px;
+      transition: width 0.25s ease;
+      width: 0%;
+    }
+    .progress-fill.done { background: #27ae60; }
+    .progress-fill.error { background: #e74c3c; }
+
     /* ── Company chips ── */
     .company-list { margin-top: 12px; display: flex; flex-direction: column; gap: 7px; }
     .company-chip {
@@ -420,6 +451,15 @@
           <p class="hint">Multiple SEC reports supported — each = one company</p>
         </div>
         <input type="file" id="file-input" accept=".pdf" multiple />
+
+        <!-- Progress bar (shown during upload) -->
+        <div class="progress-wrap" id="progress-wrap">
+          <div class="progress-label" id="progress-label">Preparing…</div>
+          <div class="progress-track">
+            <div class="progress-fill" id="progress-fill"></div>
+          </div>
+        </div>
+
         <div class="upload-status" id="upload-status"></div>
         <div class="company-list" id="company-list"></div>
       </div>
@@ -564,7 +604,10 @@
 <script>
   const API = "";
   const COLORS = ["#2774AE","#9b59b6","#e74c3c","#1abc9c","#f39c12","#e91e63","#00bcd4","#ff5722"];
+
+  // companies = array of { key, name } objects
   let companies = [];
+  // colorMap keyed by company_key
   let colorMap = {};
 
   // ── Drag & drop ───────────────────────────────────────────────────────────
@@ -574,74 +617,147 @@
   zone.addEventListener("drop", e => { e.preventDefault(); zone.classList.remove("drag-over"); handleFiles(e.dataTransfer.files); });
   document.getElementById("file-input").addEventListener("change", e => handleFiles(e.target.files));
 
-  // ── Upload ────────────────────────────────────────────────────────────────
+  // ── Progress helpers ──────────────────────────────────────────────────────
+  function showProgress(label, pct, state) {
+    const wrap  = document.getElementById("progress-wrap");
+    const lbl   = document.getElementById("progress-label");
+    const fill  = document.getElementById("progress-fill");
+    wrap.classList.add("visible");
+    lbl.textContent = label;
+    fill.style.width = Math.min(100, pct) + "%";
+    fill.className = "progress-fill" + (state === "done" ? " done" : state === "error" ? " error" : "");
+  }
+  function hideProgress() {
+    document.getElementById("progress-wrap").classList.remove("visible");
+    document.getElementById("progress-fill").style.width = "0%";
+  }
+
+  // ── Upload via SSE streaming ──────────────────────────────────────────────
   async function handleFiles(fileList) {
     if (!fileList.length) return;
-    const status = document.getElementById("upload-status");
-    status.textContent = `Uploading ${fileList.length} file(s) and building index…`;
-    status.style.color = "#2774AE";
 
+    const status    = document.getElementById("upload-status");
     const chunkSize = parseInt(document.getElementById("sl-chunk-size").value);
     const overlap   = parseInt(document.getElementById("sl-overlap").value);
+
+    status.textContent = "";
+    showProgress(`Preparing ${fileList.length} file(s)…`, 2, "");
 
     const form = new FormData();
     for (const f of fileList) form.append("files", f);
     form.append("chunk_size", chunkSize);
     form.append("overlap", overlap);
 
+    let uploadedCount = 0;
+    let errorCount    = 0;
+
     try {
-      const res = await fetch(`${API}/upload`, { method: "POST", body: form });
-      const data = await res.json();
+      const res = await fetch(`${API}/upload-stream`, { method: "POST", body: form });
+      if (!res.ok) throw new Error(`Server error: ${res.status}`);
 
-      data.uploaded.forEach(u => {
-        if (!companies.includes(u.company)) colorMap[u.company] = COLORS[Object.keys(colorMap).length % COLORS.length];
-      });
+      const reader  = res.body.getReader();
+      const decoder = new TextDecoder();
+      let   buffer  = "";
 
-      renderCompanyList(data.companies_available);
-      updateAskBtn();
+      // Parse the SSE stream
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
 
-      if (data.errors.length) {
-        status.textContent = `✓ ${data.uploaded.length} uploaded · ⚠ ${data.errors.length} failed`;
-        status.style.color = "#e67e22";
-      } else {
-        status.textContent = `✓ ${data.uploaded.length} filing(s) indexed and ready`;
-        status.style.color = "#27ae60";
+        // Process complete SSE messages (each ends with \n\n)
+        const msgs = buffer.split("\n\n");
+        buffer = msgs.pop(); // Keep the incomplete tail
+
+        for (const msg of msgs) {
+          if (!msg.trim()) continue;
+          const lines  = msg.split("\n");
+          let   event  = "message";
+          let   rawData = "";
+          for (const line of lines) {
+            if (line.startsWith("event: ")) event   = line.slice(7).trim();
+            if (line.startsWith("data: "))  rawData = line.slice(6).trim();
+          }
+          if (!rawData) continue;
+
+          let data;
+          try { data = JSON.parse(rawData); } catch { continue; }
+
+          if (event === "progress") {
+            showProgress(data.stage_label || "Processing…", data.pct || 0, "");
+          } else if (event === "file_done") {
+            uploadedCount++;
+            // Register color for this company_key
+            if (!colorMap[data.company_key]) {
+              colorMap[data.company_key] = COLORS[Object.keys(colorMap).length % COLORS.length];
+            }
+            showProgress(
+              `✓ ${data.company_name} — ${data.chunk_count.toLocaleString()} chunks · ${data.word_count.toLocaleString()} words`,
+              100 * uploadedCount / fileList.length,
+              ""
+            );
+          } else if (event === "file_error") {
+            errorCount++;
+            showProgress(`⚠ Error on ${data.file}: ${data.error}`, 100, "error");
+          } else if (event === "done") {
+            // data.companies_available = [{ key, name }, ...]
+            renderCompanyList(data.companies_available);
+            updateAskBtn();
+
+            if (errorCount > 0) {
+              showProgress(`✓ ${uploadedCount} indexed · ⚠ ${errorCount} failed`, 100, errorCount && !uploadedCount ? "error" : "done");
+              status.textContent = `${uploadedCount} filed(s) ready · ${errorCount} error(s)`;
+              status.style.color = "#e67e22";
+            } else {
+              showProgress(`✓ ${uploadedCount} filing(s) indexed and ready`, 100, "done");
+              status.textContent = `✓ ${uploadedCount} filing(s) indexed`;
+              status.style.color = "#27ae60";
+            }
+            // Fade progress bar out after 3s
+            setTimeout(hideProgress, 3000);
+          }
+        }
       }
     } catch(e) {
+      showProgress("Upload failed — is the backend running?", 100, "error");
       status.textContent = "Upload failed — is the backend running?";
       status.style.color = "#e74c3c";
     }
+
     document.getElementById("file-input").value = "";
   }
 
+  // ── Company list rendering ────────────────────────────────────────────────
+  // `available` is an array of { key, name } objects
   function renderCompanyList(available) {
     companies = available;
     const list = document.getElementById("company-list");
     list.innerHTML = "";
     companies.forEach((c, i) => {
-      const color = colorMap[c] || COLORS[i % COLORS.length];
-      colorMap[c] = color;
+      const color = colorMap[c.key] || COLORS[i % COLORS.length];
+      colorMap[c.key] = color;
       const chip = document.createElement("div");
       chip.className = "company-chip";
       chip.innerHTML = `
         <div style="display:flex;align-items:center;gap:8px;">
           <div class="chip-dot" style="background:${color}"></div>
-          <span>${escHtml(c)}</span>
+          <span>${escHtml(c.name)}</span>
         </div>
-        <button class="remove-btn" onclick="removeCompany('${escHtml(c)}')" title="Remove">×</button>`;
+        <button class="remove-btn" onclick="removeCompany('${escHtml(c.key)}')" title="Remove">×</button>`;
       list.appendChild(chip);
     });
   }
 
-  async function removeCompany(name) {
-    await fetch(`${API}/companies/${encodeURIComponent(name)}`, { method: "DELETE" });
-    delete colorMap[name];
-    const res = await fetch(`${API}/companies`);
+  async function removeCompany(key) {
+    await fetch(`${API}/companies/${encodeURIComponent(key)}`, { method: "DELETE" });
+    delete colorMap[key];
+    const res  = await fetch(`${API}/companies`);
     const data = await res.json();
-    renderCompanyList(data.companies.map(c => c.name));
+    // data.companies = [{ key, name, ... }]
+    renderCompanyList(data.companies.map(c => ({ key: c.key, name: c.name })));
     updateAskBtn();
     const s = document.getElementById("upload-status");
-    s.textContent = `Removed ${name}`; s.style.color = "#999";
+    s.textContent = `Removed company`; s.style.color = "#999";
   }
 
   function updateAskBtn() {
@@ -665,9 +781,9 @@
     document.getElementById("results-question").style.display = "none";
 
     const payload = {
-      question: q,
-      companies,
-      top_k:       parseInt(document.getElementById("sl-topk").value),
+      question:      q,
+      companies:     companies.map(c => c.key),   // send company keys
+      top_k:         parseInt(document.getElementById("sl-topk").value),
       sim_threshold: parseFloat(document.getElementById("sl-sim").value),
       temperature:   parseFloat(document.getElementById("sl-temp").value),
       max_tokens:    parseInt(document.getElementById("sl-tokens").value),
@@ -675,9 +791,9 @@
 
     try {
       const res = await fetch(`${API}/query`, {
-        method: "POST",
+        method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body:    JSON.stringify(payload),
       });
       const data = await res.json();
       renderResults(data);
@@ -700,7 +816,9 @@
     container.className = "company-results";
 
     data.results.forEach(r => {
-      const color = colorMap[r.company] || "#2774AE";
+      // r.company = company_name (display), r.company_key = slug
+      const key   = r.company_key;
+      const color = colorMap[key] || "#2774AE";
       const block = document.createElement("div");
       block.className = "company-block";
 
@@ -709,7 +827,7 @@
           <div class="company-block-header"><div class="chip-dot" style="background:${color}"></div>${escHtml(r.company)}</div>
           <div style="padding:14px;color:#e74c3c;font-size:13px;">${escHtml(r.error)}</div>`;
       } else {
-        const srcId = `src-${Math.random().toString(36).slice(2)}`;
+        const srcId  = `src-${Math.random().toString(36).slice(2)}`;
         const chunks = r.rag.retrieved_chunks || [];
         const srcHtml = chunks.length
           ? chunks.map((c,i) => `<div class="source-chunk"><strong>Chunk ${i+1}:</strong> ${escHtml(c)}</div>`).join("")
@@ -749,7 +867,7 @@
   }
 
   function toggleSrc(id) {
-    const el = document.getElementById(id);
+    const el  = document.getElementById(id);
     const btn = el.previousElementSibling;
     const open = el.classList.toggle("open");
     btn.textContent = (open ? "▼" : "▶") + btn.textContent.slice(1);
@@ -763,9 +881,13 @@
     if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) askQuestion();
   });
 
-  fetch(`${API}/companies`).then(r=>r.json()).then(d => {
-    if (d.companies.length) { renderCompanyList(d.companies.map(c=>c.name)); updateAskBtn(); }
-  }).catch(()=>{});
+  // Restore company list on page reload (if backend already has data)
+  fetch(`${API}/companies`).then(r => r.json()).then(d => {
+    if (d.companies && d.companies.length) {
+      renderCompanyList(d.companies.map(c => ({ key: c.key, name: c.name })));
+      updateAskBtn();
+    }
+  }).catch(() => {});
 </script>
 </body>
 </html>
