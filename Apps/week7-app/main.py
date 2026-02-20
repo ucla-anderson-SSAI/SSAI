@@ -169,7 +169,7 @@ class QueryRequest(BaseModel):
     top_k: int = 5
     sim_threshold: float = 0.0
     temperature: float = 0.1
-    max_tokens: int = 8000
+    max_tokens: int = 5000
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────

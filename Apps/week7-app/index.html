@@ -529,14 +529,7 @@
           <div class="control-hint">Low = factual &amp; deterministic. High = varied responses.</div>
         </div>
 
-        <div class="control-group">
-          <div class="control-label">
-            <span>Max Output Tokens</span>
-            <span class="control-value" id="val-tokens">400</span>
-          </div>
-          <input type="range" class="slider" id="sl-tokens" min="100" max="1000" step="50" value="400"
-            oninput="document.getElementById('val-tokens').textContent=this.value" />
-        </div>
+
 
         <div style="margin-top:0.5rem;font-size:11px;color:#aaa;">
           ⚠ Changing chunking parameters requires re-uploading files to take effect.
@@ -827,7 +820,7 @@
       top_k:         parseInt(document.getElementById("sl-topk").value),
       sim_threshold: parseFloat(document.getElementById("sl-sim").value),
       temperature:   parseFloat(document.getElementById("sl-temp").value),
-      max_tokens:    parseInt(document.getElementById("sl-tokens").value),
+      max_tokens:    5000,
     };
 
     try {
