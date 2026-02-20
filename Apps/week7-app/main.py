@@ -2,7 +2,7 @@
 Week 7: Retrieval-Augmented Generation (RAG)
 FastAPI Backend — SEC Filing Due Diligence Demo
 
-Embeddings: Gemini text-embedding-004 (no sentence-transformers needed)
+Embeddings: Gemini gemini-embedding-001 (no sentence-transformers needed)
 LLM:        Gemini 2.0 Flash
 """
 
@@ -41,7 +41,7 @@ app.add_middleware(
 # { company_key: { "company_name": str, "chunks": [...], "embeddings": np.array, ... } }
 doc_store: Dict[str, dict] = {}
 
-EMBED_MODEL = "text-embedding-004"
+EMBED_MODEL = "gemini-embedding-001"
 EMBED_BATCH_SIZE = 100  # Gemini embedding API supports up to 100 per batch
 MAX_CHUNKS = 100        # ~100 chunks × ~1s per batch = well under 30s timeout
 
@@ -55,7 +55,7 @@ def sse(event: str, data: dict) -> str:
 
 def embed_texts(texts: List[str]) -> np.ndarray:
     """
-    Embed a list of texts using Gemini text-embedding-004.
+    Embed a list of texts using Gemini gemini-embedding-001.
     Batches automatically to stay within API limits.
     Returns shape (N, D) float32 array.
     """
@@ -183,7 +183,7 @@ async def upload_stream(
     """
     Streaming upload endpoint — sends Server-Sent Events with progress.
     Each file goes through: read → extract → name → chunk → embed → done.
-    Embeddings use Gemini text-embedding-004 (no local model download needed).
+    Embeddings use Gemini gemini-embedding-001 (no local model download needed).
     """
     stride = max(1, chunk_size - overlap)
     total_files = len(files)
