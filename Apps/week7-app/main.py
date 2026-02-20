@@ -3,7 +3,7 @@ Week 7: Retrieval-Augmented Generation (RAG)
 FastAPI Backend — SEC Filing Due Diligence Demo
 
 Embeddings: Gemini gemini-embedding-001 (no sentence-transformers needed)
-LLM:        Gemini 2.0 Flash
+LLM:        Gemini 2.5 Flash
 """
 
 import os
@@ -25,7 +25,7 @@ from pydantic import BaseModel
 # ── Config ────────────────────────────────────────────────────────────────────
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 genai.configure(api_key=GEMINI_API_KEY)
-llm = genai.GenerativeModel("gemini-2.0-flash")
+llm = genai.GenerativeModel("gemini-2.5-flash")
 
 app = FastAPI(title="Week 7: RAG — SEC Filing Due Diligence")
 
