@@ -1,6 +1,9 @@
 """
 Week 7: Retrieval-Augmented Generation (RAG)
 FastAPI Backend — SEC Filing Due Diligence Demo
+
+Embeddings: Gemini text-embedding-004 (no sentence-transformers needed)
+LLM:        Gemini 2.0 Flash
 """
 
 import os
@@ -18,13 +21,11 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
-from sentence_transformers import SentenceTransformer
 
 # ── Config ────────────────────────────────────────────────────────────────────
 GEMINI_API_KEY = "AIzaSyDybjRDGeqcDkZczBl_TDThVAibapXAeQE"
 genai.configure(api_key=GEMINI_API_KEY)
 llm = genai.GenerativeModel("gemini-2.0-flash")
-embedder = SentenceTransformer("all-MiniLM-L6-v2")
 
 app = FastAPI(title="Week 7: RAG — SEC Filing Due Diligence")
 
@@ -40,12 +41,43 @@ app.add_middleware(
 # { company_key: { "company_name": str, "chunks": [...], "embeddings": np.array, ... } }
 doc_store: Dict[str, dict] = {}
 
+EMBED_MODEL = "models/text-embedding-004"
+EMBED_BATCH_SIZE = 50  # Gemini embedding API batch limit
+
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def sse(event: str, data: dict) -> str:
     """Format a Server-Sent Event message."""
     return f"event: {event}\ndata: {json.dumps(data)}\n\n"
+
+
+def embed_texts(texts: List[str]) -> np.ndarray:
+    """
+    Embed a list of texts using Gemini text-embedding-004.
+    Batches automatically to stay within API limits.
+    Returns shape (N, D) float32 array.
+    """
+    all_vecs = []
+    for i in range(0, len(texts), EMBED_BATCH_SIZE):
+        batch = texts[i: i + EMBED_BATCH_SIZE]
+        result = genai.embed_content(
+            model=EMBED_MODEL,
+            content=batch,
+            task_type="RETRIEVAL_DOCUMENT",
+        )
+        all_vecs.extend(result["embedding"])
+    return np.array(all_vecs, dtype=np.float32)
+
+
+def embed_query(text: str) -> np.ndarray:
+    """Embed a single query string."""
+    result = genai.embed_content(
+        model=EMBED_MODEL,
+        content=text,
+        task_type="RETRIEVAL_QUERY",
+    )
+    return np.array(result["embedding"], dtype=np.float32)
 
 
 def extract_text_from_pdf(pdf_bytes: bytes) -> str:
@@ -83,7 +115,7 @@ def retrieve_top_chunks(
 ) -> List[str]:
     if company_key not in doc_store:
         return []
-    q_emb = embedder.encode([query])[0]
+    q_emb = embed_query(query)
     embeddings = doc_store[company_key]["embeddings"]
     chunks = doc_store[company_key]["chunks"]
     scores = [cosine_similarity_vec(q_emb, e) for e in embeddings]
@@ -114,7 +146,6 @@ Company name:"""
             ),
         )
         name = resp.text.strip().strip('"').strip("'")
-        # Basic sanity check — must be non-empty and reasonably short
         if name and len(name) < 150:
             return name
     except Exception:
@@ -151,6 +182,7 @@ async def upload_stream(
     """
     Streaming upload endpoint — sends Server-Sent Events with progress.
     Each file goes through: read → extract → name → chunk → embed → done.
+    Embeddings use Gemini text-embedding-004 (no local model download needed).
     """
     stride = max(1, chunk_size - overlap)
     total_files = len(files)
@@ -199,7 +231,7 @@ async def upload_stream(
                     "total_files": total_files,
                     "stage": "identifying",
                     "stage_label": f"{file_prefix} — Identifying company ({word_count:,} words)...",
-                    "pct": 38,
+                    "pct": 35,
                 })
                 company_name = extract_company_name_with_llm(text, filename)
                 company_key = make_company_key(company_name)
@@ -210,39 +242,39 @@ async def upload_stream(
                     "file_idx": file_idx,
                     "total_files": total_files,
                     "stage": "chunking",
-                    "stage_label": f"{file_prefix} — Chunking text for {company_name}...",
-                    "pct": 52,
+                    "stage_label": f"{file_prefix} — Chunking {company_name}...",
+                    "pct": 50,
                 })
                 chunks = chunk_text(text, chunk_size=chunk_size, stride=stride)
 
-                # Stage 5: Embedding (batch — send progress updates every ~20%)
-                yield sse("progress", {
-                    "file": filename,
-                    "file_idx": file_idx,
-                    "total_files": total_files,
-                    "stage": "embedding",
-                    "stage_label": f"{file_prefix} — Embedding {len(chunks)} chunks...",
-                    "pct": 60,
-                })
-
-                # Embed in batches so we can report progress
-                batch_size = max(1, len(chunks) // 4)
+                # Stage 5: Embedding in batches via Gemini API
+                # Report progress every batch (EMBED_BATCH_SIZE chunks each)
                 all_embeddings = []
-                for batch_start in range(0, len(chunks), batch_size):
-                    batch = chunks[batch_start: batch_start + batch_size]
-                    batch_embs = embedder.encode(batch, show_progress_bar=False)
-                    all_embeddings.extend(batch_embs)
-                    pct = 60 + int(35 * min(1.0, (batch_start + len(batch)) / len(chunks)))
+                num_batches = math.ceil(len(chunks) / EMBED_BATCH_SIZE)
+
+                for batch_idx in range(num_batches):
+                    batch_start = batch_idx * EMBED_BATCH_SIZE
+                    batch = chunks[batch_start: batch_start + EMBED_BATCH_SIZE]
+                    done_so_far = batch_start + len(batch)
+
+                    pct = 55 + int(40 * done_so_far / len(chunks))
                     yield sse("progress", {
                         "file": filename,
                         "file_idx": file_idx,
                         "total_files": total_files,
                         "stage": "embedding",
-                        "stage_label": f"{file_prefix} — Embedding {batch_start + len(batch)}/{len(chunks)} chunks...",
+                        "stage_label": f"{file_prefix} — Embedding {done_so_far}/{len(chunks)} chunks...",
                         "pct": pct,
                     })
 
-                embeddings = np.array(all_embeddings)
+                    result = genai.embed_content(
+                        model=EMBED_MODEL,
+                        content=batch,
+                        task_type="RETRIEVAL_DOCUMENT",
+                    )
+                    all_embeddings.extend(result["embedding"])
+
+                embeddings = np.array(all_embeddings, dtype=np.float32)
 
                 # Store
                 doc_store[company_key] = {
@@ -263,7 +295,6 @@ async def upload_stream(
                     "chunk_count": len(chunks),
                 }
                 uploaded.append(info)
-
                 yield sse("file_done", info)
 
             except Exception as e:
@@ -315,7 +346,7 @@ async def query(request: QueryRequest):
             results.append({
                 "company_key": company_key,
                 "company": company_key,
-                "error": f"No document found. Please upload it first.",
+                "error": "No document found. Please upload it first.",
             })
             continue
 
