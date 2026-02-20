@@ -42,7 +42,8 @@ app.add_middleware(
 doc_store: Dict[str, dict] = {}
 
 EMBED_MODEL = "text-embedding-004"
-EMBED_BATCH_SIZE = 50  # Gemini embedding API batch limit
+EMBED_BATCH_SIZE = 50   # Gemini embedding API batch limit
+MAX_CHUNKS = 300        # Cap to keep embedding time under Railway's timeout
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -247,6 +248,10 @@ async def upload_stream(
                 })
                 chunks = chunk_text(text, chunk_size=chunk_size, stride=stride)
 
+                # Cap chunks to avoid Railway timeout on very large PDFs
+                if len(chunks) > MAX_CHUNKS:
+                    chunks = chunks[:MAX_CHUNKS]
+
                 # Stage 5: Embedding in batches via Gemini API
                 # Report progress every batch (EMBED_BATCH_SIZE chunks each)
                 all_embeddings = []
@@ -258,6 +263,8 @@ async def upload_stream(
                     done_so_far = batch_start + len(batch)
 
                     pct = 55 + int(40 * done_so_far / len(chunks))
+                    # Send a comment ping first — keeps Railway's connection alive
+                    yield ": ping\n\n"
                     yield sse("progress", {
                         "file": filename,
                         "file_idx": file_idx,
