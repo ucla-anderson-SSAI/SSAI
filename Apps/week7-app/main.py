@@ -43,7 +43,7 @@ doc_store: Dict[str, dict] = {}
 
 EMBED_MODEL = "gemini-embedding-001"
 EMBED_BATCH_SIZE = 100  # Gemini embedding API supports up to 100 per batch
-MAX_CHUNKS = 100        # ~100 chunks × ~1s per batch = well under 30s timeout
+MAX_CHUNKS = 500        # ~500 chunks across batches of 100
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
