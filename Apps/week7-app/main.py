@@ -41,7 +41,7 @@ app.add_middleware(
 # { company_key: { "company_name": str, "chunks": [...], "embeddings": np.array, ... } }
 doc_store: Dict[str, dict] = {}
 
-EMBED_MODEL = "models/text-embedding-004"
+EMBED_MODEL = "text-embedding-004"
 EMBED_BATCH_SIZE = 50  # Gemini embedding API batch limit
 
 
@@ -311,7 +311,15 @@ async def upload_stream(
             ],
         })
 
-    return StreamingResponse(generate(), media_type="text/event-stream")
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",   # disables nginx/Railway proxy buffering
+            "Connection": "keep-alive",
+        },
+    )
 
 
 @app.get("/companies")

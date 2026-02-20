@@ -632,7 +632,9 @@
     document.getElementById("progress-fill").style.width = "0%";
   }
 
-  // ── Upload via SSE streaming ──────────────────────────────────────────────
+  // ── Upload ────────────────────────────────────────────────────────────────
+  // Uses SSE streaming when available; falls back gracefully if the proxy
+  // buffers the response (e.g. some Railway regions).
   async function handleFiles(fileList) {
     if (!fileList.length) return;
 
@@ -641,73 +643,89 @@
     const overlap   = parseInt(document.getElementById("sl-overlap").value);
 
     status.textContent = "";
-    showProgress(`Preparing ${fileList.length} file(s)…`, 2, "");
 
     const form = new FormData();
     for (const f of fileList) form.append("files", f);
     form.append("chunk_size", chunkSize);
     form.append("overlap", overlap);
 
-    let uploadedCount = 0;
-    let errorCount    = 0;
-    let lastError     = "";
+    // Animated indeterminate progress while waiting
+    let animPct = 5;
+    let animInterval = null;
+    function startAnim(label) {
+      showProgress(label, animPct, "");
+      animInterval = setInterval(() => {
+        animPct = Math.min(92, animPct + 1.5);
+        showProgress(label, animPct, "");
+      }, 800);
+    }
+    function stopAnim() {
+      clearInterval(animInterval);
+      animInterval = null;
+      animPct = 5;
+    }
 
     try {
-      const res = await fetch(`${API}/upload-stream`, { method: "POST", body: form });
-      if (!res.ok) throw new Error(`Server error: ${res.status}`);
+      startAnim(`Uploading ${fileList.length} file(s) and building index…`);
 
+      const res = await fetch(`${API}/upload-stream`, { method: "POST", body: form });
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+
+      // Try to read as SSE stream; if the proxy buffered it we still get
+      // the full body at once — either way we parse whatever we received.
       const reader  = res.body.getReader();
       const decoder = new TextDecoder();
       let   buffer  = "";
+      let   uploadedCount = 0;
+      let   errorCount    = 0;
+      let   lastError     = "";
+      let   gotDone       = false;
 
-      // Parse the SSE stream
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
 
-        // Process complete SSE messages (each ends with \n\n)
+        // Update label as we receive data (shows progress even if partially buffered)
         const msgs = buffer.split("\n\n");
-        buffer = msgs.pop(); // Keep the incomplete tail
+        buffer = msgs.pop();
 
         for (const msg of msgs) {
           if (!msg.trim()) continue;
-          const lines  = msg.split("\n");
-          let   event  = "message";
+          const lines   = msg.split("\n");
+          let   event   = "message";
           let   rawData = "";
           for (const line of lines) {
             if (line.startsWith("event: ")) event   = line.slice(7).trim();
             if (line.startsWith("data: "))  rawData = line.slice(6).trim();
           }
           if (!rawData) continue;
-
           let data;
           try { data = JSON.parse(rawData); } catch { continue; }
 
           if (event === "progress") {
-            showProgress(data.stage_label || "Processing…", data.pct || 0, "");
+            stopAnim();
+            showProgress(data.stage_label || "Processing…", data.pct || animPct, "");
           } else if (event === "file_done") {
             uploadedCount++;
-            // Register color for this company_key
             if (!colorMap[data.company_key]) {
               colorMap[data.company_key] = COLORS[Object.keys(colorMap).length % COLORS.length];
             }
+            stopAnim();
             showProgress(
-              `✓ ${data.company_name} — ${data.chunk_count.toLocaleString()} chunks · ${data.word_count.toLocaleString()} words`,
-              100 * uploadedCount / fileList.length,
-              ""
+              `✓ ${data.company_name} — ${data.chunk_count.toLocaleString()} chunks`,
+              95, ""
             );
           } else if (event === "file_error") {
             errorCount++;
             lastError = data.error;
-            showProgress(`⚠ ${data.file}: ${data.error}`, 100, "error");
           } else if (event === "done") {
-            // data.companies_available = [{ key, name }, ...]
+            gotDone = true;
+            stopAnim();
             renderCompanyList(data.companies_available);
             updateAskBtn();
 
             if (errorCount > 0 && uploadedCount === 0) {
-              // All files failed — keep error bar visible with the actual error
               showProgress(`⚠ Error: ${lastError}`, 100, "error");
               status.textContent = `Upload failed: ${lastError}`;
               status.style.color = "#e74c3c";
@@ -725,10 +743,26 @@
           }
         }
       }
+
+      // If we never saw a "done" event (fully buffered response with no SSE parsing),
+      // just refresh the company list from /companies
+      if (!gotDone) {
+        stopAnim();
+        const r = await fetch(`${API}/companies`);
+        const d = await r.json();
+        renderCompanyList(d.companies.map(c => ({ key: c.key, name: c.name })));
+        updateAskBtn();
+        const n = d.companies.length;
+        showProgress(`✓ ${n} filing(s) indexed and ready`, 100, "done");
+        status.textContent = `✓ ${n} filing(s) indexed`;
+        status.style.color = "#27ae60";
+        setTimeout(hideProgress, 3000);
+      }
+
     } catch(e) {
-      showProgress("Upload failed — is the backend running?", 100, "error");
-      status.textContent = "Upload failed — is the backend running?";
-      status.style.color = "#e74c3c";
+      stopAnim();
+      showProgress(`Upload failed: ${e.message}`, 100, "error");
+      status.textContent = "";
     }
 
     document.getElementById("file-input").value = "";
