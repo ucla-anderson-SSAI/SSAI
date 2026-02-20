@@ -42,8 +42,8 @@ app.add_middleware(
 doc_store: Dict[str, dict] = {}
 
 EMBED_MODEL = "text-embedding-004"
-EMBED_BATCH_SIZE = 50   # Gemini embedding API batch limit
-MAX_CHUNKS = 300        # Cap to keep embedding time under Railway's timeout
+EMBED_BATCH_SIZE = 100  # Gemini embedding API supports up to 100 per batch
+MAX_CHUNKS = 100        # ~100 chunks × ~1s per batch = well under 30s timeout
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
