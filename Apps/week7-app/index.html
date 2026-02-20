@@ -308,7 +308,6 @@
       font-size: 13.5px;
       line-height: 1.75;
       color: #333;
-      white-space: pre-wrap;
     }
 
     .latency-badge {
@@ -879,7 +878,7 @@
                 Zero-Shot
                 <span class="latency-badge">${r.zero_shot.latency_ms}ms</span>
               </div>
-              <div class="answer-text">${escHtml(r.zero_shot.answer)}</div>
+              <div class="answer-text">${renderMarkdown(r.zero_shot.answer)}</div>
             </div>
             <div class="answer-col">
               <div class="answer-label label-rag">
@@ -888,7 +887,7 @@
                 <span class="latency-badge">${r.rag.latency_ms}ms</span>
                 <span style="font-size:9px;color:#aaa;font-weight:400;font-family:'JetBrains Mono',monospace;margin-left:2px">${chunks.length} chunks</span>
               </div>
-              <div class="answer-text">${escHtml(r.rag.answer)}</div>
+              <div class="answer-text">${renderMarkdown(r.rag.answer)}</div>
               <button class="sources-toggle" onclick="toggleSrc('${srcId}')">▶ View retrieved chunks (${chunks.length})</button>
               <div class="sources-content" id="${srcId}">${srcHtml}</div>
             </div>
@@ -909,6 +908,29 @@
 
   function escHtml(s) {
     return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+  }
+
+  // Convert basic markdown to HTML for answer display
+  function renderMarkdown(s) {
+    // Escape HTML first, then re-apply formatting
+    let h = escHtml(s);
+    // Bold: **text** or __text__
+    h = h.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+    h = h.replace(/__(.+?)__/g, "<strong>$1</strong>");
+    // Italic: *text* or _text_ (single, not double)
+    h = h.replace(/\*([^*\n]+?)\*/g, "<em>$1</em>");
+    h = h.replace(/_([^_\n]+?)_/g, "<em>$1</em>");
+    // Inline code: `code`
+    h = h.replace(/`([^`]+?)`/g, "<code style='background:rgba(39,116,174,0.08);padding:1px 4px;border-radius:3px;font-family:JetBrains Mono,monospace;font-size:12px'>$1</code>");
+    // Numbered list items: lines starting with "1. " etc.
+    h = h.replace(/^(\d+)\.\s+(.+)$/gm, "<li style='margin-left:1.2em;margin-bottom:2px'>$2</li>");
+    // Bullet list items: lines starting with "* " or "- " or "• "
+    h = h.replace(/^[\*\-•]\s+(.+)$/gm, "<li style='margin-left:1.2em;margin-bottom:2px'>$1</li>");
+    // Wrap consecutive <li> elements in a list container
+    h = h.replace(/(<li[^>]*>.*<\/li>\n?)+/g, m => `<ul style='margin:4px 0;padding:0;list-style:disc'>${m}</ul>`);
+    // Line breaks
+    h = h.replace(/\n/g, "<br>");
+    return h;
   }
 
   document.getElementById("question-input").addEventListener("keydown", e => {
