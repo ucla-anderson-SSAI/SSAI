@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>BCE Explorer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.27.0/plotly.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #f8fafc;
+    padding: 20px 16px;
+    min-height: 100vh;
+  }
+  .container { max-width: 1400px; margin: 0 auto; }
+  h1 { font-size: 22px; font-weight: 700; color: #0f172a; }
+  .subtitle { font-size: 12px; color: #64748b; font-family: monospace; margin: 5px 0 16px; }
+  .layout { display: flex; gap: 16px; flex-wrap: wrap; }
+  .left { flex: 0 0 520px; display: flex; flex-direction: column; gap: 12px; }
+  .right { flex: 1; min-width: 380px; align-self: flex-start; }
+  .card {
+    background: #fff; border-radius: 10px; padding: 16px;
+    border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .card-label {
+    font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase;
+    letter-spacing: 0.1em; font-family: monospace; margin-bottom: 12px;
+  }
+  .slider-group { margin-bottom: 14px; }
+  .slider-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 3px; }
+  .slider-label { font-family: monospace; font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+  .slider-value { font-family: monospace; font-size: 15px; font-weight: 600; color: #0f172a; }
+  input[type=range] { width: 100%; accent-color: #3b82f6; cursor: pointer; }
+  input[type=range]:disabled { cursor: not-allowed; opacity: 0.4; }
+  .slider-bounds { display: flex; justify-content: space-between; font-family: monospace; font-size: 9px; color: #94a3b8; }
+  .snap-label {
+    display: flex; align-items: center; gap: 8px; cursor: pointer;
+    padding: 8px 10px; border-radius: 6px; border: 1px solid #e2e8f0;
+    background: #f8fafc; transition: all 0.2s; margin-top: 4px;
+  }
+  .snap-label.active { background: #eff6ff; border-color: #93c5fd; }
+  .snap-label span { font-family: monospace; font-size: 11px; color: #475569; }
+  .snap-label.active span { color: #1d4ed8; font-weight: 600; }
+  .avg-loss { margin-top: 12px; padding: 12px; border-radius: 6px; transition: all 0.3s; }
+  .avg-loss-label { font-size: 9px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.1em; font-family: monospace; }
+  .avg-loss-value { font-size: 26px; font-weight: 700; font-family: monospace; transition: color 0.3s; }
+  table { width: 100%; border-collapse: collapse; font-family: monospace; font-size: 12px; }
+  thead tr { background: #f8fafc; }
+  th {
+    padding: 10px 8px; text-align: right; font-size: 9px; font-weight: 600;
+    color: #64748b; text-transform: uppercase; letter-spacing: 0.08em;
+    border-bottom: 2px solid #e2e8f0;
+  }
+  th:first-child { text-align: left; }
+  td { padding: 10px 8px; text-align: right; color: #475569; }
+  td:first-child { text-align: left; font-weight: 600; color: #0f172a; }
+  tbody tr { border-bottom: 1px solid #f1f5f9; }
+  tbody tr:last-child { border-bottom: none; }
+  .keep-badge {
+    display: inline-block; width: 22px; height: 22px; line-height: 22px;
+    text-align: center; border-radius: 5px; font-size: 11px; font-weight: 600;
+  }
+  .keep-1 { background: #dbeafe; color: #1d4ed8; }
+  .keep-0 { background: #fee2e2; color: #dc2626; }
+  .loss-bar { width: 90px; height: 7px; background: #f1f5f9; border-radius: 4px; overflow: hidden; }
+  .loss-bar-fill { height: 100%; border-radius: 4px; transition: all 0.15s ease; }
+  .formula-row { padding: 12px; border-top: 1px solid #f1f5f9; font-family: monospace; font-size: 11px; color: #64748b; }
+  .formula-label { color: #94a3b8; font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; }
+  #plotContainer { width: 100%; height: 700px; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; }
+  .plot-note { font-size: 10px; color: #94a3b8; font-family: monospace; margin-top: 6px; font-style: italic; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Binary Cross-Entropy Explorer</h1>
+  <div class="subtitle">P(Keep) = 1 / (1 + e<sup>&minus;(w₁·Hours + w₂·Days + b)</sup>)</div>
+
+  <div class="layout">
+    <div class="left" style="flex: 0 0 300px;">
+      <div class="card">
+        <div class="card-label">Model Parameters</div>
+        <div class="slider-group">
+          <div class="slider-header"><span class="slider-label">w₁ (hours)</span><span class="slider-value" id="w1val">0.050</span></div>
+          <input type="range" id="w1" min="-5" max="5" step="0.001" value="0.05">
+          <div class="slider-bounds"><span>-5</span><span>5</span></div>
+        </div>
+        <div class="slider-group">
+          <div class="slider-header"><span class="slider-label">w₂ (days)</span><span class="slider-value" id="w2val">0.100</span></div>
+          <input type="range" id="w2" min="-5" max="5" step="0.001" value="0.1">
+          <div class="slider-bounds"><span>-5</span><span>5</span></div>
+        </div>
+        <div class="slider-group">
+          <div class="slider-header"><span class="slider-label">bias (b)</span><span class="slider-value" id="bval">-2.000</span></div>
+          <input type="range" id="bias" min="-5" max="5" step="0.01" value="-2">
+          <div class="slider-bounds"><span>-5</span><span>5</span></div>
+        </div>
+        <label class="snap-label" id="snapLabel">
+          <input type="checkbox" id="snapCheck" style="width:15px;height:15px;accent-color:#3b82f6;cursor:pointer">
+          <span>Snap to optimal</span>
+        </label>
+        <div class="avg-loss" id="avgLossBox">
+          <div class="avg-loss-label">Avg BCE Loss</div>
+          <div class="avg-loss-value" id="avgLossVal">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="right">
+      <div class="card" style="padding:0;overflow:hidden">
+        <table>
+          <thead><tr>
+            <th style="text-align:left">User</th><th>Hours</th><th>Days</th><th>Keep</th><th>z</th><th>P(Keep)</th><th>BCE</th><th></th>
+          </tr></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+        <div class="formula-row">
+          <span class="formula-label">Loss: </span>
+          <span id="formulaText"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top: 12px;">
+    <div class="card-label">Loss Surface (drag to rotate · scroll to zoom)</div>
+    <div id="plotContainer"></div>
+    <div class="plot-note" id="plotNote"></div>
+  </div>
+</div>
+
+<script>
+const DATA = [
+  { name:"A", hours:15, days:22, keep:1 },
+  { name:"B", hours:8,  days:6,  keep:0 },
+  { name:"C", hours:60, days:7,  keep:1 },
+  { name:"D", hours:12, days:21, keep:0 },
+  { name:"E", hours:5,  days:2,  keep:1 },
+];
+
+const sigmoid = z => 1/(1+Math.exp(-Math.max(-500,Math.min(500,z))));
+const bceLoss = (y,p) => { p=Math.max(1e-7,Math.min(1-1e-7,p)); return -(y*Math.log(p)+(1-y)*Math.log(1-p)); };
+const avgBCE = (w1,w2,b) => DATA.reduce((s,d)=>s+bceLoss(d.keep,sigmoid(w1*d.hours+w2*d.days+b)),0)/5;
+const lossColor = l => l<0.3?"#16a34a":l<1?"#ca8a04":l<2?"#ea580c":"#dc2626";
+
+// Optimal via GD
+let ow1=0,ow2=0,ob=0;
+for(let i=0;i<20000;i++){
+  let g1=0,g2=0,gb=0;
+  for(const d of DATA){const e=sigmoid(ow1*d.hours+ow2*d.days+ob)-d.keep;g1+=e*d.hours;g2+=e*d.days;gb+=e;}
+  ow1-=.001*g1/5;ow2-=.001*g2/5;ob-=.001*gb/5;
+}
+
+const LIM=0.6, RES=60, CEIL=1.5;
+
+function computePath(bias){
+  let w1=-.2,w2=.25;const p1=[w1],p2=[w2],pL=[avgBCE(w1,w2,bias)];
+  for(let i=0;i<20000;i++){
+    let g1=0,g2=0;
+    for(const d of DATA){const e=sigmoid(w1*d.hours+w2*d.days+bias)-d.keep;g1+=e*d.hours;g2+=e*d.days;}
+    w1-=.0003*g1/5;w2-=.0003*g2/5;
+    if(i%200===0){p1.push(w1);p2.push(w2);pL.push(avgBCE(w1,w2,bias));}
+  }
+  p1.push(w1);p2.push(w2);pL.push(avgBCE(w1,w2,bias));
+  return{p1,p2,pL};
+}
+
+function buildSurface(bias){
+  const w1v=Array.from({length:RES},(_,i)=>-LIM+2*LIM*i/(RES-1));
+  const w2v=Array.from({length:RES},(_,i)=>-LIM+2*LIM*i/(RES-1));
+  const z=w2v.map(w2=>w1v.map(w1=>{const l=avgBCE(w1,w2,bias);return l>=CEIL?null:l;}));
+  const path=computePath(bias);
+  const fp={w1:[],w2:[],l:[]};
+  for(let i=0;i<path.pL.length;i++)if(path.pL[i]<CEIL){fp.w1.push(path.p1[i]);fp.w2.push(path.p2[i]);fp.l.push(path.pL[i]+.01);}
+  return{w1v,w2v,z,fp};
+}
+
+const els={
+  w1:document.getElementById('w1'),w2:document.getElementById('w2'),bias:document.getElementById('bias'),
+  w1v:document.getElementById('w1val'),w2v:document.getElementById('w2val'),bv:document.getElementById('bval'),
+  snap:document.getElementById('snapCheck'),snapLbl:document.getElementById('snapLabel'),
+  avgBox:document.getElementById('avgLossBox'),avgVal:document.getElementById('avgLossVal'),
+  tbody:document.getElementById('tableBody'),formula:document.getElementById('formulaText'),
+  note:document.getElementById('plotNote')
+};
+
+let curBias=-2, cache=buildSurface(curBias), plotReady=false;
+
+function updateTable(){
+  const w1=+els.w1.value,w2=+els.w2.value,b=+els.bias.value;
+  els.w1v.textContent=w1.toFixed(3);els.w2v.textContent=w2.toFixed(3);els.bv.textContent=b.toFixed(3);
+  let html='',tot=0;
+  for(const d of DATA){
+    const z=w1*d.hours+w2*d.days+b,p=sigmoid(z),loss=bceLoss(d.keep,p);tot+=loss;
+    const lc=lossColor(loss),bw=Math.min(100,loss/7*100);
+    html+=`<tr><td>User ${d.name}</td><td>${d.hours}</td><td>${d.days}</td>
+      <td><span class="keep-badge keep-${d.keep}">${d.keep}</span></td>
+      <td>${z.toFixed(2)}</td><td style="font-weight:600;color:#0f172a">${p.toFixed(3)}</td>
+      <td style="font-weight:700;color:${lc}">${loss.toFixed(3)}</td>
+      <td><div class="loss-bar"><div class="loss-bar-fill" style="width:${bw}%;background:${lc}"></div></div></td></tr>`;
+  }
+  els.tbody.innerHTML=html;
+  const avg=tot/5,ac=lossColor(avg);
+  els.avgVal.textContent=avg.toFixed(3);els.avgVal.style.color=ac;
+  const bg=avg<.5?['#f0fdf4','#bbf7d0']:avg<1.5?['#fffbeb','#fde68a']:['#fef2f2','#fecaca'];
+  els.avgBox.style.background=bg[0];els.avgBox.style.border=`1px solid ${bg[1]}`;
+  els.formula.textContent=`ℒ = −(1/N) Σᵢ [yᵢ·log(pᵢ) + (1−yᵢ)·log(1−pᵢ)] = ${avg.toFixed(3)}`;
+}
+
+function updatePlot(){
+  const w1=+els.w1.value,w2=+els.w2.value,b=+els.bias.value;
+  if(Math.abs(b-curBias)>.005){curBias=b;cache=buildSurface(b);}
+  const{w1v,w2v,z,fp}=cache;
+  const cLoss=avgBCE(w1,w2,b),cw1=Math.max(-LIM,Math.min(LIM,w1)),cw2=Math.max(-LIM,Math.min(LIM,w2)),show=cLoss<CEIL;
+
+  const traces=[
+    {type:"surface",x:w1v,y:w2v,z,colorscale:[[0,"#f7fbff"],[.2,"#d0e1f9"],[.4,"#85b7d9"],[.6,"#4292c6"],[.8,"#2171b5"],[1,"#084594"]],
+     opacity:.85,showscale:true,connectgaps:false,colorbar:{title:"Loss",thickness:12,len:.5,x:1.02},
+     hovertemplate:"w₁: %{x:.3f}<br>w₂: %{y:.3f}<br>Loss: %{z:.3f}<extra></extra>"},
+    {type:"scatter3d",mode:"lines",x:fp.w1,y:fp.w2,z:fp.l,line:{color:"#dc2626",width:5},hoverinfo:"skip"},
+    {type:"scatter3d",mode:fp.w1.length?"markers+text":"none",
+     x:fp.w1.length?[fp.w1[0]]:[],y:fp.w1.length?[fp.w2[0]]:[],z:fp.w1.length?[fp.l[0]+.04]:[],
+     marker:{color:"#dc2626",size:4,line:{color:"white",width:1}},text:["Start"],textposition:"top center",
+     textfont:{color:"#dc2626",size:11},hoverinfo:"skip"},
+    {type:"scatter3d",mode:fp.w1.length?"markers+text":"none",
+     x:fp.w1.length?[fp.w1[fp.w1.length-1]]:[],y:fp.w1.length?[fp.w2[fp.w2.length-1]]:[],
+     z:fp.w1.length?[fp.l[fp.l.length-1]+.03]:[],
+     marker:{color:"#000",size:4,symbol:"diamond",line:{color:"white",width:1}},text:["Min"],textposition:"bottom center",
+     textfont:{color:"#000",size:11},hoverinfo:"skip"},
+    {type:"scatter3d",mode:"markers",x:show?[cw1]:[],y:show?[cw2]:[],z:show?[cLoss+.03]:[],
+     marker:{color:"#f59e0b",size:7,symbol:"circle",line:{color:"#0f172a",width:2}},
+     hovertemplate:`Current<br>w₁: ${cw1.toFixed(3)}<br>w₂: ${cw2.toFixed(3)}<br>Loss: ${cLoss.toFixed(3)}<extra></extra>`}
+  ];
+
+  const layout={
+    scene:{
+      xaxis:{title:"w₁ (Hours)",range:[-LIM,LIM],gridcolor:"#e2e8f0",tickfont:{size:10}},
+      yaxis:{title:"w₂ (Days)",range:[-LIM,LIM],gridcolor:"#e2e8f0",tickfont:{size:10}},
+      zaxis:{title:"BCE Loss",range:[0,CEIL],gridcolor:"#e2e8f0",tickfont:{size:10}},
+      camera:{eye:{x:1.6,y:-1.8,z:1}},bgcolor:"white"
+    },
+    margin:{l:0,r:0,t:0,b:0},showlegend:false,paper_bgcolor:"white"
+  };
+
+  const el=document.getElementById('plotContainer');
+  if(!plotReady){Plotly.newPlot(el,traces,layout,{responsive:true,displayModeBar:true,modeBarButtonsToRemove:["toImage","sendDataToCloud"]});plotReady=true;}
+  else Plotly.react(el,traces,layout);
+
+  els.note.innerHTML=`Surface computed with bias = ${b.toFixed(2)} · <span style="color:#f59e0b">●</span> = current weights`;
+}
+
+function update(){updateTable();updatePlot();}
+
+els.w1.addEventListener('input',update);
+els.w2.addEventListener('input',update);
+els.bias.addEventListener('input',update);
+els.snap.addEventListener('change',function(){
+  const on=this.checked;
+  els.snapLbl.classList.toggle('active',on);
+  els.w1.disabled=on;els.w2.disabled=on;els.bias.disabled=on;
+  if(on){els.w1.value=ow1.toFixed(3);els.w2.value=ow2.toFixed(3);els.bias.value=ob.toFixed(3);}
+  update();
+});
+
+update();
+</script>
+</body>
+</html>
