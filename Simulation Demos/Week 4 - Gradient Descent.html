@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>BCE Explorer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.27.0/plotly.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #f8fafc;
+    min-height: 100vh;
+  }
+  .container { max-width: 1400px; margin: 0 auto; }
+  h1 { font-size: 22px; font-weight: 700; color: #0f172a; }
+  .header {
+    background: #f8fafc; padding: 16px 16px 0; position: sticky; top: 0; z-index: 100;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+  }
+  .header-inner { max-width: 1400px; margin: 0 auto; }
+  .tabs { display: flex; gap: 0; margin-top: 10px; }
+  .tab-btn {
+    padding: 8px 20px; border: none; cursor: pointer; font-size: 13px; font-weight: 600;
+    background: transparent; color: #94a3b8; border-radius: 8px 8px 0 0;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+  }
+  .tab-btn.active { background: #fff; color: #0f172a; }
+  .tab-content { display: none; padding: 16px; }
+  .tab-content.active { display: block; }
+  .subtitle { font-size: 12px; color: #64748b; font-family: monospace; margin: 5px 0 0; }
+  .layout { display: flex; gap: 16px; flex-wrap: wrap; }
+  .left { display: flex; flex-direction: column; gap: 12px; }
+  .right { flex: 1; min-width: 380px; align-self: flex-start; }
+  .card {
+    background: #fff; border-radius: 10px; padding: 16px;
+    border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .card-label {
+    font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase;
+    letter-spacing: 0.1em; font-family: monospace; margin-bottom: 12px;
+  }
+  .slider-group { margin-bottom: 14px; }
+  .slider-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 3px; }
+  .slider-label { font-family: monospace; font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+  .slider-value { font-family: monospace; font-size: 15px; font-weight: 600; color: #0f172a; }
+  input[type=range] { width: 100%; accent-color: #3b82f6; cursor: pointer; }
+  input[type=range]:disabled { cursor: not-allowed; opacity: 0.4; }
+  .slider-bounds { display: flex; justify-content: space-between; font-family: monospace; font-size: 9px; color: #94a3b8; }
+  .snap-label {
+    display: flex; align-items: center; gap: 8px; cursor: pointer;
+    padding: 8px 10px; border-radius: 6px; border: 1px solid #e2e8f0;
+    background: #f8fafc; transition: all 0.2s; margin-top: 4px;
+  }
+  .snap-label.active { background: #eff6ff; border-color: #93c5fd; }
+  .snap-label span { font-family: monospace; font-size: 11px; color: #475569; }
+  .snap-label.active span { color: #1d4ed8; font-weight: 600; }
+  .avg-loss { margin-top: 12px; padding: 12px; border-radius: 6px; transition: all 0.3s; }
+  .avg-loss-label { font-size: 9px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.1em; font-family: monospace; }
+  .avg-loss-value { font-size: 26px; font-weight: 700; font-family: monospace; transition: color 0.3s; }
+  table { width: 100%; border-collapse: collapse; font-family: monospace; font-size: 12px; }
+  thead tr { background: #f8fafc; }
+  th {
+    padding: 10px 8px; text-align: right; font-size: 9px; font-weight: 600;
+    color: #64748b; text-transform: uppercase; letter-spacing: 0.08em;
+    border-bottom: 2px solid #e2e8f0;
+  }
+  th:first-child { text-align: left; }
+  td { padding: 10px 8px; text-align: right; color: #475569; }
+  td:first-child { text-align: left; font-weight: 600; color: #0f172a; }
+  tbody tr { border-bottom: 1px solid #f1f5f9; }
+  tbody tr:last-child { border-bottom: none; }
+  .keep-badge {
+    display: inline-block; width: 22px; height: 22px; line-height: 22px;
+    text-align: center; border-radius: 5px; font-size: 11px; font-weight: 600;
+  }
+  .keep-1 { background: #dbeafe; color: #1d4ed8; }
+  .keep-0 { background: #fee2e2; color: #dc2626; }
+  .loss-bar { width: 90px; height: 7px; background: #f1f5f9; border-radius: 4px; overflow: hidden; }
+  .loss-bar-fill { height: 100%; border-radius: 4px; transition: all 0.15s ease; }
+  .plot-container { width: 100%; height: 700px; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; }
+  .plot-note { font-size: 10px; color: #94a3b8; font-family: monospace; margin-top: 6px; font-style: italic; }
+  .gd-btn {
+    padding: 10px; border-radius: 8px; border: none; cursor: pointer;
+    font-weight: 600; font-size: 13px; font-family: 'Segoe UI', system-ui, sans-serif;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    transition: all 0.15s;
+  }
+  .gd-btn:disabled { cursor: not-allowed; opacity: 0.5; }
+  .gd-btn-primary { background: #3b82f6; color: #fff; box-shadow: 0 2px 8px rgba(59,130,246,0.3); }
+  .gd-btn-primary:hover:not(:disabled) { background: #2563eb; }
+  .gd-btn-stop { background: #dc2626; color: #fff; }
+  .gd-btn-reset { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+  .gd-btn-reset:hover:not(:disabled) { background: #e2e8f0; }
+  .speed-btn {
+    flex: 1; padding: 6px; border-radius: 6px; border: none; cursor: pointer;
+    font-size: 12px; font-weight: 600; font-family: monospace; transition: all 0.15s;
+  }
+  .speed-btn.active { background: #3b82f6; color: #fff; }
+  .speed-btn:not(.active) { background: rgba(59,130,246,0.1); color: #0f172a; }
+  .speed-btn:disabled { cursor: not-allowed; opacity: 0.4; }
+  .gd-stat { text-align: center; padding: 8px; }
+  .gd-stat-label { font-size: 9px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.1em; font-family: monospace; }
+  .gd-stat-value { font-size: 18px; font-weight: 700; font-family: monospace; color: #0f172a; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <h1>Loss Surface and Gradient Descent Visualization</h1>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="loss">Loss Visualization</button>
+      <button class="tab-btn" data-tab="gd">Gradient Descent</button>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- ═══════ TAB 1: LOSS VISUALIZATION ═══════ -->
+<div class="tab-content active" id="tab-loss">
+  <div class="layout">
+    <div class="left" style="flex: 0 0 300px;">
+      <div class="card">
+        <div class="card-label">Model Parameters</div>
+        <div class="slider-group">
+          <div class="slider-header"><span class="slider-label">w₁ (hours)</span><span class="slider-value" id="w1val">0.050</span></div>
+          <input type="range" id="w1" min="-1" max="1" step="0.001" value="0.05">
+          <div class="slider-bounds"><span>-1</span><span>1</span></div>
+        </div>
+        <div class="slider-group">
+          <div class="slider-header"><span class="slider-label">w₂ (days)</span><span class="slider-value" id="w2val">0.100</span></div>
+          <input type="range" id="w2" min="-1" max="1" step="0.001" value="0.1">
+          <div class="slider-bounds"><span>-1</span><span>1</span></div>
+        </div>
+        <div class="slider-group">
+          <div class="slider-header"><span class="slider-label">bias (b)</span><span class="slider-value" id="bval">-0.500</span></div>
+          <input type="range" id="bias" min="-1" max="1" step="0.01" value="-0.5">
+          <div class="slider-bounds"><span>-1</span><span>1</span></div>
+        </div>
+        <label class="snap-label" id="snapLabel">
+          <input type="checkbox" id="snapCheck" style="width:15px;height:15px;accent-color:#3b82f6;cursor:pointer">
+          <span>Snap to optimal</span>
+        </label>
+        <div class="avg-loss" id="avgLossBox">
+          <div class="avg-loss-label">Avg BCE Loss</div>
+          <div class="avg-loss-value" id="avgLossVal">—</div>
+        </div>
+      </div>
+    </div>
+    <div class="right">
+      <div class="card" style="padding:0;overflow:hidden">
+        <table>
+          <thead><tr>
+            <th style="text-align:left">User</th><th>Hours</th><th>Days</th><th>Keep</th><th>z</th><th>P(Keep)</th><th>BCE</th><th></th>
+          </tr></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="margin-top: 12px;">
+    <div class="card-label">Loss Surface (drag to rotate · scroll to zoom)</div>
+    <div class="plot-container" id="plotLoss"></div>
+    <div class="plot-note" id="plotNoteLoss"></div>
+  </div>
+</div>
+
+<!-- ═══════ TAB 2: GRADIENT DESCENT ═══════ -->
+<div class="tab-content" id="tab-gd">
+  <div class="layout">
+    <div class="left" style="flex: 0 0 300px;">
+      <div class="card">
+        <div class="card-label">Starting Weights</div>
+        <div class="slider-group">
+          <div class="slider-header"><span class="slider-label">w₁ (hours)</span><span class="slider-value" id="gd_w1val">0.050</span></div>
+          <input type="range" id="gd_w1" min="-1" max="1" step="0.001" value="0.05">
+          <div class="slider-bounds"><span>-1</span><span>1</span></div>
+        </div>
+        <div class="slider-group">
+          <div class="slider-header"><span class="slider-label">w₂ (days)</span><span class="slider-value" id="gd_w2val">0.100</span></div>
+          <input type="range" id="gd_w2" min="-1" max="1" step="0.001" value="0.1">
+          <div class="slider-bounds"><span>-1</span><span>1</span></div>
+        </div>
+        <div class="slider-group">
+          <div class="slider-header"><span class="slider-label">bias (b)</span><span class="slider-value" id="gd_bval">-0.500</span></div>
+          <input type="range" id="gd_bias" min="-1" max="1" step="0.01" value="-0.5">
+          <div class="slider-bounds"><span>-1</span><span>1</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-label">Gradient Descent</div>
+        <div class="slider-group">
+          <div class="slider-header"><span class="slider-label">Learning Rate (α)</span><span class="slider-value" id="lrval">0.010</span></div>
+          <input type="range" id="lr" min="-4" max="0" step="0.1" value="-0.5">
+          <div class="slider-bounds"><span>0.0001</span><span>1.0</span></div>
+        </div>
+        <div style="margin-bottom:10px">
+          <div class="slider-label" style="margin-bottom:6px">Speed</div>
+          <div style="display:flex;gap:6px">
+            <button class="speed-btn active" data-speed="1" id="spd1">1×</button>
+            <button class="speed-btn" data-speed="5" id="spd5">5×</button>
+            <button class="speed-btn" data-speed="10" id="spd10">10×</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <button class="gd-btn gd-btn-primary" id="gdStart" style="flex:1">▶ Run</button>
+          <button class="gd-btn gd-btn-reset" id="gdReset" style="flex:1">↺ Reset</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div class="gd-stat" style="background:#f8fafc;border-radius:6px">
+            <div class="gd-stat-label">Step</div>
+            <div class="gd-stat-value" id="gdStep">0</div>
+          </div>
+          <div class="gd-stat" style="background:#f8fafc;border-radius:6px">
+            <div class="gd-stat-label">Loss</div>
+            <div class="gd-stat-value" id="gdLoss">—</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-label">Current Weights</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          <div class="gd-stat" style="background:#f8fafc;border-radius:6px">
+            <div class="gd-stat-label">w₁</div>
+            <div class="gd-stat-value" id="gdCurW1" style="font-size:14px">0.050</div>
+          </div>
+          <div class="gd-stat" style="background:#f8fafc;border-radius:6px">
+            <div class="gd-stat-label">w₂</div>
+            <div class="gd-stat-value" id="gdCurW2" style="font-size:14px">0.100</div>
+          </div>
+          <div class="gd-stat" style="background:#f8fafc;border-radius:6px">
+            <div class="gd-stat-label">bias</div>
+            <div class="gd-stat-value" id="gdCurB" style="font-size:14px">-0.500</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="right" style="align-self:stretch;">
+      <div class="card" style="height:100%;display:flex;flex-direction:column;">
+        <div class="card-label">Loss Surface (drag to rotate · scroll to zoom)</div>
+        <div class="plot-container" id="plotGD" style="flex:1;height:auto;min-height:500px;"></div>
+        <div class="plot-note" id="plotNoteGD"></div>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="margin-top: 12px;padding:0;overflow:hidden">
+    <table>
+      <thead><tr>
+        <th style="text-align:left">User</th><th>Hours</th><th>Days</th><th>Keep</th><th>z</th><th>P(Keep)</th><th>BCE</th><th></th>
+      </tr></thead>
+      <tbody id="gdTableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+</div>
+
+<script>
+const DATA = [
+  { name:"A", hours:15, days:22, keep:1 },
+  { name:"B", hours:8,  days:6,  keep:0 },
+  { name:"C", hours:60, days:7,  keep:1 },
+  { name:"D", hours:12, days:21, keep:0 },
+  { name:"E", hours:5,  days:2,  keep:0 },
+];
+
+const N = DATA.length;
+const sigmoid = z => 1/(1+Math.exp(-Math.max(-500,Math.min(500,z))));
+const bceLoss = (y,p) => { p=Math.max(1e-7,Math.min(1-1e-7,p)); return -(y*Math.log(p)+(1-y)*Math.log(1-p)); };
+const avgBCE = (w1,w2,b) => DATA.reduce((s,d)=>s+bceLoss(d.keep,sigmoid(w1*d.hours+w2*d.days+b)),0)/N;
+const lossColor = l => l<0.3?"#16a34a":l<1?"#ca8a04":l<2?"#ea580c":"#dc2626";
+
+// Optimal via GD
+let ow1=0,ow2=0,ob=0;
+for(let i=0;i<20000;i++){
+  let g1=0,g2=0,gb=0;
+  for(const d of DATA){const e=sigmoid(ow1*d.hours+ow2*d.days+ob)-d.keep;g1+=e*d.hours;g2+=e*d.days;gb+=e;}
+  ow1-=.001*g1/N;ow2-=.001*g2/N;ob-=.001*gb/N;
+}
+
+const LIM=1.0, RES=60, CEIL=1.5;
+
+function buildSurface(bias){
+  const w1v=Array.from({length:RES},(_,i)=>-LIM+2*LIM*i/(RES-1));
+  const w2v=Array.from({length:RES},(_,i)=>-LIM+2*LIM*i/(RES-1));
+  const z=w2v.map(w2=>w1v.map(w1=>Math.min(avgBCE(w1,w2,bias),CEIL)));
+  return{w1v,w2v,z};
+}
+
+const SURFACE_TRACE = {
+  type:"surface",
+  colorscale:[[0,"#f7fbff"],[.2,"#d0e1f9"],[.4,"#85b7d9"],[.6,"#4292c6"],[.8,"#2171b5"],[1,"#084594"]],
+  opacity:.85,showscale:true,connectgaps:false,
+  colorbar:{title:"Loss",thickness:12,len:.5,x:1.02},
+  hovertemplate:"w₁: %{x:.3f}<br>w₂: %{y:.3f}<br>Loss: %{z:.3f}<extra></extra>"
+};
+
+const PLOT_LAYOUT = {
+  scene:{
+    xaxis:{title:"w₁ (Hours)",range:[-LIM,LIM],gridcolor:"#e2e8f0",tickfont:{size:10}},
+    yaxis:{title:"w₂ (Days)",range:[-LIM,LIM],gridcolor:"#e2e8f0",tickfont:{size:10}},
+    zaxis:{title:"BCE Loss",range:[0,CEIL],gridcolor:"#e2e8f0",tickfont:{size:10}},
+    camera:{eye:{x:1.6,y:-1.8,z:1}},bgcolor:"white"
+  },
+  margin:{l:0,r:0,t:0,b:0},showlegend:false,paper_bgcolor:"white"
+};
+
+const PLOT_CFG = {responsive:true,displayModeBar:true,modeBarButtonsToRemove:["toImage","sendDataToCloud"]};
+
+// ═══════════ TAB SWITCHING ═══════════
+let activeTab = 'loss';
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', function(){
+    activeTab = this.dataset.tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b===this));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id==='tab-'+activeTab));
+    if(activeTab==='loss') updateLossTab();
+    else updateGDTab();
+  });
+});
+
+// ═══════════ SHARED: render table ═══════════
+function renderTable(tbody, w1, w2, b) {
+  let html='',tot=0;
+  for(const d of DATA){
+    const z=w1*d.hours+w2*d.days+b,p=sigmoid(z),loss=bceLoss(d.keep,p);tot+=loss;
+    const lc=lossColor(loss),bw=Math.min(100,loss/7*100);
+    html+=`<tr><td>User ${d.name}</td><td>${d.hours}</td><td>${d.days}</td>
+      <td><span class="keep-badge keep-${d.keep}">${d.keep}</span></td>
+      <td>${z.toFixed(2)}</td><td style="font-weight:600;color:#0f172a">${p.toFixed(3)}</td>
+      <td style="font-weight:700;color:${lc}">${loss.toFixed(3)}</td>
+      <td><div class="loss-bar"><div class="loss-bar-fill" style="width:${bw}%;background:${lc}"></div></div></td></tr>`;
+  }
+  tbody.innerHTML=html;
+  return tot/N;
+}
+
+// ═══════════ TAB 1: LOSS VISUALIZATION ═══════════
+const lossEls={
+  w1:document.getElementById('w1'),w2:document.getElementById('w2'),bias:document.getElementById('bias'),
+  w1v:document.getElementById('w1val'),w2v:document.getElementById('w2val'),bv:document.getElementById('bval'),
+  snap:document.getElementById('snapCheck'),snapLbl:document.getElementById('snapLabel'),
+  avgBox:document.getElementById('avgLossBox'),avgVal:document.getElementById('avgLossVal'),
+  tbody:document.getElementById('tableBody'),
+  note:document.getElementById('plotNoteLoss')
+};
+let lossBiasCache=-0.5, lossSurfCache=buildSurface(-0.5), lossPlotReady=false;
+
+function updateLossTab(){
+  const w1=+lossEls.w1.value,w2=+lossEls.w2.value,b=+lossEls.bias.value;
+  lossEls.w1v.textContent=w1.toFixed(3);lossEls.w2v.textContent=w2.toFixed(3);lossEls.bv.textContent=b.toFixed(3);
+
+  const avg=renderTable(lossEls.tbody, w1, w2, b);
+  const ac=lossColor(avg);
+  lossEls.avgVal.textContent=avg.toFixed(3);lossEls.avgVal.style.color=ac;
+  const bg=avg<.5?['#f0fdf4','#bbf7d0']:avg<1.5?['#fffbeb','#fde68a']:['#fef2f2','#fecaca'];
+  lossEls.avgBox.style.background=bg[0];lossEls.avgBox.style.border=`1px solid ${bg[1]}`;
+
+  if(Math.abs(b-lossBiasCache)>.005){lossBiasCache=b;lossSurfCache=buildSurface(b);}
+  const{w1v,w2v,z}=lossSurfCache;
+  const cLoss=avgBCE(w1,w2,b),cw1=Math.max(-LIM,Math.min(LIM,w1)),cw2=Math.max(-LIM,Math.min(LIM,w2)),show=cLoss<CEIL;
+
+  const traces=[
+    {...SURFACE_TRACE,x:w1v,y:w2v,z},
+    {type:"scatter3d",mode:"markers",x:show?[cw1]:[],y:show?[cw2]:[],z:show?[cLoss+.03]:[],
+     marker:{color:"#f59e0b",size:7,symbol:"circle",line:{color:"#0f172a",width:2}},
+     hovertemplate:`Current<br>w₁: ${cw1.toFixed(3)}<br>w₂: ${cw2.toFixed(3)}<br>Loss: ${cLoss.toFixed(3)}<extra></extra>`}
+  ];
+
+  const el=document.getElementById('plotLoss');
+  if(!lossPlotReady){Plotly.newPlot(el,traces,PLOT_LAYOUT,PLOT_CFG);lossPlotReady=true;}
+  else Plotly.react(el,traces,PLOT_LAYOUT);
+
+  lossEls.note.innerHTML=`Surface computed with bias = ${b.toFixed(2)} · <span style="color:#f59e0b">●</span> current weights`;
+}
+
+lossEls.w1.addEventListener('input',updateLossTab);
+lossEls.w2.addEventListener('input',updateLossTab);
+lossEls.bias.addEventListener('input',updateLossTab);
+lossEls.snap.addEventListener('change',function(){
+  const on=this.checked;
+  lossEls.snapLbl.classList.toggle('active',on);
+  lossEls.w1.disabled=on;lossEls.w2.disabled=on;lossEls.bias.disabled=on;
+  if(on){lossEls.w1.value=ow1.toFixed(3);lossEls.w2.value=ow2.toFixed(3);lossEls.bias.value=ob.toFixed(3);}
+  updateLossTab();
+});
+
+// ═══════════ TAB 2: GRADIENT DESCENT ═══════════
+const gdSliders={
+  w1:document.getElementById('gd_w1'),w2:document.getElementById('gd_w2'),bias:document.getElementById('gd_bias'),
+  w1v:document.getElementById('gd_w1val'),w2v:document.getElementById('gd_w2val'),bv:document.getElementById('gd_bval'),
+};
+const gdEls={
+  lr:document.getElementById('lr'),lrval:document.getElementById('lrval'),
+  start:document.getElementById('gdStart'),reset:document.getElementById('gdReset'),
+  step:document.getElementById('gdStep'),loss:document.getElementById('gdLoss'),
+  curW1:document.getElementById('gdCurW1'),curW2:document.getElementById('gdCurW2'),curB:document.getElementById('gdCurB'),
+  tbody:document.getElementById('gdTableBody'),
+  note:document.getElementById('plotNoteGD'),
+  spd1:document.getElementById('spd1'),spd5:document.getElementById('spd5'),spd10:document.getElementById('spd10'),
+};
+
+let gdRunning=false, gdAnimId=null, gdSpeed=1, gdStepCount=0;
+let gdW1=0.05, gdW2=0.1, gdBias=-0.5;
+let gdTrailW1=[], gdTrailW2=[], gdTrailL=[];
+let gdBiasCache=-0.5, gdSurfCache=buildSurface(-0.5), gdPlotReady=false;
+
+function getLR(){ return Math.pow(10,+gdEls.lr.value); }
+gdEls.lr.addEventListener('input',function(){ gdEls.lrval.textContent=getLR().toFixed(4); });
+gdEls.lrval.textContent=getLR().toFixed(4);
+
+gdSliders.w1.addEventListener('input',function(){ gdSliders.w1v.textContent=(+this.value).toFixed(3); if(!gdRunning&&gdTrailW1.length===0) updateGDTab(); });
+gdSliders.w2.addEventListener('input',function(){ gdSliders.w2v.textContent=(+this.value).toFixed(3); if(!gdRunning&&gdTrailW1.length===0) updateGDTab(); });
+gdSliders.bias.addEventListener('input',function(){ gdSliders.bv.textContent=(+this.value).toFixed(3); if(!gdRunning&&gdTrailW1.length===0) updateGDTab(); });
+
+[gdEls.spd1,gdEls.spd5,gdEls.spd10].forEach(btn=>{
+  btn.addEventListener('click',function(){
+    if(gdRunning) return;
+    gdSpeed=+this.dataset.speed;
+    [gdEls.spd1,gdEls.spd5,gdEls.spd10].forEach(b=>b.classList.toggle('active',b===this));
+  });
+});
+
+function gdGradients(w1,w2,b){
+  let g1=0,g2=0,gb=0;
+  for(const d of DATA){const e=sigmoid(w1*d.hours+w2*d.days+b)-d.keep;g1+=e*d.hours;g2+=e*d.days;gb+=e;}
+  return{g1:g1/N,g2:g2/N,gb:gb/N};
+}
+
+function updateGDTab(){
+  let w1,w2,b;
+  if(gdTrailW1.length>0){ w1=gdW1;w2=gdW2;b=gdBias; }
+  else { w1=+gdSliders.w1.value;w2=+gdSliders.w2.value;b=+gdSliders.bias.value; }
+  gdEls.curW1.textContent=w1.toFixed(3);
+  gdEls.curW2.textContent=w2.toFixed(3);
+  gdEls.curB.textContent=b.toFixed(3);
+
+  renderTable(gdEls.tbody, w1, w2, b);
+
+  // Surface at starting bias (fixed during a run)
+  if(gdTrailW1.length===0 && Math.abs(b-gdBiasCache)>.005){gdBiasCache=b;gdSurfCache=buildSurface(b);}
+  const{w1v,w2v,z}=gdSurfCache;
+  const cLoss=avgBCE(w1,w2,b),cw1=Math.max(-LIM,Math.min(LIM,w1)),cw2=Math.max(-LIM,Math.min(LIM,w2)),show=cLoss<CEIL;
+
+  const traces=[
+    {...SURFACE_TRACE,x:w1v,y:w2v,z},
+    {type:"scatter3d",mode:"markers",x:show?[cw1]:[],y:show?[cw2]:[],z:show?[cLoss+.03]:[],
+     marker:{color:"#f59e0b",size:7,symbol:"circle",line:{color:"#0f172a",width:2}},
+     hovertemplate:`Current<br>w₁: ${cw1.toFixed(3)}<br>w₂: ${cw2.toFixed(3)}<br>Loss: ${cLoss.toFixed(3)}<extra></extra>`}
+  ];
+
+  if(gdTrailW1.length>1){
+    const maxPts=500,step=Math.max(1,Math.floor(gdTrailW1.length/maxPts));
+    const tw1=[],tw2=[],tl=[];
+    for(let i=0;i<gdTrailW1.length;i+=step){
+      if(gdTrailL[i]<CEIL){tw1.push(gdTrailW1[i]);tw2.push(gdTrailW2[i]);tl.push(gdTrailL[i]+.01);}
+    }
+    const last=gdTrailW1.length-1;
+    if(gdTrailL[last]<CEIL){tw1.push(gdTrailW1[last]);tw2.push(gdTrailW2[last]);tl.push(gdTrailL[last]+.01);}
+    traces.push({type:"scatter3d",mode:"lines",x:tw1,y:tw2,z:tl,line:{color:"#16a34a",width:5},hoverinfo:"skip"});
+    traces.push({type:"scatter3d",mode:"markers+text",
+      x:[gdTrailW1[0]],y:[gdTrailW2[0]],z:[gdTrailL[0]+.04],
+      marker:{color:"#16a34a",size:4,line:{color:"white",width:1}},
+      text:["Start"],textposition:"top center",textfont:{color:"#16a34a",size:11},hoverinfo:"skip"});
+  }
+
+  const el=document.getElementById('plotGD');
+  if(!gdPlotReady){Plotly.newPlot(el,traces,PLOT_LAYOUT,PLOT_CFG);gdPlotReady=true;}
+  else Plotly.react(el,traces,PLOT_LAYOUT);
+
+  gdEls.note.innerHTML=`<span style="color:#f59e0b">●</span> current weights` +
+    (gdTrailW1.length>1?` · <span style="color:#16a34a">—</span> gradient descent path (${gdStepCount} steps)`:'');
+}
+
+function gdDoStep(){
+  const lr=getLR();
+  const g=gdGradients(gdW1,gdW2,gdBias);
+  gdW1-=lr*g.g1; gdW2-=lr*g.g2; gdBias-=lr*g.gb;
+  gdStepCount++;
+  const loss=avgBCE(gdW1,gdW2,gdBias);
+  gdTrailW1.push(gdW1);gdTrailW2.push(gdW2);gdTrailL.push(loss);
+  gdEls.step.textContent=gdStepCount;
+  gdEls.loss.textContent=loss.toFixed(3);gdEls.loss.style.color=lossColor(loss);
+  updateGDTab();
+}
+
+function gdTick(){
+  if(!gdRunning) return;
+  for(let i=0;i<gdSpeed;i++) gdDoStep();
+  gdAnimId=setTimeout(gdTick,330);
+}
+
+gdEls.start.addEventListener('click',function(){
+  if(gdRunning){
+    gdRunning=false;clearTimeout(gdAnimId);
+    gdEls.start.textContent='▶ Run';gdEls.start.classList.remove('gd-btn-stop');gdEls.start.classList.add('gd-btn-primary');
+    gdSliders.w1.disabled=false;gdSliders.w2.disabled=false;gdSliders.bias.disabled=false;
+    gdEls.lr.disabled=false;
+    [gdEls.spd1,gdEls.spd5,gdEls.spd10].forEach(b=>b.disabled=false);
+  } else {
+    if(gdTrailW1.length===0){
+      gdW1=+gdSliders.w1.value;gdW2=+gdSliders.w2.value;gdBias=+gdSliders.bias.value;
+      gdBiasCache=gdBias;gdSurfCache=buildSurface(gdBias);
+      const loss=avgBCE(gdW1,gdW2,gdBias);
+      gdTrailW1.push(gdW1);gdTrailW2.push(gdW2);gdTrailL.push(loss);
+    }
+    gdRunning=true;
+    gdEls.start.textContent='⏸ Pause';gdEls.start.classList.remove('gd-btn-primary');gdEls.start.classList.add('gd-btn-stop');
+    gdSliders.w1.disabled=true;gdSliders.w2.disabled=true;gdSliders.bias.disabled=true;
+    gdEls.lr.disabled=true;
+    [gdEls.spd1,gdEls.spd5,gdEls.spd10].forEach(b=>b.disabled=true);
+    gdTick();
+  }
+});
+
+gdEls.reset.addEventListener('click',function(){
+  gdRunning=false;clearTimeout(gdAnimId);
+  gdStepCount=0;gdTrailW1=[];gdTrailW2=[];gdTrailL=[];
+  gdW1=+gdSliders.w1.value;gdW2=+gdSliders.w2.value;gdBias=+gdSliders.bias.value;
+  gdBiasCache=gdBias;gdSurfCache=buildSurface(gdBias);
+  gdSliders.w1.disabled=false;gdSliders.w2.disabled=false;gdSliders.bias.disabled=false;
+  gdEls.lr.disabled=false;
+  [gdEls.spd1,gdEls.spd5,gdEls.spd10].forEach(b=>b.disabled=false);
+  gdEls.start.textContent='▶ Run';gdEls.start.classList.remove('gd-btn-stop');gdEls.start.classList.add('gd-btn-primary');
+  gdEls.step.textContent='0';gdEls.loss.textContent='—';gdEls.loss.style.color='#0f172a';
+  updateGDTab();
+});
+
+// Init
+updateLossTab();
+</script>
+</body>
+</html>
