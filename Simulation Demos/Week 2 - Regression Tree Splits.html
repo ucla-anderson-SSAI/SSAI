@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Regression Tree Splits</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f8fafc; min-height: 100vh; }
+  .header {
+    background: #f8fafc; padding: 16px 16px 0; position: sticky; top: 0; z-index: 100;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+  }
+  .header-inner { max-width: 1400px; margin: 0 auto; }
+  h1 { font-size: 22px; font-weight: 700; color: #0f172a; }
+  .subtitle { font-size: 12px; color: #64748b; font-family: monospace; margin: 5px 0 0; }
+  .tabs { display: flex; gap: 0; margin-top: 10px; }
+  .tab-btn {
+    padding: 8px 20px; border: none; cursor: pointer; font-size: 13px; font-weight: 600;
+    background: transparent; color: #94a3b8; border-radius: 8px 8px 0 0;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+  }
+  .tab-btn.active { background: #fff; color: #0f172a; }
+  .tab-content { display: none; padding: 16px; max-width: 1400px; margin: 0 auto; }
+  .tab-content.active { display: block; }
+  .layout { display: flex; gap: 16px; flex-wrap: wrap; }
+  .left { flex: 0 0 320px; display: flex; flex-direction: column; gap: 12px; }
+  .right { flex: 1; min-width: 500px; display: flex; flex-direction: column; gap: 12px; }
+  .card {
+    background: #fff; border-radius: 10px; padding: 16px;
+    border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .card-label {
+    font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase;
+    letter-spacing: 0.1em; font-family: monospace; margin-bottom: 12px;
+  }
+  .slider-group { margin-bottom: 14px; }
+  .slider-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 3px; }
+  .slider-label { font-family: monospace; font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+  .slider-value { font-family: monospace; font-size: 15px; font-weight: 600; color: #0f172a; }
+  input[type=range] { width: 100%; accent-color: #3b82f6; cursor: pointer; }
+  .slider-bounds { display: flex; justify-content: space-between; font-family: monospace; font-size: 9px; color: #94a3b8; }
+  .stat-box { margin-top: 8px; padding: 12px; border-radius: 6px; transition: all 0.3s; }
+  .stat-label { font-size: 9px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.1em; font-family: monospace; }
+  .stat-value { font-size: 22px; font-weight: 700; font-family: monospace; transition: color 0.3s; }
+  .stat-row { display: flex; gap: 12px; }
+  .stat-row .stat-box { flex: 1; }
+  .split-badge {
+    display: inline-block; padding: 4px 10px; border-radius: 6px; font-family: monospace;
+    font-size: 12px; font-weight: 600; margin: 2px 4px 2px 0;
+  }
+  .split-badge-left { background: #dbeafe; color: #1d4ed8; }
+  .split-badge-right { background: #fee2e2; color: #dc2626; }
+  .split-badge-best { background: #dcfce7; color: #16a34a; }
+  canvas { width: 100%; border-radius: 8px; }
+  select {
+    width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid #e2e8f0;
+    font-family: monospace; font-size: 12px; background: #f8fafc; cursor: pointer;
+    color: #0f172a; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2364748b'%3E%3Cpath d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center;
+  }
+  .tree-node {
+    padding: 8px 12px; border-radius: 6px; font-family: monospace; font-size: 11px;
+    text-align: center; cursor: pointer; transition: all 0.15s; border: 2px solid;
+    user-select: none;
+  }
+  .tree-node:hover { transform: scale(1.03); }
+  .tree-node.selected { box-shadow: 0 0 0 3px rgba(59,130,246,0.4); }
+  .tree-container { position: relative; overflow-x: auto; }
+  .tree-svg { position: absolute; top: 0; left: 0; pointer-events: none; }
+  .btn {
+    padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer;
+    font-weight: 600; font-size: 12px; font-family: 'Segoe UI', system-ui, sans-serif;
+    transition: all 0.15s;
+  }
+  .btn-primary { background: #3b82f6; color: #fff; box-shadow: 0 2px 8px rgba(59,130,246,0.3); }
+  .btn-primary:hover { background: #2563eb; }
+  .btn-danger { background: #dc2626; color: #fff; }
+  .btn-danger:hover { background: #b91c1c; }
+  .btn-ghost { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+  .btn-ghost:hover { background: #e2e8f0; }
+  .btn-row { display: flex; gap: 8px; margin-top: 8px; }
+  .node-info { font-size: 11px; color: #64748b; font-family: monospace; line-height: 1.6; }
+  .plot-note { font-size: 10px; color: #94a3b8; font-family: monospace; margin-top: 6px; font-style: italic; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <h1>Regression Tree Splits</h1>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="explore">Explore Splits</button>
+      <button class="tab-btn" data-tab="build">Build a Tree</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ TAB 1: EXPLORE SPLITS ═══════ -->
+<div class="tab-content active" id="tab-explore">
+  <div class="card" style="margin-bottom:12px;">
+    <div style="display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap;">
+      <div style="flex:0 0 160px;">
+        <div class="card-label">Feature</div>
+        <select id="featureSelect">
+          <option value="year">Year</option>
+          <option value="mileage">Mileage</option>
+        </select>
+      </div>
+      <div style="flex:1; min-width:200px;">
+        <div class="slider-header">
+          <span class="slider-label">Split Threshold</span>
+          <span class="slider-value" id="threshVal">2010</span>
+        </div>
+        <input type="range" id="threshSlider" min="1999" max="2016" step="1" value="2010">
+        <div class="slider-bounds"><span id="threshMin">1999</span><span id="threshMax">2016</span></div>
+      </div>
+      <div style="flex:0 0 auto; text-align:center;">
+        <div class="stat-label">MSE Reduction</div>
+        <div class="stat-value" id="mseReduction" style="color:#16a34a; font-size:20px;">—</div>
+      </div>
+      <div style="flex:0 0 auto; text-align:center;">
+        <div class="stat-label">Parent MSE</div>
+        <div class="stat-value" id="parentMSE" style="color:#0f172a; font-size:16px;">—</div>
+        <div class="node-info" id="parentInfo"></div>
+      </div>
+      <div style="flex:0 0 auto; text-align:center;">
+        <div class="stat-label">Left MSE</div>
+        <div class="stat-value" id="leftMSE" style="color:#1d4ed8; font-size:16px;">—</div>
+        <div class="node-info" id="leftInfo"></div>
+      </div>
+      <div style="flex:0 0 auto; text-align:center;">
+        <div class="stat-label">Right MSE</div>
+        <div class="stat-value" id="rightMSE" style="color:#dc2626; font-size:16px;">—</div>
+        <div class="node-info" id="rightInfo"></div>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex; gap:12px; flex-wrap:wrap;">
+    <div class="card" style="flex:1; min-width:400px;">
+      <div class="card-label">Data Distribution</div>
+      <canvas id="scatterCanvas" height="266"></canvas>
+      <div class="plot-note" id="scatterNote"></div>
+    </div>
+    <div class="card" style="flex:1; min-width:400px;">
+      <div class="card-label">MSE Reduction Across All Thresholds</div>
+      <canvas id="mseCanvas" height="266"></canvas>
+      <div class="plot-note" id="mseNote"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ TAB 2: BUILD A TREE ═══════ -->
+<div class="tab-content" id="tab-build">
+  <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:12px;">
+    <div class="card" style="flex:0 0 320px;">
+      <div class="card-label">Selected Leaf</div>
+      <div id="nodeTitle" style="font-family:monospace; font-size:14px; font-weight:700; color:#0f172a; margin-bottom:8px;">Root (all data)</div>
+      <div class="node-info" id="nodeDetails"></div>
+      <div class="slider-group" style="margin-top:12px;">
+        <div class="slider-header">
+          <span class="slider-label">Feature</span>
+        </div>
+        <select id="buildFeatureSelect">
+          <option value="year">Year</option>
+          <option value="mileage">Mileage</option>
+        </select>
+      </div>
+      <div class="slider-group">
+        <div class="slider-header">
+          <span class="slider-label">Split Threshold</span>
+          <span class="slider-value" id="buildThreshVal">2010</span>
+        </div>
+        <input type="range" id="buildThreshSlider" min="1999" max="2016" step="1" value="2010">
+        <div class="slider-bounds"><span id="buildThreshMin">1999</span><span id="buildThreshMax">2016</span></div>
+      </div>
+      <div class="stat-box" style="background:#f0fdf4; border: 1px solid #bbf7d0;">
+        <div class="stat-label">MSE Reduction</div>
+        <div class="stat-value" id="buildMseReduction" style="color:#16a34a;">—</div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-box" style="background:#eff6ff; border: 1px solid #bfdbfe;">
+          <div class="stat-label">Left</div>
+          <div class="stat-value" id="buildLeftMSE" style="color:#1d4ed8; font-size:14px;">—</div>
+          <div class="node-info" id="buildLeftInfo"></div>
+        </div>
+        <div class="stat-box" style="background:#fef2f2; border: 1px solid #fecaca;">
+          <div class="stat-label">Right</div>
+          <div class="stat-value" id="buildRightMSE" style="color:#dc2626; font-size:14px;">—</div>
+          <div class="node-info" id="buildRightInfo"></div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="splitBtn" style="flex:1;">Split Leaf</button>
+        <button class="btn btn-ghost" id="autoSplitBtn" style="flex:1;">Best Split</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="undoBtn" style="flex:1;">Undo Last</button>
+        <button class="btn btn-danger" id="resetTreeBtn" style="flex:1;">Reset Tree</button>
+      </div>
+    </div>
+    <div class="card" style="flex:1; min-width:400px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <div class="card-label" style="margin-bottom:0;">Your Decision Tree</div>
+        <div style="display:flex; gap:16px;">
+          <div style="text-align:center;">
+            <div class="stat-label">Depth</div>
+            <div style="font-family:monospace; font-weight:700; font-size:16px;" id="treeDepth">0</div>
+          </div>
+          <div style="text-align:center;">
+            <div class="stat-label">Leaves</div>
+            <div style="font-family:monospace; font-weight:700; font-size:16px;" id="treeLeaves">1</div>
+          </div>
+          <div style="text-align:center;">
+            <div class="stat-label">Total MSE</div>
+            <div style="font-family:monospace; font-weight:700; font-size:14px;" id="treeMSE">—</div>
+          </div>
+        </div>
+      </div>
+      <div class="tree-container" id="treeViz" style="min-height:180px;"></div>
+    </div>
+  </div>
+  <div style="display:flex; gap:12px; flex-wrap:wrap;">
+    <div class="card" style="flex:1; min-width:400px;">
+      <div class="card-label">Selected Leaf — Data Distribution</div>
+      <canvas id="buildScatterCanvas" height="266"></canvas>
+      <div class="plot-note" id="buildScatterNote"></div>
+    </div>
+    <div class="card" style="flex:1; min-width:400px;">
+      <div class="card-label">Selected Leaf — MSE Reduction Across Thresholds</div>
+      <canvas id="buildMSECanvas" height="266"></canvas>
+      <div class="plot-note" id="buildMSENote"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════ DATA ═══════════
+const RAW_DATA = [{"year": 2012, "mileage": 56169, "sellingprice": 43000}, {"year": 2011, "mileage": 53634, "sellingprice": 45000}, {"year": 2011, "mileage": 31927, "sellingprice": 39000}, {"year": 2011, "mileage": 56574, "sellingprice": 53000}, {"year": 2011, "mileage": 47019, "sellingprice": 39000}, {"year": 2011, "mileage": 58109, "sellingprice": 33000}, {"year": 2010, "mileage": 35561, "sellingprice": 39500}, {"year": 2008, "mileage": 82038, "sellingprice": 31500}, {"year": 2001, "mileage": 121719, "sellingprice": 5000}, {"year": 2014, "mileage": 10179, "sellingprice": 87500}, {"year": 2014, "mileage": 5369, "sellingprice": 132000}, {"year": 2014, "mileage": 4460, "sellingprice": 104500}, {"year": 2012, "mileage": 34899, "sellingprice": 48500}, {"year": 2002, "mileage": 115630, "sellingprice": 5000}, {"year": 1999, "mileage": 131135, "sellingprice": 5000}, {"year": 1999, "mileage": 72461, "sellingprice": 5000}, {"year": 2011, "mileage": 46927, "sellingprice": 33500}, {"year": 2011, "mileage": 63408, "sellingprice": 36500}, {"year": 2011, "mileage": 31824, "sellingprice": 34000}, {"year": 2011, "mileage": 64095, "sellingprice": 20000}, {"year": 2011, "mileage": 6939, "sellingprice": 64500}, {"year": 2011, "mileage": 53602, "sellingprice": 37000}, {"year": 2010, "mileage": 49880, "sellingprice": 34500}, {"year": 2010, "mileage": 66115, "sellingprice": 30000}, {"year": 2010, "mileage": 64550, "sellingprice": 29000}, {"year": 2010, "mileage": 43242, "sellingprice": 34000}, {"year": 2010, "mileage": 41486, "sellingprice": 25000}, {"year": 2010, "mileage": 84177, "sellingprice": 33500}, {"year": 2010, "mileage": 36414, "sellingprice": 40000}, {"year": 2009, "mileage": 86028, "sellingprice": 20000}, {"year": 2009, "mileage": 68886, "sellingprice": 26000}, {"year": 2008, "mileage": 107579, "sellingprice": 30500}, {"year": 2008, "mileage": 102462, "sellingprice": 17500}, {"year": 2008, "mileage": 78327, "sellingprice": 14500}, {"year": 2008, "mileage": 117247, "sellingprice": 19000}, {"year": 2000, "mileage": 183128, "sellingprice": 5000}, {"year": 2000, "mileage": 135629, "sellingprice": 5000}, {"year": 2013, "mileage": 44535, "sellingprice": 66500}, {"year": 2013, "mileage": 44373, "sellingprice": 71500}, {"year": 2012, "mileage": 47782, "sellingprice": 45500}, {"year": 2012, "mileage": 45140, "sellingprice": 49500}, {"year": 2012, "mileage": 120402, "sellingprice": 37000}, {"year": 2010, "mileage": 67574, "sellingprice": 33500}, {"year": 2011, "mileage": 59725, "sellingprice": 34000}, {"year": 2011, "mileage": 73541, "sellingprice": 23000}, {"year": 2009, "mileage": 70912, "sellingprice": 18000}, {"year": 2008, "mileage": 155126, "sellingprice": 14000}, {"year": 2001, "mileage": 138324, "sellingprice": 10000}, {"year": 2012, "mileage": 25359, "sellingprice": 50000}, {"year": 2011, "mileage": 49986, "sellingprice": 24500}, {"year": 2011, "mileage": 50709, "sellingprice": 38000}, {"year": 2009, "mileage": 125824, "sellingprice": 17500}, {"year": 2010, "mileage": 48916, "sellingprice": 28000}, {"year": 2010, "mileage": 79711, "sellingprice": 35000}, {"year": 2010, "mileage": 52749, "sellingprice": 40000}, {"year": 2008, "mileage": 69752, "sellingprice": 28500}, {"year": 2010, "mileage": 110497, "sellingprice": 19500}, {"year": 2000, "mileage": 145311, "sellingprice": 5000}, {"year": 2011, "mileage": 62031, "sellingprice": 36000}, {"year": 2010, "mileage": 53014, "sellingprice": 47000}, {"year": 2010, "mileage": 68406, "sellingprice": 27000}, {"year": 2008, "mileage": 104465, "sellingprice": 19000}, {"year": 1999, "mileage": 158022, "sellingprice": 5000}, {"year": 2012, "mileage": 62228, "sellingprice": 32500}, {"year": 2011, "mileage": 44267, "sellingprice": 49000}, {"year": 2011, "mileage": 38624, "sellingprice": 52500}, {"year": 2008, "mileage": 36749, "sellingprice": 28000}, {"year": 2008, "mileage": 92123, "sellingprice": 27500}, {"year": 2000, "mileage": 124723, "sellingprice": 5000}, {"year": 2012, "mileage": 18807, "sellingprice": 47500}, {"year": 2011, "mileage": 43420, "sellingprice": 38500}, {"year": 1999, "mileage": 1, "sellingprice": 11000}, {"year": 2011, "mileage": 60202, "sellingprice": 32500}, {"year": 2011, "mileage": 45623, "sellingprice": 52500}, {"year": 2011, "mileage": 37018, "sellingprice": 10500}, {"year": 2011, "mileage": 44482, "sellingprice": 49000}, {"year": 2011, "mileage": 48992, "sellingprice": 40500}, {"year": 2011, "mileage": 33636, "sellingprice": 40500}, {"year": 2011, "mileage": 19925, "sellingprice": 50000}, {"year": 2010, "mileage": 68654, "sellingprice": 18500}, {"year": 2002, "mileage": 119412, "sellingprice": 5000}, {"year": 2014, "mileage": 6184, "sellingprice": 99500}, {"year": 2014, "mileage": 10040, "sellingprice": 137500}, {"year": 2014, "mileage": 6814, "sellingprice": 111500}, {"year": 2014, "mileage": 3910, "sellingprice": 106500}, {"year": 2014, "mileage": 3619, "sellingprice": 131500}, {"year": 2014, "mileage": 3457, "sellingprice": 118500}, {"year": 2014, "mileage": 6975, "sellingprice": 111500}, {"year": 2014, "mileage": 6366, "sellingprice": 109500}, {"year": 2011, "mileage": 57549, "sellingprice": 49500}, {"year": 2010, "mileage": 60653, "sellingprice": 40500}, {"year": 2008, "mileage": 85335, "sellingprice": 26000}, {"year": 2002, "mileage": 133996, "sellingprice": 5000}, {"year": 2011, "mileage": 44551, "sellingprice": 38000}, {"year": 2010, "mileage": 85858, "sellingprice": 29500}, {"year": 2008, "mileage": 141286, "sellingprice": 5000}, {"year": 2014, "mileage": 2282, "sellingprice": 112000}, {"year": 2014, "mileage": 5194, "sellingprice": 133000}, {"year": 2013, "mileage": 13610, "sellingprice": 85000}, {"year": 2012, "mileage": 37287, "sellingprice": 45000}, {"year": 2012, "mileage": 28860, "sellingprice": 34500}, {"year": 2011, "mileage": 53456, "sellingprice": 35500}, {"year": 2008, "mileage": 66458, "sellingprice": 18000}, {"year": 2008, "mileage": 107303, "sellingprice": 10500}, {"year": 2008, "mileage": 71146, "sellingprice": 22000}, {"year": 2012, "mileage": 8782, "sellingprice": 59500}, {"year": 2012, "mileage": 70977, "sellingprice": 53000}, {"year": 2011, "mileage": 45337, "sellingprice": 37000}, {"year": 2009, "mileage": 83201, "sellingprice": 28500}, {"year": 2008, "mileage": 97563, "sellingprice": 19000}, {"year": 2010, "mileage": 80335, "sellingprice": 18500}, {"year": 2008, "mileage": 127163, "sellingprice": 17500}, {"year": 2012, "mileage": 49526, "sellingprice": 43000}, {"year": 2009, "mileage": 78476, "sellingprice": 45000}, {"year": 2014, "mileage": 8486, "sellingprice": 121500}, {"year": 2011, "mileage": 54716, "sellingprice": 48000}, {"year": 2014, "mileage": 107, "sellingprice": 116000}, {"year": 2008, "mileage": 122175, "sellingprice": 7000}, {"year": 2008, "mileage": 47236, "sellingprice": 34000}, {"year": 2008, "mileage": 83634, "sellingprice": 26500}, {"year": 2012, "mileage": 37275, "sellingprice": 52500}, {"year": 2011, "mileage": 29100, "sellingprice": 37500}, {"year": 2011, "mileage": 47910, "sellingprice": 46500}, {"year": 2011, "mileage": 38887, "sellingprice": 25000}, {"year": 2011, "mileage": 37087, "sellingprice": 49000}, {"year": 2008, "mileage": 93606, "sellingprice": 31000}, {"year": 2002, "mileage": 211382, "sellingprice": 5000}, {"year": 2008, "mileage": 160651, "sellingprice": 12500}, {"year": 2001, "mileage": 46131, "sellingprice": 12000}, {"year": 1998, "mileage": 191662, "sellingprice": 5000}, {"year": 2008, "mileage": 64872, "sellingprice": 13000}, {"year": 2011, "mileage": 32335, "sellingprice": 41000}, {"year": 2011, "mileage": 30938, "sellingprice": 35500}, {"year": 2008, "mileage": 118431, "sellingprice": 18500}, {"year": 1999, "mileage": 149157, "sellingprice": 5000}, {"year": 2012, "mileage": 41573, "sellingprice": 56000}, {"year": 2011, "mileage": 62425, "sellingprice": 33000}, {"year": 2010, "mileage": 32070, "sellingprice": 35500}, {"year": 2010, "mileage": 76622, "sellingprice": 35500}, {"year": 2008, "mileage": 84027, "sellingprice": 13500}, {"year": 2008, "mileage": 46753, "sellingprice": 23000}, {"year": 2008, "mileage": 54805, "sellingprice": 32000}, {"year": 2008, "mileage": 95947, "sellingprice": 5500}, {"year": 2002, "mileage": 104886, "sellingprice": 5000}, {"year": 2014, "mileage": 9762, "sellingprice": 97000}, {"year": 2011, "mileage": 43285, "sellingprice": 45000}, {"year": 2010, "mileage": 42250, "sellingprice": 24000}, {"year": 2014, "mileage": 13534, "sellingprice": 106000}, {"year": 2008, "mileage": 107809, "sellingprice": 20000}, {"year": 2013, "mileage": 20950, "sellingprice": 84000}, {"year": 2008, "mileage": 100214, "sellingprice": 20500}, {"year": 2008, "mileage": 99674, "sellingprice": 19000}, {"year": 2008, "mileage": 109298, "sellingprice": 13500}, {"year": 2008, "mileage": 95018, "sellingprice": 22000}, {"year": 2002, "mileage": 122758, "sellingprice": 5000}, {"year": 2011, "mileage": 15405, "sellingprice": 40000}, {"year": 2010, "mileage": 59776, "sellingprice": 48500}, {"year": 2008, "mileage": 105580, "sellingprice": 20500}, {"year": 2001, "mileage": 99587, "sellingprice": 5000}, {"year": 2011, "mileage": 71991, "sellingprice": 40000}, {"year": 2008, "mileage": 113719, "sellingprice": 10000}, {"year": 2008, "mileage": 78020, "sellingprice": 24000}, {"year": 2008, "mileage": 86378, "sellingprice": 31500}, {"year": 2008, "mileage": 119480, "sellingprice": 11000}, {"year": 2002, "mileage": 145923, "sellingprice": 7500}, {"year": 2000, "mileage": 147629, "sellingprice": 5000}, {"year": 2011, "mileage": 47023, "sellingprice": 53000}, {"year": 2011, "mileage": 58294, "sellingprice": 49500}, {"year": 2008, "mileage": 79781, "sellingprice": 21000}, {"year": 2008, "mileage": 67106, "sellingprice": 17500}, {"year": 2008, "mileage": 57189, "sellingprice": 20500}, {"year": 2008, "mileage": 89798, "sellingprice": 13000}, {"year": 2008, "mileage": 129760, "sellingprice": 15500}, {"year": 2000, "mileage": 119676, "sellingprice": 5000}, {"year": 2000, "mileage": 93342, "sellingprice": 5000}, {"year": 2010, "mileage": 86827, "sellingprice": 34000}, {"year": 2008, "mileage": 103840, "sellingprice": 15000}, {"year": 2008, "mileage": 95381, "sellingprice": 28000}, {"year": 2008, "mileage": 53575, "sellingprice": 17500}, {"year": 2011, "mileage": 45258, "sellingprice": 63000}, {"year": 2011, "mileage": 41673, "sellingprice": 47500}, {"year": 2008, "mileage": 85543, "sellingprice": 12500}, {"year": 2012, "mileage": 22388, "sellingprice": 47500}, {"year": 2012, "mileage": 22137, "sellingprice": 54000}, {"year": 2010, "mileage": 56030, "sellingprice": 39500}, {"year": 2008, "mileage": 92306, "sellingprice": 23500}, {"year": 2008, "mileage": 93794, "sellingprice": 18500}, {"year": 2014, "mileage": 5573, "sellingprice": 105500}, {"year": 2012, "mileage": 51782, "sellingprice": 38000}, {"year": 2011, "mileage": 55228, "sellingprice": 32500}, {"year": 2011, "mileage": 50953, "sellingprice": 35500}, {"year": 2011, "mileage": 37965, "sellingprice": 48000}, {"year": 2010, "mileage": 62151, "sellingprice": 37500}, {"year": 2008, "mileage": 82834, "sellingprice": 9500}, {"year": 2008, "mileage": 117734, "sellingprice": 17000}, {"year": 2008, "mileage": 150793, "sellingprice": 18000}, {"year": 2008, "mileage": 54084, "sellingprice": 20000}, {"year": 1999, "mileage": 120056, "sellingprice": 5000}, {"year": 2014, "mileage": 33995, "sellingprice": 82500}, {"year": 2011, "mileage": 45273, "sellingprice": 32500}, {"year": 2010, "mileage": 115259, "sellingprice": 29500}, {"year": 2008, "mileage": 76714, "sellingprice": 24500}, {"year": 2014, "mileage": 16865, "sellingprice": 95000}, {"year": 2012, "mileage": 45674, "sellingprice": 50500}, {"year": 2011, "mileage": 19123, "sellingprice": 38500}, {"year": 2008, "mileage": 84130, "sellingprice": 16000}, {"year": 2010, "mileage": 63435, "sellingprice": 35000}, {"year": 2012, "mileage": 29767, "sellingprice": 52500}, {"year": 2014, "mileage": 9968, "sellingprice": 107500}, {"year": 2008, "mileage": 97750, "sellingprice": 47500}, {"year": 2013, "mileage": 15551, "sellingprice": 101000}, {"year": 2011, "mileage": 51902, "sellingprice": 44500}, {"year": 2008, "mileage": 100981, "sellingprice": 22500}, {"year": 2002, "mileage": 123590, "sellingprice": 5000}, {"year": 2000, "mileage": 137343, "sellingprice": 5000}, {"year": 2013, "mileage": 30961, "sellingprice": 95500}, {"year": 2011, "mileage": 33632, "sellingprice": 38500}, {"year": 2008, "mileage": 69783, "sellingprice": 23000}, {"year": 2012, "mileage": 45718, "sellingprice": 43000}, {"year": 2012, "mileage": 42363, "sellingprice": 44500}, {"year": 2008, "mileage": 83922, "sellingprice": 35000}, {"year": 2011, "mileage": 54282, "sellingprice": 20000}, {"year": 2013, "mileage": 38504, "sellingprice": 92000}, {"year": 2011, "mileage": 19126, "sellingprice": 38000}, {"year": 2008, "mileage": 70367, "sellingprice": 13500}, {"year": 2008, "mileage": 98960, "sellingprice": 26000}, {"year": 2013, "mileage": 20292, "sellingprice": 82000}, {"year": 2012, "mileage": 15836, "sellingprice": 48500}, {"year": 2011, "mileage": 77999, "sellingprice": 27500}, {"year": 2008, "mileage": 134885, "sellingprice": 21500}, {"year": 2011, "mileage": 54307, "sellingprice": 37000}, {"year": 2008, "mileage": 74192, "sellingprice": 24500}, {"year": 2014, "mileage": 10054, "sellingprice": 101500}, {"year": 2014, "mileage": 10927, "sellingprice": 101000}, {"year": 2008, "mileage": 78867, "sellingprice": 35000}, {"year": 2008, "mileage": 95437, "sellingprice": 22000}, {"year": 2008, "mileage": 58060, "sellingprice": 13500}, {"year": 2002, "mileage": 134397, "sellingprice": 5000}, {"year": 2014, "mileage": 12770, "sellingprice": 88000}, {"year": 2014, "mileage": 22991, "sellingprice": 89500}, {"year": 2014, "mileage": 10934, "sellingprice": 88000}, {"year": 2012, "mileage": 72364, "sellingprice": 36000}, {"year": 2011, "mileage": 64094, "sellingprice": 39000}, {"year": 2011, "mileage": 36938, "sellingprice": 48500}, {"year": 2008, "mileage": 70215, "sellingprice": 9000}, {"year": 2014, "mileage": 6678, "sellingprice": 98500}, {"year": 2013, "mileage": 37175, "sellingprice": 73500}, {"year": 2011, "mileage": 51656, "sellingprice": 37500}, {"year": 2011, "mileage": 28104, "sellingprice": 57500}, {"year": 2008, "mileage": 100987, "sellingprice": 18000}, {"year": 2012, "mileage": 59460, "sellingprice": 30500}, {"year": 2008, "mileage": 109092, "sellingprice": 23000}, {"year": 2013, "mileage": 17408, "sellingprice": 97000}, {"year": 2012, "mileage": 77124, "sellingprice": 45000}, {"year": 2010, "mileage": 53470, "sellingprice": 21500}, {"year": 2010, "mileage": 76236, "sellingprice": 31000}, {"year": 2008, "mileage": 95077, "sellingprice": 26500}, {"year": 2008, "mileage": 108739, "sellingprice": 11000}, {"year": 2008, "mileage": 89078, "sellingprice": 21000}, {"year": 2014, "mileage": 4237, "sellingprice": 109500}, {"year": 2011, "mileage": 61996, "sellingprice": 29500}, {"year": 2010, "mileage": 62336, "sellingprice": 33500}, {"year": 2012, "mileage": 51874, "sellingprice": 18000}, {"year": 2011, "mileage": 63937, "sellingprice": 30000}, {"year": 2012, "mileage": 50031, "sellingprice": 40000}, {"year": 2012, "mileage": 61455, "sellingprice": 25000}, {"year": 2008, "mileage": 95988, "sellingprice": 28500}, {"year": 2012, "mileage": 42220, "sellingprice": 35500}, {"year": 2011, "mileage": 51275, "sellingprice": 28000}, {"year": 2009, "mileage": 78490, "sellingprice": 28500}, {"year": 2012, "mileage": 57079, "sellingprice": 49500}, {"year": 2012, "mileage": 45214, "sellingprice": 29000}, {"year": 2011, "mileage": 54555, "sellingprice": 43000}, {"year": 2012, "mileage": 47506, "sellingprice": 41500}, {"year": 2011, "mileage": 35705, "sellingprice": 38000}, {"year": 2011, "mileage": 86736, "sellingprice": 33500}, {"year": 2000, "mileage": 154957, "sellingprice": 5000}, {"year": 2008, "mileage": 113107, "sellingprice": 13500}, {"year": 2014, "mileage": 44978, "sellingprice": 86500}, {"year": 2011, "mileage": 18645, "sellingprice": 46500}, {"year": 2008, "mileage": 88149, "sellingprice": 20000}, {"year": 2012, "mileage": 47243, "sellingprice": 49500}, {"year": 2011, "mileage": 64722, "sellingprice": 50500}, {"year": 2009, "mileage": 59206, "sellingprice": 14500}, {"year": 2008, "mileage": 106136, "sellingprice": 30500}, {"year": 2008, "mileage": 83260, "sellingprice": 10000}, {"year": 2008, "mileage": 118418, "sellingprice": 15000}, {"year": 2014, "mileage": 17901, "sellingprice": 95000}, {"year": 2013, "mileage": 12105, "sellingprice": 87500}, {"year": 2011, "mileage": 105458, "sellingprice": 23000}, {"year": 2011, "mileage": 70176, "sellingprice": 28500}, {"year": 2010, "mileage": 63736, "sellingprice": 30500}, {"year": 2008, "mileage": 62537, "sellingprice": 19000}, {"year": 2008, "mileage": 208255, "sellingprice": 15000}, {"year": 2008, "mileage": 107134, "sellingprice": 21500}, {"year": 2010, "mileage": 87950, "sellingprice": 23000}, {"year": 2011, "mileage": 57284, "sellingprice": 47500}, {"year": 2008, "mileage": 98765, "sellingprice": 23500}, {"year": 2011, "mileage": 45629, "sellingprice": 49000}, {"year": 2011, "mileage": 48591, "sellingprice": 51000}, {"year": 2012, "mileage": 51507, "sellingprice": 34000}, {"year": 2012, "mileage": 61226, "sellingprice": 30000}, {"year": 2011, "mileage": 73054, "sellingprice": 39000}, {"year": 2010, "mileage": 81285, "sellingprice": 34500}, {"year": 2010, "mileage": 59760, "sellingprice": 36500}, {"year": 2008, "mileage": 89935, "sellingprice": 19500}, {"year": 2012, "mileage": 15431, "sellingprice": 59500}, {"year": 2010, "mileage": 52131, "sellingprice": 24500}, {"year": 2014, "mileage": 16002, "sellingprice": 103000}, {"year": 2012, "mileage": 33456, "sellingprice": 46500}, {"year": 2013, "mileage": 47195, "sellingprice": 73500}, {"year": 2014, "mileage": 9925, "sellingprice": 67500}, {"year": 2014, "mileage": 17983, "sellingprice": 82500}, {"year": 2014, "mileage": 7434, "sellingprice": 98000}, {"year": 2013, "mileage": 22316, "sellingprice": 74000}, {"year": 2011, "mileage": 106254, "sellingprice": 30000}, {"year": 2010, "mileage": 46348, "sellingprice": 36000}, {"year": 2013, "mileage": 23252, "sellingprice": 81500}, {"year": 2011, "mileage": 98772, "sellingprice": 33000}, {"year": 2011, "mileage": 58623, "sellingprice": 35000}, {"year": 2010, "mileage": 69471, "sellingprice": 30000}, {"year": 2008, "mileage": 84226, "sellingprice": 27500}, {"year": 2014, "mileage": 29530, "sellingprice": 77500}, {"year": 2011, "mileage": 61464, "sellingprice": 54000}, {"year": 2010, "mileage": 39802, "sellingprice": 27000}, {"year": 2013, "mileage": 56577, "sellingprice": 65500}, {"year": 2011, "mileage": 81127, "sellingprice": 38500}, {"year": 2010, "mileage": 27411, "sellingprice": 38000}, {"year": 2011, "mileage": 74560, "sellingprice": 34000}, {"year": 2009, "mileage": 77405, "sellingprice": 31500}, {"year": 2012, "mileage": 53077, "sellingprice": 41500}, {"year": 2010, "mileage": 58937, "sellingprice": 24500}, {"year": 2010, "mileage": 45154, "sellingprice": 32500}, {"year": 2008, "mileage": 114721, "sellingprice": 10000}, {"year": 2012, "mileage": 39504, "sellingprice": 51500}, {"year": 2010, "mileage": 81010, "sellingprice": 22000}, {"year": 2008, "mileage": 92585, "sellingprice": 10500}, {"year": 2011, "mileage": 59007, "sellingprice": 31500}, {"year": 2010, "mileage": 63736, "sellingprice": 38000}, {"year": 2010, "mileage": 54642, "sellingprice": 28500}, {"year": 2010, "mileage": 52558, "sellingprice": 24000}, {"year": 2013, "mileage": 22833, "sellingprice": 79500}, {"year": 2013, "mileage": 35259, "sellingprice": 84500}, {"year": 2010, "mileage": 72077, "sellingprice": 21000}, {"year": 2011, "mileage": 106483, "sellingprice": 29500}, {"year": 2010, "mileage": 67709, "sellingprice": 29500}, {"year": 2012, "mileage": 49820, "sellingprice": 30000}, {"year": 2011, "mileage": 63696, "sellingprice": 20000}, {"year": 2011, "mileage": 64738, "sellingprice": 33000}, {"year": 2011, "mileage": 49246, "sellingprice": 38500}, {"year": 2011, "mileage": 43643, "sellingprice": 41500}, {"year": 2011, "mileage": 42406, "sellingprice": 44500}, {"year": 2010, "mileage": 182536, "sellingprice": 35000}, {"year": 2010, "mileage": 92240, "sellingprice": 27000}, {"year": 2008, "mileage": 78360, "sellingprice": 19500}, {"year": 2008, "mileage": 59478, "sellingprice": 16500}, {"year": 2014, "mileage": 4986, "sellingprice": 101000}, {"year": 2014, "mileage": 18553, "sellingprice": 82500}, {"year": 2013, "mileage": 19346, "sellingprice": 84000}, {"year": 2012, "mileage": 42255, "sellingprice": 37500}, {"year": 2011, "mileage": 72999, "sellingprice": 35000}, {"year": 2002, "mileage": 151341, "sellingprice": 13500}, {"year": 2014, "mileage": 29657, "sellingprice": 78500}, {"year": 2011, "mileage": 38905, "sellingprice": 42500}, {"year": 2008, "mileage": 67892, "sellingprice": 23500}, {"year": 2010, "mileage": 48214, "sellingprice": 35500}, {"year": 2008, "mileage": 94679, "sellingprice": 19000}, {"year": 2014, "mileage": 12258, "sellingprice": 94500}, {"year": 2008, "mileage": 116555, "sellingprice": 20500}, {"year": 2012, "mileage": 17668, "sellingprice": 45000}, {"year": 2013, "mileage": 31044, "sellingprice": 83500}, {"year": 2011, "mileage": 63374, "sellingprice": 35500}, {"year": 2012, "mileage": 41447, "sellingprice": 51500}, {"year": 2010, "mileage": 82735, "sellingprice": 35500}, {"year": 2010, "mileage": 82072, "sellingprice": 45000}];
+
+// ═══════════ UTILS ═══════════
+function mse(arr) {
+  if (arr.length === 0) return 0;
+  const mean = arr.reduce((a,b) => a+b, 0) / arr.length;
+  return arr.reduce((a,v) => a + (v-mean)*(v-mean), 0) / arr.length;
+}
+function mean(arr) { return arr.length ? arr.reduce((a,b) => a+b, 0) / arr.length : 0; }
+function fmt$(v) { return '$' + Math.round(v).toLocaleString(); }
+function fmtMSE(v) { return (v/1e6).toFixed(2) + 'M'; }
+
+function computeSplitStats(data, feature, threshold) {
+  const left = data.filter(d => d[feature] < threshold);
+  const right = data.filter(d => d[feature] >= threshold);
+  const leftPrices = left.map(d => d.sellingprice);
+  const rightPrices = right.map(d => d.sellingprice);
+  const allPrices = data.map(d => d.sellingprice);
+  const parentMSE = mse(allPrices);
+  const leftMSE = mse(leftPrices);
+  const rightMSE = mse(rightPrices);
+  const n = data.length;
+  const weightedMSE = (left.length * leftMSE + right.length * rightMSE) / n;
+  return {
+    parentMSE, leftMSE, rightMSE, weightedMSE,
+    reduction: parentMSE - weightedMSE,
+    leftN: left.length, rightN: right.length,
+    leftMean: mean(leftPrices), rightMean: mean(rightPrices),
+    parentMean: mean(allPrices), parentN: n
+  };
+}
+
+function bestSplit(data, feature) {
+  const vals = [...new Set(data.map(d => d[feature]))].sort((a,b) => a-b);
+  const thresholds = [];
+  for (let i = 0; i < vals.length - 1; i++) thresholds.push((vals[i] + vals[i+1]) / 2);
+  let best = { threshold: thresholds[0], reduction: -Infinity };
+  for (const t of thresholds) {
+    const s = computeSplitStats(data, feature, t);
+    if (s.reduction > best.reduction && s.leftN > 0 && s.rightN > 0) {
+      best = { threshold: t, ...s };
+    }
+  }
+  return best;
+}
+
+function bestSplitOverall(data) {
+  const features = ['year', 'mileage'];
+  let best = { feature: 'year', threshold: 2010, reduction: -Infinity };
+  for (const f of features) {
+    const b = bestSplit(data, f);
+    if (b.reduction > best.reduction) best = { feature: f, ...b };
+  }
+  return best;
+}
+
+// ═══════════ TAB SWITCHING ═══════════
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    if (btn.dataset.tab === 'explore') updateExploreTab();
+    if (btn.dataset.tab === 'build') requestAnimationFrame(() => requestAnimationFrame(() => updateBuildTab()));
+  });
+});
+
+// ═══════════ TAB 1: EXPLORE SPLITS ═══════════
+const DATA = RAW_DATA;
+const scatterCanvas = document.getElementById('scatterCanvas');
+const scatterCtx = scatterCanvas.getContext('2d');
+const mseCanvas = document.getElementById('mseCanvas');
+const mseCtx = mseCanvas.getContext('2d');
+
+function setupCanvasHiDPI(canvas, w, h) {
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  return ctx;
+}
+
+function getFeatureRange(feature) {
+  const vals = DATA.map(d => d[feature]);
+  return { min: Math.min(...vals), max: Math.max(...vals) };
+}
+
+function updateExploreTab() {
+  const feature = document.getElementById('featureSelect').value;
+  const threshold = +document.getElementById('threshSlider').value;
+
+  // Update slider config for feature
+  const range = getFeatureRange(feature);
+  const slider = document.getElementById('threshSlider');
+  if (feature === 'year') {
+    slider.min = 1999; slider.max = 2016; slider.step = 1;
+    document.getElementById('threshMin').textContent = '1999';
+    document.getElementById('threshMax').textContent = '2016';
+  } else {
+    slider.min = 0; slider.max = 200000; slider.step = 1000;
+    document.getElementById('threshMin').textContent = '0';
+    document.getElementById('threshMax').textContent = '200k';
+  }
+
+  const t = +slider.value;
+  const label = feature === 'mileage' ? Math.round(t/1000) + 'k' : t;
+  document.getElementById('threshVal').textContent = label;
+
+  const stats = computeSplitStats(DATA, feature, t);
+  document.getElementById('mseReduction').textContent = fmtMSE(stats.reduction);
+  document.getElementById('leftMSE').textContent = fmtMSE(stats.leftMSE);
+  document.getElementById('rightMSE').textContent = fmtMSE(stats.rightMSE);
+  document.getElementById('parentMSE').textContent = fmtMSE(stats.parentMSE);
+  document.getElementById('leftInfo').textContent = `n=${stats.leftN} · mean=${fmt$(stats.leftMean)}`;
+  document.getElementById('rightInfo').textContent = `n=${stats.rightN} · mean=${fmt$(stats.rightMean)}`;
+  document.getElementById('parentInfo').textContent = `n=${stats.parentN} · mean=${fmt$(stats.parentMean)}`;
+
+  drawScatter(scatterCanvas, DATA, feature, t, 'scatterNote');
+  drawMSECurve(DATA, feature, t);
+}
+
+function drawScatter(canvas, data, feature, threshold, noteId) {
+  const W = canvas.clientWidth || canvas.parentElement.clientWidth || 500, H = canvas.clientHeight || 266;
+  const ctx = setupCanvasHiDPI(canvas, W, H);
+  const pad = { t: 20, r: 20, b: 45, l: 65 };
+  const pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
+
+  const xVals = data.map(d => d[feature]);
+  const yVals = data.map(d => d.sellingprice);
+  const xMin = feature === 'year' ? 1998 : Math.min(...xVals) * 0.98;
+  const xMax = feature === 'year' ? 2016 : Math.max(...xVals) * 1.02;
+  const yMin = 0, yMax = Math.max(...yVals) * 1.1;
+  const sx = v => pad.l + (v - xMin) / (xMax - xMin) * pw;
+  const sy = v => pad.t + ph - (v - yMin) / (yMax - yMin) * ph;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 0.5;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.t + ph * i / 4;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
+  }
+
+  // Split line
+  const splitX = sx(threshold);
+  ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2.5; ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(splitX, pad.t); ctx.lineTo(splitX, pad.t + ph); ctx.stroke();
+
+  // Points
+  data.forEach(d => {
+    const x = sx(d[feature]), y = sy(d.sellingprice);
+    const isLeft = d[feature] < threshold;
+    ctx.beginPath(); ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = isLeft ? 'rgba(59,130,246,0.5)' : 'rgba(239,68,68,0.5)';
+    ctx.fill();
+    ctx.strokeStyle = isLeft ? '#3b82f6' : '#ef4444'; ctx.lineWidth = 0.8; ctx.stroke();
+  });
+
+  // Mean lines
+  const leftData = data.filter(d => d[feature] < threshold);
+  const rightData = data.filter(d => d[feature] >= threshold);
+  if (leftData.length) {
+    const lm = sy(mean(leftData.map(d => d.sellingprice)));
+    ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 2; ctx.setLineDash([6,4]);
+    ctx.beginPath(); ctx.moveTo(pad.l, lm); ctx.lineTo(splitX, lm); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  if (rightData.length) {
+    const rm = sy(mean(rightData.map(d => d.sellingprice)));
+    ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 2; ctx.setLineDash([6,4]);
+    ctx.beginPath(); ctx.moveTo(splitX, rm); ctx.lineTo(W - pad.r, rm); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Axes labels
+  ctx.fillStyle = '#64748b'; ctx.font = '700 14px monospace'; ctx.textAlign = 'center';
+  const featureLabel = feature === 'year' ? 'Year' : 'Mileage';
+  ctx.fillText(featureLabel, pad.l + pw/2, H - 6);
+  ctx.save(); ctx.translate(16, pad.t + ph/2); ctx.rotate(-Math.PI/2);
+  ctx.fillText('Price ($)', 0, 0); ctx.restore();
+
+  // Tick labels
+  ctx.font = '12px monospace'; ctx.fillStyle = '#64748b';
+  for (let i = 0; i <= 4; i++) {
+    const v = yMin + (yMax - yMin) * (4 - i) / 4;
+    ctx.textAlign = 'right';
+    ctx.fillText(fmt$(v), pad.l - 8, pad.t + ph * i / 4 + 4);
+  }
+  for (let i = 0; i <= 5; i++) {
+    const v = xMin + (xMax - xMin) * i / 5;
+    ctx.textAlign = 'center';
+    const lbl = feature === 'mileage' ? Math.round(v/1000) + 'k' : Math.round(v);
+    ctx.fillText(lbl, pad.l + pw * i / 5, pad.t + ph + 18);
+  }
+
+  if (noteId) {
+    const tLabel = feature === 'mileage' ? Math.round(threshold/1000) + 'k' : threshold;
+    document.getElementById(noteId).innerHTML =
+      `Split: ${featureLabel} < ${tLabel} · ` +
+      `<span style="color:#3b82f6">● left (n=${leftData.length})</span> · ` +
+      `<span style="color:#ef4444">● right (n=${rightData.length})</span>`;
+  }
+}
+
+function drawMSECurve(data, feature, currentThreshold) {
+  const vals = [...new Set(data.map(d => d[feature]))].sort((a,b) => a-b);
+  const thresholds = [];
+  for (let i = 0; i < vals.length - 1; i++) thresholds.push((vals[i] + vals[i+1]) / 2);
+  const reductions = thresholds.map(t => computeSplitStats(data, feature, t).reduction);
+
+  const W = mseCanvas.clientWidth || mseCanvas.parentElement.clientWidth || 500, H = mseCanvas.clientHeight || 266;
+  const ctx = setupCanvasHiDPI(mseCanvas, W, H);
+  const pad = { t: 20, r: 20, b: 45, l: 65 };
+  const pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
+
+  const xMin = thresholds[0], xMax = thresholds[thresholds.length - 1];
+  const yMax = Math.max(...reductions) * 1.15;
+  const sx = v => pad.l + (v - xMin) / (xMax - xMin) * pw;
+  const sy = v => pad.t + ph - v / yMax * ph;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 0.5;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.t + ph * i / 4;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
+  }
+
+  // Curve
+  ctx.beginPath(); ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 2;
+  thresholds.forEach((t, i) => {
+    const x = sx(t), y = sy(reductions[i]);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // Current threshold marker
+  const ci = thresholds.reduce((best, t, i) => Math.abs(t - currentThreshold) < Math.abs(thresholds[best] - currentThreshold) ? i : best, 0);
+  ctx.beginPath(); ctx.arc(sx(thresholds[ci]), sy(reductions[ci]), 6, 0, Math.PI * 2);
+  ctx.fillStyle = '#f59e0b'; ctx.fill();
+  ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2; ctx.stroke();
+
+  // Best marker
+  const bi = reductions.indexOf(Math.max(...reductions));
+  ctx.beginPath(); ctx.arc(sx(thresholds[bi]), sy(reductions[bi]), 6, 0, Math.PI * 2);
+  ctx.fillStyle = '#16a34a'; ctx.fill();
+  ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2; ctx.stroke();
+
+  // Labels
+  ctx.fillStyle = '#64748b'; ctx.font = '700 14px monospace'; ctx.textAlign = 'center';
+  const fLabel = feature === 'year' ? 'Split Threshold (Year)' : 'Split Threshold (Mileage)';
+  ctx.fillText(fLabel, pad.l + pw/2, H - 6);
+  ctx.save(); ctx.translate(16, pad.t + ph/2); ctx.rotate(-Math.PI/2);
+  ctx.fillText('MSE Reduction', 0, 0); ctx.restore();
+
+  // Y-axis ticks
+  ctx.font = '12px monospace'; ctx.fillStyle = '#64748b';
+  for (let i = 0; i <= 4; i++) {
+    const v = yMax * (4 - i) / 4;
+    ctx.textAlign = 'right';
+    ctx.fillText(fmtMSE(v), pad.l - 8, pad.t + ph * i / 4 + 4);
+  }
+
+  // X-axis ticks
+  ctx.textAlign = 'center';
+  for (let i = 0; i <= 5; i++) {
+    const v = xMin + (xMax - xMin) * i / 5;
+    const lbl = feature === 'mileage' ? Math.round(v/1000) + 'k' : Math.round(v);
+    ctx.fillText(lbl, pad.l + pw * i / 5, pad.t + ph + 18);
+  }
+
+  document.getElementById('mseNote').innerHTML =
+    `<span style="color:#f59e0b">●</span> current threshold · <span style="color:#16a34a">●</span> best threshold`;
+}
+
+document.getElementById('featureSelect').addEventListener('change', function() {
+  const slider = document.getElementById('threshSlider');
+  if (this.value === 'year') slider.value = 2010;
+  else slider.value = 50000;
+  updateExploreTab();
+});
+document.getElementById('threshSlider').addEventListener('input', updateExploreTab);
+
+// ═══════════ TAB 2: BUILD A TREE ═══════════
+let treeRoot = { id: 0, data: [...DATA], depth: 0, split: null, left: null, right: null };
+let selectedNodeId = 0;
+let nextId = 1;
+let splitHistory = [];
+
+function findNode(node, id) {
+  if (node.id === id) return node;
+  if (node.left) { const f = findNode(node.left, id); if (f) return f; }
+  if (node.right) { const f = findNode(node.right, id); if (f) return f; }
+  return null;
+}
+
+function allLeaves(node) {
+  if (!node.split) return [node];
+  return [...allLeaves(node.left), ...allLeaves(node.right)];
+}
+
+function treeDepth(node) {
+  if (!node.split) return node.depth;
+  return Math.max(treeDepth(node.left), treeDepth(node.right));
+}
+
+function totalWeightedMSE(node) {
+  const leaves = allLeaves(node);
+  const totalN = node.data.length;
+  return leaves.reduce((acc, l) => acc + l.data.length * mse(l.data.map(d => d.sellingprice)), 0) / totalN;
+}
+
+function updateBuildSlider() {
+  const feature = document.getElementById('buildFeatureSelect').value;
+  const slider = document.getElementById('buildThreshSlider');
+  if (feature === 'year') {
+    slider.min = 1999; slider.max = 2016; slider.step = 1;
+    document.getElementById('buildThreshMin').textContent = '1999';
+    document.getElementById('buildThreshMax').textContent = '2016';
+    if (+slider.value > 2016 || +slider.value < 1999) slider.value = 2010;
+  } else {
+    slider.min = 0; slider.max = 200000; slider.step = 1000;
+    document.getElementById('buildThreshMin').textContent = '0';
+    document.getElementById('buildThreshMax').textContent = '200k';
+    if (+slider.value > 200000) slider.value = 50000;
+  }
+}
+
+function updateBuildTab() {
+  const node = findNode(treeRoot, selectedNodeId);
+  if (!node) return;
+
+  const feature = document.getElementById('buildFeatureSelect').value;
+  const threshold = +document.getElementById('buildThreshSlider').value;
+  const tLabel = feature === 'mileage' ? Math.round(threshold/1000) + 'k' : threshold;
+  document.getElementById('buildThreshVal').textContent = tLabel;
+
+  // Node info
+  const prices = node.data.map(d => d.sellingprice);
+  const depthLabel = node.depth === 0 ? 'Root' : `Depth ${node.depth} leaf`;
+  document.getElementById('nodeTitle').textContent = `${depthLabel} · n=${node.data.length}`;
+  document.getElementById('nodeDetails').textContent = `Mean: ${fmt$(mean(prices))} · MSE: ${fmtMSE(mse(prices))}`;
+
+  // Split stats
+  if (node.split) {
+    document.getElementById('buildMseReduction').textContent = '(already split)';
+    document.getElementById('buildLeftMSE').textContent = '—';
+    document.getElementById('buildRightMSE').textContent = '—';
+    document.getElementById('buildLeftInfo').textContent = '';
+    document.getElementById('buildRightInfo').textContent = '';
+    document.getElementById('splitBtn').disabled = true;
+    document.getElementById('autoSplitBtn').disabled = true;
+  } else {
+    const stats = computeSplitStats(node.data, feature, threshold);
+    document.getElementById('buildMseReduction').textContent = fmtMSE(stats.reduction);
+    document.getElementById('buildLeftMSE').textContent = fmtMSE(stats.leftMSE);
+    document.getElementById('buildRightMSE').textContent = fmtMSE(stats.rightMSE);
+    document.getElementById('buildLeftInfo').textContent = `n=${stats.leftN} · mean=${fmt$(stats.leftMean)}`;
+    document.getElementById('buildRightInfo').textContent = `n=${stats.rightN} · mean=${fmt$(stats.rightMean)}`;
+    document.getElementById('splitBtn').disabled = false;
+    document.getElementById('autoSplitBtn').disabled = false;
+  }
+
+  // Tree stats
+  document.getElementById('treeDepth').textContent = treeDepth(treeRoot);
+  document.getElementById('treeLeaves').textContent = allLeaves(treeRoot).length;
+  document.getElementById('treeMSE').textContent = fmtMSE(totalWeightedMSE(treeRoot));
+
+  // Draw scatter for selected leaf
+  const buildCanvas = document.getElementById('buildScatterCanvas');
+  const buildMSECanvas = document.getElementById('buildMSECanvas');
+  if (!node.split) {
+    drawScatter(buildCanvas, node.data, feature, threshold, 'buildScatterNote');
+    drawBuildMSECurve(node.data, feature, threshold);
+  } else {
+    drawScatter(buildCanvas, node.data, node.split.feature, node.split.threshold, 'buildScatterNote');
+    drawBuildMSECurve(node.data, node.split.feature, node.split.threshold);
+  }
+
+  renderTree();
+}
+
+function drawBuildMSECurve(data, feature, currentThreshold) {
+  const vals = [...new Set(data.map(d => d[feature]))].sort((a,b) => a-b);
+  if (vals.length < 2) {
+    const canvas = document.getElementById('buildMSECanvas');
+    const W = canvas.clientWidth || canvas.parentElement.clientWidth || 500, H = canvas.clientHeight || 266;
+    const ctx = setupCanvasHiDPI(canvas, W, H);
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#94a3b8'; ctx.font = '13px monospace'; ctx.textAlign = 'center';
+    ctx.fillText('Not enough unique values to split', W/2, H/2);
+    document.getElementById('buildMSENote').textContent = '';
+    return;
+  }
+  const thresholds = [];
+  for (let i = 0; i < vals.length - 1; i++) thresholds.push((vals[i] + vals[i+1]) / 2);
+  const reductions = thresholds.map(t => computeSplitStats(data, feature, t).reduction);
+
+  const canvas = document.getElementById('buildMSECanvas');
+  const W = canvas.clientWidth || canvas.parentElement.clientWidth || 500, H = canvas.clientHeight || 266;
+  const ctx = setupCanvasHiDPI(canvas, W, H);
+  const pad = { t: 20, r: 20, b: 50, l: 70 };
+  const pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
+
+  const xMin = thresholds[0], xMax = thresholds[thresholds.length - 1];
+  const yMax = Math.max(...reductions) * 1.15 || 1;
+  const sx = v => pad.l + (v - xMin) / (xMax - xMin) * pw;
+  const sy = v => pad.t + ph - v / yMax * ph;
+
+  ctx.clearRect(0, 0, W, H);
+
+  ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 0.5;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.t + ph * i / 4;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
+  }
+
+  ctx.beginPath(); ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 2;
+  thresholds.forEach((t, i) => {
+    const x = sx(t), y = sy(reductions[i]);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  const ci = thresholds.reduce((best, t, i) => Math.abs(t - currentThreshold) < Math.abs(thresholds[best] - currentThreshold) ? i : best, 0);
+  ctx.beginPath(); ctx.arc(sx(thresholds[ci]), sy(reductions[ci]), 6, 0, Math.PI * 2);
+  ctx.fillStyle = '#f59e0b'; ctx.fill();
+  ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2; ctx.stroke();
+
+  const bi = reductions.indexOf(Math.max(...reductions));
+  ctx.beginPath(); ctx.arc(sx(thresholds[bi]), sy(reductions[bi]), 6, 0, Math.PI * 2);
+  ctx.fillStyle = '#16a34a'; ctx.fill();
+  ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2; ctx.stroke();
+
+  ctx.fillStyle = '#64748b'; ctx.font = '700 14px monospace'; ctx.textAlign = 'center';
+  const fLabel = feature === 'year' ? 'Split Threshold (Year)' : 'Split Threshold (Mileage)';
+  ctx.fillText(fLabel, pad.l + pw/2, H - 6);
+  ctx.save(); ctx.translate(16, pad.t + ph/2); ctx.rotate(-Math.PI/2);
+  ctx.fillText('MSE Reduction', 0, 0); ctx.restore();
+
+  ctx.font = '12px monospace'; ctx.fillStyle = '#64748b';
+  for (let i = 0; i <= 4; i++) {
+    const v = yMax * (4 - i) / 4;
+    ctx.textAlign = 'right';
+    ctx.fillText(fmtMSE(v), pad.l - 8, pad.t + ph * i / 4 + 4);
+  }
+  ctx.textAlign = 'center';
+  for (let i = 0; i <= 5; i++) {
+    const v = xMin + (xMax - xMin) * i / 5;
+    const lbl = feature === 'mileage' ? Math.round(v/1000) + 'k' : Math.round(v);
+    ctx.fillText(lbl, pad.l + pw * i / 5, pad.t + ph + 18);
+  }
+
+  document.getElementById('buildMSENote').innerHTML =
+    `<span style="color:#f59e0b">●</span> current threshold · <span style="color:#16a34a">●</span> best threshold`;
+}
+
+function splitNode(nodeId, feature, threshold) {
+  const node = findNode(treeRoot, nodeId);
+  if (!node || node.split) return;
+
+  const leftData = node.data.filter(d => d[feature] < threshold);
+  const rightData = node.data.filter(d => d[feature] >= threshold);
+  if (leftData.length === 0 || rightData.length === 0) return;
+
+  node.split = { feature, threshold };
+  node.left = { id: nextId++, data: leftData, depth: node.depth + 1, split: null, left: null, right: null };
+  node.right = { id: nextId++, data: rightData, depth: node.depth + 1, split: null, left: null, right: null };
+
+  splitHistory.push({ nodeId, feature, threshold, leftId: node.left.id, rightId: node.right.id });
+}
+
+document.getElementById('splitBtn').addEventListener('click', () => {
+  const feature = document.getElementById('buildFeatureSelect').value;
+  const threshold = +document.getElementById('buildThreshSlider').value;
+  splitNode(selectedNodeId, feature, threshold);
+  updateBuildTab();
+});
+
+document.getElementById('autoSplitBtn').addEventListener('click', () => {
+  const node = findNode(treeRoot, selectedNodeId);
+  if (!node || node.split) return;
+  const best = bestSplitOverall(node.data);
+  if (best.reduction <= 0) return;
+  document.getElementById('buildFeatureSelect').value = best.feature;
+  updateBuildSlider();
+  document.getElementById('buildThreshSlider').value = Math.round(best.threshold);
+  splitNode(selectedNodeId, best.feature, best.threshold);
+  updateBuildTab();
+});
+
+document.getElementById('undoBtn').addEventListener('click', () => {
+  if (splitHistory.length === 0) return;
+  const last = splitHistory.pop();
+  const node = findNode(treeRoot, last.nodeId);
+  if (node) {
+    node.split = null; node.left = null; node.right = null;
+    if (selectedNodeId === last.leftId || selectedNodeId === last.rightId) {
+      selectedNodeId = last.nodeId;
+    }
+  }
+  updateBuildTab();
+});
+
+document.getElementById('resetTreeBtn').addEventListener('click', () => {
+  treeRoot = { id: 0, data: [...DATA], depth: 0, split: null, left: null, right: null };
+  selectedNodeId = 0; nextId = 1; splitHistory = [];
+  updateBuildTab();
+});
+
+document.getElementById('buildFeatureSelect').addEventListener('change', () => { updateBuildSlider(); updateBuildTab(); });
+document.getElementById('buildThreshSlider').addEventListener('input', updateBuildTab);
+
+// ═══════════ TREE RENDERING ═══════════
+function renderTree() {
+  const container = document.getElementById('treeViz');
+  container.innerHTML = '';
+
+  const NODE_W = 140, NODE_H = 52, H_GAP = 16, V_GAP = 50;
+
+  function countLeaves(node) { return node.split ? countLeaves(node.left) + countLeaves(node.right) : 1; }
+  function layoutNode(node, depth, xMin, xMax) {
+    const xMid = (xMin + xMax) / 2;
+    node._x = xMid; node._y = depth * (NODE_H + V_GAP);
+    if (node.split) {
+      const ll = countLeaves(node.left), rl = countLeaves(node.right);
+      const splitX = xMin + (xMax - xMin) * ll / (ll + rl);
+      layoutNode(node.left, depth + 1, xMin, splitX);
+      layoutNode(node.right, depth + 1, splitX, xMax);
+    }
+  }
+
+  const totalW = Math.max(600, countLeaves(treeRoot) * (NODE_W + H_GAP));
+  const totalH = (treeDepth(treeRoot) + 1) * (NODE_H + V_GAP) + 20;
+  layoutNode(treeRoot, 0, 0, totalW);
+
+  container.style.height = totalH + 'px';
+  container.style.width = totalW + 'px';
+
+  // SVG lines
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('width', totalW); svg.setAttribute('height', totalH);
+  svg.classList.add('tree-svg');
+  container.appendChild(svg);
+
+  function drawEdges(node) {
+    if (!node.split) return;
+    [node.left, node.right].forEach((child, i) => {
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', node._x); line.setAttribute('y1', node._y + NODE_H);
+      line.setAttribute('x2', child._x); line.setAttribute('y2', child._y);
+      line.setAttribute('stroke', '#cbd5e1'); line.setAttribute('stroke-width', '2');
+      svg.appendChild(line);
+
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('x', (node._x + child._x) / 2 + (i === 0 ? -14 : 8));
+      text.setAttribute('y', (node._y + NODE_H + child._y) / 2 + 4);
+      text.setAttribute('font-size', '10'); text.setAttribute('font-family', 'monospace');
+      text.setAttribute('font-weight', '600');
+      text.setAttribute('fill', i === 0 ? '#16a34a' : '#dc2626');
+      text.textContent = i === 0 ? 'T' : 'F';
+      svg.appendChild(text);
+      drawEdges(child);
+    });
+  }
+  drawEdges(treeRoot);
+
+  // Nodes
+  function drawNode(node) {
+    const div = document.createElement('div');
+    div.className = 'tree-node' + (node.id === selectedNodeId ? ' selected' : '');
+    div.style.position = 'absolute';
+    div.style.left = (node._x - NODE_W/2) + 'px';
+    div.style.top = node._y + 'px';
+    div.style.width = NODE_W + 'px';
+    div.style.height = NODE_H + 'px';
+    div.style.display = 'flex'; div.style.flexDirection = 'column';
+    div.style.justifyContent = 'center'; div.style.alignItems = 'center';
+
+    const prices = node.data.map(d => d.sellingprice);
+    if (node.split) {
+      const fLabel = node.split.feature === 'mileage'
+        ? `Mileage < ${Math.round(node.split.threshold/1000)}k`
+        : `Year < ${Math.round(node.split.threshold)}`;
+      div.innerHTML = `<div style="font-weight:700;font-size:11px;">${fLabel}?</div>` +
+        `<div style="font-size:9px;color:#64748b;">n=${node.data.length}</div>`;
+      div.style.background = '#f8fafc';
+      div.style.borderColor = '#94a3b8';
+    } else {
+      div.innerHTML = `<div style="font-weight:700;font-size:12px;">${fmt$(mean(prices))}</div>` +
+        `<div style="font-size:9px;color:#64748b;">n=${node.data.length}</div>`;
+      const m = mean(prices);
+      if (m < 20000) { div.style.background = '#fee2e2'; div.style.borderColor = '#fca5a5'; }
+      else if (m < 40000) { div.style.background = '#dbeafe'; div.style.borderColor = '#93c5fd'; }
+      else if (m < 70000) { div.style.background = '#dcfce7'; div.style.borderColor = '#86efac'; }
+      else { div.style.background = '#fef3c7'; div.style.borderColor = '#fcd34d'; }
+    }
+
+    div.addEventListener('click', () => {
+      selectedNodeId = node.id;
+      if (!node.split) {
+        // Reset slider to reasonable range for this node's data
+        updateBuildSlider();
+      }
+      updateBuildTab();
+    });
+
+    container.appendChild(div);
+    if (node.split) { drawNode(node.left); drawNode(node.right); }
+  }
+  drawNode(treeRoot);
+}
+
+// ═══════════ INIT ═══════════
+updateExploreTab();
+updateBuildTab();
+</script>
+</body>
+</html>
