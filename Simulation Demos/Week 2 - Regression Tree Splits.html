@@ -143,11 +143,14 @@
       <canvas id="scatterCanvas" height="266"></canvas>
       <div class="plot-note" id="scatterNote"></div>
     </div>
-    <div class="card" style="flex:1; min-width:400px;">
+    <div class="card" id="exploreMSECard" style="flex:1; min-width:400px; display:none;">
       <div class="card-label">MSE Reduction Across All Thresholds</div>
       <canvas id="mseCanvas" height="266"></canvas>
       <div class="plot-note" id="mseNote"></div>
     </div>
+  </div>
+  <div style="margin-top:8px;">
+    <button class="btn btn-ghost" id="toggleMSEBtn" onclick="toggleExploreMSE()">Show MSE Reduction Plot</button>
   </div>
 </div>
 
@@ -326,6 +329,19 @@ function setupCanvasHiDPI(canvas, w, h) {
 function getFeatureRange(feature) {
   const vals = DATA.map(d => d[feature]);
   return { min: Math.min(...vals), max: Math.max(...vals) };
+}
+
+function toggleExploreMSE() {
+  const card = document.getElementById('exploreMSECard');
+  const btn = document.getElementById('toggleMSEBtn');
+  if (card.style.display === 'none') {
+    card.style.display = '';
+    btn.textContent = 'Hide MSE Reduction Plot';
+    requestAnimationFrame(() => updateExploreTab());
+  } else {
+    card.style.display = 'none';
+    btn.textContent = 'Show MSE Reduction Plot';
+  }
 }
 
 function updateExploreTab() {
