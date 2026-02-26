@@ -52,7 +52,7 @@
   .split-badge-left { background: #dbeafe; color: #1d4ed8; }
   .split-badge-right { background: #fee2e2; color: #dc2626; }
   .split-badge-best { background: #dcfce7; color: #16a34a; }
-  canvas { width: 100%; border-radius: 8px; }
+  canvas { border-radius: 8px; display: block; }
   select {
     width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid #e2e8f0;
     font-family: monospace; font-size: 12px; background: #f8fafc; cursor: pointer;
@@ -99,7 +99,7 @@
 
 <!-- ═══════ TAB 1: EXPLORE SPLITS ═══════ -->
 <div class="tab-content active" id="tab-explore">
-  <div class="card" style="margin-bottom:12px;">
+  <div class="card" id="controlPanel" style="margin-bottom:12px;">
     <div style="display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap;">
       <div style="flex:0 0 160px;">
         <div class="card-label">Feature</div>
@@ -138,14 +138,14 @@
     </div>
   </div>
   <div style="display:flex; gap:12px; flex-wrap:wrap;">
-    <div class="card" style="flex:1; min-width:400px;">
+    <div class="card" style="flex:0 0 auto;">
       <div class="card-label">Data Distribution</div>
-      <canvas id="scatterCanvas" height="266"></canvas>
+      <canvas id="scatterCanvas"></canvas>
       <div class="plot-note" id="scatterNote"></div>
     </div>
-    <div class="card" id="exploreMSECard" style="flex:1; min-width:400px; display:none;">
+    <div class="card" id="exploreMSECard" style="flex:0 0 auto; display:none;">
       <div class="card-label">MSE Reduction Across All Thresholds</div>
-      <canvas id="mseCanvas" height="266"></canvas>
+      <canvas id="mseCanvas"></canvas>
       <div class="plot-note" id="mseNote"></div>
     </div>
   </div>
@@ -203,7 +203,7 @@
         <button class="btn btn-danger" id="resetTreeBtn" style="flex:1;">Reset Tree</button>
       </div>
     </div>
-    <div class="card" style="flex:1; min-width:400px;">
+    <div class="card" style="flex:1; min-width:0;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
         <div class="card-label" style="margin-bottom:0;">Your Decision Tree</div>
         <div style="display:flex; gap:16px;">
@@ -225,14 +225,14 @@
     </div>
   </div>
   <div style="display:flex; gap:12px; flex-wrap:wrap;">
-    <div class="card" style="flex:1; min-width:400px;">
+    <div class="card" style="flex:0 0 auto;">
       <div class="card-label">Selected Leaf — Data Distribution</div>
-      <canvas id="buildScatterCanvas" height="266"></canvas>
+      <canvas id="buildScatterCanvas"></canvas>
       <div class="plot-note" id="buildScatterNote"></div>
     </div>
-    <div class="card" style="flex:1; min-width:400px;">
+    <div class="card" style="flex:0 0 auto;">
       <div class="card-label">Selected Leaf — MSE Reduction Across Thresholds</div>
-      <canvas id="buildMSECanvas" height="266"></canvas>
+      <canvas id="buildMSECanvas"></canvas>
       <div class="plot-note" id="buildMSENote"></div>
     </div>
   </div>
@@ -378,10 +378,29 @@ function updateExploreTab() {
   drawMSECurve(DATA, feature, t);
 }
 
+function getPlotSize() {
+  const panel = document.getElementById('controlPanel');
+  let pw = panel ? panel.offsetWidth : 0;
+  // If the explore tab is hidden, controlPanel has 0 width — use the active tab's width instead
+  if (!pw) {
+    const active = document.querySelector('.tab-content.active');
+    pw = active ? active.offsetWidth : 700;
+  }
+  const W = Math.round(pw * 0.45);
+  const H = Math.round(W * 0.84);
+  // Scale padding proportionally (base: W=350 → pad 10/10/24/40)
+  const s = W / 350;
+  const pad = { t: Math.round(10*s), r: Math.round(10*s), b: Math.round(24*s), l: Math.round(40*s) };
+  const tickFont = Math.max(8, Math.round(9*s)) + 'px monospace';
+  const labelFont = '600 ' + Math.max(8, Math.round(9*s)) + 'px monospace';
+  const dotR = Math.max(1.5, 2.5*s);
+  const markerR = Math.max(3, 5*s);
+  return { W, H, pad, tickFont, labelFont, dotR, markerR };
+}
+
 function drawScatter(canvas, data, feature, threshold, noteId) {
-  const W = canvas.clientWidth || canvas.parentElement.clientWidth || 500, H = canvas.clientHeight || 266;
+  const { W, H, pad, tickFont, labelFont, dotR } = getPlotSize();
   const ctx = setupCanvasHiDPI(canvas, W, H);
-  const pad = { t: 20, r: 20, b: 45, l: 65 };
   const pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
 
   const xVals = data.map(d => d[feature]);
@@ -403,14 +422,14 @@ function drawScatter(canvas, data, feature, threshold, noteId) {
 
   // Split line
   const splitX = sx(threshold);
-  ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2.5; ctx.setLineDash([]);
+  ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 1.5; ctx.setLineDash([]);
   ctx.beginPath(); ctx.moveTo(splitX, pad.t); ctx.lineTo(splitX, pad.t + ph); ctx.stroke();
 
   // Points
   data.forEach(d => {
     const x = sx(d[feature]), y = sy(d.sellingprice);
     const isLeft = d[feature] < threshold;
-    ctx.beginPath(); ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+    ctx.beginPath(); ctx.arc(x, y, dotR, 0, Math.PI * 2);
     ctx.fillStyle = isLeft ? 'rgba(59,130,246,0.5)' : 'rgba(239,68,68,0.5)';
     ctx.fill();
     ctx.strokeStyle = isLeft ? '#3b82f6' : '#ef4444'; ctx.lineWidth = 0.8; ctx.stroke();
@@ -433,24 +452,24 @@ function drawScatter(canvas, data, feature, threshold, noteId) {
   }
 
   // Axes labels
-  ctx.fillStyle = '#64748b'; ctx.font = '700 14px monospace'; ctx.textAlign = 'center';
+  ctx.fillStyle = '#64748b'; ctx.font = labelFont; ctx.textAlign = 'center';
   const featureLabel = feature === 'year' ? 'Year' : 'Mileage';
-  ctx.fillText(featureLabel, pad.l + pw/2, H - 6);
-  ctx.save(); ctx.translate(16, pad.t + ph/2); ctx.rotate(-Math.PI/2);
+  ctx.fillText(featureLabel, pad.l + pw/2, H - 2);
+  ctx.save(); ctx.translate(pad.l * 0.2, pad.t + ph/2); ctx.rotate(-Math.PI/2);
   ctx.fillText('Price ($)', 0, 0); ctx.restore();
 
   // Tick labels
-  ctx.font = '12px monospace'; ctx.fillStyle = '#64748b';
+  ctx.font = tickFont; ctx.fillStyle = '#64748b';
   for (let i = 0; i <= 4; i++) {
     const v = yMin + (yMax - yMin) * (4 - i) / 4;
     ctx.textAlign = 'right';
-    ctx.fillText(fmt$(v), pad.l - 8, pad.t + ph * i / 4 + 4);
+    ctx.fillText(fmt$(v), pad.l - 4, pad.t + ph * i / 4 + 4);
   }
   for (let i = 0; i <= 5; i++) {
     const v = xMin + (xMax - xMin) * i / 5;
     ctx.textAlign = 'center';
     const lbl = feature === 'mileage' ? Math.round(v/1000) + 'k' : Math.round(v);
-    ctx.fillText(lbl, pad.l + pw * i / 5, pad.t + ph + 18);
+    ctx.fillText(lbl, pad.l + pw * i / 5, pad.t + ph + pad.b * 0.45);
   }
 
   if (noteId) {
@@ -468,9 +487,8 @@ function drawMSECurve(data, feature, currentThreshold) {
   for (let i = 0; i < vals.length - 1; i++) thresholds.push((vals[i] + vals[i+1]) / 2);
   const reductions = thresholds.map(t => computeSplitStats(data, feature, t).reduction);
 
-  const W = mseCanvas.clientWidth || mseCanvas.parentElement.clientWidth || 500, H = mseCanvas.clientHeight || 266;
+  const { W, H, pad, tickFont, labelFont, markerR } = getPlotSize();
   const ctx = setupCanvasHiDPI(mseCanvas, W, H);
-  const pad = { t: 20, r: 20, b: 45, l: 65 };
   const pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
 
   const xMin = thresholds[0], xMax = thresholds[thresholds.length - 1];
@@ -497,29 +515,29 @@ function drawMSECurve(data, feature, currentThreshold) {
 
   // Current threshold marker
   const ci = thresholds.reduce((best, t, i) => Math.abs(t - currentThreshold) < Math.abs(thresholds[best] - currentThreshold) ? i : best, 0);
-  ctx.beginPath(); ctx.arc(sx(thresholds[ci]), sy(reductions[ci]), 6, 0, Math.PI * 2);
+  ctx.beginPath(); ctx.arc(sx(thresholds[ci]), sy(reductions[ci]), markerR, 0, Math.PI * 2);
   ctx.fillStyle = '#f59e0b'; ctx.fill();
   ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2; ctx.stroke();
 
   // Best marker
   const bi = reductions.indexOf(Math.max(...reductions));
-  ctx.beginPath(); ctx.arc(sx(thresholds[bi]), sy(reductions[bi]), 6, 0, Math.PI * 2);
+  ctx.beginPath(); ctx.arc(sx(thresholds[bi]), sy(reductions[bi]), markerR, 0, Math.PI * 2);
   ctx.fillStyle = '#16a34a'; ctx.fill();
   ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2; ctx.stroke();
 
   // Labels
-  ctx.fillStyle = '#64748b'; ctx.font = '700 14px monospace'; ctx.textAlign = 'center';
+  ctx.fillStyle = '#64748b'; ctx.font = labelFont; ctx.textAlign = 'center';
   const fLabel = feature === 'year' ? 'Split Threshold (Year)' : 'Split Threshold (Mileage)';
-  ctx.fillText(fLabel, pad.l + pw/2, H - 6);
-  ctx.save(); ctx.translate(16, pad.t + ph/2); ctx.rotate(-Math.PI/2);
+  ctx.fillText(fLabel, pad.l + pw/2, H - 2);
+  ctx.save(); ctx.translate(pad.l * 0.2, pad.t + ph/2); ctx.rotate(-Math.PI/2);
   ctx.fillText('MSE Reduction', 0, 0); ctx.restore();
 
   // Y-axis ticks
-  ctx.font = '12px monospace'; ctx.fillStyle = '#64748b';
+  ctx.font = tickFont; ctx.fillStyle = '#64748b';
   for (let i = 0; i <= 4; i++) {
     const v = yMax * (4 - i) / 4;
     ctx.textAlign = 'right';
-    ctx.fillText(fmtMSE(v), pad.l - 8, pad.t + ph * i / 4 + 4);
+    ctx.fillText(fmtMSE(v), pad.l - 4, pad.t + ph * i / 4 + 4);
   }
 
   // X-axis ticks
@@ -527,7 +545,7 @@ function drawMSECurve(data, feature, currentThreshold) {
   for (let i = 0; i <= 5; i++) {
     const v = xMin + (xMax - xMin) * i / 5;
     const lbl = feature === 'mileage' ? Math.round(v/1000) + 'k' : Math.round(v);
-    ctx.fillText(lbl, pad.l + pw * i / 5, pad.t + ph + 18);
+    ctx.fillText(lbl, pad.l + pw * i / 5, pad.t + ph + pad.b * 0.45);
   }
 
   document.getElementById('mseNote').innerHTML =
@@ -645,10 +663,10 @@ function drawBuildMSECurve(data, feature, currentThreshold) {
   const vals = [...new Set(data.map(d => d[feature]))].sort((a,b) => a-b);
   if (vals.length < 2) {
     const canvas = document.getElementById('buildMSECanvas');
-    const W = canvas.clientWidth || canvas.parentElement.clientWidth || 500, H = canvas.clientHeight || 266;
+    const { W, H, tickFont } = getPlotSize();
     const ctx = setupCanvasHiDPI(canvas, W, H);
     ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = '#94a3b8'; ctx.font = '13px monospace'; ctx.textAlign = 'center';
+    ctx.fillStyle = '#94a3b8'; ctx.font = tickFont; ctx.textAlign = 'center';
     ctx.fillText('Not enough unique values to split', W/2, H/2);
     document.getElementById('buildMSENote').textContent = '';
     return;
@@ -658,9 +676,8 @@ function drawBuildMSECurve(data, feature, currentThreshold) {
   const reductions = thresholds.map(t => computeSplitStats(data, feature, t).reduction);
 
   const canvas = document.getElementById('buildMSECanvas');
-  const W = canvas.clientWidth || canvas.parentElement.clientWidth || 500, H = canvas.clientHeight || 266;
+  const { W, H, pad, tickFont, labelFont, markerR } = getPlotSize();
   const ctx = setupCanvasHiDPI(canvas, W, H);
-  const pad = { t: 20, r: 20, b: 50, l: 70 };
   const pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
 
   const xMin = thresholds[0], xMax = thresholds[thresholds.length - 1];
@@ -684,32 +701,32 @@ function drawBuildMSECurve(data, feature, currentThreshold) {
   ctx.stroke();
 
   const ci = thresholds.reduce((best, t, i) => Math.abs(t - currentThreshold) < Math.abs(thresholds[best] - currentThreshold) ? i : best, 0);
-  ctx.beginPath(); ctx.arc(sx(thresholds[ci]), sy(reductions[ci]), 6, 0, Math.PI * 2);
+  ctx.beginPath(); ctx.arc(sx(thresholds[ci]), sy(reductions[ci]), markerR, 0, Math.PI * 2);
   ctx.fillStyle = '#f59e0b'; ctx.fill();
   ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2; ctx.stroke();
 
   const bi = reductions.indexOf(Math.max(...reductions));
-  ctx.beginPath(); ctx.arc(sx(thresholds[bi]), sy(reductions[bi]), 6, 0, Math.PI * 2);
+  ctx.beginPath(); ctx.arc(sx(thresholds[bi]), sy(reductions[bi]), markerR, 0, Math.PI * 2);
   ctx.fillStyle = '#16a34a'; ctx.fill();
   ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2; ctx.stroke();
 
-  ctx.fillStyle = '#64748b'; ctx.font = '700 14px monospace'; ctx.textAlign = 'center';
+  ctx.fillStyle = '#64748b'; ctx.font = labelFont; ctx.textAlign = 'center';
   const fLabel = feature === 'year' ? 'Split Threshold (Year)' : 'Split Threshold (Mileage)';
-  ctx.fillText(fLabel, pad.l + pw/2, H - 6);
-  ctx.save(); ctx.translate(16, pad.t + ph/2); ctx.rotate(-Math.PI/2);
+  ctx.fillText(fLabel, pad.l + pw/2, H - 2);
+  ctx.save(); ctx.translate(pad.l * 0.2, pad.t + ph/2); ctx.rotate(-Math.PI/2);
   ctx.fillText('MSE Reduction', 0, 0); ctx.restore();
 
-  ctx.font = '12px monospace'; ctx.fillStyle = '#64748b';
+  ctx.font = tickFont; ctx.fillStyle = '#64748b';
   for (let i = 0; i <= 4; i++) {
     const v = yMax * (4 - i) / 4;
     ctx.textAlign = 'right';
-    ctx.fillText(fmtMSE(v), pad.l - 8, pad.t + ph * i / 4 + 4);
+    ctx.fillText(fmtMSE(v), pad.l - 4, pad.t + ph * i / 4 + 4);
   }
   ctx.textAlign = 'center';
   for (let i = 0; i <= 5; i++) {
     const v = xMin + (xMax - xMin) * i / 5;
     const lbl = feature === 'mileage' ? Math.round(v/1000) + 'k' : Math.round(v);
-    ctx.fillText(lbl, pad.l + pw * i / 5, pad.t + ph + 18);
+    ctx.fillText(lbl, pad.l + pw * i / 5, pad.t + ph + pad.b * 0.45);
   }
 
   document.getElementById('buildMSENote').innerHTML =
@@ -875,6 +892,12 @@ function renderTree() {
 // ═══════════ INIT ═══════════
 updateExploreTab();
 updateBuildTab();
+
+window.addEventListener('resize', () => {
+  const active = document.querySelector('.tab-btn.active');
+  if (active && active.dataset.tab === 'explore') updateExploreTab();
+  if (active && active.dataset.tab === 'build') updateBuildTab();
+});
 </script>
 </body>
 </html>
