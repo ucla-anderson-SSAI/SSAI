@@ -297,6 +297,58 @@
         .sample-image.correct .sample-image-label { background: rgba(39, 174, 96, 0.15); color: #27ae60; }
         .sample-image.incorrect .sample-image-label { background: rgba(231, 76, 60, 0.15); color: #e74c3c; }
 
+        .sample-image {
+            aspect-ratio: auto;
+        }
+
+        .prob-bars {
+            padding: 0.35rem 0.5rem;
+            background: #fafafa;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .prob-bar-row {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-bottom: 2px;
+        }
+
+        .prob-bar-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .prob-bar-name {
+            font-size: 0.55rem;
+            font-weight: 600;
+            width: 30px;
+            text-transform: capitalize;
+            color: #555;
+            flex-shrink: 0;
+        }
+
+        .prob-bar-track {
+            flex: 1;
+            height: 10px;
+            background: #eee;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .prob-bar-fill {
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.5s ease;
+        }
+
+        .prob-bar-pct {
+            font-size: 0.55rem;
+            font-weight: 700;
+            width: 32px;
+            text-align: right;
+            flex-shrink: 0;
+        }
+
         .filter-layer { margin-bottom: 1.5rem; }
 
         .filter-layer-title {
@@ -755,16 +807,42 @@
         };
 
         // Sample Image Component - now uses canvas-generated images
-        const SampleImage = ({ imageData, trueLabel, predictedLabel, showResult }) => {
+        const SampleImage = ({ imageData, trueLabel, predictedLabel, showResult, probabilities }) => {
             const isCorrect = trueLabel === predictedLabel;
+            const classColors = { bear: '#8B4513', lion: '#DAA520', tiger: '#FF8C00' };
             return (
                 <div className={`sample-image ${showResult ? (isCorrect ? 'correct' : 'incorrect') : ''}`}>
                     <div className="sample-image-visual" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0f0f0' }}>
                         <img src={imageData} alt={trueLabel} style={{ width: '100%', height: '100%', objectFit: 'contain', imageRendering: 'pixelated' }} />
                     </div>
                     <div className="sample-image-label">
-                        {showResult ? (isCorrect ? `✓ ${trueLabel}` : `✗ ${predictedLabel}`) : trueLabel}
+                        {showResult ? (isCorrect ? `✓ ${trueLabel}` : `✗ ${predictedLabel} (was ${trueLabel})`) : trueLabel}
                     </div>
+                    {showResult && probabilities && (
+                        <div className="prob-bars">
+                            {CLASSES.map((cls, i) => {
+                                const pct = (probabilities[i] * 100);
+                                const isTop = cls === predictedLabel;
+                                return (
+                                    <div key={cls} className="prob-bar-row">
+                                        <div className="prob-bar-name">{cls}</div>
+                                        <div className="prob-bar-track">
+                                            <div className="prob-bar-fill" style={{
+                                                width: `${pct}%`,
+                                                background: isTop
+                                                    ? (isCorrect ? '#27ae60' : '#e74c3c')
+                                                    : (classColors[cls] || '#aaa'),
+                                                opacity: isTop ? 1 : 0.5
+                                            }} />
+                                        </div>
+                                        <div className="prob-bar-pct" style={{
+                                            color: isTop ? (isCorrect ? '#27ae60' : '#e74c3c') : '#888'
+                                        }}>{pct.toFixed(0)}%</div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
                 </div>
             );
         };
@@ -1282,7 +1360,8 @@
                                 const results = status.sample_predictions.map(pred => ({
                                     imageData: pred.imageData,
                                     trueLabel: CLASSES[pred.true],
-                                    predictedLabel: CLASSES[pred.predicted]
+                                    predictedLabel: CLASSES[pred.predicted],
+                                    probabilities: pred.probabilities || null
                                 }));
                                 setClassificationResults(results);
                             }
@@ -1529,7 +1608,7 @@
                             {classificationResults.length > 0 ? (
                                 <div className="grid-4">
                                     {classificationResults.map((img, idx) => (
-                                        <SampleImage key={idx} imageData={img.imageData} trueLabel={img.trueLabel} predictedLabel={img.predictedLabel} showResult={true} />
+                                        <SampleImage key={idx} imageData={img.imageData} trueLabel={img.trueLabel} predictedLabel={img.predictedLabel} showResult={true} probabilities={img.probabilities} />
                                     ))}
                                 </div>
                             ) : (
@@ -1542,111 +1621,245 @@
             );
         };
 
-        // Transfer Learning Tab (simplified)
+        // Transfer Learning Tab - Real MobileNetV2 fine-tuning
         const TransferLearningTab = () => {
-            const [selectedModel, setSelectedModel] = useState('resnet50');
             const [strategy, setStrategy] = useState('finetune');
-            const [freezeLayers, setFreezeLayers] = useState(80);
+            const [freezeLayers, setFreezeLayers] = useState(90);
+            const [numSamples, setNumSamples] = useState(300);
             const [isTraining, setIsTraining] = useState(false);
             const [trainingHistory, setTrainingHistory] = useState([]);
+            const [trainingStatus, setTrainingStatus] = useState('');
+            const [testAccuracy, setTestAccuracy] = useState(null);
+            const [classificationResults, setClassificationResults] = useState([]);
+            const [modelInfo, setModelInfo] = useState(null);
+            const [backendStatus, setBackendStatus] = useState('checking');
 
-            const models = [
-                { id: 'vgg16', name: 'VGG16', params: '138M', accuracy: '71.3%', icon: '' },
-                { id: 'resnet50', name: 'ResNet50', params: '25.6M', accuracy: '76.1%', icon: '' },
-                { id: 'mobilenet', name: 'MobileNetV2', params: '3.4M', accuracy: '71.8%', icon: '' },
-                { id: 'efficientnet', name: 'EfficientNet-B0', params: '5.3M', accuracy: '77.1%', icon: '' }
-            ];
+            const TOTAL_MOBILENET_LAYERS = 155; // MobileNetV2 layer count
+            const frozenLayers = Math.round(TOTAL_MOBILENET_LAYERS * freezeLayers / 100);
+            const MAX_EPOCHS = 3;
 
-            const totalLayers = selectedModel === 'vgg16' ? 16 : selectedModel === 'resnet50' ? 50 : selectedModel === 'mobilenet' ? 53 : 237;
-            const frozenLayers = Math.round(totalLayers * freezeLayers / 100);
+            useEffect(() => {
+                fetch(`${API_BASE_URL}/api/health`)
+                    .then(r => r.json())
+                    .then(() => setBackendStatus('connected'))
+                    .catch(() => setBackendStatus('disconnected'));
+            }, []);
 
             const runTransferLearning = async () => {
                 setIsTraining(true);
                 setTrainingHistory([]);
+                setClassificationResults([]);
+                setTestAccuracy(null);
+                setModelInfo(null);
+                setTrainingStatus('Starting MobileNetV2 transfer learning...');
 
-                const baseAcc = selectedModel === 'efficientnet' ? 88 : selectedModel === 'resnet50' ? 85 : 80;
-                const strategyBonus = strategy === 'finetune' ? 8 : 0;
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/transfer/train`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            strategy,
+                            freezeLayers,
+                            numSamples,
+                            epochs: MAX_EPOCHS
+                        })
+                    });
 
-                for (let epoch = 1; epoch <= 15; epoch++) {
-                    await new Promise(resolve => setTimeout(resolve, 300));
-                    const progress = epoch / 15;
-                    const curve = 1 - Math.exp(-4 * progress);
+                    if (!response.ok) throw new Error('Failed to start transfer learning');
 
-                    setTrainingHistory(prev => [...prev, {
-                        trainAcc: Math.min(99, baseAcc + strategyBonus + curve * 10 + Math.random() * 2),
-                        valAcc: Math.min(96, baseAcc + strategyBonus - 5 + curve * 12 + Math.random() * 3),
-                        trainLoss: Math.max(0.02, 1.5 * (1 - curve) + Math.random() * 0.05),
-                        valLoss: Math.max(0.05, 1.8 * (1 - curve) + Math.random() * 0.08)
-                    }]);
+                    const { session_id } = await response.json();
+
+                    let complete = false;
+                    while (!complete) {
+                        await new Promise(r => setTimeout(r, 500));
+
+                        const statusRes = await fetch(`${API_BASE_URL}/api/train/${session_id}`);
+                        const status = await statusRes.json();
+
+                        if (status.error) throw new Error(status.error);
+
+                        if (status.queue_position > 0) {
+                            setTrainingStatus(`In queue: position ${status.queue_position}`);
+                        } else {
+                            setTrainingStatus(status.status);
+                        }
+
+                        if (status.history && status.history.length > 0) {
+                            setTrainingHistory([...status.history]);
+                        }
+
+                        if (status.model_info) {
+                            setModelInfo(status.model_info);
+                        }
+
+                        if (status.status === 'complete') {
+                            complete = true;
+
+                            if (status.test_accuracy) setTestAccuracy(status.test_accuracy);
+
+                            if (status.sample_predictions) {
+                                setClassificationResults(status.sample_predictions.map(pred => ({
+                                    imageData: pred.imageData,
+                                    trueLabel: CLASSES[pred.true],
+                                    predictedLabel: CLASSES[pred.predicted],
+                                    probabilities: pred.probabilities || null
+                                })));
+                            }
+
+                            setTrainingStatus('Training complete!');
+                        }
+
+                        if (status.status === 'error') {
+                            throw new Error(status.error || 'Training failed');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Transfer learning error:', error);
+                    setTrainingStatus(`Error: ${error.message}`);
                 }
+
                 setIsTraining(false);
             };
 
+            const latestMetrics = trainingHistory.length > 0 ? trainingHistory[trainingHistory.length - 1] : null;
+
             return (
                 <div>
-                    <div className="grid-2">
+                    <div className="grid-2-fixed">
                         <div className="section-card">
-                            <div className="section-title">Pre-trained Model Selection</div>
-                            <div className="grid-2" style={{ gap: '0.75rem' }}>
-                                {models.map(model => (
-                                    <div key={model.id} onClick={() => setSelectedModel(model.id)}
-                                        style={{
-                                            padding: '1rem', borderRadius: '10px', cursor: 'pointer', transition: 'all 0.2s',
-                                            border: selectedModel === model.id ? '2px solid #2774AE' : '2px solid #eee',
-                                            background: selectedModel === model.id ? 'rgba(39,116,174,0.05)' : '#fff'
-                                        }}>
-                                        <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>{model.icon}</div>
-                                        <div style={{ fontWeight: 600 }}>{model.name}</div>
-                                        <div style={{ fontSize: '0.75rem', color: '#888' }}>{model.params} params</div>
-                                        <div style={{ fontSize: '0.75rem', color: '#2774AE' }}>ImageNet: {model.accuracy}</div>
-                                    </div>
-                                ))}
+                            <div className="section-title">MobileNetV2 Transfer Learning</div>
+
+                            <div style={{
+                                padding: '0.75rem 1rem', borderRadius: '8px', marginBottom: '1rem',
+                                background: 'rgba(39,116,174,0.05)', border: '1px solid rgba(39,116,174,0.15)'
+                            }}>
+                                <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#2774AE' }}>MobileNetV2</div>
+                                <div style={{ fontSize: '0.75rem', color: '#666', marginTop: '0.25rem' }}>
+                                    3.4M params · Pre-trained on ImageNet (1000 classes) · Images upscaled to 96×96
+                                </div>
                             </div>
 
-                            <div style={{ marginTop: '1.5rem' }}>
+                            <div className="control-group">
                                 <div className="control-label">Transfer Strategy</div>
                                 <div className="button-group">
-                                    <button className={`option-btn ${strategy === 'feature' ? 'active' : ''}`} onClick={() => setStrategy('feature')}>Feature Extraction</button>
-                                    <button className={`option-btn ${strategy === 'finetune' ? 'active' : ''}`} onClick={() => setStrategy('finetune')}>Fine-tuning</button>
+                                    <button className={`option-btn ${strategy === 'feature' ? 'active' : ''}`}
+                                        onClick={() => setStrategy('feature')}>Feature Extraction</button>
+                                    <button className={`option-btn ${strategy === 'finetune' ? 'active' : ''}`}
+                                        onClick={() => setStrategy('finetune')}>Fine-tuning</button>
+                                </div>
+                                <div style={{ fontSize: '0.7rem', color: '#888', marginTop: '0.3rem' }}>
+                                    {strategy === 'feature'
+                                        ? 'Freeze all MobileNetV2 layers, only train the new classifier head'
+                                        : 'Unfreeze top layers of MobileNetV2 and fine-tune with low learning rate'}
                                 </div>
                             </div>
 
                             <div className="control-group" style={{ marginTop: '1rem' }}>
                                 <div className="control-label">
                                     <span>Freeze Layers</span>
-                                    <span className="control-value">{freezeLayers}% ({frozenLayers}/{totalLayers})</span>
+                                    <span className="control-value">{freezeLayers}% (~{frozenLayers}/{TOTAL_MOBILENET_LAYERS})</span>
                                 </div>
                                 <input type="range" className="slider" min="50" max="100" value={freezeLayers}
-                                    onChange={(e) => setFreezeLayers(parseInt(e.target.value))} />
+                                    onChange={(e) => setFreezeLayers(parseInt(e.target.value))}
+                                    disabled={strategy === 'feature'} />
                             </div>
 
-                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-                                <div style={{ flex: freezeLayers, background: 'linear-gradient(90deg, #8BB8E8, #2774AE)', padding: '0.5rem', borderRadius: '6px', color: 'white', fontSize: '0.75rem', textAlign: 'center' }}>Frozen</div>
-                                <div style={{ flex: 100 - freezeLayers, background: 'linear-gradient(90deg, #FFD100, #FFA500)', padding: '0.5rem', borderRadius: '6px', color: '#333', fontSize: '0.75rem', textAlign: 'center' }}>Trainable</div>
+                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                                <div style={{
+                                    flex: strategy === 'feature' ? 100 : freezeLayers,
+                                    background: 'linear-gradient(90deg, #8BB8E8, #2774AE)',
+                                    padding: '0.4rem', borderRadius: '6px', color: 'white', fontSize: '0.7rem', textAlign: 'center'
+                                }}>Frozen (ImageNet weights)</div>
+                                {strategy !== 'feature' && (
+                                    <div style={{
+                                        flex: 100 - freezeLayers,
+                                        background: 'linear-gradient(90deg, #FFD100, #FFA500)',
+                                        padding: '0.4rem', borderRadius: '6px', color: '#333', fontSize: '0.7rem', textAlign: 'center'
+                                    }}>Trainable</div>
+                                )}
                             </div>
 
-                            <button className="run-button" style={{ marginTop: '1.5rem' }} onClick={runTransferLearning} disabled={isTraining}>
-                                {isTraining ? <><div className="loading-spinner" /> Training...</> : <>▶ Run Transfer Learning</>}
+                            <div className="control-group" style={{ marginTop: '1rem' }}>
+                                <div className="control-label">Training Samples</div>
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    {[100, 300, 500].map(n => (
+                                        <button key={n} onClick={() => setNumSamples(n)}
+                                            style={{
+                                                flex: 1, padding: '0.5rem', border: numSamples === n ? '2px solid #2774AE' : '1px solid #ddd',
+                                                borderRadius: '6px', background: numSamples === n ? '#2774AE' : '#f5f5f5',
+                                                color: numSamples === n ? 'white' : '#333', cursor: 'pointer',
+                                                fontWeight: numSamples === n ? 'bold' : 'normal', fontSize: '0.85rem'
+                                            }}>{n}</button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div style={{
+                                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                marginBottom: '0.5rem', marginTop: '1rem', padding: '0.5rem 0.75rem', borderRadius: '6px',
+                                background: backendStatus === 'connected' ? '#e8f5e9' : '#ffebee', fontSize: '0.8rem'
+                            }}>
+                                <div style={{
+                                    width: '8px', height: '8px', borderRadius: '50%',
+                                    background: backendStatus === 'connected' ? '#4CAF50' : '#f44336'
+                                }} />
+                                <span>{backendStatus === 'connected' ? 'Backend connected' : 'Backend not connected'}</span>
+                            </div>
+
+                            <button className="run-button" onClick={runTransferLearning}
+                                disabled={isTraining || backendStatus !== 'connected'}>
+                                {isTraining ? <><div className="loading-spinner" /> {trainingStatus}</> :
+                                    <>▶ Fine-tune MobileNetV2 ({MAX_EPOCHS} epochs)</>}
                             </button>
+
+                            {testAccuracy && (
+                                <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#4CAF50' }}>
+                                    ✓ Test Accuracy: {testAccuracy.toFixed(1)}%
+                                </div>
+                            )}
                         </div>
 
                         <div className="section-card">
                             <div className="section-title">📈 Training Progress</div>
-                            <div className="chart-container"><TrainingChart trainingHistory={trainingHistory} totalEpochs={15} /></div>
-                            {trainingHistory.length > 0 && (
+                            <div className="chart-container">
+                                <TrainingChart trainingHistory={trainingHistory} totalEpochs={MAX_EPOCHS} />
+                            </div>
+
+                            {latestMetrics && (
                                 <div className="metrics-grid" style={{ marginTop: '1rem', gridTemplateColumns: 'repeat(2, 1fr)' }}>
                                     <div className="metric-item">
-                                        <div className="metric-value">{trainingHistory[trainingHistory.length-1].valAcc.toFixed(1)}%</div>
-                                        <div className="metric-label">Final Val Accuracy</div>
+                                        <div className="metric-value">{latestMetrics.valAcc.toFixed(1)}%</div>
+                                        <div className="metric-label">Val Accuracy</div>
                                     </div>
                                     <div className="metric-item">
-                                        <div className="metric-value">{strategy === 'feature' ? '~2 min' : '~10 min'}</div>
-                                        <div className="metric-label">Est. Training Time</div>
+                                        <div className="metric-value">{latestMetrics.trainLoss.toFixed(3)}</div>
+                                        <div className="metric-label">Train Loss</div>
                                     </div>
+                                </div>
+                            )}
+
+                            {modelInfo && (
+                                <div style={{ marginTop: '1rem', padding: '0.75rem', background: '#f8f9fa', borderRadius: '8px', fontSize: '0.75rem', color: '#555' }}>
+                                    <div style={{ fontWeight: 600, marginBottom: '0.25rem', color: '#333' }}>Model Details</div>
+                                    <div>Total params: {(modelInfo.total_params / 1e6).toFixed(1)}M</div>
+                                    <div>Trainable params: {(modelInfo.trainable_params / 1e6).toFixed(2)}M</div>
+                                    <div>Frozen / Trainable layers: {modelInfo.frozen_layers} / {modelInfo.trainable_layers}</div>
                                 </div>
                             )}
                         </div>
                     </div>
+
+                    {classificationResults.length > 0 && (
+                        <div className="section-card" style={{ marginTop: '1.5rem' }}>
+                            <div className="section-title">Classification Results (MobileNetV2)</div>
+                            <div className="grid-4">
+                                {classificationResults.map((img, idx) => (
+                                    <SampleImage key={idx} imageData={img.imageData} trueLabel={img.trueLabel}
+                                        predictedLabel={img.predictedLabel} showResult={true} probabilities={img.probabilities} />
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         };

@@ -214,8 +214,10 @@ def process_queue():
                 active_trainings.add(session_id)
                 session['status'] = 'starting'
 
+                # Dispatch to correct training function
+                target_fn = train_transfer_async if session.get('is_transfer') else train_model_async
                 thread = threading.Thread(
-                    target=train_model_async,
+                    target=target_fn,
                     args=(session_id, session['config'])
                 )
                 thread.daemon = True
@@ -422,6 +424,7 @@ def train_model_async(session_id, config):
                         'true': int(_Y_TEST[idx]),
                         'predicted': int(np.argmax(pred)),
                         'confidence': float(np.max(pred)),
+                        'probabilities': [float(p) for p in pred],
                         'imageData': image_array_to_base64(_X_TEST[idx])
                     })
 
@@ -434,6 +437,201 @@ def train_model_async(session_id, config):
         session['status'] = 'error'
         session['error'] = str(e)
         print(f"Training error: {traceback.format_exc()}")
+
+    finally:
+        with state_lock:
+            active_trainings.discard(session_id)
+
+
+# ============================================
+# Transfer Learning with MobileNetV2
+# ============================================
+TRANSFER_MAX_EPOCHS = 3
+TRANSFER_IMAGE_SIZE = 96  # Upscale CIFAR 32x32 -> 96x96 for MobileNetV2
+
+# Cache for upscaled images (computed once)
+_X_TRAIN_96 = None
+_X_TEST_96 = None
+
+
+def get_upscaled_data():
+    """Lazily upscale CIFAR images to 96x96 for transfer learning"""
+    global _X_TRAIN_96, _X_TEST_96
+    if _X_TRAIN_96 is not None:
+        return _X_TRAIN_96, _X_TEST_96
+
+    load_data()
+    print("Upscaling images to 96x96 for transfer learning...")
+
+    _X_TRAIN_96 = _tf.image.resize(_X_TRAIN, [TRANSFER_IMAGE_SIZE, TRANSFER_IMAGE_SIZE]).numpy()
+    _X_TEST_96 = _tf.image.resize(_X_TEST, [TRANSFER_IMAGE_SIZE, TRANSFER_IMAGE_SIZE]).numpy()
+
+    print(f"Upscaled: train {_X_TRAIN_96.shape}, test {_X_TEST_96.shape}")
+    return _X_TRAIN_96, _X_TEST_96
+
+
+def build_transfer_model(config):
+    """Build MobileNetV2 transfer learning model"""
+    freeze_pct = config.get('freezeLayers', 90) / 100.0
+    strategy = config.get('strategy', 'finetune')
+
+    # Load MobileNetV2 with ImageNet weights, no top classifier
+    base_model = _keras.applications.MobileNetV2(
+        input_shape=(TRANSFER_IMAGE_SIZE, TRANSFER_IMAGE_SIZE, 3),
+        include_top=False,
+        weights='imagenet'
+    )
+
+    # Freeze layers based on percentage
+    total_layers = len(base_model.layers)
+    freeze_count = int(total_layers * freeze_pct)
+
+    if strategy == 'feature':
+        # Feature extraction: freeze everything
+        base_model.trainable = False
+    else:
+        # Fine-tuning: freeze first N% of layers
+        base_model.trainable = True
+        for i, layer in enumerate(base_model.layers):
+            layer.trainable = i >= freeze_count
+
+    trainable_count = sum(1 for l in base_model.layers if l.trainable)
+    frozen_count = total_layers - trainable_count
+    print(f"MobileNetV2: {total_layers} layers, {frozen_count} frozen, {trainable_count} trainable")
+
+    # Build full model
+    inputs = _keras.Input(shape=(TRANSFER_IMAGE_SIZE, TRANSFER_IMAGE_SIZE, 3))
+    x = _keras.applications.mobilenet_v2.preprocess_input(inputs)
+    x = base_model(x, training=(strategy == 'finetune'))
+    x = _layers.GlobalAveragePooling2D()(x)
+    x = _layers.Dropout(0.3)(x)
+    outputs = _layers.Dense(NUM_CLASSES, activation='softmax')(x)
+
+    model = _keras.Model(inputs, outputs)
+
+    # Use lower learning rate for fine-tuning pretrained weights
+    lr = 0.0001 if strategy == 'finetune' else 0.001
+    model.compile(
+        optimizer=_keras.optimizers.Adam(learning_rate=lr),
+        loss='sparse_categorical_crossentropy',
+        metrics=['accuracy']
+    )
+
+    return model, total_layers, frozen_count, trainable_count
+
+
+def train_transfer_async(session_id, config):
+    """Train transfer learning model in background thread"""
+    session = training_sessions.get(session_id)
+    if not session:
+        return
+
+    try:
+        session['status'] = 'Loading MobileNetV2 and preparing data...'
+        X_train_96, X_test_96 = get_upscaled_data()
+
+        epochs = min(config.get('epochs', TRANSFER_MAX_EPOCHS), TRANSFER_MAX_EPOCHS)
+        num_samples = min(config.get('numSamples', 300), MAX_SAMPLES)
+
+        print(f"\n{'='*60}")
+        print(f"[Transfer {session_id[:8]}] Starting transfer learning")
+        print(f"  Strategy: {config.get('strategy', 'finetune')}")
+        print(f"  Freeze: {config.get('freezeLayers', 90)}%")
+        print(f"  Epochs: {epochs}, Samples: {num_samples}")
+        print(f"{'='*60}\n")
+
+        # Sample balanced training data
+        samples_per_class = num_samples // NUM_CLASSES
+        indices = []
+        for class_idx in range(NUM_CLASSES):
+            class_indices = np.where(_Y_TRAIN == class_idx)[0]
+            selected = np.random.choice(
+                class_indices,
+                size=min(samples_per_class, len(class_indices)),
+                replace=False
+            )
+            indices.extend(selected)
+        np.random.shuffle(indices)
+
+        X_train = X_train_96[indices]
+        y_train = _Y_TRAIN[indices]
+
+        # Validation set
+        val_indices = np.random.choice(len(X_test_96), size=min(300, len(X_test_96)), replace=False)
+        X_val = X_test_96[val_indices]
+        y_val = _Y_TEST[val_indices]
+
+        session['status'] = 'Building MobileNetV2 model...'
+        model, total_layers, frozen_count, trainable_count = build_transfer_model(config)
+
+        session['model_info'] = {
+            'total_layers': total_layers,
+            'frozen_layers': frozen_count,
+            'trainable_layers': trainable_count,
+            'total_params': int(model.count_params()),
+            'trainable_params': int(sum(
+                _keras.backend.count_params(w) for w in model.trainable_weights
+            ))
+        }
+
+        session['status'] = 'Training...'
+        session['history'] = []
+        session['current_epoch'] = 0
+
+        class ProgressCallback(_keras.callbacks.Callback):
+            def on_epoch_end(self, epoch, logs=None):
+                print(f"[Transfer {session_id[:8]}] Epoch {epoch+1}/{epochs} - "
+                      f"acc: {logs['accuracy']:.4f}, val_acc: {logs['val_accuracy']:.4f}")
+                session['current_epoch'] = epoch + 1
+                session['history'].append({
+                    'trainAcc': float(logs['accuracy'] * 100),
+                    'valAcc': float(logs['val_accuracy'] * 100),
+                    'trainLoss': float(logs['loss']),
+                    'valLoss': float(logs['val_loss'])
+                })
+                session['status'] = f"Epoch {epoch + 1}/{epochs}"
+
+        model.fit(
+            X_train, y_train,
+            batch_size=32,
+            epochs=epochs,
+            validation_data=(X_val, y_val),
+            callbacks=[ProgressCallback()],
+            verbose=0
+        )
+
+        # Evaluate on full test set
+        session['status'] = 'Evaluating...'
+        test_loss, test_acc = model.evaluate(X_test_96, _Y_TEST, verbose=0)
+        session['test_accuracy'] = float(test_acc * 100)
+
+        # Sample predictions with full probabilities
+        sample_predictions = []
+        for class_idx in range(NUM_CLASSES):
+            class_test_indices = np.where(_Y_TEST == class_idx)[0]
+            if len(class_test_indices) > 0:
+                selected = np.random.choice(class_test_indices, size=min(3, len(class_test_indices)), replace=False)
+                for idx in selected:
+                    pred = model.predict(X_test_96[idx:idx+1], verbose=0)[0]
+                    sample_predictions.append({
+                        'true': int(_Y_TEST[idx]),
+                        'predicted': int(np.argmax(pred)),
+                        'confidence': float(np.max(pred)),
+                        'probabilities': [float(p) for p in pred],
+                        'imageData': image_array_to_base64(_X_TEST[idx])  # Show original 32x32
+                    })
+
+        session['sample_predictions'] = sample_predictions[:8]
+        session['status'] = 'complete'
+        session['model'] = model
+
+        print(f"[Transfer {session_id[:8]}] Complete! Test accuracy: {test_acc*100:.1f}%")
+
+    except Exception as e:
+        import traceback
+        session['status'] = 'error'
+        session['error'] = str(e)
+        print(f"Transfer learning error: {traceback.format_exc()}")
 
     finally:
         with state_lock:
@@ -549,10 +747,50 @@ def get_training_status(session_id):
         response['test_accuracy'] = session['test_accuracy']
         response['sample_predictions'] = session['sample_predictions']
 
+    if session.get('model_info'):
+        response['model_info'] = session['model_info']
+
     if session.get('error'):
         response['error'] = session['error']
 
     return jsonify(response)
+
+
+@app.route('/api/transfer/train', methods=['POST'])
+def start_transfer_training():
+    """Start a new transfer learning training session"""
+    config = request.json
+    session_id = str(uuid.uuid4())
+
+    config['epochs'] = min(config.get('epochs', TRANSFER_MAX_EPOCHS), TRANSFER_MAX_EPOCHS)
+    config['numSamples'] = min(config.get('numSamples', 300), MAX_SAMPLES)
+
+    with state_lock:
+        training_sessions[session_id] = {
+            'status': 'queued',
+            'config': config,
+            'current_epoch': 0,
+            'history': [],
+            'filters': None,
+            'model': None,
+            'model_info': None,
+            'test_accuracy': None,
+            'sample_predictions': None,
+            'created_at': datetime.now(),
+            'queue_position': len(training_queue) + 1,
+            'is_transfer': True
+        }
+
+        training_queue.append(session_id)
+        queue_position = len(training_queue)
+        active_count = len(active_trainings)
+
+    return jsonify({
+        'session_id': session_id,
+        'queue_position': queue_position,
+        'active_trainings': active_count,
+        'max_concurrent': MAX_CONCURRENT_TRAININGS
+    })
 
 
 @app.route('/api/predict', methods=['POST'])

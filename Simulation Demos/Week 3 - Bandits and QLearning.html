@@ -92,15 +92,35 @@ function createBanditStepper(method, trueRates, prices, epsilon, ucbC, seed) {
         estRates: conv.map((c2,i)=>c2/Math.max(pulls[i],1)) }) };
 }
 
-/* ═══════════ Q-LEARNING ENGINE ═══════════ */
-const DAYS=["Fri","Sat","Sun"], PRICES=[1,2];
-const DEMAND={1:[8,12,15],2:[4,6,8]};
-const INV_BINS=[9], INV_LABELS=["Low (0-9)","High (10+)"];
-const getInvBin=inv=>{for(let i=0;i<INV_BINS.length;i++)if(inv<=INV_BINS[i])return i;return INV_BINS.length;};
+/* ═══════════ Q-LEARNING ENGINE (Bakery Model) ═══════════ */
+/* 2 specialty birthday cakes, 3-day weekend (Fri/Sat/Sun)
+   At most 1 customer per day; purchase probability depends on price & day.
+   States: (day, inventory) — only 5 reachable decision states.
+   Actions: price at $15 or $35. */
+const DAYS=["Fri","Sat","Sun"], PRICES=[15,35];
+const PROB_BUY={15:[0.4,0.5,0.9], 35:[0.02,0.15,0.8]};
+const INV_LABELS=["1 cake","2 cakes"];
+const START_INV=2;
 
-function computeDP(startInv){const nDays=DAYS.length;const V=Array.from({length:nDays+1},()=>new Float64Array(startInv+1));for(let d=nDays-1;d>=0;d--)for(let inv=0;inv<=startInv;inv++){let best=0;for(const p of PRICES){const sold=Math.min(DEMAND[p][d],inv),rev=sold*p,fut=d<nDays-1?V[d+1][inv-sold]:0;best=Math.max(best,rev+fut);}V[d][inv]=best;}return V[0][startInv];}
+/* Reachable states: (Fri,2),(Sat,2),(Sat,1),(Sun,2),(Sun,1) */
+const REACHABLE=[{d:0,inv:2},{d:1,inv:2},{d:1,inv:1},{d:2,inv:2},{d:2,inv:1}];
 
-function runQL(p){const rng=makeRng(p.seed);const nDays=DAYS.length,nInv=INV_LABELS.length,nAct=PRICES.length;const Q=Array.from({length:nDays},()=>Array.from({length:nInv},()=>new Float64Array(nAct)));const epRevs=[],snaps=[];const snapAt=[1,2,3,5,10,25,50,100,200,500,1000,2000].filter(e=>e<=p.nEpisodes);let eps=p.epsilon;for(let ep=0;ep<p.nEpisodes;ep++){let inv=p.inventory,totRev=0;for(let d=0;d<nDays;d++){const si=getInvBin(inv);let act;if(rng.random()<eps)act=rng.randInt(0,nAct);else{act=0;for(let a=1;a<nAct;a++)if(Q[d][si][a]>Q[d][si][act])act=a;}const price=PRICES[act],base=DEMAND[price][d];const noisy=Math.max(0,Math.round(base*(1+(rng.random()-0.5)*0.4)));const sold=Math.min(noisy,inv),rev=sold*price;inv-=sold;totRev+=rev;let target;if(d<nDays-1){const nsi=getInvBin(inv);let bst=Q[d+1][nsi][0];for(let a=1;a<nAct;a++)bst=Math.max(bst,Q[d+1][nsi][a]);target=rev+p.gamma*bst;}else target=rev;Q[d][si][act]+=p.alpha*(target-Q[d][si][act]);}epRevs.push(totRev);eps*=p.epsilonDecay;if(snapAt.includes(ep+1)){const pol={},qv={};for(let d=0;d<nDays;d++)for(let ib=0;ib<nInv;ib++){const k=`${DAYS[d]}_${INV_LABELS[ib]}`;let ba=0;for(let a=1;a<nAct;a++)if(Q[d][ib][a]>Q[d][ib][ba])ba=a;pol[k]=PRICES[ba];qv[k]=PRICES.map((_,a)=>+Q[d][ib][a].toFixed(2));}snaps.push({episode:ep+1,policy:pol,qValues:qv,revenue:totRev});}}const win=Math.max(1,Math.floor(p.nEpisodes/20));const roll=epRevs.map((_,i)=>{const s=Math.max(0,i-win+1);let sm=0;for(let j=s;j<=i;j++)sm+=epRevs[j];return+(sm/(i-s+1)).toFixed(2);});const ds=(arr,mx)=>{if(arr.length<=mx)return{x:arr.map((_,i)=>i),y:arr};const step=Math.ceil(arr.length/mx);const x=[],y=[];for(let i=0;i<arr.length;i+=step){x.push(i);y.push(arr[i]);}return{x,y};};const d1=ds(epRevs,300),d2=ds(roll,300);const last50=epRevs.slice(-50);return{revsX:d1.x,revs:d1.y,rollX:d2.x,roll:d2.y,snaps,dp:computeDP(p.inventory),avg50:+(last50.reduce((a,b)=>a+b,0)/last50.length).toFixed(2)};}
+/* Map inventory 1->index 0, 2->index 1 for Q-table */
+const invIdx=inv=>inv-1;
+
+function computeDP(){
+    const V=Array.from({length:4},()=>new Float64Array(3)); /* V[day][inv] */
+    for(let d=2;d>=0;d--)for(let inv=1;inv<=2;inv++){
+        let best=-1;
+        for(let ai=0;ai<PRICES.length;ai++){
+            const price=PRICES[ai],p=PROB_BUY[price][d];
+            const ev=p*(price+V[d+1][inv-1])+(1-p)*V[d+1][inv];
+            if(ev>best)best=ev;
+        }
+        V[d][inv]=best;
+    }
+    return {optimal:+V[0][2].toFixed(2), V};
+}
 
 /* ═══════════ SHARED UI ═══════════ */
 const Card = ({children,style}) => <div style={{background:C.bg,borderRadius:12,padding:'1rem',border:`1px solid ${C.bdr}`,...style}}>{children}</div>;
@@ -424,8 +444,8 @@ const BanditRates = ({chartData, pr, tr, expR, bestA}) => {
    Q-LEARNING TAB (unchanged)
    ════════════════════════════════ */
 const QLTab = () => {
-    const [nEp,setNEp]=useState(500);const [alpha,setAlpha]=useState(0.3);const [gamma,setGamma]=useState(1.0);
-    const [epsQ,setEpsQ]=useState(0.2);const decay=1.0;const inv=20;const seed=42;
+    const [nEp,setNEp]=useState(1000);const [alpha,setAlpha]=useState(0.1);const [gamma,setGamma]=useState(1.0);
+    const [epsQ,setEpsQ]=useState(1.0);const seed=42;
     const [running,setRunning]=useState(false);const [res,setRes]=useState(null);const [snapIdx,setSnapIdx]=useState(null);
     const [progress,setProgress]=useState(0);const [speed,setSpeed]=useState(10);const cancelRef=useRef(false);
 
@@ -433,46 +453,64 @@ const QLTab = () => {
         cancelRef.current=false;setRunning(true);setProgress(0);setRes(null);setSnapIdx(null);
         const rng=makeRng(seed);
         const nDays=DAYS.length,nInv=INV_LABELS.length,nAct=PRICES.length;
+        /* Q[day][invIdx][action] — invIdx: 0=1cake, 1=2cakes */
         const Q=Array.from({length:nDays},()=>Array.from({length:nInv},()=>new Float64Array(nAct)));
         const epRevs=[],snaps=[];
-        const snapAt=[1,2,3,5,10,25,50,100,200,500,1000,2000].filter(e=>e<=nEp);
-        let eps=epsQ;const dpVal=computeDP(inv);let done=0;
+        const snapAt=[1,2,5,10,25,50,100,200,500,1000,2000,5000].filter(e=>e<=nEp);
+        let done=0;const dpRes=computeDP();
         const batchSize=Math.max(1,Math.floor(nEp/1000));
         const targetMs=200000/speed;const interval=targetMs/(nEp/batchSize);
 
         function tick(){
             if(cancelRef.current){setRunning(false);return;}
             for(let b=0;b<batchSize&&done<nEp;b++){
-                let curInv=inv,totRev=0;
+                let inv=START_INV,totRev=0;
+                /* Decaying epsilon: high exploration early, low late */
+                const curEps=Math.max(0.05, epsQ*(1 - done/(nEp*0.8)));
                 for(let d=0;d<nDays;d++){
-                    const si=getInvBin(curInv);let act;
-                    if(rng.random()<eps)act=rng.randInt(0,nAct);
+                    if(inv===0)break;
+                    const si=invIdx(inv);let act;
+                    if(rng.random()<curEps)act=rng.randInt(0,nAct);
                     else{act=0;for(let a=1;a<nAct;a++)if(Q[d][si][a]>Q[d][si][act])act=a;}
-                    const price=PRICES[act],base=DEMAND[price][d];
-                    const noisy=Math.max(0,Math.round(base*(1+(rng.random()-0.5)*0.4)));
-                    const sold=Math.min(noisy,curInv),rev=sold*price;curInv-=sold;totRev+=rev;
-                    let target;if(d<nDays-1){const nsi=getInvBin(curInv);let bst=Q[d+1][nsi][0];
-                    for(let a=1;a<nAct;a++)bst=Math.max(bst,Q[d+1][nsi][a]);target=rev+gamma*bst;}else target=rev;
+                    const price=PRICES[act];
+                    const prob=PROB_BUY[price][d];
+                    const sold=rng.random()<prob?1:0;
+                    const rev=sold*price;
+                    const nextInv=inv-sold;
+                    totRev+=rev;
+                    let maxNextQ=0;
+                    if(d<nDays-1&&nextInv>0){
+                        const nsi=invIdx(nextInv);
+                        for(let a=0;a<nAct;a++)maxNextQ=Math.max(maxNextQ,Q[d+1][nsi][a]);
+                    }
+                    const target=rev+gamma*maxNextQ;
                     Q[d][si][act]+=alpha*(target-Q[d][si][act]);
+                    inv=nextInv;
                 }
-                epRevs.push(totRev);eps*=decay;done++;
+                epRevs.push(totRev);done++;
                 if(snapAt.includes(done)){
                     const pol={},qv={};
-                    for(let d2=0;d2<nDays;d2++)for(let ib=0;ib<nInv;ib++){
-                        const k=`${DAYS[d2]}_${INV_LABELS[ib]}`;let ba=0;
-                        for(let a=1;a<nAct;a++)if(Q[d2][ib][a]>Q[d2][ib][ba])ba=a;
-                        pol[k]=PRICES[ba];qv[k]=PRICES.map((_,a)=>+Q[d2][ib][a].toFixed(2));
+                    for(const st of REACHABLE){
+                        const k=`${DAYS[st.d]}_${INV_LABELS[invIdx(st.inv)]}`;
+                        const si=invIdx(st.inv);let ba=0;
+                        for(let a=1;a<nAct;a++)if(Q[st.d][si][a]>Q[st.d][si][ba])ba=a;
+                        pol[k]=PRICES[ba];qv[k]=PRICES.map((_,a)=>+Q[st.d][si][a].toFixed(2));
                     }
                     snaps.push({episode:done,policy:pol,qValues:qv,revenue:totRev});
                 }
             }
             setProgress(done/nEp);
-            const win=Math.max(1,Math.floor(nEp/20));
-            const roll=epRevs.map((_,i)=>{const s=Math.max(0,i-win+1);let sm=0;for(let j=s;j<=i;j++)sm+=epRevs[j];return+(sm/(i-s+1)).toFixed(2);});
-            const ds=(arr,mx)=>{if(arr.length<=mx)return{x:arr.map((_2,i)=>i),y:arr};const step=Math.ceil(arr.length/mx);const x=[],y=[];for(let i=0;i<arr.length;i+=step){x.push(i);y.push(arr[i]);}return{x,y};};
-            const d1=ds(epRevs,300),d2=ds(roll,300);
-            const last50=epRevs.slice(-50);const avg50=last50.length?+(last50.reduce((a2,b2)=>a2+b2,0)/last50.length).toFixed(2):0;
-            setRes({revsX:d1.x,revs:d1.y,rollX:d2.x,roll:d2.y,snaps:[...snaps],dp:dpVal,avg50,done});
+            /* Rolling avg: true 100-episode window, no downsampling */
+            const win=100;
+            const roll=epRevs.map((_,i)=>{const w=Math.min(win,i+1);let sm=0;for(let j=i-w+1;j<=i;j++)sm+=epRevs[j];return sm/w;});
+            /* Episode revenue: downsample if needed */
+            const dsBucket=(arr,mx)=>{if(arr.length<=mx)return{x:arr.map((_2,i)=>i),y:arr};const step=Math.ceil(arr.length/mx);const x=[],y=[];for(let i=0;i<arr.length;i+=step){let sm=0,n=0;for(let j=i;j<Math.min(i+step,arr.length);j++){sm+=arr[j];n++;}x.push(i+Math.floor(step/2));y.push(+(sm/n).toFixed(2));}return{x,y};};
+            const d1=dsBucket(epRevs,500);
+            /* Rolling avg: no downsampling — send every point */
+            const rollX=roll.map((_,i)=>i);
+            const rollY=roll.map(v=>+v.toFixed(2));
+            const last100=epRevs.slice(-100);const avg100=last100.length?+(last100.reduce((a2,b2)=>a2+b2,0)/last100.length).toFixed(2):0;
+            setRes({revsX:d1.x,revs:d1.y,rollX,roll:rollY,snaps:[...snaps],dp:dpRes.optimal,avg50:avg100,done});
             if(snaps.length>0)setSnapIdx(snaps.length-1);
             if(done<nEp)setTimeout(tick,interval);else setRunning(false);
         }
@@ -485,10 +523,10 @@ const QLTab = () => {
         <div style={{display:'grid',gridTemplateColumns:'300px 1fr',gap:'1.25rem',padding:'1.25rem',maxWidth:1450,margin:'0 auto'}}>
             <div style={{display:'flex',flexDirection:'column',gap:'1rem'}}>
                 <Card><h2 style={{fontSize:'1.1rem',fontWeight:600,marginBottom:'1rem'}}>Q-Learning Parameters</h2>
-                    <Slider label="Episodes" value={nEp} onChange={setNEp} min={50} max={2000} step={50} disabled={running}/>
-                    <Slider label="α (learning rate)" value={alpha} onChange={setAlpha} min={0.01} max={1.0} step={0.01} disabled={running}/>
+                    <Slider label="Episodes" value={nEp} onChange={setNEp} min={100} max={5000} step={100} disabled={running}/>
+                    <Slider label="α (learning rate)" value={alpha} onChange={setAlpha} min={0.01} max={0.5} step={0.01} disabled={running}/>
                     <Slider label="γ (discount)" value={gamma} onChange={setGamma} min={0.5} max={1.0} step={0.05} disabled={running}/>
-                    <Slider label="ε (exploration)" value={epsQ} onChange={setEpsQ} min={0.01} max={0.5} step={0.01} disabled={running}/>
+                    <Slider label="ε (exploration)" value={epsQ} onChange={setEpsQ} min={0.01} max={1.0} step={0.01} disabled={running}/>
                     <div style={{marginBottom:'0.5rem'}}>
                         <label style={{fontSize:'0.875rem',fontWeight:500,display:'block',marginBottom:'0.5rem'}}>Speed</label>
                         <div style={{display:'flex',gap:'0.5rem'}}>
@@ -504,14 +542,16 @@ const QLTab = () => {
                     <button onClick={stop} style={{width:'100%',padding:'1rem',borderRadius:10,border:'none',cursor:'pointer',fontWeight:600,fontSize:'1rem',background:'#C62828',color:'#fff'}}>
                         Stop</button> :
                     <RunBtn onClick={run} running={false} label="Train Q-Learning"/>}
-                <Card><h3 style={{fontSize:'0.95rem',fontWeight:600,marginBottom:'0.5rem'}}>Demand Schedule</h3>
+                <Card><h3 style={{fontSize:'0.95rem',fontWeight:600,marginBottom:'0.5rem'}}>Purchase Probabilities</h3>
+                    <p style={{fontSize:'0.7rem',color:C.mut,marginBottom:'0.5rem'}}>P(sale) given one customer/day</p>
                     <table style={{width:'100%',borderCollapse:'collapse',fontSize:'0.75rem'}}>
                         <thead><tr style={{borderBottom:`2px solid ${C.bdr}`}}>
                             <th style={{padding:'0.3rem',textAlign:'left',color:C.mut}}>Day</th>
                             {PRICES.map(p=><th key={p} style={{padding:'0.3rem',textAlign:'center',color:C.pri,fontWeight:600}}>${p}</th>)}</tr></thead>
                         <tbody>{DAYS.map((d,i)=><tr key={d} style={{borderBottom:`1px solid ${C.bdr}`}}>
                             <td style={{padding:'0.3rem',fontWeight:500}}>{d}</td>
-                            {PRICES.map(p=><td key={p} style={{padding:'0.3rem',textAlign:'center'}}>{DEMAND[p][i]}</td>)}</tr>)}</tbody></table></Card>
+                            {PRICES.map(p=><td key={p} style={{padding:'0.3rem',textAlign:'center'}}>{PROB_BUY[p][i]}</td>)}</tr>)}</tbody></table>
+                    <p style={{fontSize:'0.65rem',color:C.mut,marginTop:'0.4rem'}}>Start: {START_INV} cakes · Unsold cakes expire Sun night</p></Card>
             </div>
             <div style={{display:'flex',flexDirection:'column',gap:'1rem'}}>
                 {/* Progress bar */}
@@ -532,7 +572,7 @@ const QLTab = () => {
             </div>
         </div>);
 };
-const QSummary=({res})=>{const items=res?[{l:'Optimal',v:`$${res.dp}`},{l:'Avg Last 50',v:`$${res.avg50}`}]:[{l:'Optimal',v:'---'},{l:'Avg Last 50',v:'---'}];return<div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:'0.75rem'}}>{items.map((it,i)=><Card key={i} style={{textAlign:'center',padding:'0.75rem'}}><div style={{fontSize:'0.7rem',color:C.mut,marginBottom:'0.25rem'}}>{it.l}</div><div style={{fontSize:'1rem',fontWeight:600}}>{it.v}</div></Card>)}</div>;};
+const QSummary=({res})=>{const items=res?[{l:'Optimal',v:`$${res.dp}`},{l:'Avg Last 100',v:`$${res.avg50}`}]:[{l:'Optimal',v:'---'},{l:'Avg Last 100',v:'---'}];return<div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:'0.75rem'}}>{items.map((it,i)=><Card key={i} style={{textAlign:'center',padding:'0.75rem'}}><div style={{fontSize:'0.7rem',color:C.mut,marginBottom:'0.25rem'}}>{it.l}</div><div style={{fontSize:'1rem',fontWeight:600}}>{it.v}</div></Card>)}</div>;};
 const QChart=({res,nEp})=>{const ref=useRef(null),ch=useRef(null);
     useEffect(()=>{if(!ref.current)return;
         const datasets=[
@@ -543,7 +583,7 @@ const QChart=({res,nEp})=>{const ref=useRef(null),ch=useRef(null);
             responsive:true,maintainAspectRatio:false,animation:false,
             plugins:{legend:{labels:{color:C.tx,font:{size:11,weight:'500'},usePointStyle:true,padding:15}}},
             scales:{x:{type:'linear',min:0,max:nEp||500,title:{display:true,text:'Episode',color:C.tx,font:{size:12,weight:'600'}},grid:{color:'rgba(0,0,0,0.06)'},ticks:{color:C.mut}},
-                y:{title:{display:true,text:'Revenue ($)',color:C.tx,font:{size:12,weight:'600'}},grid:{color:'rgba(0,0,0,0.06)'},ticks:{color:C.mut,callback:v=>`$${v}`}}}}});
+                y:{min:0,max:50,title:{display:true,text:'Revenue ($)',color:C.tx,font:{size:12,weight:'600'}},grid:{color:'rgba(0,0,0,0.06)'},ticks:{color:C.mut,callback:v=>`$${v}`}}}}});
         return()=>{if(ch.current){ch.current.destroy();ch.current=null;}};},[]); 
     useEffect(()=>{if(!ch.current)return;const chart=ch.current;
         if(res){chart.data.datasets[0].data=res.revsX.map((x,i)=>({x,y:res.revs[i]}));
@@ -553,8 +593,8 @@ const QChart=({res,nEp})=>{const ref=useRef(null),ch=useRef(null);
         }else{chart.data.datasets[0].data=[];chart.data.datasets[1].data=[];chart.data.datasets[2].data=[];}
         chart.options.scales.x.max=nEp;chart.update('none');},[res,nEp]);
     return<Card><h3 style={{fontSize:'1rem',fontWeight:600,marginBottom:'0.5rem'}}>Revenue per Episode</h3><div style={{height:280}}><canvas ref={ref}/></div></Card>;};
-const QPolicy=({res,snapIdx,setSnapIdx})=>{if(!res)return<Card style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:200}}><p style={{color:C.mut}}>Waiting...</p></Card>;const snap=res.snaps[snapIdx]||res.snaps[res.snaps.length-1];const pc={1:'#8BB8E8',2:'#005587'};return<Card><h3 style={{fontSize:'1rem',fontWeight:600,marginBottom:'0.5rem'}}>Learned Policy</h3><div style={{display:'flex',gap:'0.3rem',marginBottom:'0.75rem',flexWrap:'wrap'}}>{res.snaps.map((s,i)=><button key={i} onClick={()=>setSnapIdx(i)} style={{padding:'0.25rem 0.5rem',borderRadius:4,border:'none',cursor:'pointer',fontSize:'0.7rem',fontWeight:500,background:snapIdx===i?C.pri:'rgba(39,116,174,0.1)',color:snapIdx===i?'#fff':C.tx}}>Ep {s.episode}</button>)}</div><table style={{width:'100%',borderCollapse:'collapse',fontSize:'0.75rem'}}><thead><tr><th style={{padding:'0.3rem',textAlign:'left',color:C.mut,fontSize:'0.7rem'}}>Day\Inv</th>{INV_LABELS.map(l=><th key={l} style={{padding:'0.3rem',textAlign:'center',color:C.mut,fontSize:'0.65rem'}}>{l}</th>)}</tr></thead><tbody>{DAYS.map(d=><tr key={d}><td style={{padding:'0.3rem',fontWeight:600,fontSize:'0.75rem'}}>{d}</td>{INV_LABELS.map(iv=>{const k=`${d}_${iv}`,p=snap.policy[k];return<td key={iv} style={{padding:'0.3rem',textAlign:'center',fontWeight:700,background:pc[p]||'#eee',color:p===2?'#fff':'#1a1a1a',borderRadius:3,fontSize:'0.8rem'}}>${p}</td>;})}</tr>)}</tbody></table><div style={{display:'flex',gap:'1rem',marginTop:'0.5rem',justifyContent:'center'}}>{PRICES.map(p=><div key={p} style={{display:'flex',alignItems:'center',gap:'0.25rem'}}><div style={{width:12,height:12,borderRadius:2,background:pc[p]}}/><span style={{fontSize:'0.7rem',color:C.mut}}>${p}</span></div>)}</div></Card>;};
-const QTable=({res,snapIdx})=>{if(!res)return<Card style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:200}}><p style={{color:C.mut}}>Waiting...</p></Card>;const snap=res.snaps[snapIdx]||res.snaps[res.snaps.length-1];return<Card><h3 style={{fontSize:'1rem',fontWeight:600,marginBottom:'0.5rem'}}>Q-Values</h3>{INV_LABELS.map(selInv=><div key={selInv} style={{marginBottom:'0.75rem'}}><div style={{fontSize:'0.8rem',fontWeight:600,color:C.pri,marginBottom:'0.25rem'}}>{selInv}</div><table style={{width:'100%',borderCollapse:'collapse',fontSize:'0.8rem'}}><thead><tr style={{borderBottom:`2px solid ${C.bdr}`}}><th style={{padding:'0.4rem',textAlign:'left',color:C.mut}}>Day</th>{PRICES.map(p=><th key={p} style={{padding:'0.4rem',textAlign:'center',color:C.pri,fontWeight:600}}>Q(·,${p})</th>)}<th style={{padding:'0.4rem',textAlign:'center',color:C.gn,fontWeight:600}}>Best</th></tr></thead><tbody>{DAYS.map(d=>{const k=`${d}_${selInv}`,qv=snap.qValues[k]||PRICES.map(()=>0),mx=Math.max(...qv),bi=qv.indexOf(mx);return<tr key={d} style={{borderBottom:`1px solid ${C.bdr}`}}><td style={{padding:'0.4rem',fontWeight:600}}>{d}</td>{qv.map((v,i)=><td key={i} style={{padding:'0.4rem',textAlign:'center',fontWeight:v===mx&&mx>0?700:400,color:v===mx&&mx>0?C.gn:C.tx,background:v===mx&&mx>0?'rgba(46,125,50,0.08)':'transparent'}}>{v.toFixed(1)}</td>)}<td style={{padding:'0.4rem',textAlign:'center',fontWeight:700,color:C.gn}}>${PRICES[bi]}</td></tr>;})}</tbody></table></div>)}</Card>;};
+const QPolicy=({res,snapIdx,setSnapIdx})=>{if(!res)return<Card style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:200}}><p style={{color:C.mut}}>Waiting...</p></Card>;const snap=res.snaps[snapIdx]||res.snaps[res.snaps.length-1];const pc={15:'#8BB8E8',35:'#005587'};return<Card><h3 style={{fontSize:'1rem',fontWeight:600,marginBottom:'0.5rem'}}>Learned Policy</h3><div style={{display:'flex',gap:'0.3rem',marginBottom:'0.75rem',flexWrap:'wrap'}}>{res.snaps.map((s,i)=><button key={i} onClick={()=>setSnapIdx(i)} style={{padding:'0.25rem 0.5rem',borderRadius:4,border:'none',cursor:'pointer',fontSize:'0.7rem',fontWeight:500,background:snapIdx===i?C.pri:'rgba(39,116,174,0.1)',color:snapIdx===i?'#fff':C.tx}}>Ep {s.episode}</button>)}</div><table style={{width:'100%',borderCollapse:'collapse',fontSize:'0.75rem'}}><thead><tr><th style={{padding:'0.3rem',textAlign:'left',color:C.mut,fontSize:'0.7rem'}}>Day\Inv</th>{INV_LABELS.map(l=><th key={l} style={{padding:'0.3rem',textAlign:'center',color:C.mut,fontSize:'0.65rem'}}>{l}</th>)}</tr></thead><tbody>{DAYS.map((d,di)=><tr key={d}><td style={{padding:'0.3rem',fontWeight:600,fontSize:'0.75rem'}}>{d}</td>{INV_LABELS.map((iv,ii)=>{const k=`${d}_${iv}`;const isReachable=REACHABLE.some(st=>st.d===di&&invIdx(st.inv)===ii);const p=snap.policy[k];if(!isReachable)return<td key={iv} style={{padding:'0.3rem',textAlign:'center',color:'#ccc',fontSize:'0.7rem'}}>—</td>;return<td key={iv} style={{padding:'0.3rem',textAlign:'center',fontWeight:700,background:pc[p]||'#eee',color:p===35?'#fff':'#1a1a1a',borderRadius:3,fontSize:'0.8rem'}}>${p}</td>;})}</tr>)}</tbody></table><div style={{display:'flex',gap:'1rem',marginTop:'0.5rem',justifyContent:'center'}}>{PRICES.map(p=><div key={p} style={{display:'flex',alignItems:'center',gap:'0.25rem'}}><div style={{width:12,height:12,borderRadius:2,background:pc[p]}}/><span style={{fontSize:'0.7rem',color:C.mut}}>${p}</span></div>)}</div></Card>;};
+const QTable=({res,snapIdx})=>{if(!res)return<Card style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:200}}><p style={{color:C.mut}}>Waiting...</p></Card>;const snap=res.snaps[snapIdx]||res.snaps[res.snaps.length-1];return<Card><h3 style={{fontSize:'1rem',fontWeight:600,marginBottom:'0.5rem'}}>Q-Values (reachable states)</h3><table style={{width:'100%',borderCollapse:'collapse',fontSize:'0.8rem'}}><thead><tr style={{borderBottom:`2px solid ${C.bdr}`}}><th style={{padding:'0.4rem',textAlign:'left',color:C.mut}}>State</th>{PRICES.map(p=><th key={p} style={{padding:'0.4rem',textAlign:'center',color:C.pri,fontWeight:600}}>Q(·,${p})</th>)}<th style={{padding:'0.4rem',textAlign:'center',color:C.gn,fontWeight:600}}>Best</th></tr></thead><tbody>{REACHABLE.map(st=>{const k=`${DAYS[st.d]}_${INV_LABELS[invIdx(st.inv)]}`;const qv=snap.qValues[k]||PRICES.map(()=>0);const mx=Math.max(...qv);const bi=qv.indexOf(mx);return<tr key={k} style={{borderBottom:`1px solid ${C.bdr}`}}><td style={{padding:'0.4rem',fontWeight:600}}>{DAYS[st.d]}, {st.inv}🎂</td>{qv.map((v,i)=><td key={i} style={{padding:'0.4rem',textAlign:'center',fontWeight:v===mx&&mx>0?700:400,color:v===mx&&mx>0?C.gn:C.tx,background:v===mx&&mx>0?'rgba(46,125,50,0.08)':'transparent'}}>{v.toFixed(1)}</td>)}<td style={{padding:'0.4rem',textAlign:'center',fontWeight:700,color:C.gn}}>${PRICES[bi]}</td></tr>;})}</tbody></table></Card>;};
 
 /* ════════════ APP ════════════ */
 const App = () => {
