@@ -1432,15 +1432,6 @@
 
                             <div className="control-group">
                                 <div className="control-label">
-                                    <span>Dropout Rate</span>
-                                    <span className="control-value">{config.dropout.toFixed(2)}</span>
-                                </div>
-                                <input type="range" className="slider" min="0" max="0.5" step="0.05" value={config.dropout}
-                                    onChange={(e) => setConfig({...config, dropout: parseFloat(e.target.value)})} />
-                            </div>
-
-                            <div className="control-group">
-                                <div className="control-label">
                                     <span>Training Epochs</span>
                                     <span className="control-value">{config.epochs}</span>
                                 </div>
@@ -1474,9 +1465,6 @@
                                             {n.toLocaleString()}
                                         </button>
                                     ))}
-                                </div>
-                                <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '0.3rem' }}>
-                                    More samples = better accuracy, slower training (max 500 per class)
                                 </div>
                             </div>
 
@@ -1735,7 +1723,7 @@
                             }}>
                                 <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#2774AE' }}>MobileNetV2</div>
                                 <div style={{ fontSize: '0.75rem', color: '#666', marginTop: '0.25rem' }}>
-                                    3.4M params · Pre-trained on ImageNet (1000 classes) · Images upscaled to 96×96
+                                    Lightweight CNN (3.4M params) pre-trained on ImageNet's 1.2M images across 1,000 categories · We reuse its learned visual features and replace the final classifier to distinguish our 3 animal classes · Input upscaled from 32×32 to 96×96
                                 </div>
                             </div>
 
@@ -1749,8 +1737,8 @@
                                 </div>
                                 <div style={{ fontSize: '0.7rem', color: '#888', marginTop: '0.3rem' }}>
                                     {strategy === 'feature'
-                                        ? 'Freeze all MobileNetV2 layers, only train the new classifier head'
-                                        : 'Unfreeze top layers of MobileNetV2 and fine-tune with low learning rate'}
+                                        ? 'Use MobileNetV2 as a fixed feature extractor — all pre-trained layers are frozen, and only the new 3-class classifier head is trained'
+                                        : 'Allow the top layers of MobileNetV2 to adapt their weights to our animal dataset, while keeping early layers (edges, textures) frozen'}
                                 </div>
                             </div>
 
@@ -2124,7 +2112,7 @@
             const [activeTab, setActiveTab] = useState('cnn');
             const [config, setConfig] = useState({
                 convBlocks: 2, filters: 32, kernelSize: 3,
-                poolType: 'max', batchNorm: false, dropout: 0.25, epochs: 10, numSamples: 300
+                poolType: 'max', batchNorm: false, epochs: 10, numSamples: 300
             });
             const [trainingHistory, setTrainingHistory] = useState([]);
             const [isModelTrained, setIsModelTrained] = useState(false);
