@@ -18,8 +18,8 @@ from typing import Optional, List, Dict, Any
 import math
 
 app = FastAPI(
-    title="Week 1: Linear Regression API",
-    description="Interactive API for exploring linear regression with hyperparameter controls",
+    title="Week 1: Linear Regression, Feature Engineering, and Regularization",
+    description="Demand Forecasting at H&M",
     version="2.0.0"
 )
 
@@ -78,6 +78,19 @@ AVAILABLE_FEATURES = {
     "pattern_melange": "Pattern is Melange",
     "pattern_stripe": "Pattern is Stripe",
     "pattern_lace": "Pattern is Lace",
+    # ── Month indicators ──
+    "month_january": "Month is January",
+    "month_february": "Month is February",
+    "month_march": "Month is March",
+    "month_april": "Month is April",
+    "month_may": "Month is May",
+    "month_june": "Month is June",
+    "month_july": "Month is July",
+    "month_august": "Month is August",
+    "month_september": "Month is September",
+    "month_october": "Month is October",
+    "month_november": "Month is November",
+    "month_december": "Month is December",
 }
 
 # Mapping from our clean feature names to original CSV column names
@@ -104,6 +117,18 @@ STYLE_COL_MAP = {
     "pattern_melange": "Melange",
     "pattern_stripe": "Stripe",
     "pattern_lace": "Lace",
+    "month_january": "January",
+    "month_february": "February",
+    "month_march": "March",
+    "month_april": "April",
+    "month_may": "May",
+    "month_june": "June",
+    "month_july": "July",
+    "month_august": "August",
+    "month_september": "September",
+    "month_october": "October",
+    "month_november": "November",
+    "month_december": "December",
 }
 
 # Categories to exclude from the app
@@ -210,9 +235,9 @@ async def load_data():
             csv_data = response.read().decode('utf-8')
         df = pd.read_csv(io.StringIO(csv_data))
         category_counts = df["name"].value_counts()
-        CATEGORIES = sorted([c for c in category_counts[category_counts >= 300].index.tolist()
+        CATEGORIES = sorted([c for c in category_counts[category_counts >= 50].index.tolist()
                              if c not in EXCLUDED_CATEGORIES])
-        print(f"[INFO] Loaded {len(df)} rows, {len(CATEGORIES)} categories (≥300 obs) from {DATA_URL}")
+        print(f"[INFO] Loaded {len(df)} rows, {len(CATEGORIES)} categories (≥50 obs) from {DATA_URL}")
     except Exception as e:
         print(f"[ERROR] Failed to load data from {DATA_URL}: {str(e)}")
         import traceback
@@ -468,9 +493,9 @@ async def get_categories():
                 csv_data = response.read().decode('utf-8')
             df = pd.read_csv(io.StringIO(csv_data))
             category_counts = df["name"].value_counts()
-            CATEGORIES = sorted([c for c in category_counts[category_counts >= 300].index.tolist()
+            CATEGORIES = sorted([c for c in category_counts[category_counts >= 50].index.tolist()
                                  if c not in EXCLUDED_CATEGORIES])
-            print(f"[INFO] Lazy-loaded {len(df)} rows, {len(CATEGORIES)} categories (≥300 obs)")
+            print(f"[INFO] Lazy-loaded {len(df)} rows, {len(CATEGORIES)} categories (≥50 obs)")
         except Exception as e:
             print(f"[ERROR] Failed to lazy-load data: {str(e)}")
             import traceback
