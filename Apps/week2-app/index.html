@@ -231,13 +231,11 @@
             const metricItems = [
                 { label: 'Train MAE', value: metrics.train_mae != null ? `$${metrics.train_mae.toLocaleString()}` : '---' },
                 { label: 'Test MAE', value: metrics.test_mae != null ? `$${metrics.test_mae.toLocaleString()}` : '---' },
-                { label: 'Train R²', value: metrics.train_r2 != null ? metrics.train_r2.toFixed(4) : '---' },
-                { label: 'Test R²', value: metrics.test_r2 != null ? metrics.test_r2.toFixed(4) : '---' },
                 { label: 'Train Size', value: metrics.n_train || '---' },
                 { label: 'Test Size', value: metrics.n_test || '---' },
             ];
             return (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '0.75rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem' }}>
                     {metricItems.map((item, idx) => (
                         <div key={idx} style={{
                             background: colors.cardBg, borderRadius: '10px', padding: '0.75rem',
@@ -849,11 +847,9 @@
             const metrics = results ? {
                 train_mae: results.train_mae,
                 test_mae: results.test_mae,
-                train_r2: results.train_r2,
-                test_r2: results.test_r2,
                 n_train: results.n_train,
                 n_test: results.n_test
-            } : { train_mae: null, test_mae: null, train_r2: null, test_r2: null, n_train: null, n_test: null };
+            } : { train_mae: null, test_mae: null, n_train: null, n_test: null };
 
             // Determine learning curve data
             let curveData = null;

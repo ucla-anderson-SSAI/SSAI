@@ -11,7 +11,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeRegressor, export_text
 from sklearn.ensemble import RandomForestRegressor
 from xgboost import XGBRegressor
-from sklearn.metrics import mean_absolute_error, r2_score
+from sklearn.metrics import mean_absolute_error
 import warnings
 import os
 import json
@@ -162,8 +162,6 @@ async def train_model(request: TrainRequest):
 
     train_mae = mean_absolute_error(y_train, train_preds)
     test_mae = mean_absolute_error(y_test, test_preds)
-    train_r2 = r2_score(y_train, train_preds)
-    test_r2 = r2_score(y_test, test_preds)
 
     # Feature importances
     if hasattr(model, 'feature_importances_'):
@@ -252,8 +250,6 @@ async def train_model(request: TrainRequest):
         "model_type": request.model_type,
         "train_mae": round(train_mae, 2),
         "test_mae": round(test_mae, 2),
-        "train_r2": round(train_r2, 4),
-        "test_r2": round(test_r2, 4),
         "n_train": len(X_train),
         "n_test": len(X_test),
         "feature_importances": {k: round(v, 4) for k, v in importances.items()},
