@@ -85,7 +85,7 @@ class TrainRequest(BaseModel):
     n_estimators: int = 100
     learning_rate: float = 0.1
     subsample: float = 0.8
-    max_features: Optional[float] = None  # For RF: fraction of features per split
+    max_features: Optional[float] = 0.7  # For RF: fraction of features per split
 
 
 def build_tree_structure(tree, feature_names, node_id=0, depth=0, max_display_depth=4):
