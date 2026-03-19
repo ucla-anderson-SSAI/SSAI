@@ -106,6 +106,11 @@ STYLE_COL_MAP = {
     "pattern_lace": "Lace",
 }
 
+# Categories to exclude from the app
+EXCLUDED_CATEGORIES = {"Bra", "Bikini top", "Kids Underwear top",
+                       "Underwear Tights", "Underwear body", "Underwear bottom",
+                       "Underwear corset", "Underwear set"}
+
 # Model types
 MODEL_TYPES = ["ols", "lasso", "ridge", "elasticnet"]
 
@@ -205,7 +210,8 @@ async def load_data():
             csv_data = response.read().decode('utf-8')
         df = pd.read_csv(io.StringIO(csv_data))
         category_counts = df["name"].value_counts()
-        CATEGORIES = sorted(category_counts[category_counts >= 300].index.tolist())
+        CATEGORIES = sorted([c for c in category_counts[category_counts >= 300].index.tolist()
+                             if c not in EXCLUDED_CATEGORIES])
         print(f"[INFO] Loaded {len(df)} rows, {len(CATEGORIES)} categories (≥300 obs) from {DATA_URL}")
     except Exception as e:
         print(f"[ERROR] Failed to load data from {DATA_URL}: {str(e)}")
@@ -462,7 +468,8 @@ async def get_categories():
                 csv_data = response.read().decode('utf-8')
             df = pd.read_csv(io.StringIO(csv_data))
             category_counts = df["name"].value_counts()
-            CATEGORIES = sorted(category_counts[category_counts >= 300].index.tolist())
+            CATEGORIES = sorted([c for c in category_counts[category_counts >= 300].index.tolist()
+                                 if c not in EXCLUDED_CATEGORIES])
             print(f"[INFO] Lazy-loaded {len(df)} rows, {len(CATEGORIES)} categories (≥300 obs)")
         except Exception as e:
             print(f"[ERROR] Failed to lazy-load data: {str(e)}")
