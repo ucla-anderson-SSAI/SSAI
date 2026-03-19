@@ -84,7 +84,6 @@ class TrainRequest(BaseModel):
     max_depth: int = 6
     n_estimators: int = 100
     learning_rate: float = 0.1
-    min_child_weight: int = 1
     subsample: float = 0.8
     max_features: Optional[float] = None  # For RF: fraction of features per split
 
@@ -149,7 +148,6 @@ async def train_model(request: TrainRequest):
             n_estimators=request.n_estimators,
             max_depth=request.max_depth,
             learning_rate=request.learning_rate,
-            min_child_weight=request.min_child_weight,
             subsample=request.subsample,
             random_state=42,
             n_jobs=-1
@@ -207,7 +205,6 @@ async def train_model(request: TrainRequest):
                     n_estimators=n_est,
                     max_depth=request.max_depth,
                     learning_rate=request.learning_rate,
-                    min_child_weight=request.min_child_weight,
                     subsample=request.subsample,
                     random_state=42,
                     n_jobs=-1

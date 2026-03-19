@@ -159,7 +159,7 @@
         // ──────────── Model Type Buttons ────────────
         const ModelTypeButtons = ({ modelType, setModelType }) => {
             const models = [
-                { id: 'decision_tree', label: 'Decision Tree' },
+                { id: 'decision_tree', label: 'Regression Tree' },
                 { id: 'random_forest', label: 'Random Forest' },
                 { id: 'xgboost', label: 'XGBoost' }
             ];
@@ -251,7 +251,7 @@
             );
         };
 
-        // ──────────── Decision Tree Visualization ────────────
+        // ──────────── Regression Tree Visualization ────────────
         const DecisionTreeViz = ({ treeData, maxDepth }) => {
             const [animationKey, setAnimationKey] = useState(0);
 
@@ -354,12 +354,9 @@
                     background: colors.cardBg, borderRadius: '12px', padding: '1rem',
                     border: `1px solid ${colors.cardBorder}`
                 }}>
-                    <h3 style={{ fontSize: '1rem', fontWeight: 600, color: colors.text, marginBottom: '0.25rem' }}>
-                        Decision Tree Structure
+                    <h3 style={{ fontSize: '1rem', fontWeight: 600, color: colors.text, marginBottom: '0.5rem' }}>
+                        Regression Tree
                     </h3>
-                    <p style={{ fontSize: '0.75rem', color: colors.textMuted, marginBottom: '0.5rem' }}>
-                        Showing up to depth 4 of {maxDepth} · Nodes split on Range Rover features
-                    </p>
                     <svg width="100%" height="420" viewBox="0 0 1400 420" key={animationKey} style={{ overflow: 'visible' }}>
                         {positionedTree ? renderNode(positionedTree) : (
                             <text x="700" y="210" textAnchor="middle" fill={colors.textMuted} fontSize="14">
@@ -402,12 +399,9 @@
                     background: colors.cardBg, borderRadius: '12px', padding: '1rem',
                     border: `1px solid ${colors.cardBorder}`
                 }}>
-                    <h3 style={{ fontSize: '1rem', fontWeight: 600, color: colors.text, marginBottom: '0.25rem' }}>
-                        Random Forest — Bagging Ensemble
+                    <h3 style={{ fontSize: '1rem', fontWeight: 600, color: colors.text, marginBottom: '0.5rem' }}>
+                        Random Forest
                     </h3>
-                    <p style={{ fontSize: '0.75rem', color: colors.textMuted, marginBottom: '0.5rem' }}>
-                        {nEstimators} trees · Bootstrap samples · {maxFeatNum} of 6 features per split · Predictions averaged
-                    </p>
                     <svg width="100%" height="260" viewBox="0 0 800 260">
                         {/* Data box */}
                         <rect x="325" y="5" width="150" height="26" rx="6" fill="rgba(39,116,174,0.1)" stroke={colors.primary} strokeWidth="1.5" />
@@ -468,12 +462,9 @@
                     background: colors.cardBg, borderRadius: '12px', padding: '1rem',
                     border: `1px solid ${colors.cardBorder}`
                 }}>
-                    <h3 style={{ fontSize: '1rem', fontWeight: 600, color: colors.text, marginBottom: '0.25rem' }}>
-                        XGBoost — Sequential Boosting
+                    <h3 style={{ fontSize: '1rem', fontWeight: 600, color: colors.text, marginBottom: '0.5rem' }}>
+                        XGBoost
                     </h3>
-                    <p style={{ fontSize: '0.75rem', color: colors.textMuted, marginBottom: '0.5rem' }}>
-                        {nEstimators} trees added sequentially · Each corrects prior errors · η = {learningRate}
-                    </p>
                     <svg width="100%" height="210" viewBox="0 0 800 210">
                         <defs>
                             <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
@@ -814,7 +805,7 @@
             const [maxDepth, setMaxDepth] = useState(6);
             const [nEstimators, setNEstimators] = useState(100);
             const [learningRate, setLearningRate] = useState(0.1);
-            const [minChildWeight, setMinChildWeight] = useState(1);
+
             const [subsample, setSubsample] = useState(0.8);
             const [maxFeatures, setMaxFeatures] = useState(1.0);
             const [isTraining, setIsTraining] = useState(false);
@@ -831,7 +822,6 @@
                         max_depth: maxDepth,
                         n_estimators: nEstimators,
                         learning_rate: learningRate,
-                        min_child_weight: minChildWeight,
                         subsample: subsample,
                         max_features: maxFeatures
                     };
@@ -906,33 +896,27 @@
                         <ModelTypeButtons modelType={modelType} setModelType={setModelType} />
 
                         <Slider label="max_depth" value={maxDepth} onChange={setMaxDepth}
-                            min={1} max={20} step={1}
-                            description="Maximum tree depth (higher = more complex)" />
+                            min={1} max={20} step={1} />
 
                         <Slider label="n_estimators" value={nEstimators} onChange={setNEstimators}
                             min={10} max={300} step={10}
                             disabled={modelType === 'decision_tree'}
-                            description="Number of trees in ensemble" />
+                            description="RF & XGBoost only" />
 
                         <Slider label="learning_rate" value={learningRate} onChange={setLearningRate}
                             min={0.01} max={0.5} step={0.01}
                             disabled={modelType !== 'xgboost'}
-                            description="Step size shrinkage (XGBoost only)" />
+                            description="XGBoost only" />
 
                         <Slider label="max_features" value={maxFeatures} onChange={setMaxFeatures}
                             min={0.2} max={1.0} step={0.1}
                             disabled={modelType !== 'random_forest'}
-                            description="Fraction of features per split (RF only)" />
+                            description="RF only" />
 
                         <Slider label="subsample" value={subsample} onChange={setSubsample}
                             min={0.5} max={1.0} step={0.05}
                             disabled={modelType !== 'xgboost'}
-                            description="Fraction of samples per tree (XGBoost only)" />
-
-                        <Slider label="min_child_weight" value={minChildWeight} onChange={setMinChildWeight}
-                            min={1} max={10} step={1}
-                            disabled={modelType === 'decision_tree'}
-                            description="Minimum samples in child node" />
+                            description="XGBoost only" />
 
                         <div style={{ marginTop: '1.25rem' }}>
                             <TrainButton onClick={handleTrain} isTraining={isTraining} progress={progress} />
