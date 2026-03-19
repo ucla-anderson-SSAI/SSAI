@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Week 1: Linear Regression | UCLA Anderson MGMT298D</title>
+    <title>Linear Regression, Feature Engineering, and Regularization | UCLA Anderson MGMT298D</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -164,9 +164,9 @@
 
         // Feature grouping for display
         const FEATURE_GROUPS = {
-            'Engineered': ['price', 'lag_1', 'lag_2', 'lag_3', 'ma_3', 'std_3', 'price_pct_change', 'price_sq', 'price_x_lag_1', 'lag1_x_lag2'],
             'Colors': ['color_black', 'color_dark_blue', 'color_white', 'color_blue', 'color_dark_grey', 'color_grey', 'color_light_beige', 'color_light_blue', 'color_light_pink', 'color_beige', 'color_dark_red', 'color_greenish_khaki', 'color_light_grey', 'color_off_white', 'color_red', 'color_pink'],
-            'Patterns': ['pattern_solid', 'pattern_denim', 'pattern_allover', 'pattern_melange', 'pattern_stripe', 'pattern_lace']
+            'Patterns': ['pattern_solid', 'pattern_denim', 'pattern_allover', 'pattern_melange', 'pattern_stripe', 'pattern_lace'],
+            'Engineered': ['price', 'lag_1', 'lag_2', 'lag_3', 'ma_3', 'std_3', 'price_pct_change', 'price_sq', 'price_x_lag_1', 'lag1_x_lag2']
         };
 
         // Mock data generator
@@ -1020,10 +1020,10 @@
                                     MGMT298D: Science and Strategy of AI
                                 </p>
                                 <h1 style={{ fontSize: '1.4rem', fontWeight: 600, color: '#f5f5f5', letterSpacing: '0' }}>
-                                    Week 1: Linear Regression with Feature Engineering
+                                    Linear Regression, Feature Engineering, and Regularization
                                 </h1>
                                 <p style={{ fontSize: '0.85rem', color: '#c0c0c0', marginTop: '0.25rem' }}>
-                                    H&M Sales Forecasting with Regularization
+                                    Demand Forecasting at H&amp;M
                                 </p>
                             </div>
                             <div style={{ textAlign: 'right' }}>
@@ -1072,9 +1072,6 @@
                                             justifyContent: 'center',
                                             gap: '12px'
                                         }}>
-                                            <span style={{ color: '#27ae60' }}>✓</span>
-                                            Connected to H&M Sales API
-                                            <span style={{ margin: '0 8px', color: '#ccc' }}>|</span>
                                             <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                 <span style={{ fontWeight: '500' }}>Product Category:</span>
                                                 <select
