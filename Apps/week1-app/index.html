@@ -105,7 +105,7 @@
 
         const API_BASE = window.location.origin;
 
-        // Feature set: 10 engineered + 16 colors + 6 patterns = 32 total
+        // Feature set: 10 engineered + 16 colors + 6 patterns + 12 months = 44 total
         const ALL_FEATURES = [
             // Base + Engineered
             'price', 'lag_1', 'lag_2', 'lag_3',
@@ -118,7 +118,11 @@
             'color_light_grey', 'color_off_white', 'color_red', 'color_pink',
             // Patterns
             'pattern_solid', 'pattern_denim', 'pattern_allover',
-            'pattern_melange', 'pattern_stripe', 'pattern_lace'
+            'pattern_melange', 'pattern_stripe', 'pattern_lace',
+            // Months
+            'month_january', 'month_february', 'month_march', 'month_april',
+            'month_may', 'month_june', 'month_july', 'month_august',
+            'month_september', 'month_october', 'month_november', 'month_december'
         ];
 
         const FEATURE_LABELS = {
@@ -137,7 +141,12 @@
             // Patterns
             pattern_solid: 'Solid', pattern_denim: 'Denim',
             pattern_allover: 'All-Over', pattern_melange: 'Melange',
-            pattern_stripe: 'Stripe', pattern_lace: 'Lace'
+            pattern_stripe: 'Stripe', pattern_lace: 'Lace',
+            // Months
+            month_january: 'Jan', month_february: 'Feb', month_march: 'Mar',
+            month_april: 'Apr', month_may: 'May', month_june: 'Jun',
+            month_july: 'Jul', month_august: 'Aug', month_september: 'Sep',
+            month_october: 'Oct', month_november: 'Nov', month_december: 'Dec'
         };
 
         const FEATURE_DESCRIPTIONS = {
@@ -159,13 +168,21 @@
             // Patterns
             pattern_solid: 'Pattern: Solid', pattern_denim: 'Pattern: Denim',
             pattern_allover: 'Pattern: All-Over Print', pattern_melange: 'Pattern: Melange',
-            pattern_stripe: 'Pattern: Stripe', pattern_lace: 'Pattern: Lace'
+            pattern_stripe: 'Pattern: Stripe', pattern_lace: 'Pattern: Lace',
+            // Months
+            month_january: 'Month: January', month_february: 'Month: February',
+            month_march: 'Month: March', month_april: 'Month: April',
+            month_may: 'Month: May', month_june: 'Month: June',
+            month_july: 'Month: July', month_august: 'Month: August',
+            month_september: 'Month: September', month_october: 'Month: October',
+            month_november: 'Month: November', month_december: 'Month: December'
         };
 
         // Feature grouping for display
         const FEATURE_GROUPS = {
             'Colors': ['color_black', 'color_dark_blue', 'color_white', 'color_blue', 'color_dark_grey', 'color_grey', 'color_light_beige', 'color_light_blue', 'color_light_pink', 'color_beige', 'color_dark_red', 'color_greenish_khaki', 'color_light_grey', 'color_off_white', 'color_red', 'color_pink'],
             'Patterns': ['pattern_solid', 'pattern_denim', 'pattern_allover', 'pattern_melange', 'pattern_stripe', 'pattern_lace'],
+            'Months': ['month_january', 'month_february', 'month_march', 'month_april', 'month_may', 'month_june', 'month_july', 'month_august', 'month_september', 'month_october', 'month_november', 'month_december'],
             'Engineered': ['price', 'lag_1', 'lag_2', 'lag_3', 'ma_3', 'std_3', 'price_pct_change', 'price_sq', 'price_x_lag_1', 'lag1_x_lag2']
         };
 
@@ -216,7 +233,7 @@
                 return {
                     predictions: [],
                     coefficients: {},
-                    metrics: { mae: 0, rmse: 0, r2: 0, n_train: 0, n_test: 0 },
+                    metrics: { mae: 0, rmse: 0, n_train: 0, n_test: 0 },
                     cvResults: null
                 };
             }
@@ -334,9 +351,7 @@
                 coefficients,
                 metrics: {
                     train_mae: (sumAbsError / n * 0.85).toFixed(2),
-                    train_r2: Math.min(0.99, Math.max(0, (1 - sumSquaredError * 0.7 / ssTot))).toFixed(3),
                     test_mae: (sumAbsError / n * overfitPenalty).toFixed(2),
-                    test_r2: Math.max(0, Math.min(0.99, (1 - sumSquaredError / ssTot) / overfitPenalty)).toFixed(3),
                     cv_mae: cvResults ? (sumAbsError / n * 0.95).toFixed(2) : null,
                     n_train: Math.floor(n * 0.8),
                     n_test: Math.ceil(n * 0.2),
@@ -952,9 +967,7 @@
                         coefficients: coeffs,
                         metrics: {
                             train_mae: apiResults.train_metrics.mae.toFixed(2),
-                            train_r2: apiResults.train_metrics.r2.toFixed(3),
                             test_mae: apiResults.test_metrics.mae.toFixed(2),
-                            test_r2: apiResults.test_metrics.r2.toFixed(3),
                             cv_mae: apiResults.cv_mae != null ? apiResults.cv_mae.toFixed(2) : null,
                             n_train: apiResults.n_train,
                             n_test: apiResults.n_test,
@@ -1300,15 +1313,13 @@
                                     )}
 
                                     {/* Metrics */}
-                                    <div style={{ display: 'grid', gridTemplateColumns: metrics.cv_mae != null ? 'repeat(6, 1fr)' : 'repeat(5, 1fr)', gap: '12px', marginBottom: '24px' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: metrics.cv_mae != null ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)', gap: '12px', marginBottom: '24px' }}>
                                         {[
                                             { label: 'Train MAE (in-sample)', value: metrics.train_mae, color: colors.lightMuted },
                                             ...(metrics.cv_mae != null ? [
                                                 { label: 'CV MAE (training set)', value: metrics.cv_mae, color: colors.darkBlue, highlight: true },
                                             ] : []),
                                             { label: 'Test MAE (held-out products)', value: metrics.test_mae, color: colors.text, highlight: metrics.cv_mae == null },
-                                            { label: 'Train R²', value: metrics.train_r2, color: colors.lightMuted },
-                                            { label: 'Test R²', value: metrics.test_r2, color: colors.text },
                                             { label: 'Products (train / test)', value: metrics.n_products_train ? `${metrics.n_products_train} / ${metrics.n_products_test}` : `— / —`, color: colors.lightMuted,
                                               subtitle: `${metrics.n_train} / ${metrics.n_test} rows` },
                                         ].map((m, i) => (
