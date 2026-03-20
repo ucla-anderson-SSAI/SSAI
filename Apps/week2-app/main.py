@@ -15,6 +15,8 @@ from sklearn.metrics import mean_absolute_error
 import warnings
 import os
 import json
+import io
+import urllib.request
 
 warnings.filterwarnings('ignore')
 
@@ -41,10 +43,12 @@ encoders = {}
 def load_and_prepare_data():
     global df, X_train, X_test, y_train, y_test, feature_names, encoders
 
-    # Load from local CSV file (bundled with the app)
-    csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "range_rover.csv")
-    print(f"Loading data from {csv_path}")
-    df = pd.read_csv(csv_path)
+    # Load from GitHub
+    DATA_URL = "https://raw.githubusercontent.com/ucla-anderson-SSAI/SSAI/main/range_rover.csv"
+    print(f"Loading data from {DATA_URL}")
+    with urllib.request.urlopen(DATA_URL) as response:
+        csv_data = response.read().decode('utf-8')
+    df = pd.read_csv(io.StringIO(csv_data))
     print(f"Loaded {len(df)} rows")
 
     # Encode categorical variables — include 'interior' if present in real data
