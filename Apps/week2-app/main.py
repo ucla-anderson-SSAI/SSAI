@@ -189,8 +189,21 @@ async def train_model(request: TrainRequest):
         if steps[-1] != request.n_estimators:
             steps.append(request.n_estimators)
 
-        for n_est in steps:
-            if request.model_type == 'random_forest':
+        if request.model_type == 'xgboost':
+            # XGBoost: use iteration_range on the already-trained model (no retraining)
+            for n_est in steps:
+                lc_train_preds = model.predict(X_train, iteration_range=(0, n_est))
+                lc_test_preds = model.predict(X_test, iteration_range=(0, n_est))
+                lc_train_mae = mean_absolute_error(y_train, lc_train_preds)
+                lc_test_mae = mean_absolute_error(y_test, lc_test_preds)
+                learning_curve.append({
+                    'n_estimators': n_est,
+                    'train_mae': round(lc_train_mae, 2),
+                    'test_mae': round(lc_test_mae, 2)
+                })
+        else:
+            # Random Forest: must retrain since trees are independent
+            for n_est in steps:
                 m = RandomForestRegressor(
                     n_estimators=n_est,
                     max_depth=request.max_depth,
@@ -198,23 +211,14 @@ async def train_model(request: TrainRequest):
                     random_state=42,
                     n_jobs=-1
                 )
-            else:
-                m = XGBRegressor(
-                    n_estimators=n_est,
-                    max_depth=request.max_depth,
-                    learning_rate=request.learning_rate,
-                    subsample=request.subsample,
-                    random_state=42,
-                    n_jobs=-1
-                )
-            m.fit(X_train, y_train)
-            lc_train_mae = mean_absolute_error(y_train, m.predict(X_train))
-            lc_test_mae = mean_absolute_error(y_test, m.predict(X_test))
-            learning_curve.append({
-                'n_estimators': n_est,
-                'train_mae': round(lc_train_mae, 2),
-                'test_mae': round(lc_test_mae, 2)
-            })
+                m.fit(X_train, y_train)
+                lc_train_mae = mean_absolute_error(y_train, m.predict(X_train))
+                lc_test_mae = mean_absolute_error(y_test, m.predict(X_test))
+                learning_curve.append({
+                    'n_estimators': n_est,
+                    'train_mae': round(lc_train_mae, 2),
+                    'test_mae': round(lc_test_mae, 2)
+                })
 
     # Depth curve: for decision tree, show MAE at different depths
     depth_curve = None
