@@ -185,7 +185,9 @@ async def train_model(request: TrainRequest):
     learning_curve = None
     if request.model_type in ('random_forest', 'xgboost'):
         learning_curve = []
-        steps = list(range(10, request.n_estimators + 1, max(10, request.n_estimators // 20)))
+        n_steps = min(request.n_estimators, 20)
+        step_size = max(1, request.n_estimators // n_steps)
+        steps = list(range(step_size, request.n_estimators + 1, step_size))
         if steps[-1] != request.n_estimators:
             steps.append(request.n_estimators)
 
@@ -202,18 +204,12 @@ async def train_model(request: TrainRequest):
                     'test_mae': round(lc_test_mae, 2)
                 })
         else:
-            # Random Forest: must retrain since trees are independent
+            # Random Forest: average predictions from subsets of the already-trained estimators
+            all_train_preds = np.array([est.predict(X_train) for est in model.estimators_])
+            all_test_preds = np.array([est.predict(X_test) for est in model.estimators_])
             for n_est in steps:
-                m = RandomForestRegressor(
-                    n_estimators=n_est,
-                    max_depth=request.max_depth,
-                    max_features=request.max_features if request.max_features else 1.0,
-                    random_state=42,
-                    n_jobs=-1
-                )
-                m.fit(X_train, y_train)
-                lc_train_mae = mean_absolute_error(y_train, m.predict(X_train))
-                lc_test_mae = mean_absolute_error(y_test, m.predict(X_test))
+                lc_train_mae = mean_absolute_error(y_train, all_train_preds[:n_est].mean(axis=0))
+                lc_test_mae = mean_absolute_error(y_test, all_test_preds[:n_est].mean(axis=0))
                 learning_curve.append({
                     'n_estimators': n_est,
                     'train_mae': round(lc_train_mae, 2),

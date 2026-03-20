@@ -640,9 +640,6 @@
                     <h3 style={{ fontSize: '1rem', fontWeight: 600, color: colors.text, marginBottom: '0.25rem' }}>
                         {title || 'Learning Curve'}
                     </h3>
-                    <p style={{ fontSize: '0.75rem', color: colors.textMuted, marginBottom: '0.5rem' }}>
-                        Train vs Test error — the gap indicates overfitting
-                    </p>
                     <div style={{ height: '280px' }}>
                         <canvas ref={canvasRef} />
                     </div>
@@ -758,9 +755,6 @@
                     <h3 style={{ fontSize: '1rem', fontWeight: 600, color: colors.text, marginBottom: '0.25rem' }}>
                         Predicted vs Actual
                     </h3>
-                    <p style={{ fontSize: '0.75rem', color: colors.textMuted, marginBottom: '0.5rem' }}>
-                        Points closer to the dashed line = better predictions
-                    </p>
                     <div style={{ height: '280px' }}>
                         <canvas ref={canvasRef} />
                     </div>
@@ -913,7 +907,7 @@
                             min={1} max={20} step={1} />
 
                         <Slider label="n_estimators" value={nEstimators} onChange={setNEstimators}
-                            min={10} max={1000} step={10}
+                            min={10} max={200} step={10}
                             disabled={modelType === 'decision_tree'}
                             description="RF & XGBoost only" />
 
