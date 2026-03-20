@@ -55,7 +55,7 @@ def load_and_prepare_data():
             df[f'{col}_enc'] = encoders[col].fit_transform(df[col].astype(str))
 
     # Build feature list from what's available
-    possible_features = ['year', 'mileage', 'trim_enc', 'state_enc', 'color_enc', 'interior_enc']
+    possible_features = ['year', 'mileage', 'trim_enc', 'state_enc', 'color_enc', 'interior_enc', 'engine_liters', 'horsepower', 'n_owners', 'accident_history']
     feature_names = [f for f in possible_features if f in df.columns]
     X = df[feature_names].values
 
