@@ -51,6 +51,12 @@ def load_and_prepare_data():
     df = pd.read_csv(io.StringIO(csv_data))
     print(f"Loaded {len(df)} rows")
 
+    # FIX 1: Drop missing values so scikit-learn doesn't crash during .fit()
+    possible_features = ['year', 'mileage', 'trim', 'state', 'color', 'interior', 'engine_liters', 'horsepower', 'n_owners', 'accident_history']
+    price_col = 'sellingprice' if 'sellingprice' in df.columns else 'price'
+    cols_to_check = [c for c in possible_features + [price_col] if c in df.columns]
+    df.dropna(subset=cols_to_check, inplace=True)
+
     # Encode categorical variables — include 'interior' if present in real data
     categorical_cols = ['trim', 'state', 'color', 'interior']
     for col in categorical_cols:
@@ -59,12 +65,12 @@ def load_and_prepare_data():
             df[f'{col}_enc'] = encoders[col].fit_transform(df[col].astype(str))
 
     # Build feature list from what's available
-    possible_features = ['year', 'mileage', 'trim_enc', 'state_enc', 'color_enc', 'interior_enc', 'engine_liters', 'horsepower', 'n_owners', 'accident_history']
     feature_names = [f for f in possible_features if f in df.columns]
-    X = df[feature_names].values
+    
+    # Update feature names to use the encoded versions for categorical columns
+    feature_names = [f"{f}_enc" if f in categorical_cols else f for f in feature_names]
 
-    # Use sellingprice if it exists (real data), otherwise fall back to price (sample data)
-    price_col = 'sellingprice' if 'sellingprice' in df.columns else 'price'
+    X = df[feature_names].values
     y = df[price_col].values
 
     # Fixed train/test split for reproducibility
@@ -145,7 +151,7 @@ async def train_model(request: TrainRequest):
             max_depth=request.max_depth,
             max_features=max_feat,
             random_state=42,
-            n_jobs=-1
+            n_jobs=2  # FIX 2: Limited to 2 threads to prevent OOM kills on Railway
         )
     else:  # xgboost
         model = XGBRegressor(
@@ -154,7 +160,7 @@ async def train_model(request: TrainRequest):
             learning_rate=request.learning_rate,
             subsample=request.subsample,
             random_state=42,
-            n_jobs=-1
+            n_jobs=2  # FIX 2: Limited to 2 threads to prevent OOM kills on Railway
         )
 
     # Train
