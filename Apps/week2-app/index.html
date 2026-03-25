@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Week 2: Tree Models & XGBoost | UCLA Anderson MGMT298D</title>
+    <title>Week 2: Tree Models & XGBoost | UCLA Anderson</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -11,994 +11,211 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #ffffff;
-            min-height: 100vh;
-            color: #1a1a1a;
-        }
-
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #ffffff; }
-        ::-webkit-scrollbar-thumb { background: #2774AE; border-radius: 4px; }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        @keyframes nodeAppear {
-            0% { transform: scale(0); opacity: 0; }
-            60% { transform: scale(1.1); }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        @keyframes lineGrow {
-            from { stroke-dashoffset: 100; }
-            to { stroke-dashoffset: 0; }
-        }
-        @keyframes slideIn {
-            from { transform: translateX(-20px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        @keyframes progressPulse {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(39, 116, 174, 0.4); }
-            50% { box-shadow: 0 0 0 10px rgba(39, 116, 174, 0); }
-        }
-
-        .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
-        .animate-pulse { animation: pulse 2s infinite; }
-        .animate-spin { animation: spin 1s linear infinite; }
-        .tree-node { animation: nodeAppear 0.5s ease-out forwards; }
-        .tree-line { stroke-dasharray: 100; animation: lineGrow 0.6s ease-out forwards; }
-        .bar-animate { animation: slideIn 0.5s ease-out forwards; }
-        .progress-pulse { animation: progressPulse 1.5s infinite; }
-
-        .header-gold-line {
-            position: absolute; bottom: 0; left: 0; right: 0;
-            height: 4px; background: #FFD100;
-        }
+        body { font-family: 'Inter', sans-serif; background: #f3f4f6; color: #1f2937; padding: 2rem; }
+        .container { max-width: 1100px; margin: 0 auto; }
+        .header { margin-bottom: 2rem; border-bottom: 2px solid #e5e7eb; padding-bottom: 1rem; }
+        .grid { display: grid; grid-template-columns: 350px 1fr; gap: 2rem; align-items: start; }
+        .card { background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; }
+        h2 { font-size: 1.25rem; font-weight: 600; margin-bottom: 1.25rem; color: #111827; }
+        h3 { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: #374151; }
+        label { display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; color: #4b5563; }
+        select, input[type="number"] { width: 100%; padding: 0.6rem; border: 1px solid #d1d5db; border-radius: 8px; margin-bottom: 1.25rem; font-family: inherit; }
+        input[type="range"] { width: 100%; margin-bottom: 1.25rem; accent-color: #2563eb; }
+        button { background: #2563eb; color: white; padding: 0.8rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; width: 100%; transition: background 0.2s; }
+        button:hover { background: #1d4ed8; }
+        button:disabled { background: #93c5fd; cursor: not-allowed; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+        .stat-box { padding: 1rem; background: #f9fafb; border-radius: 8px; border: 1px solid #f3f4f6; text-align: center; }
+        .stat-label { font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
+        .stat-val { font-size: 1.4rem; font-weight: 800; color: #111827; margin-top: 0.25rem; }
+        .chart-container { position: relative; height: 260px; width: 100%; margin-bottom: 2rem; }
+        .help-text { font-size: 0.8rem; color: #6b7280; margin-bottom: 1.5rem; line-height: 1.4; }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useCallback, useMemo, useRef } = React;
+        const { useState, useEffect, useRef } = React;
 
-        const API_BASE = window.location.origin;
-
-        const colors = {
-            primary: '#2774AE',
-            primaryLight: '#2774AE',
-            accent: '#FFD100',
-            accentDark: '#e6bc00',
-            darkBlue: '#005587',
-            lightBlue: '#8BB8E8',
-            positive: '#1a1a1a',
-            negative: '#1a1a1a',
-            warning: '#1a1a1a',
-            cardBg: '#ffffff',
-            cardBorder: 'rgba(0,0,0,0.1)',
-            text: '#1a1a1a',
-            textMuted: '#666666',
-            // Chart colors
-            trainLine: '#2774AE',
-            testLine: '#E8600F',
-        };
-
-        // ──────────── Header ────────────
-        const Header = () => (
-            <header style={{
-                background: '#2774AE',
-                padding: '1rem 2rem 1.5rem 2rem',
-                position: 'sticky',
-                top: 0,
-                zIndex: 100
-            }}>
-                <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                        <p style={{ fontSize: '0.65rem', color: '#FFD100', fontWeight: 400, marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
-                            MGMT298D: Science and Strategy of AI
-                        </p>
-                        <h1 style={{ fontSize: '1.4rem', fontWeight: 600, color: '#f5f5f5' }}>
-                            Week 2: Tree Models & XGBoost
-                        </h1>
-                        <p style={{ fontSize: '0.85rem', color: '#c0c0c0', marginTop: '0.25rem' }}>
-                            Range Rover Pricing Prediction
-                        </p>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                        <span style={{ fontSize: '1rem', fontWeight: 500, color: '#f5f5f5' }}>
-                            UCLA Anderson
-                        </span>
-                    </div>
-                </div>
-                <div className="header-gold-line"></div>
-            </header>
-        );
-
-        // ──────────── Slider ────────────
-        const Slider = ({ label, value, onChange, min, max, step, disabled, description }) => (
-            <div style={{ marginBottom: '1.25rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                    <label style={{ fontSize: '0.875rem', color: colors.text, fontWeight: 500 }}>{label}</label>
-                    <span style={{
-                        fontSize: '0.875rem', fontWeight: 600, color: colors.text,
-                        background: 'rgba(39, 116, 174, 0.2)',
-                        padding: '0.125rem 0.5rem', borderRadius: '4px'
-                    }}>
-                        {typeof value === 'number' && value % 1 !== 0 ? value.toFixed(2) : value}
-                    </span>
-                </div>
-                <input
-                    type="range" min={min} max={max} step={step} value={value}
-                    onChange={(e) => onChange(parseFloat(e.target.value))}
-                    disabled={disabled}
-                    style={{
-                        width: '100%', height: '6px', borderRadius: '3px',
-                        background: `linear-gradient(to right, ${colors.primary} 0%, ${colors.primary} ${((value - min) / (max - min)) * 100}%, rgba(39, 116, 174, 0.2) ${((value - min) / (max - min)) * 100}%, rgba(39, 116, 174, 0.2) 100%)`,
-                        appearance: 'none',
-                        cursor: disabled ? 'not-allowed' : 'pointer',
-                        opacity: disabled ? 0.4 : 1
-                    }}
-                />
-                {description && (
-                    <p style={{ fontSize: '0.7rem', color: colors.textMuted, marginTop: '0.25rem' }}>{description}</p>
-                )}
-            </div>
-        );
-
-        // ──────────── Model Type Buttons ────────────
-        const ModelTypeButtons = ({ modelType, setModelType }) => {
-            const models = [
-                { id: 'decision_tree', label: 'Regression Tree' },
-                { id: 'random_forest', label: 'Random Forest' },
-                { id: 'xgboost', label: 'XGBoost' }
-            ];
-            return (
-                <div style={{ marginBottom: '1.5rem' }}>
-                    <label style={{ fontSize: '0.875rem', color: colors.text, display: 'block', marginBottom: '0.75rem', fontWeight: 500 }}>
-                        Model Type
-                    </label>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        {models.map(model => (
-                            <button key={model.id} onClick={() => setModelType(model.id)} style={{
-                                flex: 1, padding: '0.75rem 0.5rem', borderRadius: '8px',
-                                border: modelType === model.id ? `2px solid ${colors.primary}` : `1px solid ${colors.cardBorder}`,
-                                cursor: 'pointer', fontWeight: 500, fontSize: '0.8rem',
-                                transition: 'all 0.2s ease',
-                                background: modelType === model.id ? 'rgba(39, 116, 174, 0.2)' : colors.cardBg,
-                                color: modelType === model.id ? colors.primary : colors.text
-                            }}>
-                                {model.label}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            );
-        };
-
-        // ──────────── Train Button ────────────
-        const TrainButton = ({ onClick, isTraining, progress }) => (
-            <button onClick={onClick} disabled={isTraining} style={{
-                width: '100%', padding: '1rem', borderRadius: '10px', border: 'none',
-                cursor: isTraining ? 'not-allowed' : 'pointer',
-                fontWeight: 600, fontSize: '1rem',
-                background: isTraining ? 'rgba(39, 116, 174, 0.2)' : colors.primary,
-                color: isTraining ? colors.lightBlue : '#ffffff',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                gap: '0.5rem', transition: 'all 0.3s ease',
-                boxShadow: isTraining ? 'none' : '0 4px 15px rgba(39, 116, 174, 0.3)',
-                position: 'relative', overflow: 'hidden'
-            }}>
-                {isTraining ? (
-                    <>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <div style={{
-                                width: '20px', height: '20px',
-                                border: '3px solid rgba(39, 116, 174, 0.3)',
-                                borderTop: `3px solid ${colors.primary}`,
-                                borderRadius: '50%'
-                            }} className="animate-spin" />
-                            Training Model...
-                        </div>
-                        <div style={{ width: '100%', height: '4px', background: 'rgba(39, 116, 174, 0.2)', borderRadius: '2px', marginTop: '0.25rem' }}>
-                            <div className="progress-pulse" style={{
-                                width: `${progress}%`, height: '100%',
-                                background: colors.primary, borderRadius: '2px',
-                                transition: 'width 0.3s ease'
-                            }} />
-                        </div>
-                    </>
-                ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        Train Model
-                    </div>
-                )}
-            </button>
-        );
-
-        // ──────────── Metrics Display ────────────
-        const MetricsDisplay = ({ metrics }) => {
-            const metricItems = [
-                { label: 'Train MAE', value: metrics.train_mae != null ? `$${metrics.train_mae.toLocaleString()}` : '---' },
-                { label: 'Test MAE', value: metrics.test_mae != null ? `$${metrics.test_mae.toLocaleString()}` : '---' },
-                { label: 'Train Size', value: metrics.n_train || '---' },
-                { label: 'Test Size', value: metrics.n_test || '---' },
-            ];
-            return (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem' }}>
-                    {metricItems.map((item, idx) => (
-                        <div key={idx} style={{
-                            background: colors.cardBg, borderRadius: '10px', padding: '0.75rem',
-                            border: `1px solid ${colors.cardBorder}`, textAlign: 'center'
-                        }}>
-                            <div style={{ fontSize: '0.7rem', color: colors.textMuted, marginBottom: '0.25rem' }}>{item.label}</div>
-                            <div style={{ fontSize: '1rem', fontWeight: 600, color: colors.text }}>{item.value}</div>
-                        </div>
-                    ))}
-                </div>
-            );
-        };
-
-        // ──────────── Regression Tree Visualization ────────────
-        const DecisionTreeViz = ({ treeData, maxDepth }) => {
-            const [animationKey, setAnimationKey] = useState(0);
-
-            useEffect(() => {
-                setAnimationKey(prev => prev + 1);
-            }, [treeData]);
-
-            const featureDisplayNames = {
-                'year': 'Year', 'mileage': 'Mileage', 'trim_enc': 'Trim',
-                'state_enc': 'State', 'color_enc': 'Color', 'interior_enc': 'Interior'
-            };
-
-            const layoutTree = (node, x, y, width, depth = 0) => {
-                if (!node) return null;
-                const positioned = { ...node, x, y, layoutDepth: depth };
-                if (!node.is_leaf && node.left && node.right) {
-                    const childWidth = width / 2;
-                    const childY = y + 90;
-                    positioned.left = layoutTree(node.left, x - childWidth / 2, childY, childWidth, depth + 1);
-                    positioned.right = layoutTree(node.right, x + childWidth / 2, childY, childWidth, depth + 1);
-                }
-                return positioned;
-            };
-
-            const renderNode = (node, delay = 0) => {
-                if (!node) return null;
-                const nodeColor = node.is_leaf ? colors.lightBlue : colors.primary;
-                const displayFeature = featureDisplayNames[node.feature] || node.feature;
-                // Scale down nodes at deeper levels
-                const isDeep = node.layoutDepth >= 3;
-                const nodeW = isDeep ? 76 : 96;
-                const nodeH = isDeep ? 36 : 44;
-                const fontSize1 = isDeep ? 8 : 10;
-                const fontSize2 = isDeep ? 7.5 : 9;
-                const fontSizePred = isDeep ? 9 : 11;
-                const fontSizeLabel = isDeep ? 7 : 8;
-
-                let thresholdDisplay = '';
-                if (!node.is_leaf && node.threshold != null) {
-                    if (node.feature === 'mileage') {
-                        thresholdDisplay = `< ${(node.threshold / 1000).toFixed(0)}K mi`;
-                    } else if (node.feature === 'year') {
-                        thresholdDisplay = `< ${node.threshold.toFixed(0)}`;
-                    } else {
-                        thresholdDisplay = `< ${node.threshold.toFixed(1)}`;
-                    }
-                }
-
-                return (
-                    <g key={`node-${node.id}`}>
-                        {node.left && (
-                            <line x1={node.x} y1={node.y + nodeH/2} x2={node.left.x} y2={node.left.y - (node.left.layoutDepth >= 3 ? 18 : 22)}
-                                stroke={colors.primary} strokeWidth="1.5" opacity="0.5" className="tree-line"
-                                style={{ animationDelay: `${delay + 100}ms` }} />
-                        )}
-                        {node.right && (
-                            <line x1={node.x} y1={node.y + nodeH/2} x2={node.right.x} y2={node.right.y - (node.right.layoutDepth >= 3 ? 18 : 22)}
-                                stroke={colors.primary} strokeWidth="1.5" opacity="0.5" className="tree-line"
-                                style={{ animationDelay: `${delay + 100}ms` }} />
-                        )}
-                        {node.left && node.layoutDepth < 2 && (
-                            <text x={(node.x + node.left.x) / 2 - 15} y={(node.y + node.left.y) / 2}
-                                fill={colors.textMuted} fontSize="9" fontWeight="500">Yes</text>
-                        )}
-                        {node.right && node.layoutDepth < 2 && (
-                            <text x={(node.x + node.right.x) / 2 + 5} y={(node.y + node.right.y) / 2}
-                                fill={colors.textMuted} fontSize="9" fontWeight="500">No</text>
-                        )}
-                        <g className="tree-node" style={{ animationDelay: `${delay}ms` }}>
-                            <rect x={node.x - nodeW/2} y={node.y - nodeH/2} width={nodeW} height={nodeH} rx="6"
-                                fill={colors.cardBg} stroke={nodeColor} strokeWidth="2" />
-                            {node.is_leaf ? (
-                                <>
-                                    <text x={node.x} y={node.y - 4} textAnchor="middle" fill={colors.textMuted} fontSize={fontSizeLabel}>Predict</text>
-                                    <text x={node.x} y={node.y + (isDeep ? 10 : 12)} textAnchor="middle" fill={colors.text} fontSize={fontSizePred} fontWeight="600">
-                                        ${Math.round(node.value).toLocaleString()}
-                                    </text>
-                                </>
-                            ) : (
-                                <>
-                                    <text x={node.x} y={node.y - 4} textAnchor="middle" fill={colors.text} fontSize={fontSize1} fontWeight="600">
-                                        {displayFeature}
-                                    </text>
-                                    <text x={node.x} y={node.y + (isDeep ? 10 : 12)} textAnchor="middle" fill={colors.primary} fontSize={fontSize2}>
-                                        {thresholdDisplay}
-                                    </text>
-                                </>
-                            )}
-                        </g>
-                        {renderNode(node.left, delay + 150)}
-                        {renderNode(node.right, delay + 150)}
-                    </g>
-                );
-            };
-
-            const positionedTree = treeData ? layoutTree(treeData, 700, 35, 1300) : null;
-
-            return (
-                <div style={{
-                    background: colors.cardBg, borderRadius: '12px', padding: '1rem',
-                    border: `1px solid ${colors.cardBorder}`
-                }}>
-                    <h3 style={{ fontSize: '1rem', fontWeight: 600, color: colors.text, marginBottom: '0.5rem' }}>
-                        Regression Tree
-                    </h3>
-                    <svg width="100%" height="420" viewBox="0 0 1400 420" key={animationKey} style={{ overflow: 'visible' }}>
-                        {positionedTree ? renderNode(positionedTree) : (
-                            <text x="700" y="210" textAnchor="middle" fill={colors.textMuted} fontSize="14">
-                                Click "Train Model" to see tree structure
-                            </text>
-                        )}
-                    </svg>
-                </div>
-            );
-        };
-
-        // ──────────── Random Forest Visualization ────────────
-        const RandomForestViz = ({ treeData, nEstimators, maxFeatures }) => {
-            const numTreesShown = Math.min(nEstimators, 7);
-            const treeWidth = 80;
-            const treeGap = 14;
-            const totalWidth = numTreesShown * treeWidth + (numTreesShown - 1) * treeGap;
-            const startX = (800 - totalWidth) / 2;
-
-            const renderMiniTree = (xOffset, yOffset, idx, isHighlighted) => {
-                const nodeColor = isHighlighted ? colors.primary : colors.lightBlue;
-                const lineColor = isHighlighted ? colors.primary : colors.lightBlue;
-                const op = isHighlighted ? 1 : 0.55;
-                const cx = xOffset + 39;
-                const r = 5;
-                return (
-                    <g key={idx} style={{ opacity: op }}>
-                        {/* Root node */}
-                        <circle cx={cx} cy={yOffset} r={r} fill={nodeColor} />
-                        {/* Branches to level 2 */}
-                        <line x1={cx} y1={yOffset + r} x2={cx - 14} y2={yOffset + 22} stroke={lineColor} strokeWidth="1.2" />
-                        <line x1={cx} y1={yOffset + r} x2={cx + 14} y2={yOffset + 22} stroke={lineColor} strokeWidth="1.2" />
-                        {/* Level 2 nodes */}
-                        <circle cx={cx - 14} cy={yOffset + 22} r={r - 1} fill={nodeColor} />
-                        <circle cx={cx + 14} cy={yOffset + 22} r={r - 1} fill={nodeColor} />
-                        {/* Branches to level 3 */}
-                        <line x1={cx - 14} y1={yOffset + 22 + r - 1} x2={cx - 22} y2={yOffset + 42} stroke={lineColor} strokeWidth="1" />
-                        <line x1={cx - 14} y1={yOffset + 22 + r - 1} x2={cx - 6} y2={yOffset + 42} stroke={lineColor} strokeWidth="1" />
-                        <line x1={cx + 14} y1={yOffset + 22 + r - 1} x2={cx + 6} y2={yOffset + 42} stroke={lineColor} strokeWidth="1" />
-                        <line x1={cx + 14} y1={yOffset + 22 + r - 1} x2={cx + 22} y2={yOffset + 42} stroke={lineColor} strokeWidth="1" />
-                        {/* Leaf nodes */}
-                        <rect x={cx - 25} y={yOffset + 40} width="6" height="6" rx="1" fill={nodeColor} />
-                        <rect x={cx - 9} y={yOffset + 40} width="6" height="6" rx="1" fill={nodeColor} />
-                        <rect x={cx + 3} y={yOffset + 40} width="6" height="6" rx="1" fill={nodeColor} />
-                        <rect x={cx + 19} y={yOffset + 40} width="6" height="6" rx="1" fill={nodeColor} />
-                        {/* Label */}
-                        <text x={cx} y={yOffset + 62} textAnchor="middle" fill={colors.textMuted} fontSize="8">
-                            Tree {idx + 1}
-                        </text>
-                    </g>
-                );
-            };
-
-            const maxFeatNum = maxFeatures ? Math.round(maxFeatures * 10) : 10;
-
-            return (
-                <div style={{
-                    background: colors.cardBg, borderRadius: '12px', padding: '1rem',
-                    border: `1px solid ${colors.cardBorder}`
-                }}>
-                    <h3 style={{ fontSize: '1rem', fontWeight: 600, color: colors.text, marginBottom: '0.5rem' }}>
-                        Random Forest
-                    </h3>
-                    <svg width="100%" height="260" viewBox="0 0 800 260">
-                        {/* Data box */}
-                        <rect x="325" y="5" width="150" height="26" rx="6" fill="rgba(39,116,174,0.1)" stroke={colors.primary} strokeWidth="1.5" />
-                        <text x="400" y="23" textAnchor="middle" fill={colors.primary} fontSize="11" fontWeight="600">Training Data</text>
-
-                        {/* Dashed lines: data → trees */}
-                        {Array.from({ length: numTreesShown }).map((_, i) => {
-                            const treeX = startX + i * (treeWidth + treeGap) + 39;
-                            return (
-                                <line key={`d-${i}`} x1="400" y1="31" x2={treeX} y2="65"
-                                    stroke={colors.primary} strokeWidth="1" opacity="0.25" strokeDasharray="4,3" />
-                            );
-                        })}
-
-                        {/* Trees */}
-                        {Array.from({ length: numTreesShown }).map((_, i) => (
-                            renderMiniTree(startX + i * (treeWidth + treeGap), 75, i, i === 0)
-                        ))}
-
-                        {nEstimators > 7 && (
-                            <text x="400" y="158" textAnchor="middle" fill={colors.textMuted} fontSize="10" fontStyle="italic">
-                                + {nEstimators - 7} more trees
-                            </text>
-                        )}
-
-                        {/* Dashed lines: trees → output */}
-                        {Array.from({ length: numTreesShown }).map((_, i) => {
-                            const treeX = startX + i * (treeWidth + treeGap) + 39;
-                            return (
-                                <line key={`u-${i}`} x1={treeX} y1="145" x2="400" y2="215"
-                                    stroke={colors.testLine} strokeWidth="1" opacity="0.25" strokeDasharray="4,3" />
-                            );
-                        })}
-
-                        {/* Average box */}
-                        <rect x="325" y="215" width="150" height="26" rx="6" fill="rgba(232,96,15,0.1)" stroke={colors.testLine} strokeWidth="1.5" />
-                        <text x="400" y="233" textAnchor="middle" fill={colors.testLine} fontSize="11" fontWeight="600">Average Predictions</text>
-                    </svg>
-                </div>
-            );
-        };
-
-        // ──────────── XGBoost Visualization ────────────
-        const XGBoostViz = ({ nEstimators, learningRate, boostingResiduals }) => {
-            const numSteps = Math.min(nEstimators, 5);
-            const stepW = 90;
-            const stepGap = 22;
-            const chainW = 130 + numSteps * (stepW + stepGap);
-            const offsetX = Math.max(0, (800 - chainW) / 2);
-
-            // Use real residuals from backend
-            const hasResiduals = boostingResiduals && boostingResiduals.length > 0;
-            const maxResidual = hasResiduals ? boostingResiduals[0].test_mae : 1;
-            const maxBarH = 36;
-
-            return (
-                <div style={{
-                    background: colors.cardBg, borderRadius: '12px', padding: '1rem',
-                    border: `1px solid ${colors.cardBorder}`
-                }}>
-                    <h3 style={{ fontSize: '1rem', fontWeight: 600, color: colors.text, marginBottom: '0.5rem' }}>
-                        XGBoost
-                    </h3>
-                    <svg width="100%" height="210" viewBox="0 0 800 210">
-                        <defs>
-                            <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-                                <polygon points="0 0, 8 3, 0 6" fill={colors.primary} />
-                            </marker>
-                        </defs>
-
-                        {/* Initial prediction */}
-                        <rect x={offsetX} y="55" width="105" height="40" rx="8" fill="rgba(39,116,174,0.1)" stroke={colors.primary} strokeWidth="1.5" />
-                        <text x={offsetX + 52} y="72" textAnchor="middle" fill={colors.textMuted} fontSize="8">Initial</text>
-                        <text x={offsetX + 52} y="86" textAnchor="middle" fill={colors.primary} fontSize="11" fontWeight="600">ŷ₀ = mean(y)</text>
-
-                        {/* Sequential tree boxes with real residual bars */}
-                        {Array.from({ length: numSteps }).map((_, i) => {
-                            const xPos = offsetX + 130 + i * (stepW + stepGap);
-                            const residual = hasResiduals && boostingResiduals[i] ? boostingResiduals[i].test_mae : null;
-                            const barH = residual != null ? Math.max(4, maxBarH * (residual / maxResidual)) : 0;
-                            const barOpacity = residual != null ? 0.25 + 0.5 * (residual / maxResidual) : 0;
-                            const fade = 0.12 - i * 0.015;
-
-                            return (
-                                <g key={i} className="tree-node" style={{ animationDelay: `${i * 150}ms` }}>
-                                    {/* Arrow */}
-                                    <line x1={xPos - stepGap + 5} y1="75" x2={xPos - 2} y2="75"
-                                        stroke={colors.primary} strokeWidth="1.5" markerEnd="url(#arrowhead)" />
-
-                                    {/* Tree box */}
-                                    <rect x={xPos} y="50" width={stepW} height="50" rx="8"
-                                        fill={`rgba(39,116,174,${Math.max(0.04, fade)})`}
-                                        stroke={colors.primary} strokeWidth="1" />
-                                    <text x={xPos + stepW/2} y="70" textAnchor="middle" fill={colors.text} fontSize="10" fontWeight="600">
-                                        Tree {i + 1}
-                                    </text>
-                                    <text x={xPos + stepW/2} y="86" textAnchor="middle" fill={colors.primary} fontSize="8">
-                                        × η = {learningRate}
-                                    </text>
-
-                                    {/* Real residual bar */}
-                                    {residual != null && (
-                                        <>
-                                            <rect x={xPos + (stepW - 50)/2} y={115} width="50" height={barH} rx="3"
-                                                fill={colors.testLine} opacity={barOpacity} />
-                                            <text x={xPos + stepW/2} y={120 + barH + 10} textAnchor="middle" fill={colors.textMuted} fontSize="7">
-                                                ${(residual/1000).toFixed(1)}k MAE
-                                            </text>
-                                        </>
-                                    )}
-                                </g>
-                            );
-                        })}
-
-                        {nEstimators > 5 && (
-                            <text x={offsetX + 130 + numSteps * (stepW + stepGap) + 5} y="79"
-                                fill={colors.textMuted} fontSize="11" fontStyle="italic">
-                                +{nEstimators - 5} more
-                            </text>
-                        )}
-                    </svg>
-                </div>
-            );
-        };
-
-        // ──────────── Learning Curve Chart ────────────
-        const LearningCurveChart = ({ data, xKey, xLabel, title }) => {
-            const canvasRef = useRef(null);
+        const BoostingChart = ({ data }) => {
             const chartRef = useRef(null);
+            const chartInstance = useRef(null);
 
             useEffect(() => {
-                if (!canvasRef.current || !data || data.length === 0) return;
-                if (chartRef.current) chartRef.current.destroy();
+                if (!chartRef.current || !data) return;
+                const ctx = chartRef.current.getContext('2d');
+                if (chartInstance.current) chartInstance.current.destroy();
 
-                const ctx = canvasRef.current.getContext('2d');
-                chartRef.current = new Chart(ctx, {
+                chartInstance.current = new Chart(ctx, {
                     type: 'line',
                     data: {
-                        labels: data.map(d => d[xKey]),
-                        datasets: [
-                            {
-                                label: 'Train MAE',
-                                data: data.map(d => d.train_mae),
-                                borderColor: colors.trainLine,
-                                backgroundColor: 'rgba(39, 116, 174, 0.1)',
-                                borderWidth: 2.5,
-                                pointRadius: 3,
-                                pointBackgroundColor: colors.trainLine,
-                                tension: 0.3,
-                                fill: false
-                            },
-                            {
-                                label: 'Test MAE',
-                                data: data.map(d => d.test_mae),
-                                borderColor: colors.testLine,
-                                backgroundColor: 'rgba(232, 96, 15, 0.1)',
-                                borderWidth: 2.5,
-                                pointRadius: 3,
-                                pointBackgroundColor: colors.testLine,
-                                tension: 0.3,
-                                fill: false
-                            }
-                        ]
+                        labels: data.map(d => d.tree),
+                        datasets: [{
+                            label: 'Test MAE ($)',
+                            data: data.map(d => d.test_mae),
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 3
+                        }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                labels: {
-                                    color: colors.text,
-                                    font: { size: 11, weight: '500' },
-                                    usePointStyle: true,
-                                    pointStyle: 'circle',
-                                    padding: 20
-                                }
-                            },
-                            tooltip: {
-                                callbacks: {
-                                    label: (ctx) => `${ctx.dataset.label}: $${ctx.parsed.y.toLocaleString()}`
-                                }
-                            }
-                        },
-                        scales: {
-                            x: {
-                                title: {
-                                    display: true,
-                                    text: xLabel,
-                                    color: colors.text,
-                                    font: { size: 12, weight: '600' }
-                                },
-                                grid: { color: 'rgba(0, 0, 0, 0.06)' },
-                                ticks: { color: colors.textMuted, font: { size: 10 } }
-                            },
-                            y: {
-                                title: {
-                                    display: true,
-                                    text: 'Mean Absolute Error ($)',
-                                    color: colors.text,
-                                    font: { size: 12, weight: '600' }
-                                },
-                                grid: { color: 'rgba(0, 0, 0, 0.06)' },
-                                ticks: {
-                                    color: colors.textMuted,
-                                    font: { size: 10 },
-                                    callback: v => `$${(v / 1000).toFixed(1)}k`
-                                }
-                            }
+                        plugins: { legend: { display: false } },
+                        scales: { 
+                            y: { grid: { display: false }, title: { display: true, text: 'Error' } },
+                            x: { grid: { display: false }, title: { display: true, text: 'Sequential Trees' } }
                         }
                     }
                 });
-                return () => { if (chartRef.current) chartRef.current.destroy(); };
-            }, [data, xKey, xLabel]);
+            }, [data]);
 
-            return (
-                <div style={{
-                    background: colors.cardBg, borderRadius: '12px', padding: '1rem',
-                    border: `1px solid ${colors.cardBorder}`, flex: 1
-                }}>
-                    <h3 style={{ fontSize: '1rem', fontWeight: 600, color: colors.text, marginBottom: '0.25rem' }}>
-                        {title || 'Learning Curve'}
-                    </h3>
-                    <div style={{ height: '280px' }}>
-                        <canvas ref={canvasRef} />
-                    </div>
-                </div>
-            );
+            return <div className="chart-container"><canvas ref={chartRef} /></div>;
         };
 
-        // ──────────── Scatter Plot (Predicted vs Actual) ────────────
-        const ScatterPlot = ({ predictions, actuals }) => {
-            const canvasRef = useRef(null);
+        const FeatureImportanceChart = ({ data }) => {
             const chartRef = useRef(null);
+            const chartInstance = useRef(null);
 
             useEffect(() => {
-                if (!canvasRef.current || !predictions || predictions.length === 0) return;
-                if (chartRef.current) chartRef.current.destroy();
+                if (!chartRef.current || !data) return;
+                const ctx = chartRef.current.getContext('2d');
+                if (chartInstance.current) chartInstance.current.destroy();
 
-                const scatterData = predictions.map((p, i) => ({ x: actuals[i], y: p }));
-                const allVals = [...predictions, ...actuals];
-                const minVal = Math.min(...allVals) * 0.9;
-                const maxVal = Math.max(...allVals) * 1.1;
+                const sorted = Object.entries(data).sort((a, b) => b[1] - a[1]);
 
-                const ctx = canvasRef.current.getContext('2d');
-                chartRef.current = new Chart(ctx, {
-                    type: 'scatter',
+                chartInstance.current = new Chart(ctx, {
+                    type: 'bar',
                     data: {
-                        datasets: [
-                            {
-                                label: 'Predictions',
-                                data: scatterData,
-                                backgroundColor: 'rgba(39, 116, 174, 0.4)',
-                                borderColor: colors.primary,
-                                borderWidth: 1,
-                                pointRadius: 4,
-                                pointHoverRadius: 6
-                            },
-                            {
-                                label: 'Perfect Prediction',
-                                data: [{ x: minVal, y: minVal }, { x: maxVal, y: maxVal }],
-                                type: 'line',
-                                borderColor: colors.testLine,
-                                borderWidth: 2,
-                                borderDash: [6, 4],
-                                pointRadius: 0,
-                                fill: false
-                            }
-                        ]
+                        labels: sorted.map(d => d[0]),
+                        datasets: [{
+                            data: sorted.map(d => d[1]),
+                            backgroundColor: '#3b82f6',
+                            borderRadius: 4
+                        }]
                     },
                     options: {
+                        indexAxis: 'y',
                         responsive: true,
                         maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                labels: {
-                                    color: colors.text,
-                                    font: { size: 11, weight: '500' },
-                                    usePointStyle: true,
-                                    padding: 20
-                                }
-                            },
-                            tooltip: {
-                                callbacks: {
-                                    label: (ctx) => {
-                                        if (ctx.datasetIndex === 0) {
-                                            return `Actual: $${ctx.parsed.x.toLocaleString()} | Predicted: $${ctx.parsed.y.toLocaleString()}`;
-                                        }
-                                        return '';
-                                    }
-                                }
-                            }
-                        },
-                        scales: {
-                            x: {
-                                title: {
-                                    display: true,
-                                    text: 'Actual Price ($)',
-                                    color: colors.text,
-                                    font: { size: 12, weight: '600' }
-                                },
-                                grid: { color: 'rgba(0, 0, 0, 0.06)' },
-                                ticks: {
-                                    color: colors.textMuted, font: { size: 10 },
-                                    callback: v => `$${(v / 1000).toFixed(0)}k`
-                                },
-                                min: minVal,
-                                max: maxVal
-                            },
-                            y: {
-                                title: {
-                                    display: true,
-                                    text: 'Predicted Price ($)',
-                                    color: colors.text,
-                                    font: { size: 12, weight: '600' }
-                                },
-                                grid: { color: 'rgba(0, 0, 0, 0.06)' },
-                                ticks: {
-                                    color: colors.textMuted, font: { size: 10 },
-                                    callback: v => `$${(v / 1000).toFixed(0)}k`
-                                },
-                                min: minVal,
-                                max: maxVal
-                            }
-                        }
+                        plugins: { legend: { display: false } },
+                        scales: { x: { grid: { display: false } }, y: { grid: { display: false } } }
                     }
                 });
-                return () => { if (chartRef.current) chartRef.current.destroy(); };
-            }, [predictions, actuals]);
+            }, [data]);
 
-            return (
-                <div style={{
-                    background: colors.cardBg, borderRadius: '12px', padding: '1rem',
-                    border: `1px solid ${colors.cardBorder}`, flex: 1
-                }}>
-                    <h3 style={{ fontSize: '1rem', fontWeight: 600, color: colors.text, marginBottom: '0.25rem' }}>
-                        Predicted vs Actual
-                    </h3>
-                    <div style={{ height: '280px' }}>
-                        <canvas ref={canvasRef} />
-                    </div>
-                </div>
-            );
+            return <div className="chart-container"><canvas ref={chartRef} /></div>;
         };
 
-        // ──────────── Feature Importance ────────────
-        const FeatureImportanceChart = ({ data }) => {
-            if (!data || Object.keys(data).length === 0) return null;
-
-            const featureDisplayNames = {
-                'year': 'Year', 'mileage': 'Mileage', 'trim_enc': 'Trim',
-                'state_enc': 'State', 'color_enc': 'Color', 'interior_enc': 'Interior'
-            };
-
-            const sortedData = Object.entries(data)
-                .map(([k, v]) => ({ feature: featureDisplayNames[k] || k, importance: v }))
-                .sort((a, b) => b.importance - a.importance);
-            const maxImportance = Math.max(...sortedData.map(d => d.importance));
-
-            return (
-                <div style={{
-                    background: colors.cardBg, borderRadius: '12px', padding: '1rem',
-                    border: `1px solid ${colors.cardBorder}`
-                }}>
-                    <h3 style={{ fontSize: '1rem', fontWeight: 600, color: colors.text, marginBottom: '0.75rem' }}>
-                        Feature Importance
-                    </h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        {sortedData.map((item, index) => {
-                            const width = (item.importance / maxImportance) * 100;
-                            const barColor = index === 0 ? colors.primary : index === 1 ? colors.lightBlue : colors.darkBlue;
-                            return (
-                                <div key={item.feature} className="bar-animate" style={{ animationDelay: `${index * 100}ms` }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                                        <span style={{ fontSize: '0.8rem', color: colors.text }}>{item.feature}</span>
-                                        <span style={{ fontSize: '0.75rem', color: colors.text }}>{(item.importance * 100).toFixed(1)}%</span>
-                                    </div>
-                                    <div style={{ height: '16px', background: 'rgba(39, 116, 174, 0.1)', borderRadius: '4px', overflow: 'hidden' }}>
-                                        <div style={{
-                                            height: '100%', width: `${width}%`,
-                                            background: `linear-gradient(90deg, ${barColor}, ${barColor}aa)`,
-                                            borderRadius: '4px', transition: 'width 0.5s ease-out'
-                                        }} />
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            );
-        };
-
-        // ──────────── Main Simulator ────────────
-        const SimulatorTab = () => {
-            const [modelType, setModelType] = useState('decision_tree');
-            const [maxDepth, setMaxDepth] = useState(6);
-            const [nEstimators, setNEstimators] = useState(100);
-            const [learningRate, setLearningRate] = useState(0.1);
-
-            const [subsample, setSubsample] = useState(0.8);
-            const [maxFeatures, setMaxFeatures] = useState(0.7);
-            const [isTraining, setIsTraining] = useState(false);
-            const [progress, setProgress] = useState(0);
+        const App = () => {
+            const [loading, setLoading] = useState(false);
             const [results, setResults] = useState(null);
+            const [params, setParams] = useState({
+                model_type: 'xgboost',
+                max_depth: 5,
+                n_estimators: 50,
+                learning_rate: 0.1
+            });
 
-            const handleTrain = async () => {
-                setIsTraining(true);
-                setProgress(10);
-
+            const trainModel = async () => {
+                setLoading(true);
                 try {
-                    const body = {
-                        model_type: modelType,
-                        max_depth: maxDepth,
-                        n_estimators: nEstimators,
-                        learning_rate: learningRate,
-                        subsample: subsample,
-                        max_features: maxFeatures
-                    };
-
-                    setProgress(30);
-
-                    const response = await fetch(`${API_BASE}/train`, {
+                    const response = await fetch('/train', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(body)
+                        body: JSON.stringify(params)
                     });
-
-                    setProgress(80);
                     const data = await response.json();
-                    setProgress(100);
                     setResults(data);
                 } catch (err) {
-                    console.error('Training failed:', err);
-                    alert('Training failed. Is the backend running?');
+                    alert("Training failed. Please check if the backend is awake.");
+                } finally {
+                    setLoading(false);
                 }
-
-                setIsTraining(false);
             };
 
-            const metrics = results ? {
-                train_mae: results.train_mae,
-                test_mae: results.test_mae,
-                n_train: results.n_train,
-                n_test: results.n_test
-            } : { train_mae: null, test_mae: null, n_train: null, n_test: null };
-
-            // Determine learning curve data
-            let curveData = null;
-            let curveXKey = 'n_estimators';
-            let curveXLabel = 'Number of Trees (n_estimators)';
-            let curveTitle = 'Learning Curve';
-
-            if (results) {
-                if (results.depth_curve) {
-                    curveData = results.depth_curve;
-                    curveXKey = 'depth';
-                    curveXLabel = 'Tree Depth (max_depth)';
-                    curveTitle = 'Error vs Tree Depth';
-                } else if (results.learning_curve) {
-                    curveData = results.learning_curve;
-                    curveXKey = 'n_estimators';
-                    curveXLabel = 'Number of Trees (n_estimators)';
-                    curveTitle = modelType === 'xgboost' ? 'Error vs Boosting Rounds' : 'Error vs Number of Trees';
-                }
-            }
-
             return (
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: '300px 1fr',
-                    gap: '1.25rem',
-                    padding: '1.25rem',
-                    maxWidth: '1450px',
-                    margin: '0 auto'
-                }}>
-                    {/* Control Panel */}
-                    <div style={{
-                        background: colors.cardBg, borderRadius: '12px', padding: '1.25rem',
-                        border: `1px solid ${colors.cardBorder}`, height: 'fit-content'
-                    }}>
-                        <h2 style={{ fontSize: '1.1rem', fontWeight: 600, color: colors.text, marginBottom: '1.25rem' }}>
-                            Hyperparameters
-                        </h2>
-
-                        <ModelTypeButtons modelType={modelType} setModelType={setModelType} />
-
-                        <Slider label="max_depth" value={maxDepth} onChange={setMaxDepth}
-                            min={1} max={20} step={1} />
-
-                        <Slider label="n_estimators" value={nEstimators} onChange={setNEstimators}
-                            min={10} max={200} step={10}
-                            disabled={modelType === 'decision_tree'}
-                            description="RF & XGBoost only" />
-
-                        <Slider label="learning_rate" value={learningRate} onChange={setLearningRate}
-                            min={0.01} max={0.5} step={0.01}
-                            disabled={modelType !== 'xgboost'}
-                            description="XGBoost only" />
-
-                        <Slider label="max_features" value={maxFeatures} onChange={setMaxFeatures}
-                            min={0.2} max={1.0} step={0.1}
-                            disabled={modelType !== 'random_forest'}
-                            description="RF only" />
-
-                        <Slider label="subsample" value={subsample} onChange={setSubsample}
-                            min={0.5} max={1.0} step={0.05}
-                            disabled={modelType !== 'xgboost'}
-                            description="XGBoost only" />
-
-                        <div style={{ marginTop: '1.25rem' }}>
-                            <TrainButton onClick={handleTrain} isTraining={isTraining} progress={progress} />
-                        </div>
+                <div className="container">
+                    <div className="header">
+                        <h1 style={{fontSize: '1.5rem', fontWeight: 800, color: '#111827'}}>Range Rover Pricing Lab</h1>
+                        <p style={{color: '#6b7280', fontSize: '0.9rem'}}>Machine Learning Strategy: Tree-Based Methods</p>
                     </div>
 
-                    {/* Visualizations */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        {/* Metrics */}
-                        <MetricsDisplay metrics={metrics} />
+                    <div className="grid">
+                        <div className="card">
+                            <h2>Parameters</h2>
+                            
+                            <label>Model Type</label>
+                            <select value={params.model_type} onChange={e => setParams({...params, model_type: e.target.value})}>
+                                <option value="decision_tree">Decision Tree</option>
+                                <option value="random_forest">Random Forest</option>
+                                <option value="xgboost">XGBoost</option>
+                            </select>
 
-                        {/* Model Visualization — full width */}
-                        {modelType === 'decision_tree' && (
-                            <DecisionTreeViz treeData={results?.tree_structure} maxDepth={maxDepth} />
-                        )}
-                        {modelType === 'random_forest' && (
-                            <RandomForestViz treeData={results?.tree_structure} nEstimators={nEstimators} maxFeatures={maxFeatures} />
-                        )}
-                        {modelType === 'xgboost' && (
-                            <XGBoostViz nEstimators={nEstimators} learningRate={learningRate} boostingResiduals={results?.boosting_residuals} />
-                        )}
+                            <label>Max Depth: {params.max_depth}</label>
+                            <input type="range" min="1" max="15" value={params.max_depth} 
+                                onChange={e => setParams({...params, max_depth: parseInt(e.target.value)})} />
 
-                        {/* Bottom row: Learning Curve + Scatter + Feature Importance */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                            {curveData ? (
-                                <LearningCurveChart data={curveData} xKey={curveXKey} xLabel={curveXLabel} title={curveTitle} />
-                            ) : (
-                                <div style={{
-                                    background: colors.cardBg, borderRadius: '12px', padding: '1rem',
-                                    border: `1px solid ${colors.cardBorder}`, display: 'flex',
-                                    alignItems: 'center', justifyContent: 'center', minHeight: '300px'
-                                }}>
-                                    <p style={{ color: colors.textMuted, fontSize: '0.9rem' }}>Train a model to see the learning curve</p>
-                                </div>
+                            {params.model_type !== 'decision_tree' && (
+                                <>
+                                    <label>Number of Trees: {params.n_estimators}</label>
+                                    <input type="range" min="10" max="200" step="10" value={params.n_estimators} 
+                                        onChange={e => setParams({...params, n_estimators: parseInt(e.target.value)})} />
+                                    
+                                    <label>Learning Rate</label>
+                                    <input type="number" step="0.01" value={params.learning_rate} 
+                                        onChange={e => setParams({...params, learning_rate: parseFloat(e.target.value)})} />
+                                </>
                             )}
 
-                            {results?.predictions ? (
-                                <ScatterPlot predictions={results.predictions} actuals={results.actuals} />
+                            <button onClick={trainModel} disabled={loading}>
+                                {loading ? 'Computing...' : 'Train Model'}
+                            </button>
+                        </div>
+
+                        <div className="card">
+                            <h2>Performance Results</h2>
+                            {results ? (
+                                <div>
+                                    <div className="stats-grid">
+                                        <div className="stat-box">
+                                            <div className="stat-label">Prediction Error (MAE)</div>
+                                            <div className="stat-val">${results.test_mae.toLocaleString()}</div>
+                                        </div>
+                                        <div className="stat-box">
+                                            <div className="stat-label">Training Error</div>
+                                            <div className="stat-val">${results.train_mae.toLocaleString()}</div>
+                                        </div>
+                                    </div>
+
+                                    <h3>Feature Drivers</h3>
+                                    <FeatureImportanceChart data={results.feature_importances} />
+
+                                    {params.model_type === 'xgboost' && results.boosting_residuals && (
+                                        <div style={{marginTop: '2rem', borderTop: '1px solid #eee', paddingTop: '1.5rem'}}>
+                                            <h3>Boosting Path</h3>
+                                            <p className="help-text">This shows how the model corrects its own errors tree-by-tree.</p>
+                                            <BoostingChart data={results.boosting_residuals} />
+                                        </div>
+                                    )}
+                                </div>
                             ) : (
-                                <div style={{
-                                    background: colors.cardBg, borderRadius: '12px', padding: '1rem',
-                                    border: `1px solid ${colors.cardBorder}`, display: 'flex',
-                                    alignItems: 'center', justifyContent: 'center', minHeight: '300px'
-                                }}>
-                                    <p style={{ color: colors.textMuted, fontSize: '0.9rem' }}>Train a model to see predictions</p>
+                                <div style={{height: '400px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', textAlign: 'center'}}>
+                                    <p>Ready to analyze the Range Rover dataset.</p>
+                                    <p style={{fontSize: '0.8rem'}}>Select a model and click Train.</p>
                                 </div>
                             )}
                         </div>
-
-                        {/* Feature Importance — full width below */}
-                        {results?.feature_importances && Object.keys(results.feature_importances).length > 0 && (
-                            <FeatureImportanceChart data={results.feature_importances} />
-                        )}
                     </div>
                 </div>
             );
         };
 
-        // ──────────── App ────────────
-        const App = () => (
-            <div style={{ minHeight: '100vh', paddingBottom: '2rem' }}>
-                <Header />
-                <main className="animate-fade-in">
-                    <SimulatorTab />
-                </main>
-                <div style={{ textAlign: 'center', marginTop: '40px', paddingTop: '20px' }}>
-                    <p style={{ color: '#888', fontSize: '0.75rem' }}>
-                        MGMT298D: Science and Strategy of AI | UCLA Anderson School of Management
-                    </p>
-                </div>
-            </div>
-        );
-
-        ReactDOM.render(<App />, document.getElementById('root'));
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 </html>
