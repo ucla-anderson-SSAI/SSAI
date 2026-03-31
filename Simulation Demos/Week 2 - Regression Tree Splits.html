@@ -117,8 +117,8 @@
         <div class="slider-bounds"><span id="threshMin">1999</span><span id="threshMax">2016</span></div>
       </div>
       <div style="flex:0 0 auto; text-align:center;">
-        <div class="stat-label">MSE Reduction</div>
-        <div class="stat-value" id="mseReduction" style="color:#16a34a; font-size:20px;">—</div>
+        <div class="stat-label">Weighted MSE</div>
+        <div class="stat-value" id="mseReduction" style="color:#3b82f6; font-size:20px;">—</div>
       </div>
       <div style="flex:0 0 auto; text-align:center;">
         <div class="stat-label">Parent MSE</div>
@@ -144,13 +144,13 @@
       <div class="plot-note" id="scatterNote"></div>
     </div>
     <div class="card" id="exploreMSECard" style="flex:0 0 auto; display:none;">
-      <div class="card-label">MSE Reduction Across All Thresholds</div>
+      <div class="card-label">Weighted MSE Across All Thresholds (Loss to Minimize)</div>
       <canvas id="mseCanvas"></canvas>
       <div class="plot-note" id="mseNote"></div>
     </div>
   </div>
   <div style="margin-top:8px;">
-    <button class="btn btn-ghost" id="toggleMSEBtn" onclick="toggleExploreMSE()">Show MSE Reduction Plot</button>
+    <button class="btn btn-ghost" id="toggleMSEBtn" onclick="toggleExploreMSE()">Show Weighted MSE Plot</button>
   </div>
 </div>
 
@@ -178,9 +178,9 @@
         <input type="range" id="buildThreshSlider" min="1999" max="2016" step="1" value="2010">
         <div class="slider-bounds"><span id="buildThreshMin">1999</span><span id="buildThreshMax">2016</span></div>
       </div>
-      <div class="stat-box" style="background:#f0fdf4; border: 1px solid #bbf7d0;">
-        <div class="stat-label">MSE Reduction</div>
-        <div class="stat-value" id="buildMseReduction" style="color:#16a34a;">—</div>
+      <div class="stat-box" style="background:#eff6ff; border: 1px solid #bfdbfe;">
+        <div class="stat-label">Weighted MSE</div>
+        <div class="stat-value" id="buildMseReduction" style="color:#3b82f6;">—</div>
       </div>
       <div class="stat-row">
         <div class="stat-box" style="background:#eff6ff; border: 1px solid #bfdbfe;">
@@ -231,7 +231,7 @@
       <div class="plot-note" id="buildScatterNote"></div>
     </div>
     <div class="card" style="flex:0 0 auto;">
-      <div class="card-label">Selected Leaf — MSE Reduction Across Thresholds</div>
+      <div class="card-label">Selected Leaf — Weighted MSE Across Thresholds (Loss to Minimize)</div>
       <canvas id="buildMSECanvas"></canvas>
       <div class="plot-note" id="buildMSENote"></div>
     </div>
@@ -336,11 +336,11 @@ function toggleExploreMSE() {
   const btn = document.getElementById('toggleMSEBtn');
   if (card.style.display === 'none') {
     card.style.display = '';
-    btn.textContent = 'Hide MSE Reduction Plot';
+    btn.textContent = 'Hide Weighted MSE Plot';
     requestAnimationFrame(() => updateExploreTab());
   } else {
     card.style.display = 'none';
-    btn.textContent = 'Show MSE Reduction Plot';
+    btn.textContent = 'Show Weighted MSE Plot';
   }
 }
 
@@ -366,7 +366,7 @@ function updateExploreTab() {
   document.getElementById('threshVal').textContent = label;
 
   const stats = computeSplitStats(DATA, feature, t);
-  document.getElementById('mseReduction').textContent = fmtMSE(stats.reduction);
+  document.getElementById('mseReduction').textContent = fmtMSE(stats.weightedMSE);
   document.getElementById('leftMSE').textContent = fmtMSE(stats.leftMSE);
   document.getElementById('rightMSE').textContent = fmtMSE(stats.rightMSE);
   document.getElementById('parentMSE').textContent = fmtMSE(stats.parentMSE);
@@ -485,16 +485,18 @@ function drawMSECurve(data, feature, currentThreshold) {
   const vals = [...new Set(data.map(d => d[feature]))].sort((a,b) => a-b);
   const thresholds = [];
   for (let i = 0; i < vals.length - 1; i++) thresholds.push((vals[i] + vals[i+1]) / 2);
-  const reductions = thresholds.map(t => computeSplitStats(data, feature, t).reduction);
+  const weightedMSEs = thresholds.map(t => computeSplitStats(data, feature, t).weightedMSE);
+  const parentMSE = mse(data.map(d => d.sellingprice));
 
   const { W, H, pad, tickFont, labelFont, markerR } = getPlotSize();
   const ctx = setupCanvasHiDPI(mseCanvas, W, H);
   const pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
 
   const xMin = thresholds[0], xMax = thresholds[thresholds.length - 1];
-  const yMax = Math.max(...reductions) * 1.15;
+  const yMin_val = Math.min(...weightedMSEs) * 0.85;
+  const yMax_val = parentMSE * 1.08;
   const sx = v => pad.l + (v - xMin) / (xMax - xMin) * pw;
-  const sy = v => pad.t + ph - v / yMax * ph;
+  const sy = v => pad.t + ph - (v - yMin_val) / (yMax_val - yMin_val) * ph;
 
   ctx.clearRect(0, 0, W, H);
 
@@ -505,23 +507,31 @@ function drawMSECurve(data, feature, currentThreshold) {
     ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
   }
 
+  // Parent MSE reference line
+  const parentY = sy(parentMSE);
+  ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 1.5; ctx.setLineDash([6, 4]);
+  ctx.beginPath(); ctx.moveTo(pad.l, parentY); ctx.lineTo(W - pad.r, parentY); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#94a3b8'; ctx.font = tickFont; ctx.textAlign = 'left';
+  ctx.fillText('Parent MSE = ' + fmtMSE(parentMSE), pad.l + 4, parentY - 5);
+
   // Curve
   ctx.beginPath(); ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 2;
   thresholds.forEach((t, i) => {
-    const x = sx(t), y = sy(reductions[i]);
+    const x = sx(t), y = sy(weightedMSEs[i]);
     i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
   });
   ctx.stroke();
 
   // Current threshold marker
   const ci = thresholds.reduce((best, t, i) => Math.abs(t - currentThreshold) < Math.abs(thresholds[best] - currentThreshold) ? i : best, 0);
-  ctx.beginPath(); ctx.arc(sx(thresholds[ci]), sy(reductions[ci]), markerR, 0, Math.PI * 2);
+  ctx.beginPath(); ctx.arc(sx(thresholds[ci]), sy(weightedMSEs[ci]), markerR, 0, Math.PI * 2);
   ctx.fillStyle = '#f59e0b'; ctx.fill();
   ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2; ctx.stroke();
 
-  // Best marker
-  const bi = reductions.indexOf(Math.max(...reductions));
-  ctx.beginPath(); ctx.arc(sx(thresholds[bi]), sy(reductions[bi]), markerR, 0, Math.PI * 2);
+  // Best (minimum) marker
+  const bi = weightedMSEs.indexOf(Math.min(...weightedMSEs));
+  ctx.beginPath(); ctx.arc(sx(thresholds[bi]), sy(weightedMSEs[bi]), markerR, 0, Math.PI * 2);
   ctx.fillStyle = '#16a34a'; ctx.fill();
   ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2; ctx.stroke();
 
@@ -530,12 +540,12 @@ function drawMSECurve(data, feature, currentThreshold) {
   const fLabel = feature === 'year' ? 'Split Threshold (Year)' : 'Split Threshold (Mileage)';
   ctx.fillText(fLabel, pad.l + pw/2, H - 2);
   ctx.save(); ctx.translate(pad.l * 0.2, pad.t + ph/2); ctx.rotate(-Math.PI/2);
-  ctx.fillText('MSE Reduction', 0, 0); ctx.restore();
+  ctx.fillText('Weighted MSE (loss)', 0, 0); ctx.restore();
 
   // Y-axis ticks
   ctx.font = tickFont; ctx.fillStyle = '#64748b';
   for (let i = 0; i <= 4; i++) {
-    const v = yMax * (4 - i) / 4;
+    const v = yMax_val - (yMax_val - yMin_val) * i / 4;
     ctx.textAlign = 'right';
     ctx.fillText(fmtMSE(v), pad.l - 4, pad.t + ph * i / 4 + 4);
   }
@@ -549,7 +559,7 @@ function drawMSECurve(data, feature, currentThreshold) {
   }
 
   document.getElementById('mseNote').innerHTML =
-    `<span style="color:#f59e0b">●</span> current threshold · <span style="color:#16a34a">●</span> best threshold`;
+    `<span style="color:#f59e0b">●</span> current threshold · <span style="color:#16a34a">●</span> best threshold (min loss) · <span style="color:#94a3b8">---</span> parent MSE`;
 }
 
 document.getElementById('featureSelect').addEventListener('change', function() {
@@ -631,7 +641,7 @@ function updateBuildTab() {
     document.getElementById('autoSplitBtn').disabled = true;
   } else {
     const stats = computeSplitStats(node.data, feature, threshold);
-    document.getElementById('buildMseReduction').textContent = fmtMSE(stats.reduction);
+    document.getElementById('buildMseReduction').textContent = fmtMSE(stats.weightedMSE);
     document.getElementById('buildLeftMSE').textContent = fmtMSE(stats.leftMSE);
     document.getElementById('buildRightMSE').textContent = fmtMSE(stats.rightMSE);
     document.getElementById('buildLeftInfo').textContent = `n=${stats.leftN} · mean=${fmt$(stats.leftMean)}`;
@@ -673,7 +683,8 @@ function drawBuildMSECurve(data, feature, currentThreshold) {
   }
   const thresholds = [];
   for (let i = 0; i < vals.length - 1; i++) thresholds.push((vals[i] + vals[i+1]) / 2);
-  const reductions = thresholds.map(t => computeSplitStats(data, feature, t).reduction);
+  const weightedMSEs = thresholds.map(t => computeSplitStats(data, feature, t).weightedMSE);
+  const parentMSE = mse(data.map(d => d.sellingprice));
 
   const canvas = document.getElementById('buildMSECanvas');
   const { W, H, pad, tickFont, labelFont, markerR } = getPlotSize();
@@ -681,9 +692,10 @@ function drawBuildMSECurve(data, feature, currentThreshold) {
   const pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
 
   const xMin = thresholds[0], xMax = thresholds[thresholds.length - 1];
-  const yMax = Math.max(...reductions) * 1.15 || 1;
+  const yMin_val = Math.min(...weightedMSEs) * 0.85;
+  const yMax_val = parentMSE * 1.08;
   const sx = v => pad.l + (v - xMin) / (xMax - xMin) * pw;
-  const sy = v => pad.t + ph - v / yMax * ph;
+  const sy = v => pad.t + ph - (v - yMin_val) / (yMax_val - yMin_val) * ph;
 
   ctx.clearRect(0, 0, W, H);
 
@@ -693,20 +705,28 @@ function drawBuildMSECurve(data, feature, currentThreshold) {
     ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
   }
 
+  // Parent MSE reference line
+  const parentY = sy(parentMSE);
+  ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 1.5; ctx.setLineDash([6, 4]);
+  ctx.beginPath(); ctx.moveTo(pad.l, parentY); ctx.lineTo(W - pad.r, parentY); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#94a3b8'; ctx.font = tickFont; ctx.textAlign = 'left';
+  ctx.fillText('Parent MSE = ' + fmtMSE(parentMSE), pad.l + 4, parentY - 5);
+
   ctx.beginPath(); ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 2;
   thresholds.forEach((t, i) => {
-    const x = sx(t), y = sy(reductions[i]);
+    const x = sx(t), y = sy(weightedMSEs[i]);
     i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
   });
   ctx.stroke();
 
   const ci = thresholds.reduce((best, t, i) => Math.abs(t - currentThreshold) < Math.abs(thresholds[best] - currentThreshold) ? i : best, 0);
-  ctx.beginPath(); ctx.arc(sx(thresholds[ci]), sy(reductions[ci]), markerR, 0, Math.PI * 2);
+  ctx.beginPath(); ctx.arc(sx(thresholds[ci]), sy(weightedMSEs[ci]), markerR, 0, Math.PI * 2);
   ctx.fillStyle = '#f59e0b'; ctx.fill();
   ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2; ctx.stroke();
 
-  const bi = reductions.indexOf(Math.max(...reductions));
-  ctx.beginPath(); ctx.arc(sx(thresholds[bi]), sy(reductions[bi]), markerR, 0, Math.PI * 2);
+  const bi = weightedMSEs.indexOf(Math.min(...weightedMSEs));
+  ctx.beginPath(); ctx.arc(sx(thresholds[bi]), sy(weightedMSEs[bi]), markerR, 0, Math.PI * 2);
   ctx.fillStyle = '#16a34a'; ctx.fill();
   ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2; ctx.stroke();
 
@@ -714,11 +734,11 @@ function drawBuildMSECurve(data, feature, currentThreshold) {
   const fLabel = feature === 'year' ? 'Split Threshold (Year)' : 'Split Threshold (Mileage)';
   ctx.fillText(fLabel, pad.l + pw/2, H - 2);
   ctx.save(); ctx.translate(pad.l * 0.2, pad.t + ph/2); ctx.rotate(-Math.PI/2);
-  ctx.fillText('MSE Reduction', 0, 0); ctx.restore();
+  ctx.fillText('Weighted MSE (loss)', 0, 0); ctx.restore();
 
   ctx.font = tickFont; ctx.fillStyle = '#64748b';
   for (let i = 0; i <= 4; i++) {
-    const v = yMax * (4 - i) / 4;
+    const v = yMax_val - (yMax_val - yMin_val) * i / 4;
     ctx.textAlign = 'right';
     ctx.fillText(fmtMSE(v), pad.l - 4, pad.t + ph * i / 4 + 4);
   }
@@ -730,7 +750,7 @@ function drawBuildMSECurve(data, feature, currentThreshold) {
   }
 
   document.getElementById('buildMSENote').innerHTML =
-    `<span style="color:#f59e0b">●</span> current threshold · <span style="color:#16a34a">●</span> best threshold`;
+    `<span style="color:#f59e0b">●</span> current threshold · <span style="color:#16a34a">●</span> best threshold (min loss) · <span style="color:#94a3b8">---</span> parent MSE`;
 }
 
 function splitNode(nodeId, feature, threshold) {
