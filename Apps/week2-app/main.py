@@ -46,7 +46,7 @@ mae_scorer = make_scorer(mean_absolute_error, greater_is_better=False)
 
 
 def load_and_prepare_data():
-    global df, X_train, X_test, y_train, y_test, feature_names, encoders
+    global df, X_all, y_all, X_train, X_test, y_train, y_test, feature_names, encoders
 
     # Load from GitHub
     DATA_URL = "https://raw.githubusercontent.com/ucla-anderson-SSAI/SSAI/main/range_rover.csv"
