@@ -7,11 +7,11 @@ from typing import Optional
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.tree import DecisionTreeRegressor, export_text
 from sklearn.ensemble import RandomForestRegressor
 from xgboost import XGBRegressor
-from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_absolute_error, make_scorer
 import warnings
 import os
 import json
@@ -32,12 +32,17 @@ app.add_middleware(
 
 # Global variables
 df = None
+X_all = None
+y_all = None
 X_train = None
 X_test = None
 y_train = None
 y_test = None
 feature_names = []
 encoders = {}
+
+# Scorer for cross-validation (negative MAE since sklearn maximizes scores)
+mae_scorer = make_scorer(mean_absolute_error, greater_is_better=False)
 
 
 def load_and_prepare_data():
@@ -70,17 +75,17 @@ def load_and_prepare_data():
     # Update feature names to use the encoded versions for categorical columns
     feature_names = [f"{f}_enc" if f in categorical_cols else f for f in feature_names]
 
-    X = df[feature_names].values
-    y = df[price_col].values
+    X_all = df[feature_names].values
+    y_all = df[price_col].values
 
-    # Fixed train/test split for reproducibility
+    # Keep a train/test split for scatter plot predictions and tree visualization
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
+        X_all, y_all, test_size=0.2, random_state=42
     )
 
     print(f"Features: {feature_names}")
     print(f"Target: {price_col}")
-    print(f"Train size: {len(X_train)}, Test size: {len(X_test)}")
+    print(f"Total samples: {len(X_all)}, Train: {len(X_train)}, Test: {len(X_test)}")
     return df
 
 
@@ -163,15 +168,18 @@ async def train_model(request: TrainRequest):
             n_jobs=2  # FIX 2: Limited to 2 threads to prevent OOM kills on Railway
         )
 
-    # Train
+    # Cross-validation error (20-fold on full data)
+    cv_scores = cross_val_score(model, X_all, y_all, cv=20, scoring=mae_scorer)
+    cv_mae = -cv_scores.mean()  # Negate because sklearn returns negative MAE
+
+    # Train on full training set for predictions, tree viz, and feature importances
     model.fit(X_train, y_train)
 
-    # Predictions
+    # Train MAE (in-sample)
     train_preds = model.predict(X_train)
-    test_preds = model.predict(X_test)
+    test_preds = model.predict(X_test)  # Still needed for scatter plot
 
     train_mae = mean_absolute_error(y_train, train_preds)
-    test_mae = mean_absolute_error(y_test, test_preds)
 
     # Feature importances
     if hasattr(model, 'feature_importances_'):
@@ -192,38 +200,52 @@ async def train_model(request: TrainRequest):
         tree_structure = build_tree_structure(model.estimators_[0], feature_names, max_display_depth=3)
 
     # Learning curve: train models with increasing n_estimators (for ensemble methods)
+    # Train MAE from fit model; CV MAE via 20-fold cross-validation at each step
     learning_curve = None
     if request.model_type in ('random_forest', 'xgboost'):
         learning_curve = []
-        n_steps = min(request.n_estimators, 20)
+        # Limit steps for RF since 20-fold CV per step is expensive
+        max_steps = 10 if request.model_type == 'random_forest' else 20
+        n_steps = min(request.n_estimators, max_steps)
         step_size = max(1, request.n_estimators // n_steps)
         steps = list(range(step_size, request.n_estimators + 1, step_size))
         if steps[-1] != request.n_estimators:
             steps.append(request.n_estimators)
 
         if request.model_type == 'xgboost':
-            # XGBoost: use iteration_range on the already-trained model (no retraining)
+            # Train MAE: use iteration_range on the already-trained model
+            # CV MAE: run 20-fold CV at each step
             for n_est in steps:
                 lc_train_preds = model.predict(X_train, iteration_range=(0, n_est))
-                lc_test_preds = model.predict(X_test, iteration_range=(0, n_est))
                 lc_train_mae = mean_absolute_error(y_train, lc_train_preds)
-                lc_test_mae = mean_absolute_error(y_test, lc_test_preds)
+                lc_model = XGBRegressor(
+                    n_estimators=n_est, max_depth=request.max_depth,
+                    learning_rate=request.learning_rate, subsample=request.subsample,
+                    random_state=42, n_jobs=2
+                )
+                lc_cv_scores = cross_val_score(lc_model, X_all, y_all, cv=20, scoring=mae_scorer)
+                lc_cv_mae = -lc_cv_scores.mean()
                 learning_curve.append({
                     'n_estimators': n_est,
                     'train_mae': round(lc_train_mae, 2),
-                    'test_mae': round(lc_test_mae, 2)
+                    'cv_mae': round(lc_cv_mae, 2)
                 })
         else:
-            # Random Forest: average predictions from subsets of the already-trained estimators
+            # Random Forest: train MAE from subset of estimators, CV MAE via cross-validation
             all_train_preds = np.array([est.predict(X_train) for est in model.estimators_])
-            all_test_preds = np.array([est.predict(X_test) for est in model.estimators_])
             for n_est in steps:
                 lc_train_mae = mean_absolute_error(y_train, all_train_preds[:n_est].mean(axis=0))
-                lc_test_mae = mean_absolute_error(y_test, all_test_preds[:n_est].mean(axis=0))
+                lc_model = RandomForestRegressor(
+                    n_estimators=n_est, max_depth=request.max_depth,
+                    max_features=request.max_features if request.max_features else 1.0,
+                    random_state=42, n_jobs=2
+                )
+                lc_cv_scores = cross_val_score(lc_model, X_all, y_all, cv=20, scoring=mae_scorer)
+                lc_cv_mae = -lc_cv_scores.mean()
                 learning_curve.append({
                     'n_estimators': n_est,
                     'train_mae': round(lc_train_mae, 2),
-                    'test_mae': round(lc_test_mae, 2)
+                    'cv_mae': round(lc_cv_mae, 2)
                 })
 
     # Depth curve: for decision tree, show MAE at different depths
@@ -234,34 +256,39 @@ async def train_model(request: TrainRequest):
             m = DecisionTreeRegressor(max_depth=d, random_state=42)
             m.fit(X_train, y_train)
             dc_train_mae = mean_absolute_error(y_train, m.predict(X_train))
-            dc_test_mae = mean_absolute_error(y_test, m.predict(X_test))
+            dc_cv_scores = cross_val_score(m, X_all, y_all, cv=20, scoring=mae_scorer)
+            dc_cv_mae = -dc_cv_scores.mean()
             depth_curve.append({
                 'depth': d,
                 'train_mae': round(dc_train_mae, 2),
-                'test_mae': round(dc_test_mae, 2)
+                'cv_mae': round(dc_cv_mae, 2)
             })
 
-    # Boosting residuals: track real test MAE after each of the first N trees (XGBoost only)
+    # Boosting residuals: track CV MAE after each of the first N trees (XGBoost only)
     boosting_residuals = None
     if request.model_type == 'xgboost':
         num_shown = min(request.n_estimators, 5)
-        # Sample rounds: first N trees shown in the diagram
         rounds = list(range(1, num_shown + 1))
         boosting_residuals = []
         for n in rounds:
-            preds_at_n = model.predict(X_test, iteration_range=(0, n))
-            mae_at_n = float(np.mean(np.abs(y_test - preds_at_n)))
+            br_model = XGBRegressor(
+                n_estimators=n, max_depth=request.max_depth,
+                learning_rate=request.learning_rate, subsample=request.subsample,
+                random_state=42, n_jobs=2
+            )
+            br_cv_scores = cross_val_score(br_model, X_all, y_all, cv=20, scoring=mae_scorer)
+            br_cv_mae = -br_cv_scores.mean()
             boosting_residuals.append({
                 'tree': n,
-                'test_mae': round(mae_at_n, 2)
+                'cv_mae': round(br_cv_mae, 2)
             })
 
     response = {
         "model_type": request.model_type,
         "train_mae": round(train_mae, 2),
-        "test_mae": round(test_mae, 2),
-        "n_train": len(X_train),
-        "n_test": len(X_test),
+        "cv_mae": round(cv_mae, 2),
+        "n_samples": len(X_all),
+        "cv_folds": 20,
         "feature_importances": {k: round(v, 4) for k, v in importances.items()},
         "predictions": [round(float(p), 2) for p in test_preds[indices]],
         "actuals": [round(float(a), 2) for a in y_test[indices]],
