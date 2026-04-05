@@ -1,376 +1,376 @@
-year,make,model,trim,state,mileage,color,interior,sellingprice,engine_liters,horsepower,n_owners,accident_history
-2012,Land Rover,Range Rover,HSE,ca,56169,black,black,39500,5.0,373,2,0
-2011,Land Rover,Range Rover,Supercharged,ca,53634,black,black,46000,5.0,516,1,0
-2011,Land Rover,Range Rover,HSE,ca,31927,black,black,34600,5.0,377,1,0
-2011,Land Rover,Range Rover,Supercharged,ca,56574,gray,black,42500,5.0,509,1,2
-2011,Land Rover,Range Rover,HSE,ca,47019,black,black,40500,5.0,373,2,0
-2011,Land Rover,Range Rover,HSE,ca,58109,black,gray,34500,5.0,377,1,1
-2010,Land Rover,Range Rover,HSE,ca,35561,white,tan,28500,5.0,377,1,2
-2008,Land Rover,Range Rover,Supercharged,ca,82038,white,white,26000,5.0,505,1,1
-2001,Land Rover,Range Rover,4.6 HSE,ca,121719,green,tan,2600,4.6,221,3,2
-2014,Land Rover,Range Rover,HSE,ca,10179,black,black,83500,5.0,369,1,0
-2014,Land Rover,Range Rover,Autobiography LWB,ca,5369,white,orange,135000,5.0,503,2,1
-2014,Land Rover,Range Rover,Supercharged,ca,4460,brown,brown,108000,5.0,513,1,1
-2012,Land Rover,Range Rover,HSE,ca,34899,brown,brown,47000,5.0,372,2,1
-2002,Land Rover,Range Rover,4.6 HSE,ca,115630,white,beige,400,4.6,215,3,0
-1999,Land Rover,Range Rover,4.6 HSE,ca,131135,beige,black,800,4.6,214,5,0
-1999,Land Rover,Range Rover,4.0 S,ca,72461,green,tan,3300,4.0,191,4,0
-2011,Land Rover,Range Rover,HSE,pa,46927,white,tan,40750,5.0,378,1,1
-2011,Land Rover,Range Rover,HSE,nj,63408,gray,black,34200,5.0,383,2,2
-2011,Land Rover,Range Rover,HSE,tn,31824,black,black,40600,5.0,376,2,2
-2011,Land Rover,Range Rover,HSE,ga,64095,green,white,29800,5.0,382,1,0
-2011,Land Rover,Range Rover,Supercharged,tx,6939,white,tan,54000,5.0,516,1,2
-2011,Land Rover,Range Rover,Supercharged,wi,53602,white,black,38600,5.0,516,1,0
-2010,Land Rover,Range Rover,HSE,fl,49880,gray,black,34000,5.0,378,2,0
-2010,Land Rover,Range Rover,Supercharged,tn,66115,white,tan,39800,5.0,504,1,0
-2010,Land Rover,Range Rover,HSE,nc,64550,black,tan,32800,5.0,371,1,2
-2010,Land Rover,Range Rover,HSE,tn,43242,black,beige,33000,5.0,373,1,0
-2010,Land Rover,Range Rover,HSE,pa,41486,black,beige,33000,5.0,375,1,1
-2010,Land Rover,Range Rover,HSE,oh,84177,gray,gray,30700,5.0,373,1,2
-2010,Land Rover,Range Rover,Supercharged,ga,36414,blue,tan,44000,5.0,505,1,0
-2009,Land Rover,Range Rover,HSE,pa,86028,black,beige,22100,5.0,380,1,1
-2009,Land Rover,Range Rover,Supercharged,pa,68886,black,black,30000,5.0,510,2,0
-2008,Land Rover,Range Rover,HSE,pa,107579,black,black,17500,5.0,368,2,1
-2008,Land Rover,Range Rover,HSE,pa,102462,silver,beige,17700,5.0,381,1,1
-2008,Land Rover,Range Rover,HSE,tx,78327,white,beige,22000,5.0,373,1,1
-2008,Land Rover,Range Rover,HSE,tx,117247,white,tan,13400,5.0,378,2,2
-2000,Land Rover,Range Rover,4.6 Vitesse,sc,183128,black,black,500,4.6,221,2,1
-2000,Land Rover,Range Rover,4.6 Vitesse,sc,135629,silver,gray,900,4.6,228,3,1
-2013,Land Rover,Range Rover,HSE,mi,44535,black,black,80250,5.0,369,1,1
-2013,Land Rover,Range Rover,HSE,ca,44373,black,black,81000,5.0,380,2,1
-2012,Land Rover,Range Rover,HSE,pa,47782,black,black,44000,5.0,383,1,1
-2012,Land Rover,Range Rover,HSE,fl,45140,white,black,44400,5.0,370,1,1
-2012,Land Rover,Range Rover,HSE,fl,120402,white,beige,36000,5.0,374,2,1
-2010,Land Rover,Range Rover,HSE,ca,67574,gray,brown,34500,5.0,370,1,0
-2011,Land Rover,Range Rover,HSE,fl,59725,black,black,36100,5.0,368,1,2
-2011,Land Rover,Range Rover,HSE,fl,73541,gray,brown,33500,5.0,372,2,1
-2009,Land Rover,Range Rover,HSE,nc,70912,black,black,23000,5.0,376,2,0
-2008,Land Rover,Range Rover,Supercharged,nc,155126,black,black,17400,5.0,505,1,1
-2001,Land Rover,Range Rover,4.6 SE,fl,138324,gray,gray,2800,4.6,225,3,1
-2012,Land Rover,Range Rover,HSE,fl,25359,white,beige,47500,5.0,368,1,2
-2011,Land Rover,Range Rover,Supercharged,fl,49986,purple,beige,37000,5.0,511,1,0
-2011,Land Rover,Range Rover,HSE,fl,50709,black,black,35700,5.0,370,1,0
-2009,Land Rover,Range Rover,Supercharged,nv,125824,white,beige,20250,5.0,515,2,1
-2010,Land Rover,Range Rover,HSE,ga,48916,gray,black,32500,5.0,382,1,1
-2010,Land Rover,Range Rover,HSE,fl,79711,gray,black,30600,5.0,381,1,2
-2010,Land Rover,Range Rover,HSE,pa,52749,gray,black,32700,5.0,374,1,0
-2008,Land Rover,Range Rover,HSE,pa,69752,white,tan,22200,5.0,380,1,2
-2010,Land Rover,Range Rover,HSE,ga,110497,silver,black,25300,5.0,374,1,0
-2000,Land Rover,Range Rover,4.6 Vitesse,nc,145311,green,beige,1500,4.6,229,4,2
-2011,Land Rover,Range Rover,HSE,ca,62031,black,black,33500,5.0,379,1,0
-2010,Land Rover,Range Rover,Supercharged,ga,53014,gray,black,40300,5.0,516,1,0
-2010,Land Rover,Range Rover,HSE,fl,68406,black,beige,30500,5.0,379,1,2
-2008,Land Rover,Range Rover,Supercharged,pa,104465,black,beige,20100,5.0,510,2,2
-1999,Land Rover,Range Rover,4.6 HSE,tx,158022,green,gray,400,4.6,228,5,2
-2012,Land Rover,Range Rover,HSE,ca,62228,silver,black,41000,5.0,379,1,1
-2011,Land Rover,Range Rover,HSE,ca,44267,black,black,43500,5.0,367,1,2
-2011,Land Rover,Range Rover,HSE,ca,38624,white,tan,43000,5.0,373,1,0
-2008,Land Rover,Range Rover,Supercharged,fl,36749,black,black,28500,5.0,510,1,2
-2008,Land Rover,Range Rover,Supercharged,mn,92123,silver,gray,20330,5.0,502,1,1
-2000,Land Rover,Range Rover,4.6 Vitesse,ca,124723,black,beige,2500,4.6,225,4,2
-2012,Land Rover,Range Rover,HSE,pa,18807,silver,black,52250,5.0,374,1,2
-2011,Land Rover,Range Rover,HSE,wi,43420,black,black,35750,5.0,377,2,1
-1999,Land Rover,Range Rover,4.6 HSE,va,1,green,black,400,4.6,230,3,1
-2011,Land Rover,Range Rover,HSE,ca,60202,blue,beige,33000,5.0,374,2,1
-2011,Land Rover,Range Rover,HSE,ca,45623,white,black,41500,5.0,369,2,2
-2011,Land Rover,Range Rover,HSE,ca,37018,black,black,29000,5.0,369,1,0
-2011,Land Rover,Range Rover,HSE,ca,44482,white,tan,43000,5.0,367,1,2
-2011,Land Rover,Range Rover,HSE,ca,48992,white,tan,40000,5.0,371,2,1
-2011,Land Rover,Range Rover,HSE,ca,33636,black,tan,42500,5.0,376,1,0
-2011,Land Rover,Range Rover,HSE,ca,19925,green,tan,49500,5.0,373,2,1
-2010,Land Rover,Range Rover,HSE,pa,68654,silver,beige,32500,5.0,375,1,1
-2002,Land Rover,Range Rover,4.6 HSE,md,119412,yellow,gray,2400,4.6,220,4,2
-2014,Land Rover,Range Rover,HSE,ca,6184,red,gray,97000,5.0,375,1,1
-2014,Land Rover,Range Rover,Autobiography,ca,10040,silver,gray,127000,5.0,509,1,0
-2014,Land Rover,Range Rover,Supercharged LWB,ca,6814,white,tan,115000,5.0,513,1,0
-2014,Land Rover,Range Rover,Supercharged LWB,ca,3910,beige,brown,112000,5.0,503,1,2
-2014,Land Rover,Range Rover,Autobiography LWB,ca,3619,black,black,135000,5.0,502,1,0
-2014,Land Rover,Range Rover,Supercharged LWB,ca,3457,black,black,112000,5.0,517,1,1
-2014,Land Rover,Range Rover,Supercharged LWB,ca,6975,blue,beige,109000,5.0,506,1,0
-2014,Land Rover,Range Rover,Supercharged LWB,ca,6366,burgundy,beige,113000,5.0,504,1,0
-2011,Land Rover,Range Rover,Supercharged,ca,57549,black,black,46000,5.0,513,1,1
-2010,Land Rover,Range Rover,Supercharged,tn,60653,black,gray,40000,5.0,509,2,1
-2008,Land Rover,Range Rover,Supercharged,il,85335,black,beige,19000,5.0,504,2,0
-2002,Land Rover,Range Rover,4.6 HSE,ga,133996,gray,beige,1700,4.6,214,4,2
-2011,Land Rover,Range Rover,Supercharged,ca,44551,white,brown,40500,5.0,504,2,0
-2010,Land Rover,Range Rover,HSE,ca,85858,black,black,32250,5.0,371,1,0
-2008,Land Rover,Range Rover,HSE,ga,141286,gray,black,14000,5.0,381,1,0
-2014,Land Rover,Range Rover,Supercharged,ca,2282,black,black,110000,5.0,515,1,0
-2014,Land Rover,Range Rover,Autobiography,ca,5194,gray,black,131000,5.0,504,1,0
-2013,Land Rover,Range Rover,HSE,pa,13610,black,black,85000,5.0,367,1,1
-2012,Land Rover,Range Rover,HSE,pa,37287,black,black,46500,5.0,371,1,2
-2012,Land Rover,Range Rover,HSE,fl,28860,silver,black,44300,5.0,380,2,0
-2011,Land Rover,Range Rover,HSE,fl,53456,gray,gray,38200,5.0,373,2,2
-2008,Land Rover,Range Rover,HSE,tx,66458,green,tan,20600,5.0,375,2,2
-2008,Land Rover,Range Rover,HSE,ca,107303,black,gray,16000,5.0,381,2,1
-2008,Land Rover,Range Rover,Supercharged,nc,71146,black,black,23100,5.0,516,1,2
-2012,Land Rover,Range Rover,HSE,ca,8782,black,black,56500,5.0,376,2,2
-2012,Land Rover,Range Rover,HSE,ca,70977,white,brown,40000,5.0,379,1,0
-2011,Land Rover,Range Rover,HSE,ca,45337,blue,beige,36000,5.0,373,2,0
-2009,Land Rover,Range Rover,Supercharged,az,83201,black,beige,26900,5.0,518,1,2
-2008,Land Rover,Range Rover,HSE,pa,97563,white,tan,19500,5.0,370,1,2
-2010,Land Rover,Range Rover,HSE,ca,80335,black,black,32000,5.0,371,1,0
-2008,Land Rover,Range Rover,Supercharged,ca,127163,black,gray,17750,5.0,508,2,2
-2012,Land Rover,Range Rover,HSE,pa,49526,blue,beige,42500,5.0,379,1,2
-2009,Land Rover,Range Rover,Supercharged,pa,78476,blue,black,28000,5.0,516,1,2
-2014,Land Rover,Range Rover,Autobiography,ca,8486,black,black,123000,5.0,512,2,1
-2011,Land Rover,Range Rover,Supercharged,ca,54716,silver,black,46000,5.0,505,1,2
-2014,Land Rover,Range Rover,Supercharged LWB,ca,107,black,brown,116000,5.0,514,1,0
-2008,Land Rover,Range Rover,HSE,pa,122175,black,black,15200,5.0,373,2,0
-2008,Land Rover,Range Rover,HSE,pa,47236,blue,beige,26100,5.0,368,1,1
-2008,Land Rover,Range Rover,HSE,pa,83634,black,black,21400,5.0,376,2,2
-2012,Land Rover,Range Rover,HSE,tn,37275,black,black,47000,5.0,379,1,0
-2011,Land Rover,Range Rover,HSE,tn,29100,brown,brown,44000,5.0,372,1,1
-2011,Land Rover,Range Rover,HSE,tn,47910,black,black,36800,5.0,378,1,1
-2011,Land Rover,Range Rover,HSE,pa,38887,black,black,35000,5.0,378,1,1
-2011,Land Rover,Range Rover,Supercharged,tn,37087,gray,black,45000,5.0,512,2,1
-2008,Land Rover,Range Rover,HSE,ga,93606,gray,gray,15900,5.0,373,1,2
-2002,Land Rover,Range Rover,4.6 HSE,md,211382,black,beige,1000,4.6,214,4,2
-2008,Land Rover,Range Rover,HSE,fl,160651,black,beige,16300,5.0,367,2,1
-2001,Land Rover,Range Rover,4.6 HSE,fl,46131,green,beige,11100,4.6,226,3,1
-1998,Land Rover,Range Rover,4.6 HSE,wa,191662,white,black,200,4.6,222,4,1
-2008,Land Rover,Range Rover,Supercharged,ca,64872,black,white,24000,5.0,504,2,1
-2011,Land Rover,Range Rover,HSE,ca,32335,silver,black,40500,5.0,373,1,0
-2011,Land Rover,Range Rover,HSE,tx,30938,black,tan,43000,5.0,372,1,1
-2008,Land Rover,Range Rover,HSE,ca,118431,gray,gray,15000,5.0,374,1,0
-1999,Land Rover,Range Rover,4.0 S,wa,149157,gray,gray,600,4.0,188,5,0
-2012,Land Rover,Range Rover,HSE,tx,41573,blue,gray,45000,5.0,371,1,1
-2011,Land Rover,Range Rover,HSE,wa,62425,white,brown,38300,5.0,367,1,1
-2010,Land Rover,Range Rover,Supercharged,nv,32070,black,black,37750,5.0,511,1,0
-2010,Land Rover,Range Rover,HSE,tx,76622,gray,tan,30000,5.0,378,2,2
-2008,Land Rover,Range Rover,HSE,ca,84027,white,tan,22000,5.0,381,1,2
-2008,Land Rover,Range Rover,HSE,nv,46753,red,tan,21250,5.0,375,2,0
-2008,Land Rover,Range Rover,HSE,mn,54805,white,tan,22900,5.0,383,1,2
-2008,Land Rover,Range Rover,Supercharged,tx,95947,gray,black,17000,5.0,518,1,1
-2002,Land Rover,Range Rover,4.6 HSE,ca,104886,silver,gray,3750,4.6,225,2,2
-2014,Land Rover,Range Rover,HSE,ga,9762,black,black,95000,5.0,373,1,1
-2011,Land Rover,Range Rover,HSE,pa,43285,black,black,39500,5.0,368,1,2
-2010,Land Rover,Range Rover,HSE,ga,42250,black,black,32900,5.0,369,2,2
-2014,Land Rover,Range Rover,Autobiography,ca,13534,white,brown,115000,5.0,518,2,1
-2008,Land Rover,Range Rover,HSE,oh,107809,white,tan,16500,5.0,371,2,2
-2013,Land Rover,Range Rover,HSE,mi,20950,black,tan,82000,5.0,383,1,0
-2008,Land Rover,Range Rover,Supercharged,pa,100214,silver,black,18900,5.0,518,1,0
-2008,Land Rover,Range Rover,HSE,nj,99674,white,tan,16800,5.0,383,2,2
-2008,Land Rover,Range Rover,Supercharged,ga,109298,black,brown,18200,5.0,503,2,1
-2008,Land Rover,Range Rover,Supercharged,il,95018,black,black,20200,5.0,503,2,2
-2002,Land Rover,Range Rover,4.6 HSE,ca,122758,silver,gray,3000,4.6,218,4,0
-2011,Land Rover,Range Rover,HSE,ca,15405,silver,beige,45000,5.0,367,2,1
-2010,Land Rover,Range Rover,HSE,ca,59776,black,black,35500,5.0,367,2,0
-2008,Land Rover,Range Rover,Supercharged,ga,105580,black,black,17000,5.0,503,1,1
-2001,Land Rover,Range Rover,4.6 SE,ca,99587,green,beige,1450,4.6,225,3,2
-2011,Land Rover,Range Rover,HSE,ca,71991,black,black,35250,5.0,372,2,1
-2008,Land Rover,Range Rover,Supercharged,nj,113719,silver,brown,17000,5.0,505,1,1
-2008,Land Rover,Range Rover,HSE,ca,78020,black,tan,18250,5.0,377,1,1
-2008,Land Rover,Range Rover,Supercharged,ga,86378,black,black,23600,5.0,518,1,1
-2008,Land Rover,Range Rover,Supercharged,ca,119480,black,black,16500,5.0,507,1,2
-2002,Land Rover,Range Rover,4.6 HSE,or,145923,white,tan,700,4.6,218,2,0
-2000,Land Rover,Range Rover,4.6 Vitesse,md,147629,gold,beige,1500,4.6,215,3,1
-2011,Land Rover,Range Rover,Supercharged,ga,47023,gray,black,47000,5.0,507,1,1
-2011,Land Rover,Range Rover,HSE,ga,58294,black,beige,36200,5.0,377,1,2
-2008,Land Rover,Range Rover,HSE,ga,79781,white,tan,22600,5.0,382,2,1
-2008,Land Rover,Range Rover,HSE,ga,67106,black,black,22800,5.0,382,1,2
-2008,Land Rover,Range Rover,Supercharged,nc,57189,black,black,26750,5.0,502,2,2
-2008,Land Rover,Range Rover,HSE,fl,89798,black,gray,18800,5.0,375,2,1
-2008,Land Rover,Range Rover,HSE,ca,129760,black,beige,15900,5.0,372,2,0
-2000,Land Rover,Range Rover,4.6 Vitesse,md,119676,gold,black,1000,4.6,229,3,1
-2000,Land Rover,Range Rover,4.0 SE,ca,93342,red,brown,2100,4.0,182,2,0
-2010,Land Rover,Range Rover,HSE,fl,86827,black,beige,28000,5.0,370,1,1
-2008,Land Rover,Range Rover,HSE,pa,103840,black,beige,15100,5.0,369,1,2
-2008,Land Rover,Range Rover,HSE,ga,95381,white,tan,18000,5.0,373,1,0
-2008,Land Rover,Range Rover,HSE,pa,53575,green,beige,19400,5.0,375,2,0
-2011,Land Rover,Range Rover,Supercharged,tx,45258,black,black,44000,5.0,502,1,0
-2011,Land Rover,Range Rover,HSE,tx,41673,black,black,43250,5.0,374,1,1
-2008,Land Rover,Range Rover,HSE,nv,85543,gray,black,18400,5.0,373,2,1
-2012,Land Rover,Range Rover,HSE,ca,22388,black,black,55000,5.0,374,1,0
-2012,Land Rover,Range Rover,HSE,ca,22137,black,black,50500,5.0,367,1,2
-2010,Land Rover,Range Rover,Supercharged,tn,56030,white,black,41200,5.0,512,1,2
-2008,Land Rover,Range Rover,HSE,ca,92306,black,beige,18750,5.0,376,1,0
-2008,Land Rover,Range Rover,Supercharged,wi,93794,black,beige,15200,5.0,504,1,2
-2014,Land Rover,Range Rover,Supercharged LWB,ca,5573,white,black,106000,5.0,508,1,1
-2012,Land Rover,Range Rover,HSE,ca,51782,gray,beige,44000,5.0,382,1,0
-2011,Land Rover,Range Rover,Supercharged,ca,55228,white,black,43000,5.0,517,1,0
-2011,Land Rover,Range Rover,HSE,ca,50953,gray,black,38500,5.0,383,1,0
-2011,Land Rover,Range Rover,HSE,ca,37965,white,tan,42000,5.0,368,2,0
-2010,Land Rover,Range Rover,Supercharged,fl,62151,black,beige,36200,5.0,502,1,2
-2008,Land Rover,Range Rover,HSE,ca,82834,black,black,18100,5.0,382,1,2
-2008,Land Rover,Range Rover,HSE,ga,117734,gray,beige,15800,5.0,378,1,0
-2008,Land Rover,Range Rover,Supercharged,ca,150793,gray,black,15100,5.0,506,2,0
-2008,Land Rover,Range Rover,HSE,ca,54084,white,white,26000,5.0,371,1,0
-1999,Land Rover,Range Rover,4.6 HSE,ca,120056,gold,tan,1500,4.6,222,3,0
-2014,Land Rover,Range Rover,HSE,ca,33995,black,black,82250,5.0,375,1,2
-2011,Land Rover,Range Rover,HSE,co,45273,black,black,40700,5.0,369,2,0
-2010,Land Rover,Range Rover,HSE,fl,115259,blue,beige,27200,5.0,382,1,1
-2008,Land Rover,Range Rover,Supercharged,mo,76714,gray,tan,20500,5.0,517,2,0
-2014,Land Rover,Range Rover,HSE,fl,16865,blue,tan,87500,5.0,369,1,1
-2012,Land Rover,Range Rover,HSE,ca,45674,black,black,43000,5.0,367,2,0
-2011,Land Rover,Range Rover,HSE,fl,19123,white,beige,47900,5.0,377,2,1
-2008,Land Rover,Range Rover,HSE,ca,84130,white,beige,22500,5.0,383,2,0
-2010,Land Rover,Range Rover,HSE,az,63435,gray,tan,31250,5.0,374,1,2
-2012,Land Rover,Range Rover,HSE,ca,29767,gray,black,49000,5.0,370,2,1
-2014,Land Rover,Range Rover,Supercharged,ca,9968,black,black,104000,5.0,507,2,0
-2008,Land Rover,Range Rover,Supercharged,pa,97750,blue,tan,20500,5.0,509,1,1
-2013,Land Rover,Range Rover,Supercharged,ca,15551,black,black,97000,5.0,504,1,2
-2011,Land Rover,Range Rover,HSE,pa,51902,black,black,36500,5.0,382,2,2
-2008,Land Rover,Range Rover,HSE,nj,100981,black,gray,15800,5.0,369,1,1
-2002,Land Rover,Range Rover,4.6 HSE,wi,123590,gold,tan,300,4.6,227,3,1
-2000,Land Rover,Range Rover,4.0 SE,md,137343,black,beige,400,4.0,181,3,2
-2013,Land Rover,Range Rover,Supercharged,tn,30961,black,black,90400,5.0,504,2,1
-2011,Land Rover,Range Rover,HSE,tn,33632,gray,tan,43750,5.0,382,1,0
-2008,Land Rover,Range Rover,Supercharged,nj,69783,white,black,24750,5.0,510,1,2
-2012,Land Rover,Range Rover,HSE,tx,45718,black,tan,46250,5.0,370,2,0
-2012,Land Rover,Range Rover,HSE,wi,42363,gray,tan,44000,5.0,367,2,1
-2008,Land Rover,Range Rover,HSE,wa,83922,black,black,19000,5.0,370,1,0
-2011,Land Rover,Range Rover,HSE,pa,54282,gray,black,33000,5.0,367,2,0
-2013,Land Rover,Range Rover,Autobiography,tx,38504,gray,beige,87000,5.0,515,1,0
-2011,Land Rover,Range Rover,HSE,tx,19126,white,beige,49500,5.0,382,1,2
-2008,Land Rover,Range Rover,HSE,fl,70367,red,beige,16600,5.0,374,1,0
-2008,Land Rover,Range Rover,HSE,sc,98960,white,tan,18200,5.0,373,1,0
-2013,Land Rover,Range Rover,HSE,pa,20292,black,beige,81500,5.0,369,2,0
-2012,Land Rover,Range Rover,HSE,ca,15836,black,black,56000,5.0,383,1,1
-2011,Land Rover,Range Rover,HSE,fl,77999,black,tan,32400,5.0,367,1,2
-2008,Land Rover,Range Rover,Supercharged,ca,134885,blue,beige,16750,5.0,517,2,1
-2011,Land Rover,Range Rover,Supercharged,ca,54307,black,black,42000,5.0,513,1,1
-2008,Land Rover,Range Rover,Supercharged,ca,74192,white,beige,23000,5.0,515,1,2
-2014,Land Rover,Range Rover,Supercharged,tn,10054,white,gray,101200,5.0,507,1,1
-2014,Land Rover,Range Rover,Ebony Edition,ca,10927,black,black,105500,5.0,372,2,0
-2008,Land Rover,Range Rover,HSE,ca,78867,black,brown,20000,5.0,379,1,0
-2008,Land Rover,Range Rover,HSE,ga,95437,white,tan,17800,5.0,374,1,1
-2008,Land Rover,Range Rover,Supercharged,ca,58060,white,gray,27700,5.0,503,1,1
-2002,Land Rover,Range Rover,4.6 HSE,pa,134397,white,black,2600,4.6,214,3,1
-2014,Land Rover,Range Rover,HSE,wi,12770,black,black,92600,5.0,381,1,1
-2014,Land Rover,Range Rover,HSE,fl,22991,black,brown,83500,5.0,367,2,0
-2014,Land Rover,Range Rover,Base,ca,10934,white,beige,93500,5.0,371,2,0
-2012,Land Rover,Range Rover,HSE,ca,72364,white,black,36750,5.0,382,1,1
-2011,Land Rover,Range Rover,HSE,ca,64094,blue,brown,35500,5.0,370,1,0
-2011,Land Rover,Range Rover,HSE,ca,36938,white,brown,42500,5.0,369,2,2
-2008,Land Rover,Range Rover,Supercharged,ca,70215,black,beige,17250,5.0,518,2,1
-2014,Land Rover,Range Rover,Supercharged,ca,6678,black,gray,101000,5.0,518,2,0
-2013,Land Rover,Range Rover,HSE,nj,37175,white,beige,76750,5.0,378,1,1
-2011,Land Rover,Range Rover,Supercharged,pa,51656,black,black,42000,5.0,515,2,1
-2011,Land Rover,Range Rover,HSE,tx,28104,silver,black,45000,5.0,372,2,1
-2008,Land Rover,Range Rover,HSE,nj,100987,black,gray,15100,5.0,369,2,1
-2012,Land Rover,Range Rover,HSE,mo,59460,black,black,39250,5.0,375,2,1
-2008,Land Rover,Range Rover,Supercharged,mi,109092,black,tan,16700,5.0,506,1,2
-2013,Land Rover,Range Rover,HSE,fl,17408,white,beige,82000,5.0,383,1,0
-2012,Land Rover,Range Rover,HSE,ga,77124,gray,white,38000,5.0,380,1,0
-2010,Land Rover,Range Rover,HSE,nc,53470,white,beige,32000,5.0,369,1,0
-2010,Land Rover,Range Rover,Supercharged,fl,76236,black,black,34600,5.0,502,2,2
-2008,Land Rover,Range Rover,HSE,nc,95077,gray,tan,17700,5.0,367,2,0
-2008,Land Rover,Range Rover,HSE,va,108739,blue,blue,16100,5.0,369,1,2
-2008,Land Rover,Range Rover,HSE,pa,89078,black,black,18100,5.0,376,2,1
-2014,Land Rover,Range Rover,Ebony Edition,fl,4237,white,tan,104000,5.0,369,1,1
-2011,Land Rover,Range Rover,HSE,nc,61996,black,beige,36000,5.0,374,1,2
-2010,Land Rover,Range Rover,HSE,fl,62336,white,tan,34000,5.0,380,2,2
-2012,Land Rover,Range Rover,HSE,pa,51874,white,black,40800,5.0,381,2,2
-2011,Land Rover,Range Rover,Supercharged,fl,63937,white,beige,37000,5.0,503,1,1
-2012,Land Rover,Range Rover,HSE,pa,50031,black,black,41900,5.0,376,2,1
-2012,Land Rover,Range Rover,HSE,tn,61455,black,black,33500,5.0,368,1,0
-2008,Land Rover,Range Rover,HSE,ca,95988,black,black,17000,5.0,383,1,0
-2012,Land Rover,Range Rover,HSE,pa,42220,white,tan,45750,5.0,374,1,1
-2011,Land Rover,Range Rover,HSE,oh,51275,black,black,31100,5.0,367,1,1
-2009,Land Rover,Range Rover,Supercharged,pa,78490,black,black,27400,5.0,510,1,1
-2012,Land Rover,Range Rover,HSE,pa,57079,blue,beige,39600,5.0,377,1,1
-2012,Land Rover,Range Rover,HSE,pa,45214,brown,black,39000,5.0,382,1,2
-2011,Land Rover,Range Rover,HSE,fl,54555,black,tan,35000,5.0,373,2,1
-2012,Land Rover,Range Rover,HSE,ca,47506,blue,beige,41300,5.0,376,2,1
-2011,Land Rover,Range Rover,Supercharged,ca,35705,black,black,45000,5.0,504,1,2
-2011,Land Rover,Range Rover,HSE,ca,86736,black,black,30500,5.0,379,1,2
-2000,Land Rover,Range Rover,4.0 SE,ny,154957,black,gray,275,4.0,186,3,2
-2008,Land Rover,Range Rover,HSE,tx,113107,black,gray,17600,5.0,370,1,2
-2014,Land Rover,Range Rover,Supercharged,ga,44978,black,beige,86250,5.0,514,1,2
-2011,Land Rover,Range Rover,Supercharged,tx,18645,black,black,49000,5.0,502,2,2
-2008,Land Rover,Range Rover,HSE,ca,88149,silver,black,19000,5.0,374,1,0
-2012,Land Rover,Range Rover,HSE,pa,47243,black,black,44750,5.0,380,2,0
-2011,Land Rover,Range Rover,Supercharged,pa,64722,white,tan,39500,5.0,517,2,0
-2009,Land Rover,Range Rover,HSE,pa,59206,gray,black,23150,5.0,380,2,0
-2008,Land Rover,Range Rover,HSE,ca,106136,silver,black,15500,5.0,378,1,2
-2008,Land Rover,Range Rover,Supercharged,ca,83260,white,black,23500,5.0,516,1,2
-2008,Land Rover,Range Rover,HSE,pa,118418,blue,beige,16300,5.0,368,1,2
-2014,Land Rover,Range Rover,Supercharged,ca,17901,black,black,91000,5.0,503,2,0
-2013,Land Rover,Range Rover,Supercharged,ga,12105,gray,tan,85500,5.0,518,2,2
-2011,Land Rover,Range Rover,HSE,pa,105458,blue,beige,27500,5.0,376,2,2
-2011,Land Rover,Range Rover,HSE,pa,70176,gray,black,29900,5.0,372,1,2
-2010,Land Rover,Range Rover,Supercharged,pa,63736,black,black,34200,5.0,516,1,2
-2008,Land Rover,Range Rover,Supercharged,ca,62537,black,black,23200,5.0,512,1,1
-2008,Land Rover,Range Rover,HSE,nj,208255,gray,black,9200,5.0,371,2,1
-2008,Land Rover,Range Rover,Supercharged,pa,107134,black,black,19000,5.0,502,1,2
-2010,Land Rover,Range Rover,HSE,fl,87950,brown,tan,27800,5.0,374,1,1
-2011,Land Rover,Range Rover,Supercharged,ca,57284,black,beige,41000,5.0,513,2,0
-2008,Land Rover,Range Rover,Supercharged,ca,98765,white,white,21500,5.0,513,1,2
-2011,Land Rover,Range Rover,Supercharged,ga,45629,black,tan,43400,5.0,506,1,0
-2011,Land Rover,Range Rover,Supercharged,ga,48591,white,gray,46400,5.0,508,1,2
-2012,Land Rover,Range Rover,HSE,ga,51507,black,tan,40000,5.0,370,2,0
-2012,Land Rover,Range Rover,HSE,wi,61226,black,black,34000,5.0,372,1,2
-2011,Land Rover,Range Rover,Supercharged,ca,73054,black,beige,33750,5.0,514,1,0
-2010,Land Rover,Range Rover,HSE,fl,81285,black,beige,30200,5.0,381,1,2
-2010,Land Rover,Range Rover,Supercharged,pa,59760,black,black,36500,5.0,504,1,2
-2008,Land Rover,Range Rover,HSE,pa,89935,white,beige,18900,5.0,374,1,0
-2012,Land Rover,Range Rover,HSE,pa,15431,black,tan,50800,5.0,382,2,1
-2010,Land Rover,Range Rover,HSE,pa,52131,gray,brown,28400,5.0,379,1,2
-2014,Land Rover,Range Rover,Ebony Edition,pa,16002,black,black,99000,5.0,376,1,0
-2012,Land Rover,Range Rover,HSE,pa,33456,white,black,48000,5.0,383,2,0
-2013,Land Rover,Range Rover,HSE,pa,47195,black,beige,75250,5.0,371,1,1
-2014,Land Rover,Range Rover,Ebony Edition,ca,9925,white,black,60000,5.0,375,1,0
-2014,Land Rover,Range Rover,Supercharged,ca,17983,black,black,76500,5.0,513,1,1
-2014,Land Rover,Range Rover,Supercharged,ca,7434,black,gray,92500,5.0,502,2,1
-2013,Land Rover,Range Rover,HSE,ca,22316,black,black,65000,5.0,367,2,0
-2011,Land Rover,Range Rover,HSE,nc,106254,black,tan,30000,5.0,381,1,0
-2010,Land Rover,Range Rover,HSE,fl,46348,burgundy,tan,31200,5.0,368,1,1
-2013,Land Rover,Range Rover,Supercharged,ca,23252,brown,beige,83500,5.0,517,1,0
-2011,Land Rover,Range Rover,HSE,ca,98772,white,beige,30500,5.0,374,1,0
-2011,Land Rover,Range Rover,HSE,fl,58623,black,gray,35800,5.0,379,1,2
-2010,Land Rover,Range Rover,HSE,ca,69471,white,brown,29250,5.0,367,1,2
-2008,Land Rover,Range Rover,Supercharged,ca,84226,white,beige,23250,5.0,517,1,2
-2014,Land Rover,Range Rover,Supercharged,fl,29530,silver,black,83000,5.0,508,2,2
-2011,Land Rover,Range Rover,Supercharged,ny,61464,white,beige,39400,5.0,506,1,1
-2010,Land Rover,Range Rover,HSE,la,39802,white,white,34100,5.0,369,2,2
-2013,Land Rover,Range Rover,HSE,ma,56577,black,gray,74200,5.0,378,2,1
-2011,Land Rover,Range Rover,HSE,la,81127,white,tan,30400,5.0,382,1,0
-2010,Land Rover,Range Rover,HSE,ca,27411,green,white,32500,5.0,371,2,0
-2011,Land Rover,Range Rover,HSE,fl,74560,green,beige,29600,5.0,380,2,1
-2009,Land Rover,Range Rover,Supercharged,ca,77405,white,beige,27000,5.0,506,1,2
-2012,Land Rover,Range Rover,HSE,pa,53077,white,tan,41750,5.0,381,1,0
-2010,Land Rover,Range Rover,HSE,pa,58937,black,black,31000,5.0,383,1,0
-2010,Land Rover,Range Rover,HSE,mo,45154,silver,black,31800,5.0,380,1,0
-2008,Land Rover,Range Rover,HSE,mi,114721,blue,tan,14500,5.0,371,1,0
-2012,Land Rover,Range Rover,HSE,ca,39504,white,black,44500,5.0,378,1,1
-2010,Land Rover,Range Rover,HSE,fl,81010,silver,black,23000,5.0,382,2,0
-2008,Land Rover,Range Rover,HSE,ca,92585,black,black,16500,5.0,382,1,2
-2011,Land Rover,Range Rover,HSE,fl,59007,black,black,33600,5.0,373,1,1
-2010,Land Rover,Range Rover,Supercharged,pa,63736,black,black,35000,5.0,505,1,1
-2010,Land Rover,Range Rover,HSE,pa,54642,black,black,32200,5.0,367,1,2
-2010,Land Rover,Range Rover,HSE,pa,52558,silver,black,29700,5.0,371,1,1
-2013,Land Rover,Range Rover,HSE,pa,22833,black,gray,78000,5.0,376,1,1
-2013,Land Rover,Range Rover,Supercharged,pa,35259,beige,brown,83000,5.0,506,2,0
-2010,Land Rover,Range Rover,HSE,fl,72077,gray,black,24400,5.0,370,1,0
-2011,Land Rover,Range Rover,Supercharged,pa,106483,black,black,32750,5.0,503,2,2
-2010,Land Rover,Range Rover,HSE,pa,67709,beige,brown,28000,5.0,376,1,0
-2012,Land Rover,Range Rover,HSE,pa,49820,black,black,40000,5.0,367,1,0
-2011,Land Rover,Range Rover,HSE,fl,63696,blue,beige,30000,5.0,371,1,2
-2011,Land Rover,Range Rover,Supercharged,pa,64738,white,tan,38000,5.0,514,2,0
-2011,Land Rover,Range Rover,Supercharged,pa,49246,gray,black,39750,5.0,505,2,2
-2011,Land Rover,Range Rover,HSE,pa,43643,black,black,39250,5.0,382,1,1
-2011,Land Rover,Range Rover,HSE,oh,42406,silver,beige,34000,5.0,382,1,2
-2010,Land Rover,Range Rover,HSE,oh,182536,black,tan,29200,5.0,368,1,2
-2010,Land Rover,Range Rover,HSE,fl,92240,black,black,28200,5.0,383,2,1
-2008,Land Rover,Range Rover,HSE,pa,78360,black,tan,19500,5.0,378,2,2
-2008,Land Rover,Range Rover,Supercharged,pa,59478,blue,beige,23750,5.0,504,2,1
-2014,Land Rover,Range Rover,Supercharged LWB,pa,4986,black,black,101000,5.0,502,2,2
-2014,Land Rover,Range Rover,Supercharged,pa,18553,gray,black,84750,5.0,502,1,0
-2013,Land Rover,Range Rover,Supercharged,fl,19346,black,beige,81500,5.0,512,2,0
-2012,Land Rover,Range Rover,HSE,fl,42255,black,tan,43200,5.0,371,1,0
-2011,Land Rover,Range Rover,HSE,fl,72999,black,beige,31200,5.0,378,1,1
-2002,Land Rover,Range Rover,4.6 HSE,co,151341,white,tan,3000,4.6,216,3,0
-2014,Land Rover,Range Rover,HSE,oh,29657,black,black,79250,5.0,367,2,2
-2011,Land Rover,Range Rover,HSE,ca,38905,gray,black,39750,5.0,367,1,2
-2008,Land Rover,Range Rover,Supercharged,ca,67892,white,black,18500,5.0,509,1,2
-2010,Land Rover,Range Rover,Supercharged,ca,48214,gray,tan,38500,5.0,511,2,0
-2008,Land Rover,Range Rover,HSE,ca,94679,black,beige,17500,5.0,377,1,2
-2014,Land Rover,Range Rover,Supercharged,ca,12258,white,black,94500,5.0,513,2,0
-2008,Land Rover,Range Rover,Supercharged,ca,116555,black,black,19750,5.0,514,1,1
-2012,Land Rover,Range Rover,HSE,fl,17668,black,black,50500,5.0,378,1,0
-2013,Land Rover,Range Rover,Supercharged,fl,31044,silver,black,83200,5.0,515,1,0
-2011,Land Rover,Range Rover,HSE,il,63374,black,black,32000,5.0,368,1,2
-2012,Land Rover,Range Rover,HSE,fl,41447,brown,beige,41400,5.0,369,1,1
-2010,Land Rover,Range Rover,HSE,fl,82735,white,white,28800,5.0,383,2,1
-2010,Land Rover,Range Rover,HSE,pa,82072,black,beige,29750,5.0,374,2,0
+year,make,model,trim,state,mileage,color,interior,sellingprice,horsepower
+2012,Land Rover,Range Rover,HSE,ca,56169,black,black,39500,373
+2011,Land Rover,Range Rover,Supercharged,ca,53634,black,black,46000,516
+2011,Land Rover,Range Rover,HSE,ca,31927,black,black,34600,377
+2011,Land Rover,Range Rover,Supercharged,ca,56574,gray,black,42500,509
+2011,Land Rover,Range Rover,HSE,ca,47019,black,black,40500,373
+2011,Land Rover,Range Rover,HSE,ca,58109,black,gray,34500,377
+2010,Land Rover,Range Rover,HSE,ca,35561,white,tan,28500,377
+2008,Land Rover,Range Rover,Supercharged,ca,82038,white,white,26000,505
+2001,Land Rover,Range Rover,4.6 HSE,ca,121719,green,tan,2600,221
+2014,Land Rover,Range Rover,HSE,ca,10179,black,black,83500,340
+2014,Land Rover,Range Rover,Autobiography LWB,ca,5369,white,orange,135000,503
+2014,Land Rover,Range Rover,Supercharged,ca,4460,brown,brown,108000,513
+2012,Land Rover,Range Rover,HSE,ca,34899,brown,brown,47000,372
+2002,Land Rover,Range Rover,4.6 HSE,ca,115630,white,beige,400,215
+1999,Land Rover,Range Rover,4.6 HSE,ca,131135,beige,black,800,214
+1999,Land Rover,Range Rover,4.0 S,ca,72461,green,tan,3300,191
+2011,Land Rover,Range Rover,HSE,pa,46927,white,tan,40750,378
+2011,Land Rover,Range Rover,HSE,nj,63408,gray,black,34200,383
+2011,Land Rover,Range Rover,HSE,tn,31824,black,black,40600,376
+2011,Land Rover,Range Rover,HSE,ga,64095,green,white,29800,382
+2011,Land Rover,Range Rover,Supercharged,tx,6939,white,tan,54000,516
+2011,Land Rover,Range Rover,Supercharged,wi,53602,white,black,38600,516
+2010,Land Rover,Range Rover,HSE,fl,49880,gray,black,34000,378
+2010,Land Rover,Range Rover,Supercharged,tn,66115,white,tan,39800,504
+2010,Land Rover,Range Rover,HSE,nc,64550,black,tan,32800,371
+2010,Land Rover,Range Rover,HSE,tn,43242,black,beige,33000,373
+2010,Land Rover,Range Rover,HSE,pa,41486,black,beige,33000,375
+2010,Land Rover,Range Rover,HSE,oh,84177,gray,gray,30700,373
+2010,Land Rover,Range Rover,Supercharged,ga,36414,blue,tan,44000,505
+2009,Land Rover,Range Rover,HSE,pa,86028,black,beige,22100,380
+2009,Land Rover,Range Rover,Supercharged,pa,68886,black,black,30000,510
+2008,Land Rover,Range Rover,HSE,pa,107579,black,black,17500,368
+2008,Land Rover,Range Rover,HSE,pa,102462,silver,beige,17700,381
+2008,Land Rover,Range Rover,HSE,tx,78327,white,beige,22000,373
+2008,Land Rover,Range Rover,HSE,tx,117247,white,tan,13400,378
+2000,Land Rover,Range Rover,4.6 Vitesse,sc,183128,black,black,500,221
+2000,Land Rover,Range Rover,4.6 Vitesse,sc,135629,silver,gray,900,228
+2013,Land Rover,Range Rover,HSE,mi,44535,black,black,80250,369
+2013,Land Rover,Range Rover,HSE,ca,44373,black,black,81000,380
+2012,Land Rover,Range Rover,HSE,pa,47782,black,black,44000,383
+2012,Land Rover,Range Rover,HSE,fl,45140,white,black,44400,370
+2012,Land Rover,Range Rover,HSE,fl,120402,white,beige,36000,374
+2010,Land Rover,Range Rover,HSE,ca,67574,gray,brown,34500,370
+2011,Land Rover,Range Rover,HSE,fl,59725,black,black,36100,368
+2011,Land Rover,Range Rover,HSE,fl,73541,gray,brown,33500,372
+2009,Land Rover,Range Rover,HSE,nc,70912,black,black,23000,376
+2008,Land Rover,Range Rover,Supercharged,nc,155126,black,black,17400,505
+2001,Land Rover,Range Rover,4.6 SE,fl,138324,gray,gray,2800,225
+2012,Land Rover,Range Rover,HSE,fl,25359,white,beige,47500,368
+2011,Land Rover,Range Rover,Supercharged,fl,49986,purple,beige,37000,511
+2011,Land Rover,Range Rover,HSE,fl,50709,black,black,35700,370
+2009,Land Rover,Range Rover,Supercharged,nv,125824,white,beige,20250,515
+2010,Land Rover,Range Rover,HSE,ga,48916,gray,black,32500,382
+2010,Land Rover,Range Rover,HSE,fl,79711,gray,black,30600,381
+2010,Land Rover,Range Rover,HSE,pa,52749,gray,black,32700,374
+2008,Land Rover,Range Rover,HSE,pa,69752,white,tan,22200,380
+2010,Land Rover,Range Rover,HSE,ga,110497,silver,black,25300,374
+2000,Land Rover,Range Rover,4.6 Vitesse,nc,145311,green,beige,1500,229
+2011,Land Rover,Range Rover,HSE,ca,62031,black,black,33500,379
+2010,Land Rover,Range Rover,Supercharged,ga,53014,gray,black,40300,516
+2010,Land Rover,Range Rover,HSE,fl,68406,black,beige,30500,379
+2008,Land Rover,Range Rover,Supercharged,pa,104465,black,beige,20100,510
+1999,Land Rover,Range Rover,4.6 HSE,tx,158022,green,gray,400,228
+2012,Land Rover,Range Rover,HSE,ca,62228,silver,black,41000,379
+2011,Land Rover,Range Rover,HSE,ca,44267,black,black,43500,367
+2011,Land Rover,Range Rover,HSE,ca,38624,white,tan,43000,373
+2008,Land Rover,Range Rover,Supercharged,fl,36749,black,black,28500,510
+2008,Land Rover,Range Rover,Supercharged,mn,92123,silver,gray,20330,502
+2000,Land Rover,Range Rover,4.6 Vitesse,ca,124723,black,beige,2500,225
+2012,Land Rover,Range Rover,HSE,pa,18807,silver,black,52250,374
+2011,Land Rover,Range Rover,HSE,wi,43420,black,black,35750,377
+1999,Land Rover,Range Rover,4.6 HSE,va,1,green,black,400,230
+2011,Land Rover,Range Rover,HSE,ca,60202,blue,beige,33000,374
+2011,Land Rover,Range Rover,HSE,ca,45623,white,black,41500,369
+2011,Land Rover,Range Rover,HSE,ca,37018,black,black,29000,369
+2011,Land Rover,Range Rover,HSE,ca,44482,white,tan,43000,367
+2011,Land Rover,Range Rover,HSE,ca,48992,white,tan,40000,371
+2011,Land Rover,Range Rover,HSE,ca,33636,black,tan,42500,376
+2011,Land Rover,Range Rover,HSE,ca,19925,green,tan,49500,373
+2010,Land Rover,Range Rover,HSE,pa,68654,silver,beige,32500,375
+2002,Land Rover,Range Rover,4.6 HSE,md,119412,yellow,gray,2400,220
+2014,Land Rover,Range Rover,HSE,ca,6184,red,gray,97000,340
+2014,Land Rover,Range Rover,Autobiography,ca,10040,silver,gray,127000,509
+2014,Land Rover,Range Rover,Supercharged LWB,ca,6814,white,tan,115000,513
+2014,Land Rover,Range Rover,Supercharged LWB,ca,3910,beige,brown,112000,503
+2014,Land Rover,Range Rover,Autobiography LWB,ca,3619,black,black,135000,502
+2014,Land Rover,Range Rover,Supercharged LWB,ca,3457,black,black,112000,517
+2014,Land Rover,Range Rover,Supercharged LWB,ca,6975,blue,beige,109000,506
+2014,Land Rover,Range Rover,Supercharged LWB,ca,6366,burgundy,beige,113000,504
+2011,Land Rover,Range Rover,Supercharged,ca,57549,black,black,46000,513
+2010,Land Rover,Range Rover,Supercharged,tn,60653,black,gray,40000,509
+2008,Land Rover,Range Rover,Supercharged,il,85335,black,beige,19000,504
+2002,Land Rover,Range Rover,4.6 HSE,ga,133996,gray,beige,1700,214
+2011,Land Rover,Range Rover,Supercharged,ca,44551,white,brown,40500,504
+2010,Land Rover,Range Rover,HSE,ca,85858,black,black,32250,371
+2008,Land Rover,Range Rover,HSE,ga,141286,gray,black,14000,381
+2014,Land Rover,Range Rover,Supercharged,ca,2282,black,black,110000,515
+2014,Land Rover,Range Rover,Autobiography,ca,5194,gray,black,131000,504
+2013,Land Rover,Range Rover,HSE,pa,13610,black,black,85000,367
+2012,Land Rover,Range Rover,HSE,pa,37287,black,black,46500,371
+2012,Land Rover,Range Rover,HSE,fl,28860,silver,black,44300,380
+2011,Land Rover,Range Rover,HSE,fl,53456,gray,gray,38200,373
+2008,Land Rover,Range Rover,HSE,tx,66458,green,tan,20600,375
+2008,Land Rover,Range Rover,HSE,ca,107303,black,gray,16000,381
+2008,Land Rover,Range Rover,Supercharged,nc,71146,black,black,23100,516
+2012,Land Rover,Range Rover,HSE,ca,8782,black,black,56500,376
+2012,Land Rover,Range Rover,HSE,ca,70977,white,brown,40000,379
+2011,Land Rover,Range Rover,HSE,ca,45337,blue,beige,36000,373
+2009,Land Rover,Range Rover,Supercharged,az,83201,black,beige,26900,518
+2008,Land Rover,Range Rover,HSE,pa,97563,white,tan,19500,370
+2010,Land Rover,Range Rover,HSE,ca,80335,black,black,32000,371
+2008,Land Rover,Range Rover,Supercharged,ca,127163,black,gray,17750,508
+2012,Land Rover,Range Rover,HSE,pa,49526,blue,beige,42500,379
+2009,Land Rover,Range Rover,Supercharged,pa,78476,blue,black,28000,516
+2014,Land Rover,Range Rover,Autobiography,ca,8486,black,black,123000,512
+2011,Land Rover,Range Rover,Supercharged,ca,54716,silver,black,46000,505
+2014,Land Rover,Range Rover,Supercharged LWB,ca,107,black,brown,116000,514
+2008,Land Rover,Range Rover,HSE,pa,122175,black,black,15200,373
+2008,Land Rover,Range Rover,HSE,pa,47236,blue,beige,26100,368
+2008,Land Rover,Range Rover,HSE,pa,83634,black,black,21400,376
+2012,Land Rover,Range Rover,HSE,tn,37275,black,black,47000,379
+2011,Land Rover,Range Rover,HSE,tn,29100,brown,brown,44000,372
+2011,Land Rover,Range Rover,HSE,tn,47910,black,black,36800,378
+2011,Land Rover,Range Rover,HSE,pa,38887,black,black,35000,378
+2011,Land Rover,Range Rover,Supercharged,tn,37087,gray,black,45000,512
+2008,Land Rover,Range Rover,HSE,ga,93606,gray,gray,15900,373
+2002,Land Rover,Range Rover,4.6 HSE,md,211382,black,beige,1000,214
+2008,Land Rover,Range Rover,HSE,fl,160651,black,beige,16300,367
+2001,Land Rover,Range Rover,4.6 HSE,fl,46131,green,beige,11100,226
+1998,Land Rover,Range Rover,4.6 HSE,wa,191662,white,black,200,222
+2008,Land Rover,Range Rover,Supercharged,ca,64872,black,white,24000,504
+2011,Land Rover,Range Rover,HSE,ca,32335,silver,black,40500,373
+2011,Land Rover,Range Rover,HSE,tx,30938,black,tan,43000,372
+2008,Land Rover,Range Rover,HSE,ca,118431,gray,gray,15000,374
+1999,Land Rover,Range Rover,4.0 S,wa,149157,gray,gray,600,188
+2012,Land Rover,Range Rover,HSE,tx,41573,blue,gray,45000,371
+2011,Land Rover,Range Rover,HSE,wa,62425,white,brown,38300,367
+2010,Land Rover,Range Rover,Supercharged,nv,32070,black,black,37750,511
+2010,Land Rover,Range Rover,HSE,tx,76622,gray,tan,30000,378
+2008,Land Rover,Range Rover,HSE,ca,84027,white,tan,22000,381
+2008,Land Rover,Range Rover,HSE,nv,46753,red,tan,21250,375
+2008,Land Rover,Range Rover,HSE,mn,54805,white,tan,22900,383
+2008,Land Rover,Range Rover,Supercharged,tx,95947,gray,black,17000,518
+2002,Land Rover,Range Rover,4.6 HSE,ca,104886,silver,gray,3750,225
+2014,Land Rover,Range Rover,HSE,ga,9762,black,black,95000,340
+2011,Land Rover,Range Rover,HSE,pa,43285,black,black,39500,368
+2010,Land Rover,Range Rover,HSE,ga,42250,black,black,32900,369
+2014,Land Rover,Range Rover,Autobiography,ca,13534,white,brown,115000,518
+2008,Land Rover,Range Rover,HSE,oh,107809,white,tan,16500,371
+2013,Land Rover,Range Rover,HSE,mi,20950,black,tan,82000,383
+2008,Land Rover,Range Rover,Supercharged,pa,100214,silver,black,18900,518
+2008,Land Rover,Range Rover,HSE,nj,99674,white,tan,16800,383
+2008,Land Rover,Range Rover,Supercharged,ga,109298,black,brown,18200,503
+2008,Land Rover,Range Rover,Supercharged,il,95018,black,black,20200,503
+2002,Land Rover,Range Rover,4.6 HSE,ca,122758,silver,gray,3000,218
+2011,Land Rover,Range Rover,HSE,ca,15405,silver,beige,45000,367
+2010,Land Rover,Range Rover,HSE,ca,59776,black,black,35500,367
+2008,Land Rover,Range Rover,Supercharged,ga,105580,black,black,17000,503
+2001,Land Rover,Range Rover,4.6 SE,ca,99587,green,beige,1450,225
+2011,Land Rover,Range Rover,HSE,ca,71991,black,black,35250,372
+2008,Land Rover,Range Rover,Supercharged,nj,113719,silver,brown,17000,505
+2008,Land Rover,Range Rover,HSE,ca,78020,black,tan,18250,377
+2008,Land Rover,Range Rover,Supercharged,ga,86378,black,black,23600,518
+2008,Land Rover,Range Rover,Supercharged,ca,119480,black,black,16500,507
+2002,Land Rover,Range Rover,4.6 HSE,or,145923,white,tan,700,218
+2000,Land Rover,Range Rover,4.6 Vitesse,md,147629,gold,beige,1500,215
+2011,Land Rover,Range Rover,Supercharged,ga,47023,gray,black,47000,507
+2011,Land Rover,Range Rover,HSE,ga,58294,black,beige,36200,377
+2008,Land Rover,Range Rover,HSE,ga,79781,white,tan,22600,382
+2008,Land Rover,Range Rover,HSE,ga,67106,black,black,22800,382
+2008,Land Rover,Range Rover,Supercharged,nc,57189,black,black,26750,502
+2008,Land Rover,Range Rover,HSE,fl,89798,black,gray,18800,375
+2008,Land Rover,Range Rover,HSE,ca,129760,black,beige,15900,372
+2000,Land Rover,Range Rover,4.6 Vitesse,md,119676,gold,black,1000,229
+2000,Land Rover,Range Rover,4.0 SE,ca,93342,red,brown,2100,182
+2010,Land Rover,Range Rover,HSE,fl,86827,black,beige,28000,370
+2008,Land Rover,Range Rover,HSE,pa,103840,black,beige,15100,369
+2008,Land Rover,Range Rover,HSE,ga,95381,white,tan,18000,373
+2008,Land Rover,Range Rover,HSE,pa,53575,green,beige,19400,375
+2011,Land Rover,Range Rover,Supercharged,tx,45258,black,black,44000,502
+2011,Land Rover,Range Rover,HSE,tx,41673,black,black,43250,374
+2008,Land Rover,Range Rover,HSE,nv,85543,gray,black,18400,373
+2012,Land Rover,Range Rover,HSE,ca,22388,black,black,55000,374
+2012,Land Rover,Range Rover,HSE,ca,22137,black,black,50500,367
+2010,Land Rover,Range Rover,Supercharged,tn,56030,white,black,41200,512
+2008,Land Rover,Range Rover,HSE,ca,92306,black,beige,18750,376
+2008,Land Rover,Range Rover,Supercharged,wi,93794,black,beige,15200,504
+2014,Land Rover,Range Rover,Supercharged LWB,ca,5573,white,black,106000,508
+2012,Land Rover,Range Rover,HSE,ca,51782,gray,beige,44000,382
+2011,Land Rover,Range Rover,Supercharged,ca,55228,white,black,43000,517
+2011,Land Rover,Range Rover,HSE,ca,50953,gray,black,38500,383
+2011,Land Rover,Range Rover,HSE,ca,37965,white,tan,42000,368
+2010,Land Rover,Range Rover,Supercharged,fl,62151,black,beige,36200,502
+2008,Land Rover,Range Rover,HSE,ca,82834,black,black,18100,382
+2008,Land Rover,Range Rover,HSE,ga,117734,gray,beige,15800,378
+2008,Land Rover,Range Rover,Supercharged,ca,150793,gray,black,15100,506
+2008,Land Rover,Range Rover,HSE,ca,54084,white,white,26000,371
+1999,Land Rover,Range Rover,4.6 HSE,ca,120056,gold,tan,1500,222
+2014,Land Rover,Range Rover,HSE,ca,33995,black,black,82250,340
+2011,Land Rover,Range Rover,HSE,co,45273,black,black,40700,369
+2010,Land Rover,Range Rover,HSE,fl,115259,blue,beige,27200,382
+2008,Land Rover,Range Rover,Supercharged,mo,76714,gray,tan,20500,517
+2014,Land Rover,Range Rover,HSE,fl,16865,blue,tan,87500,340
+2012,Land Rover,Range Rover,HSE,ca,45674,black,black,43000,367
+2011,Land Rover,Range Rover,HSE,fl,19123,white,beige,47900,377
+2008,Land Rover,Range Rover,HSE,ca,84130,white,beige,22500,383
+2010,Land Rover,Range Rover,HSE,az,63435,gray,tan,31250,374
+2012,Land Rover,Range Rover,HSE,ca,29767,gray,black,49000,370
+2014,Land Rover,Range Rover,Supercharged,ca,9968,black,black,104000,507
+2008,Land Rover,Range Rover,Supercharged,pa,97750,blue,tan,20500,509
+2013,Land Rover,Range Rover,Supercharged,ca,15551,black,black,97000,504
+2011,Land Rover,Range Rover,HSE,pa,51902,black,black,36500,382
+2008,Land Rover,Range Rover,HSE,nj,100981,black,gray,15800,369
+2002,Land Rover,Range Rover,4.6 HSE,wi,123590,gold,tan,300,227
+2000,Land Rover,Range Rover,4.0 SE,md,137343,black,beige,400,181
+2013,Land Rover,Range Rover,Supercharged,tn,30961,black,black,90400,504
+2011,Land Rover,Range Rover,HSE,tn,33632,gray,tan,43750,382
+2008,Land Rover,Range Rover,Supercharged,nj,69783,white,black,24750,510
+2012,Land Rover,Range Rover,HSE,tx,45718,black,tan,46250,370
+2012,Land Rover,Range Rover,HSE,wi,42363,gray,tan,44000,367
+2008,Land Rover,Range Rover,HSE,wa,83922,black,black,19000,370
+2011,Land Rover,Range Rover,HSE,pa,54282,gray,black,33000,367
+2013,Land Rover,Range Rover,Autobiography,tx,38504,gray,beige,87000,515
+2011,Land Rover,Range Rover,HSE,tx,19126,white,beige,49500,382
+2008,Land Rover,Range Rover,HSE,fl,70367,red,beige,16600,374
+2008,Land Rover,Range Rover,HSE,sc,98960,white,tan,18200,373
+2013,Land Rover,Range Rover,HSE,pa,20292,black,beige,81500,369
+2012,Land Rover,Range Rover,HSE,ca,15836,black,black,56000,383
+2011,Land Rover,Range Rover,HSE,fl,77999,black,tan,32400,367
+2008,Land Rover,Range Rover,Supercharged,ca,134885,blue,beige,16750,517
+2011,Land Rover,Range Rover,Supercharged,ca,54307,black,black,42000,513
+2008,Land Rover,Range Rover,Supercharged,ca,74192,white,beige,23000,515
+2014,Land Rover,Range Rover,Supercharged,tn,10054,white,gray,101200,507
+2014,Land Rover,Range Rover,Ebony Edition,ca,10927,black,black,105500,372
+2008,Land Rover,Range Rover,HSE,ca,78867,black,brown,20000,379
+2008,Land Rover,Range Rover,HSE,ga,95437,white,tan,17800,374
+2008,Land Rover,Range Rover,Supercharged,ca,58060,white,gray,27700,503
+2002,Land Rover,Range Rover,4.6 HSE,pa,134397,white,black,2600,214
+2014,Land Rover,Range Rover,HSE,wi,12770,black,black,92600,340
+2014,Land Rover,Range Rover,HSE,fl,22991,black,brown,83500,340
+2014,Land Rover,Range Rover,Base,ca,10934,white,beige,93500,371
+2012,Land Rover,Range Rover,HSE,ca,72364,white,black,36750,382
+2011,Land Rover,Range Rover,HSE,ca,64094,blue,brown,35500,370
+2011,Land Rover,Range Rover,HSE,ca,36938,white,brown,42500,369
+2008,Land Rover,Range Rover,Supercharged,ca,70215,black,beige,17250,518
+2014,Land Rover,Range Rover,Supercharged,ca,6678,black,gray,101000,518
+2013,Land Rover,Range Rover,HSE,nj,37175,white,beige,76750,378
+2011,Land Rover,Range Rover,Supercharged,pa,51656,black,black,42000,515
+2011,Land Rover,Range Rover,HSE,tx,28104,silver,black,45000,372
+2008,Land Rover,Range Rover,HSE,nj,100987,black,gray,15100,369
+2012,Land Rover,Range Rover,HSE,mo,59460,black,black,39250,375
+2008,Land Rover,Range Rover,Supercharged,mi,109092,black,tan,16700,506
+2013,Land Rover,Range Rover,HSE,fl,17408,white,beige,82000,383
+2012,Land Rover,Range Rover,HSE,ga,77124,gray,white,38000,380
+2010,Land Rover,Range Rover,HSE,nc,53470,white,beige,32000,369
+2010,Land Rover,Range Rover,Supercharged,fl,76236,black,black,34600,502
+2008,Land Rover,Range Rover,HSE,nc,95077,gray,tan,17700,367
+2008,Land Rover,Range Rover,HSE,va,108739,blue,blue,16100,369
+2008,Land Rover,Range Rover,HSE,pa,89078,black,black,18100,376
+2014,Land Rover,Range Rover,Ebony Edition,fl,4237,white,tan,104000,369
+2011,Land Rover,Range Rover,HSE,nc,61996,black,beige,36000,374
+2010,Land Rover,Range Rover,HSE,fl,62336,white,tan,34000,380
+2012,Land Rover,Range Rover,HSE,pa,51874,white,black,40800,381
+2011,Land Rover,Range Rover,Supercharged,fl,63937,white,beige,37000,503
+2012,Land Rover,Range Rover,HSE,pa,50031,black,black,41900,376
+2012,Land Rover,Range Rover,HSE,tn,61455,black,black,33500,368
+2008,Land Rover,Range Rover,HSE,ca,95988,black,black,17000,383
+2012,Land Rover,Range Rover,HSE,pa,42220,white,tan,45750,374
+2011,Land Rover,Range Rover,HSE,oh,51275,black,black,31100,367
+2009,Land Rover,Range Rover,Supercharged,pa,78490,black,black,27400,510
+2012,Land Rover,Range Rover,HSE,pa,57079,blue,beige,39600,377
+2012,Land Rover,Range Rover,HSE,pa,45214,brown,black,39000,382
+2011,Land Rover,Range Rover,HSE,fl,54555,black,tan,35000,373
+2012,Land Rover,Range Rover,HSE,ca,47506,blue,beige,41300,376
+2011,Land Rover,Range Rover,Supercharged,ca,35705,black,black,45000,504
+2011,Land Rover,Range Rover,HSE,ca,86736,black,black,30500,379
+2000,Land Rover,Range Rover,4.0 SE,ny,154957,black,gray,275,186
+2008,Land Rover,Range Rover,HSE,tx,113107,black,gray,17600,370
+2014,Land Rover,Range Rover,Supercharged,ga,44978,black,beige,86250,514
+2011,Land Rover,Range Rover,Supercharged,tx,18645,black,black,49000,502
+2008,Land Rover,Range Rover,HSE,ca,88149,silver,black,19000,374
+2012,Land Rover,Range Rover,HSE,pa,47243,black,black,44750,380
+2011,Land Rover,Range Rover,Supercharged,pa,64722,white,tan,39500,517
+2009,Land Rover,Range Rover,HSE,pa,59206,gray,black,23150,380
+2008,Land Rover,Range Rover,HSE,ca,106136,silver,black,15500,378
+2008,Land Rover,Range Rover,Supercharged,ca,83260,white,black,23500,516
+2008,Land Rover,Range Rover,HSE,pa,118418,blue,beige,16300,368
+2014,Land Rover,Range Rover,Supercharged,ca,17901,black,black,91000,503
+2013,Land Rover,Range Rover,Supercharged,ga,12105,gray,tan,85500,518
+2011,Land Rover,Range Rover,HSE,pa,105458,blue,beige,27500,376
+2011,Land Rover,Range Rover,HSE,pa,70176,gray,black,29900,372
+2010,Land Rover,Range Rover,Supercharged,pa,63736,black,black,34200,516
+2008,Land Rover,Range Rover,Supercharged,ca,62537,black,black,23200,512
+2008,Land Rover,Range Rover,HSE,nj,208255,gray,black,9200,371
+2008,Land Rover,Range Rover,Supercharged,pa,107134,black,black,19000,502
+2010,Land Rover,Range Rover,HSE,fl,87950,brown,tan,27800,374
+2011,Land Rover,Range Rover,Supercharged,ca,57284,black,beige,41000,513
+2008,Land Rover,Range Rover,Supercharged,ca,98765,white,white,21500,513
+2011,Land Rover,Range Rover,Supercharged,ga,45629,black,tan,43400,506
+2011,Land Rover,Range Rover,Supercharged,ga,48591,white,gray,46400,508
+2012,Land Rover,Range Rover,HSE,ga,51507,black,tan,40000,370
+2012,Land Rover,Range Rover,HSE,wi,61226,black,black,34000,372
+2011,Land Rover,Range Rover,Supercharged,ca,73054,black,beige,33750,514
+2010,Land Rover,Range Rover,HSE,fl,81285,black,beige,30200,381
+2010,Land Rover,Range Rover,Supercharged,pa,59760,black,black,36500,504
+2008,Land Rover,Range Rover,HSE,pa,89935,white,beige,18900,374
+2012,Land Rover,Range Rover,HSE,pa,15431,black,tan,50800,382
+2010,Land Rover,Range Rover,HSE,pa,52131,gray,brown,28400,379
+2014,Land Rover,Range Rover,Ebony Edition,pa,16002,black,black,99000,376
+2012,Land Rover,Range Rover,HSE,pa,33456,white,black,48000,383
+2013,Land Rover,Range Rover,HSE,pa,47195,black,beige,75250,371
+2014,Land Rover,Range Rover,Ebony Edition,ca,9925,white,black,60000,375
+2014,Land Rover,Range Rover,Supercharged,ca,17983,black,black,76500,513
+2014,Land Rover,Range Rover,Supercharged,ca,7434,black,gray,92500,502
+2013,Land Rover,Range Rover,HSE,ca,22316,black,black,65000,367
+2011,Land Rover,Range Rover,HSE,nc,106254,black,tan,30000,381
+2010,Land Rover,Range Rover,HSE,fl,46348,burgundy,tan,31200,368
+2013,Land Rover,Range Rover,Supercharged,ca,23252,brown,beige,83500,517
+2011,Land Rover,Range Rover,HSE,ca,98772,white,beige,30500,374
+2011,Land Rover,Range Rover,HSE,fl,58623,black,gray,35800,379
+2010,Land Rover,Range Rover,HSE,ca,69471,white,brown,29250,367
+2008,Land Rover,Range Rover,Supercharged,ca,84226,white,beige,23250,517
+2014,Land Rover,Range Rover,Supercharged,fl,29530,silver,black,83000,508
+2011,Land Rover,Range Rover,Supercharged,ny,61464,white,beige,39400,506
+2010,Land Rover,Range Rover,HSE,la,39802,white,white,34100,369
+2013,Land Rover,Range Rover,HSE,ma,56577,black,gray,74200,378
+2011,Land Rover,Range Rover,HSE,la,81127,white,tan,30400,382
+2010,Land Rover,Range Rover,HSE,ca,27411,green,white,32500,371
+2011,Land Rover,Range Rover,HSE,fl,74560,green,beige,29600,380
+2009,Land Rover,Range Rover,Supercharged,ca,77405,white,beige,27000,506
+2012,Land Rover,Range Rover,HSE,pa,53077,white,tan,41750,381
+2010,Land Rover,Range Rover,HSE,pa,58937,black,black,31000,383
+2010,Land Rover,Range Rover,HSE,mo,45154,silver,black,31800,380
+2008,Land Rover,Range Rover,HSE,mi,114721,blue,tan,14500,371
+2012,Land Rover,Range Rover,HSE,ca,39504,white,black,44500,378
+2010,Land Rover,Range Rover,HSE,fl,81010,silver,black,23000,382
+2008,Land Rover,Range Rover,HSE,ca,92585,black,black,16500,382
+2011,Land Rover,Range Rover,HSE,fl,59007,black,black,33600,373
+2010,Land Rover,Range Rover,Supercharged,pa,63736,black,black,35000,505
+2010,Land Rover,Range Rover,HSE,pa,54642,black,black,32200,367
+2010,Land Rover,Range Rover,HSE,pa,52558,silver,black,29700,371
+2013,Land Rover,Range Rover,HSE,pa,22833,black,gray,78000,376
+2013,Land Rover,Range Rover,Supercharged,pa,35259,beige,brown,83000,506
+2010,Land Rover,Range Rover,HSE,fl,72077,gray,black,24400,370
+2011,Land Rover,Range Rover,Supercharged,pa,106483,black,black,32750,503
+2010,Land Rover,Range Rover,HSE,pa,67709,beige,brown,28000,376
+2012,Land Rover,Range Rover,HSE,pa,49820,black,black,40000,367
+2011,Land Rover,Range Rover,HSE,fl,63696,blue,beige,30000,371
+2011,Land Rover,Range Rover,Supercharged,pa,64738,white,tan,38000,514
+2011,Land Rover,Range Rover,Supercharged,pa,49246,gray,black,39750,505
+2011,Land Rover,Range Rover,HSE,pa,43643,black,black,39250,382
+2011,Land Rover,Range Rover,HSE,oh,42406,silver,beige,34000,382
+2010,Land Rover,Range Rover,HSE,oh,182536,black,tan,29200,368
+2010,Land Rover,Range Rover,HSE,fl,92240,black,black,28200,383
+2008,Land Rover,Range Rover,HSE,pa,78360,black,tan,19500,378
+2008,Land Rover,Range Rover,Supercharged,pa,59478,blue,beige,23750,504
+2014,Land Rover,Range Rover,Supercharged LWB,pa,4986,black,black,101000,502
+2014,Land Rover,Range Rover,Supercharged,pa,18553,gray,black,84750,502
+2013,Land Rover,Range Rover,Supercharged,fl,19346,black,beige,81500,512
+2012,Land Rover,Range Rover,HSE,fl,42255,black,tan,43200,371
+2011,Land Rover,Range Rover,HSE,fl,72999,black,beige,31200,378
+2002,Land Rover,Range Rover,4.6 HSE,co,151341,white,tan,3000,216
+2014,Land Rover,Range Rover,HSE,oh,29657,black,black,79250,340
+2011,Land Rover,Range Rover,HSE,ca,38905,gray,black,39750,367
+2008,Land Rover,Range Rover,Supercharged,ca,67892,white,black,18500,509
+2010,Land Rover,Range Rover,Supercharged,ca,48214,gray,tan,38500,511
+2008,Land Rover,Range Rover,HSE,ca,94679,black,beige,17500,377
+2014,Land Rover,Range Rover,Supercharged,ca,12258,white,black,94500,513
+2008,Land Rover,Range Rover,Supercharged,ca,116555,black,black,19750,514
+2012,Land Rover,Range Rover,HSE,fl,17668,black,black,50500,378
+2013,Land Rover,Range Rover,Supercharged,fl,31044,silver,black,83200,515
+2011,Land Rover,Range Rover,HSE,il,63374,black,black,32000,368
+2012,Land Rover,Range Rover,HSE,fl,41447,brown,beige,41400,369
+2010,Land Rover,Range Rover,HSE,fl,82735,white,white,28800,383
+2010,Land Rover,Range Rover,HSE,pa,82072,black,beige,29750,374
