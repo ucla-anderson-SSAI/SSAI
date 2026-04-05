@@ -78,6 +78,11 @@ def load_and_prepare_data():
     X_all = df[feature_names].values
     y_all = df[price_col].values
 
+    # Add random noise N(0, 2000) to selling prices and round to nearest 100
+    rng = np.random.RandomState(42)
+    noise = rng.normal(0, 2000, size=len(y_all))
+    y_all = np.round((y_all + noise) / 100) * 100
+
     # Keep a train/test split for scatter plot predictions and tree visualization
     X_train, X_test, y_train, y_test = train_test_split(
         X_all, y_all, test_size=0.2, random_state=42
