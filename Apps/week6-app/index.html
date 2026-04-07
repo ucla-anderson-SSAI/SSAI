@@ -7,6 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
+    <script>window.API_BASE = 'https://week6-transformer-api-eb5aqs4exq-uc.a.run.app';</script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -474,7 +475,7 @@
         const { useState, useEffect, useMemo } = React;
 
         // API Base URL - empty string uses same origin
-        const API_BASE = '';
+        const API_BASE = window.API_BASE || '';
 
         // ===========================================
         // Tab 1: Word Embeddings

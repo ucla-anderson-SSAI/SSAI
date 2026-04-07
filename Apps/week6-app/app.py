@@ -194,6 +194,11 @@ def load_tensorflow():
     import tensorflow as tf
     from tensorflow import keras
     from tensorflow.keras import layers
+
+    # Configure TensorFlow threading for limited resources
+    tf.config.threading.set_intra_op_parallelism_threads(2)
+    tf.config.threading.set_inter_op_parallelism_threads(2)
+
     _tf = tf
     _keras = keras
     _layers = layers

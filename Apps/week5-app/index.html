@@ -9,6 +9,7 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <script>window.API_BASE_URL = 'https://week5-cnn-api-eb5aqs4exq-uc.a.run.app';</script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1239,7 +1240,7 @@
                 // Fetch actual sample images from backend
                 const fetchSampleImages = async () => {
                     try {
-                        const response = await fetch('/api/sample-images');
+                        const response = await fetch(`${API_BASE_URL}/api/sample-images`);
                         const data = await response.json();
                         if (data.samples) {
                             const samples = data.samples.map(sample => ({

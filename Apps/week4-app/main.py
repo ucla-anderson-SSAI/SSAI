@@ -20,6 +20,9 @@ from sklearn.metrics import confusion_matrix
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 import tensorflow as tf
+# Limit TF threads to prevent resource contention with concurrent users
+tf.config.threading.set_intra_op_parallelism_threads(2)
+tf.config.threading.set_inter_op_parallelism_threads(2)
 from tensorflow import keras
 from tensorflow.keras import layers, models, optimizers, callbacks
 from xgboost import XGBClassifier
@@ -68,11 +71,12 @@ def load_cancer_data():
 
     # Load dataset from CSV
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    csv_path = os.path.join(script_dir, '..', '..', 'cancer.csv')
-
-    # Try alternative path if first doesn't exist
+    # Try multiple paths for cancer.csv
+    csv_path = os.path.join(script_dir, 'cancer.csv')  # Same directory (Cloud Run)
     if not os.path.exists(csv_path):
-        csv_path = '/sessions/lucid-affectionate-lovelace/mnt/SSAI/cancer.csv'
+        csv_path = os.path.join(script_dir, '..', '..', 'cancer.csv')  # Relative path (Railway)
+    if not os.path.exists(csv_path):
+        csv_path = '/sessions/lucid-affectionate-lovelace/mnt/SSAI/cancer.csv'  # Fallback
 
     df = pd.read_csv(csv_path)
 
@@ -114,7 +118,7 @@ class TrainRequest(BaseModel):
     use_batch_norm: bool = Field(default=False, description="Whether to use batch normalization")
     learning_rate: float = Field(default=0.001, ge=0.0001, le=0.1, description="Learning rate")
     batch_size: int = Field(default=32, description="Batch size: 16, 32, 64, 128")
-    epochs: int = Field(default=50, ge=10, le=200, description="Number of epochs")
+    epochs: int = Field(default=50, ge=10, le=100, description="Number of epochs")
 
 
 class TrainResponse(BaseModel):
@@ -380,7 +384,7 @@ async def compare_models():
         n_estimators=100,
         max_depth=4,
         learning_rate=0.1,
-        n_jobs=-1,
+        n_jobs=2,
         random_state=42
     )
     xgb_model.fit(x_train, y_train)
