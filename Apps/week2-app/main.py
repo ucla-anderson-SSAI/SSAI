@@ -174,7 +174,7 @@ async def train_model(request: TrainRequest):
         )
 
     # Cross-validation error (20-fold on full data)
-    cv_scores = cross_val_score(model, X_all, y_all, cv=20, scoring=mae_scorer)
+    cv_scores = cross_val_score(model, X_all, y_all, cv=5, scoring=mae_scorer)
     cv_mae = -cv_scores.mean()  # Negate because sklearn returns negative MAE
 
     # Train on full training set for predictions, tree viz, and feature importances
@@ -228,7 +228,7 @@ async def train_model(request: TrainRequest):
                     learning_rate=request.learning_rate, subsample=request.subsample,
                     random_state=42, n_jobs=2
                 )
-                lc_cv_scores = cross_val_score(lc_model, X_all, y_all, cv=20, scoring=mae_scorer)
+                lc_cv_scores = cross_val_score(lc_model, X_all, y_all, cv=5, scoring=mae_scorer)
                 lc_cv_mae = -lc_cv_scores.mean()
                 learning_curve.append({
                     'n_estimators': n_est,
@@ -245,7 +245,7 @@ async def train_model(request: TrainRequest):
                     max_features=request.max_features if request.max_features else 1.0,
                     random_state=42, n_jobs=2
                 )
-                lc_cv_scores = cross_val_score(lc_model, X_all, y_all, cv=20, scoring=mae_scorer)
+                lc_cv_scores = cross_val_score(lc_model, X_all, y_all, cv=5, scoring=mae_scorer)
                 lc_cv_mae = -lc_cv_scores.mean()
                 learning_curve.append({
                     'n_estimators': n_est,
@@ -261,7 +261,7 @@ async def train_model(request: TrainRequest):
             m = DecisionTreeRegressor(max_depth=d, random_state=42)
             m.fit(X_train, y_train)
             dc_train_mae = mean_absolute_error(y_train, m.predict(X_train))
-            dc_cv_scores = cross_val_score(m, X_all, y_all, cv=20, scoring=mae_scorer)
+            dc_cv_scores = cross_val_score(m, X_all, y_all, cv=5, scoring=mae_scorer)
             dc_cv_mae = -dc_cv_scores.mean()
             depth_curve.append({
                 'depth': d,
@@ -281,7 +281,7 @@ async def train_model(request: TrainRequest):
                 learning_rate=request.learning_rate, subsample=request.subsample,
                 random_state=42, n_jobs=2
             )
-            br_cv_scores = cross_val_score(br_model, X_all, y_all, cv=20, scoring=mae_scorer)
+            br_cv_scores = cross_val_score(br_model, X_all, y_all, cv=5, scoring=mae_scorer)
             br_cv_mae = -br_cv_scores.mean()
             boosting_residuals.append({
                 'tree': n,
