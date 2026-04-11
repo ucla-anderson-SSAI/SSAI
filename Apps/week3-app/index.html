@@ -54,31 +54,34 @@ const theme = {
     lightCard: '#ffffff'
 };
 
-// Chart.js Area Chart Component
+// Chart.js Area Chart Component - updates data in-place for live rendering
 function AreaChart({ data, dataKey, xKey, color, yMin, yMax }) {
     const canvasRef = useRef(null);
     const chartRef = useRef(null);
 
+    // Create chart once
     useEffect(() => {
-        if (!canvasRef.current || !data.length) return;
+        if (!canvasRef.current) return;
         if (chartRef.current) chartRef.current.destroy();
 
         const ctx = canvasRef.current.getContext('2d');
         chartRef.current = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: data.map(d => d[xKey]),
+                labels: [],
                 datasets: [{
-                    data: data.map(d => d[dataKey]),
+                    data: [],
                     borderColor: color,
                     backgroundColor: color + '40',
                     fill: true,
-                    tension: 0.4
+                    tension: 0.4,
+                    pointRadius: 0
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                animation: false,
                 plugins: { legend: { display: false } },
                 scales: {
                     x: {
@@ -95,36 +98,49 @@ function AreaChart({ data, dataKey, xKey, color, yMin, yMax }) {
             }
         });
         return () => { if (chartRef.current) chartRef.current.destroy(); };
-    }, [data, dataKey, xKey, color, yMin, yMax]);
+    }, [color, yMin, yMax]);
+
+    // Update data in-place
+    useEffect(() => {
+        if (!chartRef.current || !data.length) return;
+        chartRef.current.data.labels = data.map(d => d[xKey]);
+        chartRef.current.data.datasets[0].data = data.map(d => d[dataKey]);
+        chartRef.current.data.datasets[0].borderColor = color;
+        chartRef.current.data.datasets[0].backgroundColor = color + '40';
+        chartRef.current.update('none');
+    }, [data, dataKey, xKey, color]);
 
     return <div style={{height: '120px'}}><canvas ref={canvasRef} /></div>;
 }
 
-// Chart.js Area Chart Component with smaller height
+// Chart.js Area Chart Component with smaller height - updates data in-place
 function SmallAreaChart({ data, dataKey, xKey, color, yMin, yMax }) {
     const canvasRef = useRef(null);
     const chartRef = useRef(null);
 
+    // Create chart once
     useEffect(() => {
-        if (!canvasRef.current || !data.length) return;
+        if (!canvasRef.current) return;
         if (chartRef.current) chartRef.current.destroy();
 
         const ctx = canvasRef.current.getContext('2d');
         chartRef.current = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: data.map(d => d[xKey]),
+                labels: [],
                 datasets: [{
-                    data: data.map(d => d[dataKey]),
+                    data: [],
                     borderColor: color,
                     backgroundColor: color + '40',
                     fill: true,
-                    tension: 0.4
+                    tension: 0.4,
+                    pointRadius: 0
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                animation: false,
                 plugins: { legend: { display: false } },
                 scales: {
                     x: {
@@ -141,7 +157,17 @@ function SmallAreaChart({ data, dataKey, xKey, color, yMin, yMax }) {
             }
         });
         return () => { if (chartRef.current) chartRef.current.destroy(); };
-    }, [data, dataKey, xKey, color, yMin, yMax]);
+    }, [color, yMin, yMax]);
+
+    // Update data in-place
+    useEffect(() => {
+        if (!chartRef.current || !data.length) return;
+        chartRef.current.data.labels = data.map(d => d[xKey]);
+        chartRef.current.data.datasets[0].data = data.map(d => d[dataKey]);
+        chartRef.current.data.datasets[0].borderColor = color;
+        chartRef.current.data.datasets[0].backgroundColor = color + '40';
+        chartRef.current.update('none');
+    }, [data, dataKey, xKey, color]);
 
     return <div style={{height: '100px'}}><canvas ref={canvasRef} /></div>;
 }
@@ -605,7 +631,7 @@ function AirlinePricingSimulator() {
   }, [revenueHistory, policy, maxFlights]);
 
   const getPolicyName = (p) => ({ static: 'Static', bandit: 'Bandit (TS)', qlearning: 'Q-Learning' }[p] || p);
-  const getPolicyColor = (p) => ({ static: '#666', bandit: theme.accent, qlearning: theme.positive }[p] || '#888');
+  const getPolicyColor = (p) => ({ static: '#8BB8E8', bandit: theme.accent, qlearning: theme.positive }[p] || '#888');
   const getRecentAvg = (n = 10) => { const r = revenueHistory.filter(x => x.policy === policy).slice(-n); return r.length ? r.reduce((s, x) => s + x.revenue, 0) / r.length : 0; };
   const getAllTimeAvg = () => { const r = revenueHistory.filter(x => x.policy === policy); return r.length ? r.reduce((s, x) => s + x.revenue, 0) / r.length : 0; };
 
