@@ -1,0 +1,8 @@
+
+1. Run this in bash
+
+uvicorn main:app --reload --port 8000
+
+2. go to this in browser
+
+http://localhost:8000/app

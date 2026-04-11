@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Lunar Lander · Live PPO</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root { --bg:#0b1020; --panel:#141a32; --ink:#e6eaf2; --muted:#9aa3b2; --accent:#7cf; --good:#7be495; --bad:#ff6b6b; --warn:#ffb84d; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:var(--bg); color:var(--ink); }
+  header { padding:18px 24px; border-bottom:1px solid #20294a; }
+  header h1 { margin:0; font-size:20px; }
+  header p  { margin:4px 0 0; color:var(--muted); font-size:13px; }
+  .wrap { display:grid; grid-template-columns: 320px 1fr; gap:18px; padding:18px; }
+  .panel { background:var(--panel); border:1px solid #20294a; border-radius:10px; padding:16px; }
+  .panel h2 { font-size:13px; margin:0 0 12px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }
+  label { display:block; font-size:12px; color:var(--muted); margin-top:10px; }
+  input[type=range], input[type=number] { width:100%; }
+  .val { font-variant-numeric: tabular-nums; font-size:12px; color:var(--ink); }
+  button { width:100%; margin-top:10px; padding:10px 12px; background:var(--accent); color:#003; font-weight:700; border:0; border-radius:6px; cursor:pointer; }
+  button.alt { background:#3a4470; color:var(--ink); }
+  button.danger { background:#5b1f1f; color:#ffd4d4; }
+  button:disabled { opacity:.5; cursor:wait; }
+  .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap:18px; }
+  .stage { display:grid; grid-template-columns: 1fr; gap:18px; }
+  canvas.lander { background:linear-gradient(#0a0f23, #1a234a); border-radius:8px; width:100%; aspect-ratio: 16/9; display:block; }
+  .stat { display:flex; justify-content:space-between; font-size:13px; padding:6px 0; border-bottom:1px dashed #20294a; }
+  .stat:last-child { border-bottom:0; }
+  .badge { padding:2px 8px; border-radius:12px; font-size:11px; font-weight:700; }
+  .badge.idle  { background:#20294a; color:var(--muted); }
+  .badge.run   { background:#163; color:var(--good); }
+  .badge.done  { background:#1c2a55; color:var(--accent); }
+  .badge.err   { background:#411; color:var(--bad); }
+  .badge.solv  { background:#3a2a00; color:var(--warn); }
+  .progress { width:100%; height:8px; background:#20294a; border-radius:4px; overflow:hidden; margin-top:8px; }
+  .progress > div { height:100%; background:var(--accent); width:0; transition:width .3s; }
+  .good { color:var(--good); } .bad { color:var(--bad); } .warn { color:var(--warn); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Lunar Lander with Reinforcement Learning</h1>
+</header>
+
+<div class="wrap">
+  <!-- Controls -->
+  <div>
+    <div class="panel">
+      <h2>Status</h2>
+      <div class="stat"><span>State</span><span id="stateBadge" class="badge idle">idle</span></div>
+      <div class="stat"><span>Episodes</span><span class="val" id="epCount">0 / 0</span></div>
+      <div class="stat"><span>Timesteps</span><span class="val" id="ts">0</span></div>
+      <div class="stat"><span>Rolling-100</span><span class="val" id="roll100">—</span></div>
+      <div class="stat"><span>Elapsed</span><span class="val" id="elapsed">—</span></div>
+      <div class="stat"><span>Solved</span><span class="val" id="solved">—</span></div>
+      <div class="progress"><div id="progressBar"></div></div>
+    </div>
+
+    <div class="panel" style="margin-top:18px;">
+      <h2>Train</h2>
+      <label>Episodes <span class="val" id="vEps">2000</span></label>
+      <input type="range" id="targetEps" min="100" max="10000" step="100" value="2000" />
+
+      <input type="hidden" id="nEnvs" value="8" />
+
+      <label>Learning rate <span class="val" id="vLr">0.0003</span></label>
+      <input type="range" id="lr" min="0.00005" max="0.001" step="0.00005" value="0.0003" />
+
+      <button id="start">Start training</button>
+      <button id="pause" class="danger">Pause</button>
+      <button id="play" class="alt">Play one episode</button>
+      <button id="reset" class="alt">Reset model</button>
+    </div>
+
+    <p id="msg" style="color:var(--muted); font-size:12px; margin-top:10px;">Idle.</p>
+  </div>
+
+  <!-- Output -->
+  <div>
+    <div class="grid2">
+      <div class="panel">
+        <h2 style="font-size:16px;">Lunar Lander Visualization</h2>
+        <canvas class="lander" id="lander"></canvas>
+        <div id="outcome" style="text-align:center; font-size:22px; font-weight:600; margin-top:8px; min-height:28px;"></div>
+      </div>
+      <div class="panel">
+        <h2 style="font-size:16px;">Learning Curve</h2>
+        <canvas id="curve" height="200"></canvas>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:18px;">
+      <h2 style="font-size:16px;">State space</h2>
+      <table id="dimsTable" style="width:100%; border-collapse:collapse; font-size:13px;">
+        <thead>
+          <tr style="color:var(--muted); text-align:left;">
+            <th style="padding:6px 8px; border-bottom:1px solid #20294a;">#</th>
+            <th style="padding:6px 8px; border-bottom:1px solid #20294a;">Dimension</th>
+            <th style="padding:6px 8px; border-bottom:1px solid #20294a;">Range</th>
+            <th style="padding:6px 8px; border-bottom:1px solid #20294a;">Description</th>
+          </tr>
+        </thead>
+        <tbody id="dimsBody"></tbody>
+      </table>
+    </div>
+
+    <div class="panel" style="margin-top:18px;">
+      <h2 style="font-size:16px;">Reward function</h2>
+      <table style="width:100%; border-collapse:collapse; font-size:13px;">
+        <thead>
+          <tr style="color:var(--muted); text-align:left;">
+            <th style="padding:6px 8px; border-bottom:1px solid #20294a;">When</th>
+            <th style="padding:6px 8px; border-bottom:1px solid #20294a;">Component</th>
+            <th style="padding:6px 8px; border-bottom:1px solid #20294a;">Value</th>
+            <th style="padding:6px 8px; border-bottom:1px solid #20294a;">What it teaches</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="padding:6px 8px; color:var(--muted);">every step</td>
+            <td style="padding:6px 8px; color:var(--ink); font-weight:600;">distance to pad</td>
+            <td style="padding:6px 8px; color:var(--accent); font-family:ui-monospace,Menlo,monospace;">+/−</td>
+            <td style="padding:6px 8px; color:var(--muted);">Drift toward the landing pad, not away from it</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 8px; color:var(--muted);">every step</td>
+            <td style="padding:6px 8px; color:var(--ink); font-weight:600;">speed</td>
+            <td style="padding:6px 8px; color:var(--accent); font-family:ui-monospace,Menlo,monospace;">+/−</td>
+            <td style="padding:6px 8px; color:var(--muted);">Slow down; moving fast is penalized</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 8px; color:var(--muted);">every step</td>
+            <td style="padding:6px 8px; color:var(--ink); font-weight:600;">tilt angle</td>
+            <td style="padding:6px 8px; color:var(--accent); font-family:ui-monospace,Menlo,monospace;">+/−</td>
+            <td style="padding:6px 8px; color:var(--muted);">Stay upright; tilted lander is penalized</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 8px; color:var(--muted);">every step</td>
+            <td style="padding:6px 8px; color:var(--ink); font-weight:600;">leg ground contact</td>
+            <td style="padding:6px 8px; color:var(--accent); font-family:ui-monospace,Menlo,monospace;">+10 per leg</td>
+            <td style="padding:6px 8px; color:var(--muted);">Get both legs down and keep them there</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 8px; color:var(--muted);">every step</td>
+            <td style="padding:6px 8px; color:var(--ink); font-weight:600;">main engine fuel</td>
+            <td style="padding:6px 8px; color:var(--accent); font-family:ui-monospace,Menlo,monospace;">−0.30</td>
+            <td style="padding:6px 8px; color:var(--muted);">Don't hold the throttle wide open; coast when you can</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 8px; color:var(--muted);">every step</td>
+            <td style="padding:6px 8px; color:var(--ink); font-weight:600;">side engine fuel</td>
+            <td style="padding:6px 8px; color:var(--accent); font-family:ui-monospace,Menlo,monospace;">−0.03</td>
+            <td style="padding:6px 8px; color:var(--muted);">Side thrusters are cheap, but still cost something</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 8px; color:var(--good);">episode end</td>
+            <td style="padding:6px 8px; color:var(--ink); font-weight:600;">soft landing</td>
+            <td style="padding:6px 8px; color:var(--good); font-family:ui-monospace,Menlo,monospace;">+100</td>
+            <td style="padding:6px 8px; color:var(--muted);">Touched down gently with both legs on the pad</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 8px; color:var(--bad);">episode end</td>
+            <td style="padding:6px 8px; color:var(--ink); font-weight:600;">crash / out of bounds</td>
+            <td style="padding:6px 8px; color:var(--bad); font-family:ui-monospace,Menlo,monospace;">−100</td>
+            <td style="padding:6px 8px; color:var(--muted);">Body hit the ground or flew off the side</td>
+          </tr>
+        </tbody>
+      </table>
+      <p style="color:var(--muted); font-size:12px; margin:10px 0 0;">
+        A clean landing scores around <span class="good">+200 to +280</span>. A crash typically scores <span class="bad">−100 to −400</span>. "Solved" = rolling-100 average ≥ 200.
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const labels = {targetEps:"vEps", lr:"vLr"};
+Object.keys(labels).forEach(id => {
+  const el = $(id), lab = $(labels[id]);
+  const fmt = () => lab.textContent = id === "lr" ? (+el.value).toFixed(5) : (+el.value).toLocaleString();
+  el.addEventListener("input", fmt); fmt();
+});
+
+let curveChart;
+function ensureChart() {
+  if (curveChart) return;
+  const ctx = $("curve").getContext("2d");
+  curveChart = new Chart(ctx, {
+    type: "line",
+    data: { datasets: [
+      { label:"Episode reward", data: [], borderColor:"#3a4470", borderWidth:1, pointRadius:0, order:3 },
+      { label:"Rolling-100",    data: [], borderColor:"#7cf",    borderWidth:2.5, pointRadius:0, tension:.2, order:1 },
+      { label:"Solved (200)",   data: [], borderColor:"#7be495", borderWidth:1, borderDash:[4,4], pointRadius:0, order:2 },
+    ] },
+    options: {
+      animation:false, responsive:true,
+      parsing:false,
+      scales: {
+        x: { type:"linear", min:0, max:2000, ticks:{color:"#9aa3b2", maxTicksLimit:8}, grid:{color:"#20294a"} },
+        y: { ticks:{color:"#9aa3b2"}, grid:{color:"#20294a"} },
+      },
+      plugins: { legend:{ labels:{color:"#e6eaf2"} } }
+    }
+  });
+}
+
+function updateCurve(rewards, rolling, targetEps) {
+  ensureChart();
+  if (targetEps) curveChart.options.scales.x.max = targetEps;
+  curveChart.data.datasets[0].data = rewards.map((v,i)=>({x:i+1, y:v}));
+  curveChart.data.datasets[1].data = rolling.map((v,i)=>({x:i+1, y:v}));
+  curveChart.data.datasets[2].data = [{x:0,y:200},{x:targetEps||rewards.length||1,y:200}];
+  curveChart.update("none");
+}
+
+function fmtTime(s) {
+  if (s == null) return "—";
+  s = Math.floor(s);
+  const m = Math.floor(s/60), r = s % 60;
+  return m + "m " + String(r).padStart(2,"0") + "s";
+}
+
+function setBadge(state) {
+  const b = $("stateBadge");
+  b.className = "badge " + state.cls;
+  b.textContent = state.text;
+}
+
+let pollTimer = null;
+async function poll() {
+  try {
+    const s = await fetch("/train/status").then(r=>r.json());
+    $("epCount").textContent = `${s.episode_rewards.length.toLocaleString()} / ${s.target_episodes.toLocaleString()}`;
+    $("ts").textContent = s.timesteps.toLocaleString();
+    $("roll100").textContent = s.last_mean_reward ? s.last_mean_reward.toFixed(1) : "—";
+    $("elapsed").textContent = fmtTime(s.elapsed_seconds);
+    $("solved").innerHTML = s.solved ? `<span class="warn">ep ${s.solved_at_episode}</span>` : "—";
+    const pct = s.target_episodes ? Math.min(100, 100 * s.episode_rewards.length / s.target_episodes) : 0;
+    $("progressBar").style.width = pct + "%";
+
+    if (s.error) {
+      setBadge({cls:"err", text:"error"});
+      $("msg").textContent = "Error: " + s.error;
+    } else if (s.is_running) {
+      setBadge({cls: s.solved ? "solv" : "run", text: s.solved ? "solved · still training" : "training"});
+    } else if (s.is_paused) {
+      setBadge({cls:"done", text:"paused"});
+    } else if (s.is_done) {
+      setBadge({cls: s.solved ? "solv" : "done", text: s.solved ? "solved" : "done"});
+    } else {
+      setBadge({cls:"idle", text:"idle"});
+    }
+
+    // Toggle Start button label between fresh start and resume
+    const startBtn = $("start");
+    if (s.is_running) {
+      startBtn.textContent = "Training…";
+      startBtn.disabled = true;
+    } else if (s.model_ready && (s.is_paused || s.is_done)) {
+      startBtn.textContent = "Resume training";
+      startBtn.disabled = false;
+    } else {
+      startBtn.textContent = "Start training";
+      startBtn.disabled = false;
+    }
+
+    updateCurve(s.episode_rewards, s.rolling_100, s.target_episodes);
+
+    if (!s.is_running && pollTimer) {
+      clearInterval(pollTimer); pollTimer = null;
+    }
+  } catch (e) { /* keep polling */ }
+}
+
+$("start").addEventListener("click", async () => {
+  $("msg").textContent = "Starting…";
+  const body = {
+    target_episodes: +$("targetEps").value,
+    n_envs: +$("nEnvs").value,
+    learning_rate: +$("lr").value,
+  };
+  try {
+    const res = await fetch("/train/start", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body)});
+    if (!res.ok) { const j = await res.json(); throw new Error(j.detail); }
+    $("msg").textContent = "Training started.";
+    if (pollTimer) clearInterval(pollTimer);
+    poll();
+    pollTimer = setInterval(poll, 1000);
+  } catch (e) { $("msg").textContent = "Error: " + e.message; }
+});
+
+$("pause").addEventListener("click", async () => {
+  await fetch("/train/pause", {method:"POST"});
+  $("msg").textContent = "Pause requested. Finishing current rollout…";
+});
+
+$("reset").addEventListener("click", async () => {
+  try {
+    const res = await fetch("/train/reset", {method:"POST"});
+    if (!res.ok) { const j = await res.json(); throw new Error(j.detail); }
+    if (curveChart) { curveChart.destroy(); curveChart = null; }
+    $("msg").textContent = "Model reset.";
+    poll();
+  } catch (e) { $("msg").textContent = "Error: " + e.message; }
+});
+
+function animate(xs, ys, angles, actions, outcome) {
+  const cv = $("lander"), ctx = cv.getContext("2d");
+  const W = cv.width = cv.clientWidth, H = cv.height = cv.clientHeight;
+  let i = 0;
+  // Scale lander relative to canvas height so it's big on a projector
+  const S = H / 30;  // body half-width unit (~30 units tall canvas)
+  function draw() {
+    ctx.clearRect(0,0,W,H);
+    // ground
+    ctx.fillStyle = "#2a3666"; ctx.fillRect(0, H*0.85, W, H*0.15);
+    // landing pad — wider and taller
+    const padW = W * 0.20, padX = (W - padW) / 2, padY = H * 0.83;
+    ctx.fillStyle = "#7be495"; ctx.fillRect(padX, padY, padW, 8);
+    // flag poles
+    ctx.fillStyle = "#7be495";
+    ctx.fillRect(padX, padY - 28, 3, 28);
+    ctx.fillRect(padX + padW - 3, padY - 28, 3, 28);
+    // flags
+    ctx.beginPath(); ctx.moveTo(padX + 3, padY - 28); ctx.lineTo(padX + 18, padY - 22); ctx.lineTo(padX + 3, padY - 16); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(padX + padW - 3, padY - 28); ctx.lineTo(padX + padW - 18, padY - 22); ctx.lineTo(padX + padW - 3, padY - 16); ctx.fill();
+
+    if (i >= xs.length) {
+      const colors = {landed:"#7be495", crashed:"#ff6b6b", timeout:"#ffb84d"};
+      const labels = {landed:"Landed", crashed:"Crashed", timeout:"Time-out"};
+      const el = $("outcome");
+      el.textContent = labels[outcome] || "";
+      el.style.color = colors[outcome] || "#e6eaf2";
+      return;
+    }
+    const cx = W/2 + xs[i] * (W*0.42);
+    const cy = H*0.85 - 2.7*S - ys[i] * (H*0.55);
+    const ang = angles[i];
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate(-ang);
+    // body
+    ctx.fillStyle = "#e6eaf2";
+    ctx.fillRect(-2.0*S, -2.0*S, 4.0*S, 2.8*S);
+    // window
+    ctx.fillStyle = "#7cf";
+    ctx.beginPath(); ctx.arc(0, -1.0*S, 0.6*S, 0, Math.PI*2); ctx.fill();
+    // legs
+    ctx.strokeStyle = "#cfd6e4"; ctx.lineWidth = Math.max(2, S*0.35);
+    ctx.beginPath();
+    ctx.moveTo(-2.0*S, 0.8*S); ctx.lineTo(-2.8*S, 2.4*S);
+    ctx.moveTo( 2.0*S, 0.8*S); ctx.lineTo( 2.8*S, 2.4*S);
+    ctx.stroke();
+    // landing feet
+    ctx.fillStyle = "#cfd6e4";
+    ctx.fillRect(-3.2*S, 2.3*S, 0.8*S, 0.4*S);
+    ctx.fillRect( 2.4*S, 2.3*S, 0.8*S, 0.4*S);
+    // thrust flames
+    const a = actions[i];
+    ctx.fillStyle = "#ffb84d";
+    if (a === 2) { // main engine — down
+      ctx.beginPath();
+      ctx.moveTo(-1.0*S, 0.8*S); ctx.lineTo(1.0*S, 0.8*S); ctx.lineTo(0, 3.2*S);
+      ctx.fill();
+    }
+    if (a === 1) { // left engine fires right (rotates lander left)
+      ctx.beginPath();
+      ctx.moveTo(2.0*S, -0.4*S); ctx.lineTo(2.0*S, 1.2*S); ctx.lineTo(3.6*S, 0.4*S);
+      ctx.fill();
+    }
+    if (a === 3) { // right engine fires left
+      ctx.beginPath();
+      ctx.moveTo(-2.0*S, -0.4*S); ctx.lineTo(-2.0*S, 1.2*S); ctx.lineTo(-3.6*S, 0.4*S);
+      ctx.fill();
+    }
+    ctx.restore();
+    i++;
+    setTimeout(() => requestAnimationFrame(draw), 30);
+  }
+  draw();
+}
+
+$("play").addEventListener("click", async () => {
+  $("msg").textContent = "Rolling out…";
+  try {
+    const res = await fetch("/rollout", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({seed: null, max_steps: 1000})});
+    if (!res.ok) { const j = await res.json(); throw new Error(j.detail); }
+    const r = await res.json();
+    $("outcome").textContent = "";
+    animate(r.xs, r.ys, r.angles, r.actions, r.outcome);
+    $("msg").textContent = "Done.";
+  } catch (e) { $("msg").textContent = "Error: " + e.message; }
+});
+
+async function loadDims() {
+  try {
+    const d = await fetch("/state_dims").then(r=>r.json());
+    const body = $("dimsBody");
+    body.innerHTML = "";
+    for (const dim of d.dims) {
+      const tr = document.createElement("tr");
+      tr.innerHTML =
+        `<td style="padding:6px 8px; color:var(--muted);">${dim.index}</td>` +
+        `<td style="padding:6px 8px; color:var(--ink); font-weight:600;">${dim.name}</td>` +
+        `<td style="padding:6px 8px; color:var(--accent); font-family:ui-monospace,Menlo,monospace;">${dim.range}</td>` +
+        `<td style="padding:6px 8px; color:var(--muted);">${dim.desc}</td>`;
+      body.appendChild(tr);
+    }
+  } catch (e) { /* fine */ }
+}
+
+loadDims();
+poll(); // initial render
+</script>
+</body>
+</html>
