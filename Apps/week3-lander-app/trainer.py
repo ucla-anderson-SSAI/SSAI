@@ -16,7 +16,7 @@ from __future__ import annotations
 import threading
 import time
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -312,12 +312,38 @@ class TrainingManager:
                 self._state.finished_at = time.time()
 
 
-# Module-level singleton (lazy)
-_manager: Optional[TrainingManager] = None
+# Session-keyed manager store (each student gets their own TrainingManager)
+_managers: Dict[str, TrainingManager] = {}
+_managers_lock = threading.Lock()
+_manager_last_access: Dict[str, float] = {}
+
+STALE_SESSION_SECONDS = 3600  # clean up sessions idle > 1 hour
 
 
-def get_manager() -> TrainingManager:
-    global _manager
-    if _manager is None:
-        _manager = TrainingManager()
-    return _manager
+def get_manager(session_id: str) -> TrainingManager:
+    """Return (or create) a TrainingManager for the given session_id."""
+    with _managers_lock:
+        _cleanup_stale()
+        _manager_last_access[session_id] = time.time()
+        if session_id not in _managers:
+            _managers[session_id] = TrainingManager()
+        return _managers[session_id]
+
+
+def _cleanup_stale():
+    """Remove sessions that haven't been accessed recently and aren't training."""
+    now = time.time()
+    to_delete = []
+    for sid, last in _manager_last_access.items():
+        if now - last > STALE_SESSION_SECONDS:
+            mgr = _managers.get(sid)
+            if mgr and not mgr._state.is_running:
+                to_delete.append(sid)
+    for sid in to_delete:
+        mgr = _managers.pop(sid, None)
+        _manager_last_access.pop(sid, None)
+        if mgr and mgr.vec_env:
+            try:
+                mgr.vec_env.close()
+            except Exception:
+                pass

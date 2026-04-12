@@ -14,7 +14,7 @@ Endpoints:
 import os
 from typing import List, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -102,17 +102,17 @@ def health():
 
 
 @app.post("/train/start")
-def train_start(req: StartRequest):
+def train_start(req: StartRequest, session_id: str = Query(...)):
     cfg = TrainConfig(**req.model_dump())
-    started = get_manager().start(cfg)
+    started = get_manager(session_id).start(cfg)
     if not started:
         raise HTTPException(status_code=409, detail="Training already running.")
     return {"started": True, "config": req.model_dump()}
 
 
 @app.post("/train/pause")
-def train_pause():
-    ok = get_manager().pause()
+def train_pause(session_id: str = Query(...)):
+    ok = get_manager(session_id).pause()
     return {"pause_requested": ok}
 
 
@@ -122,22 +122,22 @@ def state_dims():
 
 
 @app.post("/train/reset")
-def train_reset():
-    ok = get_manager().reset()
+def train_reset(session_id: str = Query(...)):
+    ok = get_manager(session_id).reset()
     if not ok:
         raise HTTPException(status_code=409, detail="Cannot reset while training is running.")
     return {"reset": True}
 
 
 @app.get("/train/status", response_model=StatusResponse)
-def train_status():
-    return StatusResponse(**get_manager().state_dict())
+def train_status(session_id: str = Query(...)):
+    return StatusResponse(**get_manager(session_id).state_dict())
 
 
 @app.post("/rollout", response_model=RolloutResponse)
-def rollout(req: RolloutRequest):
+def rollout(req: RolloutRequest, session_id: str = Query(...)):
     try:
-        result = get_manager().rollout(max_steps=req.max_steps, seed=req.seed)
+        result = get_manager(session_id).rollout(max_steps=req.max_steps, seed=req.seed)
         return RolloutResponse(**result)
     except RuntimeError as e:
         raise HTTPException(status_code=400, detail=str(e))

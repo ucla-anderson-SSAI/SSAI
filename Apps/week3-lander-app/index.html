@@ -175,6 +175,7 @@
 </div>
 
 <script>
+const SESSION_ID = crypto.randomUUID();
 const $ = (id) => document.getElementById(id);
 const labels = {targetEps:"vEps", lr:"vLr"};
 Object.keys(labels).forEach(id => {
@@ -231,7 +232,7 @@ function setBadge(state) {
 let pollTimer = null;
 async function poll() {
   try {
-    const s = await fetch("/train/status").then(r=>r.json());
+    const s = await fetch(`/train/status?session_id=${SESSION_ID}`).then(r=>r.json());
     $("epCount").textContent = `${s.episode_rewards.length.toLocaleString()} / ${s.target_episodes.toLocaleString()}`;
     $("ts").textContent = s.timesteps.toLocaleString();
     $("roll100").textContent = s.last_mean_reward ? s.last_mean_reward.toFixed(1) : "—";
@@ -282,7 +283,7 @@ $("start").addEventListener("click", async () => {
     learning_rate: +$("lr").value,
   };
   try {
-    const res = await fetch("/train/start", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body)});
+    const res = await fetch(`/train/start?session_id=${SESSION_ID}`, {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body)});
     if (!res.ok) { const j = await res.json(); throw new Error(j.detail); }
     $("msg").textContent = "Training started.";
     if (pollTimer) clearInterval(pollTimer);
@@ -292,13 +293,13 @@ $("start").addEventListener("click", async () => {
 });
 
 $("pause").addEventListener("click", async () => {
-  await fetch("/train/pause", {method:"POST"});
+  await fetch(`/train/pause?session_id=${SESSION_ID}`, {method:"POST"});
   $("msg").textContent = "Pause requested. Finishing current rollout…";
 });
 
 $("reset").addEventListener("click", async () => {
   try {
-    const res = await fetch("/train/reset", {method:"POST"});
+    const res = await fetch(`/train/reset?session_id=${SESSION_ID}`, {method:"POST"});
     if (!res.ok) { const j = await res.json(); throw new Error(j.detail); }
     if (curveChart) { curveChart.destroy(); curveChart = null; }
     $("msg").textContent = "Model reset.";
@@ -383,7 +384,7 @@ function animate(xs, ys, angles, actions, outcome) {
 $("play").addEventListener("click", async () => {
   $("msg").textContent = "Rolling out…";
   try {
-    const res = await fetch("/rollout", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({seed: null, max_steps: 1000})});
+    const res = await fetch(`/rollout?session_id=${SESSION_ID}`, {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({seed: null, max_steps: 1000})});
     if (!res.ok) { const j = await res.json(); throw new Error(j.detail); }
     const r = await res.json();
     $("outcome").textContent = "";

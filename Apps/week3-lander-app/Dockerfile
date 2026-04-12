@@ -18,4 +18,4 @@ COPY trainer.py .
 COPY index.html .
 
 # Run with gunicorn + uvicorn worker, single worker for background training thread
-CMD ["gunicorn", "-w", "1", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--bind", "0.0.0.0:8080", "--timeout", "600"]
+CMD ["gunicorn", "-w", "1", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--bind", "0.0.0.0:8080", "--timeout", "3600"]

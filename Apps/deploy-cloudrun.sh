@@ -93,7 +93,7 @@ deploy_week3_lander() {
         --region "$REGION" \
         --cpu "$CPU" \
         --memory "$MEMORY" \
-        --timeout 600 \
+        --timeout 3600 \
         --concurrency 3 \
         --min-instances "$MIN_INSTANCES" \
         --max-instances "$MAX_INSTANCES" \
