@@ -173,27 +173,16 @@ function SmallAreaChart({ data, dataKey, xKey, color, yMin, yMax }) {
 }
 
 // Pricing Strategy Chart - shows price by state for each policy
-function PricingStrategyChart({ policy, staticPrice, banditState, Q, theme }) {
-    const canvasRef = useRef(null);
-    const chartRef = useRef(null);
-
-    const STATES = [];
-    const STATE_LABELS = [];
-    ['high', 'medium', 'low'].forEach(cap => {
-        ['far', 'medium', 'near'].forEach(time => {
-            STATES.push(cap + '-' + time);
-            const capLabel = cap === 'high' ? '>70%' : cap === 'medium' ? '30-70%' : '<30%';
-            const timeLabel = time === 'far' ? '≥60d' : time === 'medium' ? '15-59d' : '<15d';
-            STATE_LABELS.push(capLabel + ' / ' + timeLabel);
-        });
-    });
-
-    const PRICE_LIST = [199, 249, 299, 349, 499, 699, 999, 1499];
+function PricingStrategyChart({ policy, staticPrice, banditState, Q, theme, currentState }) {
+    const PRICE_LIST = [199, 249, 299, 349, 499];
+    const CAP_BUCKETS = ['high', 'medium', 'low'];
+    const TIME_BUCKETS = ['far', 'medium', 'near'];
+    const CAP_LABELS = { high: '>70%', medium: '30-70%', low: '<30%' };
+    const TIME_LABELS = { far: '≥60d', medium: '15-59d', near: '<15d' };
 
     const getPriceForState = (state) => {
         if (policy === 'static') return staticPrice;
         if (policy === 'bandit') {
-            // Show the price with the highest average revenue (or most pulled)
             let bestPrice = PRICE_LIST[0];
             let bestAvg = -Infinity;
             PRICE_LIST.forEach(p => {
@@ -216,70 +205,21 @@ function PricingStrategyChart({ policy, staticPrice, banditState, Q, theme }) {
         return staticPrice;
     };
 
-    useEffect(() => {
-        if (!canvasRef.current) return;
-        if (chartRef.current) chartRef.current.destroy();
+    // Collect all prices to compute color scale for Q-learning
+    const allPrices = [];
+    CAP_BUCKETS.forEach(cap => TIME_BUCKETS.forEach(time => allPrices.push(getPriceForState(cap + '-' + time))));
+    const minP = Math.min(...allPrices);
+    const maxP = Math.max(...allPrices);
 
-        const prices = STATES.map(s => getPriceForState(s));
-        const isFlat = policy === 'static' || policy === 'bandit';
-        const barColor = policy === 'static' ? '#8BB8E8' : policy === 'bandit' ? theme.accent : theme.positive;
-
-        const ctx = canvasRef.current.getContext('2d');
-        chartRef.current = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: STATE_LABELS,
-                datasets: [{
-                    label: 'Price ($)',
-                    data: prices,
-                    backgroundColor: isFlat
-                        ? prices.map(() => barColor + '80')
-                        : prices.map((p, i) => {
-                            // Color intensity based on price level
-                            const minP = Math.min(...prices);
-                            const maxP = Math.max(...prices);
-                            const t = maxP > minP ? (p - minP) / (maxP - minP) : 0.5;
-                            // Interpolate from light blue to dark blue
-                            const r = Math.round(139 - t * 100);
-                            const g = Math.round(184 - t * 70);
-                            const b = Math.round(232 - t * 60);
-                            return `rgba(${r},${g},${b},0.85)`;
-                        }),
-                    borderColor: barColor,
-                    borderWidth: 1,
-                    borderRadius: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            title: (items) => items[0].label,
-                            label: (item) => '$' + item.raw
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        ticks: { color: '#666', font: { size: 9 }, maxRotation: 45, minRotation: 45 },
-                        grid: { display: false }
-                    },
-                    y: {
-                        min: 0,
-                        max: 1600,
-                        title: { display: true, text: 'Price ($)', color: '#666', font: { size: 10 } },
-                        ticks: { color: '#666', font: { size: 10 }, callback: (v) => '$' + v },
-                        grid: { color: '#e0e0e0' }
-                    }
-                }
-            }
-        });
-        return () => { if (chartRef.current) chartRef.current.destroy(); };
-    });
+    const getCellColor = (price) => {
+        if (policy !== 'qlearning' || maxP === minP) return '#f5f5f5';
+        const t = (price - minP) / (maxP - minP);
+        // Light blue to dark blue
+        const r = Math.round(220 - t * 180);
+        const g = Math.round(235 - t * 140);
+        const b = Math.round(255 - t * 80);
+        return `rgb(${r},${g},${b})`;
+    };
 
     const getPolicyLabel = () => {
         if (policy === 'static') return 'Static: Same price ($' + staticPrice + ') regardless of state';
@@ -289,9 +229,40 @@ function PricingStrategyChart({ policy, staticPrice, banditState, Q, theme }) {
 
     return (
         <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-            <h3 style={{ margin: '0 0 4px 0', fontSize: '0.8rem', color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pricing Strategy by State</h3>
+            <h3 style={{ margin: '0 0 4px 0', fontSize: '0.8rem', color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Price Table</h3>
             <p style={{ margin: '0 0 10px 0', fontSize: '0.7rem', color: '#999' }}>{getPolicyLabel()}</p>
-            <div style={{ height: '180px' }}><canvas ref={canvasRef} /></div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'auto repeat(3, 1fr)', gap: '4px', fontSize: '0.75rem' }}>
+                {/* Header row */}
+                <div style={{ padding: '6px', fontSize: '0.65rem', color: '#999' }}>Occupancy ↓ / Time →</div>
+                {TIME_BUCKETS.map(t => (
+                    <div key={t} style={{ textAlign: 'center', padding: '6px', fontSize: '0.65rem', color: '#666', fontWeight: '600' }}>{TIME_LABELS[t]}</div>
+                ))}
+                {/* Data rows */}
+                {CAP_BUCKETS.map(cap => (
+                    <React.Fragment key={cap}>
+                        <div style={{ padding: '6px', fontSize: '0.65rem', color: '#666', fontWeight: '600', display: 'flex', alignItems: 'center' }}>{CAP_LABELS[cap]}</div>
+                        {TIME_BUCKETS.map(time => {
+                            const state = cap + '-' + time;
+                            const price = getPriceForState(state);
+                            const isCurrent = currentState === state;
+                            return (
+                                <div key={time} style={{
+                                    textAlign: 'center',
+                                    padding: '10px 4px',
+                                    background: getCellColor(price),
+                                    borderRadius: '4px',
+                                    color: policy === 'qlearning' && maxP !== minP ? (((price - minP) / (maxP - minP)) > 0.6 ? '#fff' : theme.primary) : theme.primary,
+                                    fontWeight: '700',
+                                    border: isCurrent ? `2px solid ${theme.positive}` : '1px solid #e0e0e0',
+                                    transition: 'all 0.3s'
+                                }}>
+                                    ${price}
+                                </div>
+                            );
+                        })}
+                    </React.Fragment>
+                ))}
+            </div>
         </div>
     );
 }
@@ -299,7 +270,7 @@ function PricingStrategyChart({ policy, staticPrice, banditState, Q, theme }) {
 const TOTAL_SEATS = 75;
 const TOTAL_DAYS = 180;
 const ARRIVAL_RATE = 1; // Poisson lambda
-const PRICES = [199, 249, 299, 349, 499, 699, 999, 1499];
+const PRICES = [199, 249, 299, 349, 499];
 
 // Sample from Poisson distribution
 const samplePoisson = (lambda) => {
@@ -1144,7 +1115,7 @@ function AirlinePricingSimulator() {
                 {policy === 'static' && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f5f5f5', padding: '6px 12px', borderRadius: '6px', border: '1px solid rgba(0,0,0,0.1)' }}>
                     <span style={{ fontSize: '0.8rem', color: theme.primary, fontWeight: '600' }}>${staticPrice}</span>
-                    <input type="range" min={199} max={1499} step="1" value={staticPrice} onChange={(e) => { setStaticPrice(parseInt(e.target.value)); }} disabled={isRunning} style={{ width: '150px', accentColor: theme.primary }} />
+                    <input type="range" min={199} max={699} step="1" value={staticPrice} onChange={(e) => { setStaticPrice(parseInt(e.target.value)); }} disabled={isRunning} style={{ width: '150px', accentColor: theme.primary }} />
                   </div>
                 )}
                 {policy === 'qlearning' && <button onClick={() => setShowParams(!showParams)} style={{ background: showParams ? theme.primary : '#f5f5f5', border: '1px solid rgba(0,0,0,0.1)', color: showParams ? '#ffffff' : '#1a1a1a', padding: '8px 14px', borderRadius: '6px', fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s' }}>Settings</button>}
@@ -1253,30 +1224,8 @@ function AirlinePricingSimulator() {
                   banditState={banditState.current}
                   Q={Q.current}
                   theme={theme}
+                  currentState={getState(seatsRemaining, daysLeft)}
                 />
-
-                {/* Q-Learning Table */}
-                {policy === 'qlearning' && (
-                  <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: `1px solid ${theme.positive}30` }}>
-                    <h3 style={{ margin: '0 0 12px 0', fontSize: '0.8rem', color: theme.positive, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Q-Table: Learned Best Price Per State</h3>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'auto repeat(3, 1fr)', gap: '4px', fontSize: '0.7rem' }}>
-                      <div></div>
-                      {['far', 'medium', 'near'].map(t => <div key={t} style={{ textAlign: 'center', color: '#666', padding: '4px', fontSize: '0.65rem' }}>{t === 'far' ? '>=60d' : t === 'medium' ? '15-59d' : '<15d'}</div>)}
-                      {['high', 'medium', 'low'].map(cap => (
-                        <React.Fragment key={cap}>
-                          <div style={{ color: '#666', padding: '4px', fontSize: '0.65rem' }}>{cap === 'high' ? '>70%' : cap === 'medium' ? '30-70%' : '<30%'}</div>
-                          {['far', 'medium', 'near'].map(time => {
-                            const state = cap + '-' + time;
-                            let bestPrice = PRICES[0], bestQ = -Infinity;
-                            PRICES.forEach(p => { const q = getQValue(Q.current, state, p); if (q > bestQ) { bestQ = q; bestPrice = p; } });
-                            const isCurrent = getState(seatsRemaining, daysLeft) === state;
-                            return <div key={time} style={{ textAlign: 'center', padding: '8px 4px', background: isCurrent ? `${theme.positive}20` : '#f5f5f5', borderRadius: '4px', color: theme.accent, fontWeight: '700', border: isCurrent ? `2px solid ${theme.positive}` : '1px solid #e0e0e0' }}>${bestPrice}</div>;
-                          })}
-                        </React.Fragment>
-                      ))}
-                    </div>
-                  </div>
-                )}
 
                 {/* Bandit Stats */}
                 {policy === 'bandit' && (
