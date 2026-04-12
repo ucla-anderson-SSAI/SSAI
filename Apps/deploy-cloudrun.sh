@@ -51,6 +51,7 @@ if [ -z "$PROJECT" ]; then
 fi
 
 # Cloud Run settings per week
+WEEK3_LANDER_SERVICE="week3-lander-api"
 WEEK4_SERVICE="week4-nn-api"
 WEEK5_SERVICE="week5-cnn-api"
 WEEK6_SERVICE="week6-transformer-api"
@@ -79,8 +80,30 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # Determine which weeks to deploy
 WEEKS_TO_DEPLOY=("${@}")
 if [ ${#WEEKS_TO_DEPLOY[@]} -eq 0 ]; then
-    WEEKS_TO_DEPLOY=("week4" "week5" "week6")
+    WEEKS_TO_DEPLOY=("week3-lander" "week4" "week5" "week6")
 fi
+
+deploy_week3_lander() {
+    echo ""
+    echo "--- Deploying Week 3: Lunar Lander RL API ---"
+    cd "$SCRIPT_DIR/week3-lander-app"
+
+    gcloud run deploy "$WEEK3_LANDER_SERVICE" \
+        --source . \
+        --region "$REGION" \
+        --cpu "$CPU" \
+        --memory "$MEMORY" \
+        --timeout 600 \
+        --concurrency 3 \
+        --min-instances "$MIN_INSTANCES" \
+        --max-instances "$MAX_INSTANCES" \
+        --allow-unauthenticated \
+        --set-env-vars="PYTHONUNBUFFERED=1" \
+        --quiet
+
+    WEEK3_LANDER_URL=$(gcloud run services describe "$WEEK3_LANDER_SERVICE" --region "$REGION" --format='value(status.url)')
+    echo "Week 3 Lander API deployed: $WEEK3_LANDER_URL"
+}
 
 deploy_week4() {
     echo ""
@@ -151,10 +174,11 @@ deploy_week6() {
 # Deploy requested weeks
 for week in "${WEEKS_TO_DEPLOY[@]}"; do
     case "$week" in
+        week3-lander) deploy_week3_lander ;;
         week4) deploy_week4 ;;
         week5) deploy_week5 ;;
         week6) deploy_week6 ;;
-        *) echo "Unknown week: $week (expected week4, week5, or week6)" ;;
+        *) echo "Unknown week: $week (expected week3-lander, week4, week5, or week6)" ;;
     esac
 done
 
@@ -171,6 +195,11 @@ echo ""
 
 for week in "${WEEKS_TO_DEPLOY[@]}"; do
     case "$week" in
+        week3-lander)
+            echo "  Week 3 Lander (index.html): Update API_BASE_URL:"
+            echo "    ${WEEK3_LANDER_URL:-https://YOUR-WEEK3-LANDER-URL.run.app}"
+            echo ""
+            ;;
         week4)
             echo "  Week 4 (index.html): Add before </head>:"
             echo "    <script>window.API_BASE = '${WEEK4_URL:-https://YOUR-WEEK4-URL.run.app}';</script>"
