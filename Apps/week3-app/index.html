@@ -410,7 +410,6 @@ function AirlinePricingSimulator() {
   const [dayRevenue, setDayRevenue] = useState(0);
   const [revenueHistory, setRevenueHistory] = useState([]);
   const [qParams, setQParams] = useState({ learningRate: 0.15, discount: 0.9, epsilon: 0.1 });
-  const [banditExploration, setBanditExploration] = useState(50);
   const [showParams, setShowParams] = useState(false);
   const [policyResults, setPolicyResults] = useState({});
   const maxFlights = 100;
