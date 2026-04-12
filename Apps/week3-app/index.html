@@ -409,7 +409,7 @@ function AirlinePricingSimulator() {
   const [flightTickets, setFlightTickets] = useState(0);
   const [dayRevenue, setDayRevenue] = useState(0);
   const [revenueHistory, setRevenueHistory] = useState([]);
-  const [qParams, setQParams] = useState({ learningRate: 0.3, discount: 0.9, epsilon: 0.1 });
+  const [qParams, setQParams] = useState({ learningRate: 0.15, discount: 0.9, epsilon: 0.1 });
   const [banditExploration, setBanditExploration] = useState(50);
   const [showParams, setShowParams] = useState(false);
   const [policyResults, setPolicyResults] = useState({});
@@ -433,6 +433,7 @@ function AirlinePricingSimulator() {
   const dayStartState = useRef(null);
   const dayPrice = useRef(null);
   const stopRef = useRef(false);
+  const flightEndingRef = useRef(false);  // Prevent double flight-end processing
   const dayRevenueRef = useRef(0);
   const flightHistory = useRef([]);  // Track (state, action) pairs for Q-learning
 
@@ -440,6 +441,7 @@ function AirlinePricingSimulator() {
   const daysLeft = TOTAL_DAYS - currentDay + 1;
 
   const resetFlight = useCallback(() => {
+    flightEndingRef.current = false;
     setCurrentDay(1);
     setCustomerIndex(0);
     dailyCustomersRef.current = 0;
@@ -504,6 +506,10 @@ function AirlinePricingSimulator() {
     const dLeft = TOTAL_DAYS - currentDay + 1;
 
     if (currentDay > TOTAL_DAYS || seatsRem === 0) {
+      // Guard: prevent processing the same flight-end twice before React re-renders
+      if (flightEndingRef.current) return;
+      flightEndingRef.current = true;
+
       // End of flight: update bandit state with flight revenue
       if (policy === 'bandit' && banditFlightPrice.current !== null) {
         const price = banditFlightPrice.current;
