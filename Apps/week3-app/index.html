@@ -188,7 +188,7 @@ function PricingStrategyChart({ policy, staticPrice, banditState, Q, theme }) {
         });
     });
 
-    const PRICE_LIST = [199, 249, 299, 349, 499, 699];
+    const PRICE_LIST = [199, 249, 299, 349, 499, 699, 999, 1499];
 
     const getPriceForState = (state) => {
         if (policy === 'static') return staticPrice;
@@ -270,7 +270,7 @@ function PricingStrategyChart({ policy, staticPrice, banditState, Q, theme }) {
                     },
                     y: {
                         min: 0,
-                        max: 800,
+                        max: 1600,
                         title: { display: true, text: 'Price ($)', color: '#666', font: { size: 10 } },
                         ticks: { color: '#666', font: { size: 10 }, callback: (v) => '$' + v },
                         grid: { color: '#e0e0e0' }
@@ -299,7 +299,7 @@ function PricingStrategyChart({ policy, staticPrice, banditState, Q, theme }) {
 const TOTAL_SEATS = 75;
 const TOTAL_DAYS = 180;
 const ARRIVAL_RATE = 1; // Poisson lambda
-const PRICES = [199, 249, 299, 349, 499, 699];
+const PRICES = [199, 249, 299, 349, 499, 699, 999, 1499];
 
 // Sample from Poisson distribution
 const samplePoisson = (lambda) => {
