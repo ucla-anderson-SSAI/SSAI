@@ -17,9 +17,8 @@ COPY main.py .
 COPY trainer.py .
 COPY index.html .
 
-# Expose default port
+# Default port (Railway overrides via $PORT env var)
 ENV PORT=8080
 
-# Run with gunicorn + uvicorn worker, single worker for background training thread
-# Use shell form so $PORT is expanded from the environment variable Railway injects
-CMD gunicorn -w 1 -k uvicorn.workers.UvicornWorker main:app --bind 0.0.0.0:$PORT --timeout 3600
+# Use python main.py which reads PORT from env natively — no shell expansion issues
+CMD ["python", "main.py"]
