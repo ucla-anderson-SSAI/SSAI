@@ -117,8 +117,8 @@ deploy_week4() {
         --cpu "$CPU" \
         --memory "$MEMORY" \
         --timeout 300 \
-        --concurrency 3 \
-        --min-instances "$MIN_INSTANCES" \
+        --concurrency 10 \
+        --min-instances 1 \
         --max-instances "$MAX_INSTANCES" \
         --allow-unauthenticated \
         --set-env-vars="PYTHONUNBUFFERED=1" \
@@ -139,8 +139,8 @@ deploy_week5() {
         --cpu "$CPU" \
         --memory "$MEMORY" \
         --timeout 600 \
-        --concurrency 3 \
-        --min-instances "$MIN_INSTANCES" \
+        --concurrency 10 \
+        --min-instances 1 \
         --max-instances "$MAX_INSTANCES" \
         --allow-unauthenticated \
         --set-env-vars="PYTHONUNBUFFERED=1" \
@@ -161,8 +161,8 @@ deploy_week6() {
         --cpu "$CPU" \
         --memory "$MEMORY" \
         --timeout 900 \
-        --concurrency 3 \
-        --min-instances "$MIN_INSTANCES" \
+        --concurrency 8 \
+        --min-instances 1 \
         --max-instances "$MAX_INSTANCES" \
         --allow-unauthenticated \
         --set-env-vars="PYTHONUNBUFFERED=1" \
