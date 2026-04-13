@@ -59,10 +59,13 @@ function createBanditStepper(method, trueRates, prices, epsilon, ucbC, seed) {
     const rng = makeRng(seed);
     const pulls = Array(k).fill(0), conv = Array(k).fill(0);
     const totRew = Array(k).fill(0), estRev = Array(k).fill(0);
-    /* Thompson models revenue directly via a Gaussian posterior on mean revenue per pull.
-       Track sum of revenue (sumR) and sum of squared revenue (sumR2) for a running variance.
-       Posterior ~ Normal(mean = sumR/n, variance = sampleVar/n), sampled each step. */
-    const sumR = Array(k).fill(0), sumR2 = Array(k).fill(0);
+    /* Thompson models revenue directly by maintaining a Beta posterior on the
+       conversion rate for each arm and comparing arms on sampled_rate * price
+       (i.e. expected revenue per pull). Prior Beta(2, 8) has prior mean 0.2
+       with a prior sample size of 10 — weakly informative, overwhelmed by
+       real data within ~20–30 pulls per arm. */
+    const PRIOR_A = 2, PRIOR_B = 8;
+    const als = Array(k).fill(PRIOR_A), bts = Array(k).fill(PRIOR_B);
     let t = 0, cumRev = 0;
 
     function step() {
@@ -77,31 +80,19 @@ function createBanditStepper(method, trueRates, prices, epsilon, ucbC, seed) {
             if (t < k) arm = t;
             else { let best=-Infinity; arm=0;
                 for (let a=0;a<k;a++){const v=totRew[a]/Math.max(pulls[a],1)+ucbC*Math.sqrt(Math.log(t)/Math.max(pulls[a],1));if(v>best){best=v;arm=a;}} }
-        } else { // thompson — Gaussian posterior on mean revenue per pull
-            if (t < k) arm = t; /* one pull per arm to seed variance estimate */
-            else {
-                let best=-Infinity; arm=0;
-                for(let a=0;a<k;a++){
-                    const n = pulls[a];
-                    const mean = sumR[a]/n;
-                    /* sample variance with Bessel's correction; floor to avoid collapse */
-                    const rawVar = n>1 ? (sumR2[a] - n*mean*mean)/(n-1) : prices[a]*prices[a];
-                    const sVar = Math.max(rawVar, 1e-6);
-                    /* posterior variance of the mean shrinks as 1/n */
-                    const postSd = Math.sqrt(sVar / n);
-                    /* sample from Normal(mean, postSd) using Box-Muller */
-                    const u1 = Math.max(rng.random(), 1e-12), u2 = rng.random();
-                    const z = Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2);
-                    const sample = mean + postSd * z;
-                    if (sample > best) { best = sample; arm = a; }
-                }
+        } else { // thompson — Beta posterior on rate, compared on sampled_rate * price
+            let best=-Infinity; arm=0;
+            for(let a=0;a<k;a++){
+                const sampledRate = rng.beta(als[a], bts[a]);
+                const sampledRev = sampledRate * prices[a];
+                if (sampledRev > best) { best = sampledRev; arm = a; }
             }
         }
         pulls[arm]++;
         const converted = rng.random() < trueRates[arm];
-        if (converted) conv[arm]++;
+        if (converted) { conv[arm]++; if(method==='thompson') als[arm]++; }
+        else { if(method==='thompson') bts[arm]++; }
         const rev = converted ? prices[arm] : 0;
-        sumR[arm] += rev; sumR2[arm] += rev*rev;
         totRew[arm] += rev; estRev[arm] = totRew[arm]/pulls[arm];
         cumRev += rev; t++;
         return { arm, converted, rev, cumRev, t, pulls: [...pulls], conv: [...conv],
