@@ -454,8 +454,8 @@ const BanditRates = ({chartData, pr, tr, expR, bestA}) => {
    Q-LEARNING TAB (unchanged)
    ════════════════════════════════ */
 const QLTab = () => {
-    const [nEp,setNEp]=useState(1000);const [alpha,setAlpha]=useState(0.2);const [gamma,setGamma]=useState(0.9);
-    const [epsQ,setEpsQ]=useState(0.1);const seed=42;
+    const [nEp,setNEp]=useState(1000);const [alpha,setAlpha]=useState(0.15);const [gamma,setGamma]=useState(0.9);
+    const [epsQ,setEpsQ]=useState(0.05);const seed=42;
     const [running,setRunning]=useState(false);const [res,setRes]=useState(null);const [snapIdx,setSnapIdx]=useState(null);
     const [progress,setProgress]=useState(0);const [speed,setSpeed]=useState(10);const cancelRef=useRef(false);
 
