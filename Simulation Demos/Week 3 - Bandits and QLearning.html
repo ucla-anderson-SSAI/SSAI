@@ -177,13 +177,13 @@ const Header = ({tab,setTab}) => (
    ════════════════════════════════════════════════ */
 const BanditsTab = () => {
     const [nArr, setNArr] = useState(1000);
-    const [eps, setEps] = useState(0.1);
+    const [eps, setEps] = useState(0.3);
     const ucbC = 2.0;
     const [seed, setSeed] = useState(42);
-    const [r0, setR0] = useState(0.082);
-    const [r1, setR1] = useState(0.062);
-    const [r2, setR2] = useState(0.049);
-    const [r3, setR3] = useState(0.040);
+    const [r0, setR0] = useState(0.090);
+    const [r1, setR1] = useState(0.075);
+    const [r2, setR2] = useState(0.025);
+    const [r3, setR3] = useState(0.010);
     const [method, setMethod] = useState('thompson');
     const [running, setRunning] = useState(false);
     const [speed, setSpeed] = useState(10);
