@@ -95,6 +95,7 @@ deploy_week3_lander() {
         --memory "$MEMORY" \
         --timeout 3600 \
         --concurrency 3 \
+        --no-cpu-throttling \
         --min-instances "$MIN_INSTANCES" \
         --max-instances "$MAX_INSTANCES" \
         --allow-unauthenticated \

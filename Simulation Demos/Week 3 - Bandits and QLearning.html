@@ -159,7 +159,7 @@ const Header = ({tab,setTab}) => (
 const BanditsTab = () => {
     const [nArr, setNArr] = useState(1000);
     const [eps, setEps] = useState(0.1);
-    const [ucbC, setUcbC] = useState(2.0);
+    const ucbC = 2.0;
     const [seed, setSeed] = useState(42);
     const [r0, setR0] = useState(0.063);
     const [r1, setR1] = useState(0.06);
@@ -236,7 +236,6 @@ const BanditsTab = () => {
                     </select>
                     <Slider label="Arrivals" value={nArr} onChange={setNArr} min={100} max={5000} step={100} disabled={running}/>
                     <Slider label="ε (epsilon-greedy)" value={eps} onChange={setEps} min={0.01} max={0.5} step={0.01} disabled={running || (method!=='epsilon_greedy')}/>
-                    <Slider label="c (UCB)" value={ucbC} onChange={setUcbC} min={0.1} max={5.0} step={0.1} disabled={running || (method!=='ucb')}/>
                     <div style={{marginBottom:'0.5rem'}}>
                         <label style={{fontSize:'0.875rem',fontWeight:500,display:'block',marginBottom:'0.5rem'}}>Speed</label>
                         <div style={{display:'flex',gap:'0.5rem'}}>
@@ -325,17 +324,9 @@ const LiveTiles = ({prices, liveStep, progress, running, method, nArr}) => {
                             <div style={{fontSize:'0.7rem',color:C.mut,marginBottom:'0.5rem'}}>
                                 {isChosen ? (converted ? '✓ Converted!' : '✗ No sale') : '\u00A0'}
                             </div>
-                            <div style={{display:'flex',justifyContent:'space-between',fontSize:'0.75rem'}}>
-                                <span style={{color:C.mut}}>Shown</span>
-                                <span style={{fontWeight:600}}>{pulls} ({pct}%)</span>
-                            </div>
-                            <div style={{display:'flex',justifyContent:'space-between',fontSize:'0.75rem'}}>
-                                <span style={{color:C.mut}}>Conv</span>
-                                <span style={{fontWeight:600,color:C.gn}}>{conversions}</span>
-                            </div>
-                            <div style={{display:'flex',justifyContent:'space-between',fontSize:'0.75rem'}}>
-                                <span style={{color:C.mut}}>Est Rate</span>
-                                <span style={{fontWeight:600}}>{pulls>0?((conversions/pulls)*100).toFixed(1):'--'}%</span>
+                            <div style={{fontSize:'0.75rem',textAlign:'center'}}>
+                                <span style={{color:C.mut}}>Conversion rate: </span>
+                                <span style={{fontWeight:600,color:C.gn}}>{conversions}/{pulls}</span>
                             </div>
                         </div>
                     );
@@ -444,8 +435,8 @@ const BanditRates = ({chartData, pr, tr, expR, bestA}) => {
    Q-LEARNING TAB (unchanged)
    ════════════════════════════════ */
 const QLTab = () => {
-    const [nEp,setNEp]=useState(1000);const [alpha,setAlpha]=useState(0.1);const [gamma,setGamma]=useState(1.0);
-    const [epsQ,setEpsQ]=useState(1.0);const seed=42;
+    const [nEp,setNEp]=useState(1000);const [alpha,setAlpha]=useState(0.2);const [gamma,setGamma]=useState(0.9);
+    const [epsQ,setEpsQ]=useState(0.1);const seed=42;
     const [running,setRunning]=useState(false);const [res,setRes]=useState(null);const [snapIdx,setSnapIdx]=useState(null);
     const [progress,setProgress]=useState(0);const [speed,setSpeed]=useState(10);const cancelRef=useRef(false);
 
@@ -543,7 +534,6 @@ const QLTab = () => {
                         Stop</button> :
                     <RunBtn onClick={run} running={false} label="Train Q-Learning"/>}
                 <Card><h3 style={{fontSize:'0.95rem',fontWeight:600,marginBottom:'0.5rem'}}>Purchase Probabilities</h3>
-                    <p style={{fontSize:'0.7rem',color:C.mut,marginBottom:'0.5rem'}}>P(sale) given one customer/day</p>
                     <table style={{width:'100%',borderCollapse:'collapse',fontSize:'0.75rem'}}>
                         <thead><tr style={{borderBottom:`2px solid ${C.bdr}`}}>
                             <th style={{padding:'0.3rem',textAlign:'left',color:C.mut}}>Day</th>
@@ -551,7 +541,7 @@ const QLTab = () => {
                         <tbody>{DAYS.map((d,i)=><tr key={d} style={{borderBottom:`1px solid ${C.bdr}`}}>
                             <td style={{padding:'0.3rem',fontWeight:500}}>{d}</td>
                             {PRICES.map(p=><td key={p} style={{padding:'0.3rem',textAlign:'center'}}>{PROB_BUY[p][i]}</td>)}</tr>)}</tbody></table>
-                    <p style={{fontSize:'0.65rem',color:C.mut,marginTop:'0.4rem'}}>Start: {START_INV} cakes · Unsold cakes expire Sun night</p></Card>
+                    </Card>
             </div>
             <div style={{display:'flex',flexDirection:'column',gap:'1rem'}}>
                 {/* Progress bar */}
@@ -594,7 +584,7 @@ const QChart=({res,nEp})=>{const ref=useRef(null),ch=useRef(null);
         chart.options.scales.x.max=nEp;chart.update('none');},[res,nEp]);
     return<Card><h3 style={{fontSize:'1rem',fontWeight:600,marginBottom:'0.5rem'}}>Revenue per Episode</h3><div style={{height:280}}><canvas ref={ref}/></div></Card>;};
 const QPolicy=({res,snapIdx,setSnapIdx})=>{if(!res)return<Card style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:200}}><p style={{color:C.mut}}>Waiting...</p></Card>;const snap=res.snaps[snapIdx]||res.snaps[res.snaps.length-1];const pc={15:'#8BB8E8',35:'#005587'};return<Card><h3 style={{fontSize:'1rem',fontWeight:600,marginBottom:'0.5rem'}}>Learned Policy</h3><div style={{display:'flex',gap:'0.3rem',marginBottom:'0.75rem',flexWrap:'wrap'}}>{res.snaps.map((s,i)=><button key={i} onClick={()=>setSnapIdx(i)} style={{padding:'0.25rem 0.5rem',borderRadius:4,border:'none',cursor:'pointer',fontSize:'0.7rem',fontWeight:500,background:snapIdx===i?C.pri:'rgba(39,116,174,0.1)',color:snapIdx===i?'#fff':C.tx}}>Ep {s.episode}</button>)}</div><table style={{width:'100%',borderCollapse:'collapse',fontSize:'0.75rem'}}><thead><tr><th style={{padding:'0.3rem',textAlign:'left',color:C.mut,fontSize:'0.7rem'}}>Day\Inv</th>{INV_LABELS.map(l=><th key={l} style={{padding:'0.3rem',textAlign:'center',color:C.mut,fontSize:'0.65rem'}}>{l}</th>)}</tr></thead><tbody>{DAYS.map((d,di)=><tr key={d}><td style={{padding:'0.3rem',fontWeight:600,fontSize:'0.75rem'}}>{d}</td>{INV_LABELS.map((iv,ii)=>{const k=`${d}_${iv}`;const isReachable=REACHABLE.some(st=>st.d===di&&invIdx(st.inv)===ii);const p=snap.policy[k];if(!isReachable)return<td key={iv} style={{padding:'0.3rem',textAlign:'center',color:'#ccc',fontSize:'0.7rem'}}>—</td>;return<td key={iv} style={{padding:'0.3rem',textAlign:'center',fontWeight:700,background:pc[p]||'#eee',color:p===35?'#fff':'#1a1a1a',borderRadius:3,fontSize:'0.8rem'}}>${p}</td>;})}</tr>)}</tbody></table><div style={{display:'flex',gap:'1rem',marginTop:'0.5rem',justifyContent:'center'}}>{PRICES.map(p=><div key={p} style={{display:'flex',alignItems:'center',gap:'0.25rem'}}><div style={{width:12,height:12,borderRadius:2,background:pc[p]}}/><span style={{fontSize:'0.7rem',color:C.mut}}>${p}</span></div>)}</div></Card>;};
-const QTable=({res,snapIdx})=>{if(!res)return<Card style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:200}}><p style={{color:C.mut}}>Waiting...</p></Card>;const snap=res.snaps[snapIdx]||res.snaps[res.snaps.length-1];return<Card><h3 style={{fontSize:'1rem',fontWeight:600,marginBottom:'0.5rem'}}>Q-Values (reachable states)</h3><table style={{width:'100%',borderCollapse:'collapse',fontSize:'0.8rem'}}><thead><tr style={{borderBottom:`2px solid ${C.bdr}`}}><th style={{padding:'0.4rem',textAlign:'left',color:C.mut}}>State</th>{PRICES.map(p=><th key={p} style={{padding:'0.4rem',textAlign:'center',color:C.pri,fontWeight:600}}>Q(·,${p})</th>)}<th style={{padding:'0.4rem',textAlign:'center',color:C.gn,fontWeight:600}}>Best</th></tr></thead><tbody>{REACHABLE.map(st=>{const k=`${DAYS[st.d]}_${INV_LABELS[invIdx(st.inv)]}`;const qv=snap.qValues[k]||PRICES.map(()=>0);const mx=Math.max(...qv);const bi=qv.indexOf(mx);return<tr key={k} style={{borderBottom:`1px solid ${C.bdr}`}}><td style={{padding:'0.4rem',fontWeight:600}}>{DAYS[st.d]}, {st.inv}🎂</td>{qv.map((v,i)=><td key={i} style={{padding:'0.4rem',textAlign:'center',fontWeight:v===mx&&mx>0?700:400,color:v===mx&&mx>0?C.gn:C.tx,background:v===mx&&mx>0?'rgba(46,125,50,0.08)':'transparent'}}>{v.toFixed(1)}</td>)}<td style={{padding:'0.4rem',textAlign:'center',fontWeight:700,color:C.gn}}>${PRICES[bi]}</td></tr>;})}</tbody></table></Card>;};
+const QTable=({res,snapIdx})=>{if(!res)return<Card style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:200}}><p style={{color:C.mut}}>Waiting...</p></Card>;const snap=res.snaps[snapIdx]||res.snaps[res.snaps.length-1];return<Card><h3 style={{fontSize:'1rem',fontWeight:600,marginBottom:'0.5rem'}}>Q-Values (reachable states)</h3><table style={{width:'100%',borderCollapse:'collapse',fontSize:'0.8rem'}}><thead><tr style={{borderBottom:`2px solid ${C.bdr}`}}><th style={{padding:'0.4rem',textAlign:'left',color:C.mut}}>State</th>{PRICES.map(p=><th key={p} style={{padding:'0.4rem',textAlign:'center',color:C.pri,fontWeight:600}}>Q(·,${p})</th>)}<th style={{padding:'0.4rem',textAlign:'center',color:C.gn,fontWeight:600}}>Best</th></tr></thead><tbody>{REACHABLE.map(st=>{const k=`${DAYS[st.d]}_${INV_LABELS[invIdx(st.inv)]}`;const qv=snap.qValues[k]||PRICES.map(()=>0);const mx=Math.max(...qv);const bi=qv.indexOf(mx);return<tr key={k} style={{borderBottom:`1px solid ${C.bdr}`}}><td style={{padding:'0.4rem',fontWeight:600}}>{DAYS[st.d]}, {st.inv} {st.inv===1?'cake':'cakes'}</td>{qv.map((v,i)=><td key={i} style={{padding:'0.4rem',textAlign:'center',fontWeight:v===mx&&mx>0?700:400,color:v===mx&&mx>0?C.gn:C.tx,background:v===mx&&mx>0?'rgba(46,125,50,0.08)':'transparent'}}>{v.toFixed(1)}</td>)}<td style={{padding:'0.4rem',textAlign:'center',fontWeight:700,color:C.gn}}>${PRICES[bi]}</td></tr>;})}</tbody></table></Card>;};
 
 /* ════════════ APP ════════════ */
 const App = () => {
