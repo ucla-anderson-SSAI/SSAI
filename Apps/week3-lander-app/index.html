@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Lunar Lander · Live PPO</title>
+<title>Week 3: Lunar Lander with Reinforcement Learning | UCLA Anderson MGMT298D</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
   :root { --bg:#0b1020; --panel:#141a32; --ink:#e6eaf2; --muted:#9aa3b2; --accent:#7cf; --good:#7be495; --bad:#ff6b6b; --warn:#ffb84d; }
@@ -40,7 +40,7 @@
 </head>
 <body>
 <header>
-  <h1>Lunar Lander with Reinforcement Learning</h1>
+  <h1>Week 3: Lunar Lander with Reinforcement Learning</h1>
 </header>
 
 <div class="wrap">
@@ -103,6 +103,46 @@
         </thead>
         <tbody id="dimsBody"></tbody>
       </table>
+    </div>
+
+    <div class="panel" style="margin-top:18px;">
+      <h2 style="font-size:16px;">Action space</h2>
+      <div style="display:flex; align-items:center; gap:24px; justify-content:center; padding:12px 0;">
+        <svg viewBox="0 0 360 220" style="width:100%; max-width:480px; height:auto;">
+          <!-- Lander body -->
+          <rect x="145" y="70" width="70" height="50" rx="4" fill="#e6eaf2"/>
+          <!-- Window -->
+          <circle cx="180" cy="88" r="10" fill="#7cf"/>
+          <!-- Left leg -->
+          <line x1="150" y1="120" x2="130" y2="150" stroke="#cfd6e4" stroke-width="3" stroke-linecap="round"/>
+          <rect x="120" y="148" width="16" height="5" rx="2" fill="#cfd6e4"/>
+          <!-- Right leg -->
+          <line x1="210" y1="120" x2="230" y2="150" stroke="#cfd6e4" stroke-width="3" stroke-linecap="round"/>
+          <rect x="224" y="148" width="16" height="5" rx="2" fill="#cfd6e4"/>
+
+          <!-- Main thruster flame (down) -->
+          <polygon points="165,120 195,120 180,160" fill="#ffb84d" opacity="0.7"/>
+          <!-- Main thruster label -->
+          <text x="180" y="182" text-anchor="middle" fill="#ffb84d" font-size="12" font-weight="600">Main engine</text>
+          <text x="180" y="196" text-anchor="middle" fill="#9aa3b2" font-size="10">(action 2)</text>
+
+          <!-- Left thruster flame (fires right, from left side) -->
+          <polygon points="145,82 145,105 120,93" fill="#ffb84d" opacity="0.7"/>
+          <!-- Left thruster label -->
+          <text x="68" y="75" text-anchor="middle" fill="#ffb84d" font-size="12" font-weight="600">Left engine</text>
+          <text x="68" y="89" text-anchor="middle" fill="#9aa3b2" font-size="10">(action 1)</text>
+
+          <!-- Right thruster flame (fires left, from right side) -->
+          <polygon points="215,82 215,105 240,93" fill="#ffb84d" opacity="0.7"/>
+          <!-- Right thruster label -->
+          <text x="292" y="75" text-anchor="middle" fill="#ffb84d" font-size="12" font-weight="600">Right engine</text>
+          <text x="292" y="89" text-anchor="middle" fill="#9aa3b2" font-size="10">(action 3)</text>
+
+          <!-- Do nothing label -->
+          <text x="180" y="42" text-anchor="middle" fill="#9aa3b2" font-size="12" font-weight="600">Do nothing</text>
+          <text x="180" y="56" text-anchor="middle" fill="#9aa3b2" font-size="10">(action 0)</text>
+        </svg>
+      </div>
     </div>
 
     <div class="panel" style="margin-top:18px;">

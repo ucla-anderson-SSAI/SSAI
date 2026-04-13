@@ -212,7 +212,7 @@ def get_model_summary(model: keras.Model) -> str:
     return "\n".join(string_list)
 
 
-@app.get("/")
+@app.get("/health")
 async def health_check():
     """Health check endpoint."""
     return {
@@ -478,7 +478,7 @@ async def compare_models():
 # Serve frontend
 app.mount("/static", StaticFiles(directory="."), name="static")
 
-@app.get("/app")
+@app.get("/")
 async def serve_frontend():
     """Serve the frontend application."""
     return FileResponse("index.html")

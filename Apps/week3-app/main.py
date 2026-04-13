@@ -350,7 +350,7 @@ def train_qlearning(
 
 
 # ============== API Endpoints ==============
-@app.get("/")
+@app.get("/health")
 def health_check():
     return {
         "status": "healthy",
@@ -452,7 +452,7 @@ def compare_qlearning_params(request: QLearningCompareRequest):
 # Serve frontend
 app.mount("/static", StaticFiles(directory="."), name="static")
 
-@app.get("/app")
+@app.get("/")
 async def serve_frontend():
     """Serve the frontend application."""
     return FileResponse("index.html")

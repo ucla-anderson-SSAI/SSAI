@@ -370,7 +370,7 @@ def load_reuters_data(max_len: int = 200, max_words: int = 10000):
 # API Endpoints
 # ============================================================================
 
-@app.get("/", tags=["Health"])
+@app.get("/health", tags=["Health"])
 async def health_check():
     """Health check endpoint."""
     embeddings_loaded = len(glove_embeddings) > 0
@@ -692,7 +692,7 @@ async def get_model_info():
 # Serve frontend
 app.mount("/static", StaticFiles(directory="."), name="static")
 
-@app.get("/app")
+@app.get("/")
 async def serve_frontend():
     """Serve the frontend application."""
     return FileResponse("index.html")

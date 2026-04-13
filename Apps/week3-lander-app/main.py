@@ -91,7 +91,7 @@ class RolloutResponse(BaseModel):
 
 
 # ============== Endpoints ==============
-@app.get("/")
+@app.get("/health")
 def health():
     return {
         "status": "healthy",
@@ -149,7 +149,7 @@ def rollout(req: RolloutRequest, session_id: str = Query(...)):
 app.mount("/static", StaticFiles(directory="."), name="static")
 
 
-@app.get("/app")
+@app.get("/")
 async def serve_frontend():
     return FileResponse("index.html")
 
