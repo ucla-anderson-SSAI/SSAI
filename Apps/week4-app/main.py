@@ -491,13 +491,13 @@ async def compare_models():
     return await loop.run_in_executor(None, _compare_models_sync)
 
 
-# Serve frontend
-app.mount("/static", StaticFiles(directory="."), name="static")
-
 @app.get("/")
 async def serve_frontend():
     """Serve the frontend application."""
     return FileResponse("index.html")
+
+# Serve static assets — mounted AFTER explicit routes so they take priority
+app.mount("/static", StaticFiles(directory="."), name="static")
 
 
 if __name__ == "__main__":
