@@ -1006,12 +1006,14 @@
                 return ACTIVATION_COLORS[activation] || colors.primary;
             };
 
-            // Calculate which nodes are "firing" during animation
-            const getFiringIntensity = (layerIdx, nodeIdx) => {
+            // Calculate firing intensity during training — one clean wave that
+            // sweeps left-to-right through the layers. Each layer pulses as a
+            // unit instead of every node firing independently.
+            const getFiringIntensity = (layerIdx) => {
                 if (!isTraining) return 0;
-                const phase = (animationPhase + layerIdx * 15 - nodeIdx * 5) % 100;
-                if (phase < 30) return phase / 30;
-                if (phase < 60) return 1 - (phase - 30) / 30;
+                const phase = (animationPhase + layerIdx * 20) % 100;
+                if (phase < 25) return phase / 25;
+                if (phase < 50) return 1 - (phase - 25) / 25;
                 return 0;
             };
 
@@ -1045,31 +1047,27 @@
                         </filter>
                     </defs>
 
-                    {/* Draw connections */}
-                    {nodePositions.slice(0, -1).map((layerNodes, layerIdx) =>
-                        layerNodes.map((node, nodeIdx) =>
-                            nodePositions[layerIdx + 1].map((nextNode, nextIdx) => {
-                                const opacity = isTraining
-                                    ? 0.1 + getFiringIntensity(layerIdx, nodeIdx) * 0.4
-                                    : 0.15;
-                                return (
-                                    <line
-                                        key={`conn-${layerIdx}-${nodeIdx}-${nextIdx}`}
-                                        x1={node.x}
-                                        y1={node.y}
-                                        x2={nextNode.x}
-                                        y2={nextNode.y}
-                                        stroke={isTraining ? ACTIVATION_COLORS[activation] : '#9ca3af'}
-                                        strokeWidth={isTraining ? 1 + getFiringIntensity(layerIdx, nodeIdx) : 0.5}
-                                        opacity={opacity}
-                                        style={isTraining ? {
-                                            animation: `flowRight ${0.5 + Math.random() * 0.5}s linear infinite`
-                                        } : {}}
-                                    />
-                                );
-                            })
-                        )
-                    )}
+                    {/* Draw connections — static lines, gently brighten with the
+                        per-layer firing wave during training. */}
+                    {nodePositions.slice(0, -1).map((layerNodes, layerIdx) => {
+                        const layerFiring = getFiringIntensity(layerIdx);
+                        const connOpacity = isTraining ? 0.15 + layerFiring * 0.25 : 0.15;
+                        const connStroke = isTraining ? ACTIVATION_COLORS[activation] : '#9ca3af';
+                        return layerNodes.map((node, nodeIdx) =>
+                            nodePositions[layerIdx + 1].map((nextNode, nextIdx) => (
+                                <line
+                                    key={`conn-${layerIdx}-${nodeIdx}-${nextIdx}`}
+                                    x1={node.x}
+                                    y1={node.y}
+                                    x2={nextNode.x}
+                                    y2={nextNode.y}
+                                    stroke={connStroke}
+                                    strokeWidth={0.5}
+                                    opacity={connOpacity}
+                                />
+                            ))
+                        );
+                    })}
 
                     {/* Draw batch normalization layers */}
                     {batchNorm && networkLayout.slice(1, -1).map((layer, idx) => {
@@ -1101,11 +1099,12 @@
                         );
                     })}
 
-                    {/* Draw nodes */}
-                    {nodePositions.map((layerNodes, layerIdx) =>
-                        layerNodes.map((node, nodeIdx) => {
+                    {/* Draw nodes — whole layer fires as one unit, subtle
+                        opacity shift only, no radius pumping or stacked glows. */}
+                    {nodePositions.map((layerNodes, layerIdx) => {
+                        const layerFiring = getFiringIntensity(layerIdx);
+                        return layerNodes.map((node, nodeIdx) => {
                             const color = getNodeColor(node.layerType, nodeIdx);
-                            const firingIntensity = getFiringIntensity(layerIdx, nodeIdx);
                             const radius = node.layerType === 'input' ? 4 : (node.layerType === 'output' ? 14 : 8);
 
                             return (
@@ -1113,10 +1112,9 @@
                                     <circle
                                         cx={node.x}
                                         cy={node.y}
-                                        r={radius + firingIntensity * 4}
+                                        r={radius}
                                         fill={color}
-                                        opacity={node.isDropout ? 0.3 : 0.8 + firingIntensity * 0.2}
-                                        filter={firingIntensity > 0.5 ? 'url(#strongGlow)' : (firingIntensity > 0 ? 'url(#glow)' : 'none')}
+                                        opacity={node.isDropout ? 0.3 : 0.7 + layerFiring * 0.3}
                                         strokeDasharray={node.isDropout ? '3,2' : 'none'}
                                         stroke={node.isDropout ? color : 'none'}
                                         strokeWidth={node.isDropout ? 1.5 : 0}
@@ -1135,41 +1133,8 @@
                                     )}
                                 </g>
                             );
-                        })
-                    )}
-
-                    {/* Draw feature list representation */}
-                    <g transform={`translate(${padding.left - 40}, ${svgHeight / 2 - 50})`}>
-                        <rect
-                            width={30}
-                            height={80}
-                            fill="none"
-                            stroke="#6b7280"
-                            strokeWidth={1}
-                            opacity={0.5}
-                            rx={4}
-                        />
-                        {[0, 1, 2, 3, 4].map(row => (
-                            <rect
-                                key={`feature-${row}`}
-                                x={4}
-                                y={4 + row * 15}
-                                width={22}
-                                height={12}
-                                fill={`rgba(107, 114, 128, ${0.3 + Math.random() * 0.5})`}
-                                rx={2}
-                            />
-                        ))}
-                        <text
-                            x={15}
-                            y={95}
-                            textAnchor="middle"
-                            fill="#6b7280"
-                            fontSize="7"
-                        >
-                            30 features
-                        </text>
-                    </g>
+                        });
+                    })}
 
                     {/* Layer labels */}
                     {networkLayout.map((layer, idx) => (
@@ -1341,8 +1306,10 @@
             // Network configuration
             const [hiddenLayers, setHiddenLayers] = useState([64, 32]);
             const [activation, setActivation] = useState('relu');
-            const [dropout, setDropout] = useState(0.2);
-            const [batchNorm, setBatchNorm] = useState(true);
+            // Dropout UI removed — dropout is disabled entirely.
+            // Batch-norm UI removed — batch norm is always on.
+            const dropout = 0;
+            const batchNorm = true;
             const [learningRate, setLearningRate] = useState(0.001);
             const [batchSize, setBatchSize] = useState(32);
             const [epochs, setEpochs] = useState(50);
@@ -1576,37 +1543,6 @@
                                         </div>
 
                                         <div className="control-section">
-                                            <div className="section-label">Regularization</div>
-
-                                            <div className="control-group">
-                                                <label className="control-label">
-                                                    Dropout Rate
-                                                    <span className="control-value">{dropout.toFixed(2)}</span>
-                                                </label>
-                                                <input
-                                                    type="range"
-                                                    min="0"
-                                                    max="0.5"
-                                                    step="0.05"
-                                                    value={dropout}
-                                                    onChange={(e) => setDropout(parseFloat(e.target.value))}
-                                                />
-                                            </div>
-
-                                            <div className="control-group">
-                                                <div className="toggle-container">
-                                                    <div
-                                                        className={`toggle ${batchNorm ? 'active' : ''}`}
-                                                        onClick={() => setBatchNorm(!batchNorm)}
-                                                    />
-                                                    <span className="control-label" style={{ marginBottom: 0 }}>
-                                                        Batch Normalization
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="control-section">
                                             <div className="section-label">Training Parameters</div>
 
                                             <div className="control-group">
@@ -1658,7 +1594,7 @@
                                             onClick={startTraining}
                                             disabled={isTraining}
                                         >
-                                            {isTraining ? (currentEpoch > 0 ? `Rendering... Epoch ${currentEpoch}` : 'Training on server...') : 'Train Model'}
+                                            {isTraining ? (currentEpoch > 0 ? `Rendering... Epoch ${currentEpoch}` : 'Training on server...') : 'Train Model (Tensorflow/Keras)'}
                                         </button>
 
                                         {isTraining && (
