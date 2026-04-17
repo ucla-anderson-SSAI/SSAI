@@ -4,9 +4,11 @@ Week 4: Neural Networks - Breast Cancer Diagnosis Classification
 FastAPI Backend for training and evaluating neural networks
 """
 
+import asyncio
 import base64
 import io
 import time
+from functools import partial
 from typing import List, Optional
 
 import numpy as np
@@ -272,28 +274,13 @@ async def get_sample_data():
     )
 
 
-@app.post("/train", response_model=TrainResponse)
-async def train_model(request: TrainRequest):
-    """Train a custom neural network with specified hyperparameters."""
-
-    # Validate activation function
-    if request.activation not in ["relu", "sigmoid", "tanh"]:
-        raise HTTPException(
-            status_code=400,
-            detail="Activation must be one of: relu, sigmoid, tanh"
-        )
-
-    # Validate batch size
-    if request.batch_size not in [16, 32, 64, 128]:
-        raise HTTPException(
-            status_code=400,
-            detail="Batch size must be one of: 16, 32, 64, 128"
-        )
+def _train_model_sync(request: TrainRequest) -> TrainResponse:
+    """Synchronous training logic — runs in a thread pool to avoid blocking the event loop."""
 
     # Load data
     data = load_cancer_data()
-    x_train = data["x_train"]
-    y_train = data["y_train"]
+    x_train = data["x_train"].copy()
+    y_train = data["y_train"].copy()
     x_test = data["x_test"]
     y_test = data["y_test"]
     n_features = data["n_features"]
@@ -364,9 +351,31 @@ async def train_model(request: TrainRequest):
     )
 
 
-@app.get("/compare", response_model=CompareResponse)
-async def compare_models():
-    """Compare XGBoost vs simple NN vs deep NN vs regularized NN."""
+@app.post("/train", response_model=TrainResponse)
+async def train_model(request: TrainRequest):
+    """Train a custom neural network with specified hyperparameters."""
+
+    # Validate activation function
+    if request.activation not in ["relu", "sigmoid", "tanh"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Activation must be one of: relu, sigmoid, tanh"
+        )
+
+    # Validate batch size
+    if request.batch_size not in [16, 32, 64, 128]:
+        raise HTTPException(
+            status_code=400,
+            detail="Batch size must be one of: 16, 32, 64, 128"
+        )
+
+    # Run blocking TF training in a thread so health checks stay responsive
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, partial(_train_model_sync, request))
+
+
+def _compare_models_sync() -> CompareResponse:
+    """Synchronous compare logic — runs in a thread pool to avoid blocking the event loop."""
 
     data = load_cancer_data()
     x_train = data["x_train"]
@@ -473,6 +482,13 @@ async def compare_models():
         comparisons=comparisons,
         best_model=best_model.model_name
     )
+
+
+@app.get("/compare", response_model=CompareResponse)
+async def compare_models():
+    """Compare XGBoost vs simple NN vs deep NN vs regularized NN."""
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, _compare_models_sync)
 
 
 # Serve frontend

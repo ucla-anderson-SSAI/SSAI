@@ -15,5 +15,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY main.py .
 COPY cancer.csv .
 
-# Run with gunicorn for better concurrency
-CMD ["gunicorn", "main:app", "-k", "uvicorn.workers.UvicornWorker", "--workers", "2", "--timeout", "300", "--bind", "0.0.0.0:8080"]
+# Single worker — Cloud Run handles scaling by spinning up more containers
+CMD ["gunicorn", "main:app", "-k", "uvicorn.workers.UvicornWorker", "--workers", "1", "--timeout", "300", "--bind", "0.0.0.0:8080"]

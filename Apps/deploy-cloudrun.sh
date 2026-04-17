@@ -117,9 +117,10 @@ deploy_week4() {
         --cpu "$CPU" \
         --memory "$MEMORY" \
         --timeout 300 \
-        --concurrency 10 \
-        --min-instances 1 \
-        --max-instances "$MAX_INSTANCES" \
+        --concurrency 1 \
+        --no-cpu-throttling \
+        --min-instances 0 \
+        --max-instances 100 \
         --allow-unauthenticated \
         --set-env-vars="PYTHONUNBUFFERED=1" \
         --quiet
