@@ -587,74 +587,9 @@
             font-size: 1rem;
         }
 
-        .gradient-flow-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            padding: 1rem;
-            background: #ffffff;
-            border-radius: 10px;
-        }
-
-        .gradient-bar {
-            width: 40px;
-            height: 100px;
-            border-radius: 4px;
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-        }
-
-        .gradient-fill {
-            border-radius: 4px;
-            transition: height 0.5s ease;
-        }
-
-        .gradient-label {
-            font-size: 0.65rem;
-            color: #666;
-            text-align: center;
-            margin-top: 0.5rem;
-        }
-
-        .feature-importance {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.5rem;
-        }
-
-        .feature-bar {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.7rem;
-        }
-
-        .feature-name {
-            width: 100px;
-            text-align: right;
-            color: #666;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .feature-bar-fill {
-            height: 12px;
-            background: linear-gradient(90deg, #2774AE, #8BB8E8);
-            border-radius: 2px;
-        }
-
         @keyframes pulse {
             0%, 100% { opacity: 0.6; }
             50% { opacity: 1; }
-        }
-
-        @keyframes flowRight {
-            0% { stroke-dashoffset: 20; }
-            100% { stroke-dashoffset: 0; }
         }
 
         @keyframes nodeFire {
@@ -770,12 +705,6 @@
             sigmoid: colors.darkBlue,
             tanh: colors.lightBlue
         };
-
-        // Feature names (subset for display)
-        const KEY_FEATURES = [
-            'radius_mean', 'texture_mean', 'perimeter_mean', 'area_mean',
-            'smoothness_mean', 'compactness_mean', 'concavity_mean', 'symmetry_mean'
-        ];
 
         // API configuration
         const API_BASE = window.API_BASE || '';
@@ -1205,9 +1134,14 @@
             const fn = matrix[1][0];
             const tp = matrix[1][1];
 
-            const accuracy = ((tp + tn) / total * 100).toFixed(1);
-            const precision = (tp / (tp + fp) * 100).toFixed(1);
-            const recall = (tp / (tp + fn) * 100).toFixed(1);
+            // Standard binary-classification rates derived straight from the
+            // confusion matrix — no precision/recall naming.
+            const pct = (num, den) => (den === 0 ? '—' : (num / den * 100).toFixed(1) + '%');
+            const accuracy = pct(tp + tn, total);
+            const tpr = pct(tp, tp + fn);  // True Positive Rate  (sensitivity)
+            const fnr = pct(fn, tp + fn);  // False Negative Rate
+            const tnr = pct(tn, tn + fp);  // True Negative Rate  (specificity)
+            const fpr = pct(fp, tn + fp);  // False Positive Rate
 
             return (
                 <div className="confusion-matrix">
@@ -1240,60 +1174,13 @@
                             </tr>
                         </tbody>
                     </table>
-                    <div style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center', fontSize: '0.8rem' }}>
-                        <div><strong>Accuracy:</strong> {accuracy}%</div>
-                        <div><strong>Precision:</strong> {precision}%</div>
-                        <div><strong>Recall:</strong> {recall}%</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem 1.25rem', justifyContent: 'center', fontSize: '0.8rem' }}>
+                        <div><strong>Accuracy:</strong> {accuracy}</div>
+                        <div><strong>True Positive Rate:</strong> {tpr}</div>
+                        <div><strong>False Positive Rate:</strong> {fpr}</div>
+                        <div><strong>True Negative Rate:</strong> {tnr}</div>
+                        <div><strong>False Negative Rate:</strong> {fnr}</div>
                     </div>
-                </div>
-            );
-        };
-
-        // Gradient Flow Visualization
-        const GradientFlowViz = ({ layers, gradients }) => {
-            return (
-                <div className="gradient-flow-container">
-                    {['Input', ...layers.map((_, i) => `H${i + 1}`), 'Output'].map((label, idx) => (
-                        <div key={idx} style={{ textAlign: 'center' }}>
-                            <div
-                                className="gradient-bar"
-                                style={{ background: 'rgba(0, 0, 0, 0.1)' }}
-                            >
-                                <div
-                                    className="gradient-fill"
-                                    style={{
-                                        height: `${gradients[idx] * 100}%`,
-                                        background: `linear-gradient(180deg,
-                                            ${gradients[idx] > 0.7 ? '#22c55e' :
-                                              gradients[idx] > 0.3 ? '#eab308' : '#ef4444'},
-                                            transparent)`
-                                    }}
-                                />
-                            </div>
-                            <div className="gradient-label">{label}</div>
-                        </div>
-                    ))}
-                </div>
-            );
-        };
-
-        // Feature Importance visualization
-        const FeatureImportance = ({ importance }) => {
-            const maxVal = Math.max(...importance.map(f => f.value));
-            return (
-                <div className="feature-importance">
-                    {importance.slice(0, 10).map((feature, idx) => (
-                        <div key={idx} className="feature-bar">
-                            <span className="feature-name" title={feature.name}>{feature.name}</span>
-                            <div
-                                className="feature-bar-fill"
-                                style={{ width: `${(feature.value / maxVal) * 80}px` }}
-                            />
-                            <span style={{ fontSize: '0.65rem', color: '#666' }}>
-                                {(feature.value * 100).toFixed(0)}%
-                            </span>
-                        </div>
-                    ))}
                 </div>
             );
         };
@@ -1317,8 +1204,6 @@
             // Training results
             const [trainingHistory, setTrainingHistory] = useState([]);
             const [confusionMatrix, setConfusionMatrix] = useState([[0, 0], [0, 0]]);
-            const [gradientFlow, setGradientFlow] = useState([]);
-            const [featureImportance, setFeatureImportance] = useState([]);
             const [metrics, setMetrics] = useState({
                 trainAcc: 0,
                 valAcc: 0,
@@ -1368,8 +1253,6 @@
                 setTrainingHistory([]);
                 setCurrentEpoch(0);
                 setConfusionMatrix([[0, 0], [0, 0]]);
-                setGradientFlow([]);
-                setFeatureImportance([]);
 
                 try {
                     // Call real backend API
@@ -1410,28 +1293,12 @@
                         setTrainingHistory([...history]);
                         setCurrentEpoch(i + 1);
 
-                        // Update gradient flow visualization
-                        setGradientFlow([
-                            0.9 - (i + 1) * 0.005 + Math.random() * 0.1,
-                            ...hiddenLayers.map((_, li) =>
-                                0.85 - li * 0.08 - (i + 1) * 0.003 + Math.random() * 0.15
-                            ),
-                            0.8 + Math.random() * 0.15
-                        ]);
-
                         // Small delay for animation effect
                         await new Promise(resolve => setTimeout(resolve, 30));
                     }
 
                     // Set confusion matrix from real results
                     setConfusionMatrix(result.confusion_matrix);
-
-                    // Generate feature importance (approximate - NNs don't have direct feature importance)
-                    const importance = KEY_FEATURES.map(name => ({
-                        name,
-                        value: 0.5 + Math.random() * 0.5
-                    })).sort((a, b) => b.value - a.value);
-                    setFeatureImportance(importance);
 
                     // Set final metrics from real results
                     const lastIdx = totalEpochs - 1;
@@ -1729,54 +1596,13 @@
                         <div className="results-section">
                             <div className="results-content">
 
-                                {/* Confusion Matrix and Gradient Flow */}
+                                {/* Confusion Matrix */}
                                 {trainingHistory.length > 0 && (
-                                    <div className="charts-grid">
-                                        <div className="chart-card">
-                                            <h3 className="card-title">
-                                                Confusion Matrix
-                                            </h3>
-                                            <ConfusionMatrix matrix={confusionMatrix} />
-                                        </div>
-
-                                        <div className="chart-card">
-                                            <h3 className="card-title">
-                                                Gradient Flow
-                                            </h3>
-                                            <GradientFlowViz
-                                                layers={hiddenLayers}
-                                                gradients={gradientFlow.length > 0 ? gradientFlow :
-                                                    [0.5, ...hiddenLayers.map(() => 0.5), 0.5]}
-                                            />
-                                            <div style={{
-                                                marginTop: '1rem',
-                                                fontSize: '0.8rem',
-                                                color: colors.lightMuted,
-                                                textAlign: 'center'
-                                            }}>
-                                                Green = healthy gradients, Red = vanishing gradients
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Feature Importance */}
-                                {featureImportance.length > 0 && (
                                     <div className="chart-card">
                                         <h3 className="card-title">
-                                            Top Feature Importance (Approximate)
+                                            Confusion Matrix
                                         </h3>
-                                        <div style={{ marginTop: '1rem' }}>
-                                            <FeatureImportance importance={featureImportance} />
-                                        </div>
-                                        <div style={{
-                                            marginTop: '1rem',
-                                            fontSize: '0.75rem',
-                                            color: colors.lightMuted,
-                                            textAlign: 'center'
-                                        }}>
-                                            Features like radius, perimeter, and area are often most predictive for tumor classification
-                                        </div>
+                                        <ConfusionMatrix matrix={confusionMatrix} />
                                     </div>
                                 )}
 
