@@ -21,16 +21,41 @@ from pydantic import BaseModel, Field
 from sklearn.metrics import confusion_matrix
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
-import tensorflow as tf
-# Limit TF threads to prevent resource contention with concurrent users
-tf.config.threading.set_intra_op_parallelism_threads(2)
-tf.config.threading.set_inter_op_parallelism_threads(2)
-from tensorflow import keras
-from tensorflow.keras import layers, models, optimizers, callbacks
-from xgboost import XGBClassifier
 
-# Suppress TensorFlow warnings
-tf.get_logger().setLevel('ERROR')
+# TensorFlow and XGBoost are LAZY-LOADED inside the functions that need them.
+# Rationale: this same file runs on Cloud Run (full backend) AND on Railway
+# (frontend-only serving of index.html). Railway's smaller tier can't handle
+# TF at startup. By deferring the import, Railway boots in <1s and never
+# touches TF unless someone actually hits /train or /compare (which they
+# won't, because index.html points API_BASE at Cloud Run).
+_TF_INITIALIZED = False
+
+
+def _load_tf():
+    """Lazy-import TF + Keras. Cached after first call. Returns a namespace."""
+    global _TF_INITIALIZED
+    import tensorflow as tf  # noqa: WPS433 (intentional lazy import)
+    from tensorflow import keras
+    from tensorflow.keras import layers, models, optimizers, callbacks
+
+    if not _TF_INITIALIZED:
+        tf.get_logger().setLevel("ERROR")
+        try:
+            # Limit threads to prevent resource contention with concurrent users.
+            # Can only be set once per process, hence the try/except.
+            tf.config.threading.set_intra_op_parallelism_threads(2)
+            tf.config.threading.set_inter_op_parallelism_threads(2)
+        except RuntimeError:
+            pass
+        _TF_INITIALIZED = True
+
+    return tf, keras, layers, models, optimizers, callbacks
+
+
+def _load_xgboost():
+    """Lazy-import XGBoost."""
+    from xgboost import XGBClassifier  # noqa: WPS433
+    return XGBClassifier
 
 app = FastAPI(
     title="Week 4: Neural Networks - Breast Cancer Diagnosis Classification",
@@ -176,9 +201,10 @@ def build_model(
     activation: str,
     dropout_rate: float,
     use_batch_norm: bool,
-    learning_rate: float
-) -> keras.Model:
+    learning_rate: float,
+):
     """Build a neural network model with specified architecture."""
+    _tf, _keras, layers, models, optimizers, _cb = _load_tf()
 
     model = models.Sequential()
     model.add(layers.Input(shape=(n_features,)))
@@ -207,7 +233,7 @@ def build_model(
     return model
 
 
-def get_model_summary(model: keras.Model) -> str:
+def get_model_summary(model) -> str:
     """Get model summary as string."""
     string_list = []
     model.summary(print_fn=lambda x: string_list.append(x))
@@ -276,6 +302,7 @@ async def get_sample_data():
 
 def _train_model_sync(request: TrainRequest) -> TrainResponse:
     """Synchronous training logic — runs in a thread pool to avoid blocking the event loop."""
+    _tf, keras, _layers, _models, _optimizers, callbacks = _load_tf()
 
     # Load data
     data = load_cancer_data()
@@ -376,6 +403,8 @@ async def train_model(request: TrainRequest):
 
 def _compare_models_sync() -> CompareResponse:
     """Synchronous compare logic — runs in a thread pool to avoid blocking the event loop."""
+    _tf, keras, _layers, _models, _optimizers, _cb = _load_tf()
+    XGBClassifier = _load_xgboost()
 
     data = load_cancer_data()
     x_train = data["x_train"]

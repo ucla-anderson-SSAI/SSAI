@@ -1,0 +1,6 @@
+# Heavy ML deps — Cloud Run ONLY (installed via Dockerfile).
+# Railway does NOT install this file; its Nixpacks builder only picks up
+# requirements.txt, so these stay off Railway's small tier.
+# main.py lazy-imports these modules, so the app still boots without them.
+tensorflow-cpu>=2.15.0
+xgboost>=2.0.0

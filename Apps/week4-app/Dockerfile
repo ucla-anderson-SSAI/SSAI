@@ -7,9 +7,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies.
+# Cloud Run installs BOTH the light deps and the heavy ML deps.
+# (Railway only installs requirements.txt via Nixpacks, not requirements-ml.txt.)
+COPY requirements.txt requirements-ml.txt ./
+RUN pip install --no-cache-dir -r requirements.txt -r requirements-ml.txt
 
 # Copy application
 COPY main.py .
