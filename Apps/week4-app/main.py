@@ -1,26 +1,27 @@
 import os
 """
-Week 4: Neural Networks - Breast Cancer Diagnosis Classification
-FastAPI Backend for training and evaluating neural networks
+Week 4: Neural Networks - MNIST Digit Classification
+FastAPI backend for training and evaluating fully-connected networks on MNIST.
+
+Mirrors the Notebooks/Week4.ipynb setup: a 2,000 train / 500 test subsample
+of MNIST so training is fast enough to run live in the browser.
 """
 
 import asyncio
-import base64
-import io
+import json
+import queue
+import threading
 import time
 from functools import partial
-from typing import List, Optional
+from typing import List
 
 import numpy as np
-import pandas as pd
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from sklearn.metrics import confusion_matrix
-from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
 
 # TensorFlow and XGBoost are LAZY-LOADED inside the functions that need them.
 # Rationale: this same file runs on Cloud Run (full backend) AND on Railway
@@ -57,10 +58,11 @@ def _load_xgboost():
     from xgboost import XGBClassifier  # noqa: WPS433
     return XGBClassifier
 
+
 app = FastAPI(
-    title="Week 4: Neural Networks - Breast Cancer Diagnosis Classification",
-    description="Train and evaluate neural networks on Wisconsin Breast Cancer dataset",
-    version="1.0.0"
+    title="Week 4: Neural Networks - MNIST Digit Classification",
+    description="Train and evaluate fully-connected networks on a 2k/500 MNIST subsample",
+    version="2.0.0",
 )
 
 # CORS middleware
@@ -72,66 +74,48 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Class names for Breast Cancer Diagnosis
-CLASS_NAMES = ["Benign", "Malignant"]
+# 10 digit classes
+CLASS_NAMES = [str(i) for i in range(10)]
 
-# Feature names for the dataset
-FEATURE_NAMES = [
-    "radius_mean", "texture_mean", "perimeter_mean", "area_mean", "smoothness_mean",
-    "compactness_mean", "concavity_mean", "concave_points_mean", "symmetry_mean", "fractal_dimension_mean",
-    "radius_se", "texture_se", "perimeter_se", "area_se", "smoothness_se",
-    "compactness_se", "concavity_se", "concave_points_se", "symmetry_se", "fractal_dimension_se",
-    "radius_worst", "texture_worst", "perimeter_worst", "area_worst", "smoothness_worst",
-    "compactness_worst", "concavity_worst", "concave_points_worst", "symmetry_worst", "fractal_dimension_worst"
-]
+# 784 = 28 * 28 flattened pixels
+N_FEATURES = 784
+FEATURE_NAMES = [f"pixel_{i}" for i in range(N_FEATURES)]
+
+# Subsample sizes — match the Week 4 notebook
+N_TRAIN = 2000
+N_TEST = 500
 
 # Global cache for dataset
 _dataset_cache = None
 
 
-def load_cancer_data():
-    """Load and preprocess Wisconsin Breast Cancer dataset with caching."""
+def load_mnist_data():
+    """Load and cache a deterministic 2k/500 MNIST subsample, scaled to [0, 1]."""
     global _dataset_cache
 
     if _dataset_cache is not None:
         return _dataset_cache
 
-    # Load dataset from CSV
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    # Try multiple paths for cancer.csv
-    csv_path = os.path.join(script_dir, 'cancer.csv')  # Same directory (Cloud Run)
-    if not os.path.exists(csv_path):
-        csv_path = os.path.join(script_dir, '..', '..', 'cancer.csv')  # Relative path (Railway)
-    if not os.path.exists(csv_path):
-        csv_path = '/sessions/lucid-affectionate-lovelace/mnt/SSAI/cancer.csv'  # Fallback
+    _tf, keras, _layers, _models, _optimizers, _callbacks = _load_tf()
+    (x_train_full, y_train_full), (x_test_full, y_test_full) = keras.datasets.mnist.load_data()
 
-    df = pd.read_csv(csv_path)
+    # Deterministic subsample so dataset_info / sample_data / train all agree.
+    rng = np.random.default_rng(42)
+    train_idx = rng.choice(len(x_train_full), size=N_TRAIN, replace=False)
+    test_idx = rng.choice(len(x_test_full), size=N_TEST, replace=False)
 
-    # Convert diagnosis to binary (M=1, B=0)
-    y = (df['diagnosis'] == 'M').astype(int).values
-
-    # Get features (exclude id and diagnosis columns)
-    feature_cols = [col for col in df.columns if col not in ['id', 'diagnosis']]
-    X = df[feature_cols].values.astype('float32')
-
-    # Split data
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42, stratify=y
-    )
-
-    # Standardize features
-    scaler = StandardScaler()
-    X_train = scaler.fit_transform(X_train).astype('float32')
-    X_test = scaler.transform(X_test).astype('float32')
+    x_train = x_train_full[train_idx].reshape(-1, N_FEATURES).astype("float32") / 255.0
+    y_train = y_train_full[train_idx].astype("int32")
+    x_test = x_test_full[test_idx].reshape(-1, N_FEATURES).astype("float32") / 255.0
+    y_test = y_test_full[test_idx].astype("int32")
 
     _dataset_cache = {
-        "x_train": X_train,
+        "x_train": x_train,
         "y_train": y_train,
-        "x_test": X_test,
+        "x_test": x_test,
         "y_test": y_test,
-        "scaler": scaler,
-        "feature_names": feature_cols,
-        "n_features": X_train.shape[1]
+        "feature_names": FEATURE_NAMES,
+        "n_features": N_FEATURES,
     }
 
     return _dataset_cache
@@ -141,11 +125,9 @@ def load_cancer_data():
 class TrainRequest(BaseModel):
     hidden_layers: List[int] = Field(default=[64, 32], description="List of hidden layer sizes")
     activation: str = Field(default="relu", description="Activation function: relu, sigmoid, tanh")
-    dropout_rate: float = Field(default=0.2, ge=0.0, le=0.5, description="Dropout rate")
-    use_batch_norm: bool = Field(default=False, description="Whether to use batch normalization")
     learning_rate: float = Field(default=0.001, ge=0.0001, le=0.1, description="Learning rate")
     batch_size: int = Field(default=32, description="Batch size: 16, 32, 64, 128")
-    epochs: int = Field(default=50, ge=10, le=100, description="Number of epochs")
+    epochs: int = Field(default=50, ge=10, le=200, description="Number of epochs")
 
 
 class TrainResponse(BaseModel):
@@ -199,35 +181,24 @@ def build_model(
     n_features: int,
     hidden_layers: List[int],
     activation: str,
-    dropout_rate: float,
-    use_batch_norm: bool,
     learning_rate: float,
 ):
-    """Build a neural network model with specified architecture."""
+    """Build a fully-connected MNIST classifier."""
     _tf, _keras, layers, models, optimizers, _cb = _load_tf()
 
     model = models.Sequential()
     model.add(layers.Input(shape=(n_features,)))
 
-    for i, units in enumerate(hidden_layers):
-        model.add(layers.Dense(units))
+    for units in hidden_layers:
+        model.add(layers.Dense(units, activation=activation))
 
-        if use_batch_norm:
-            model.add(layers.BatchNormalization())
+    # 10-way softmax over digit classes
+    model.add(layers.Dense(10, activation="softmax"))
 
-        model.add(layers.Activation(activation))
-
-        if dropout_rate > 0:
-            model.add(layers.Dropout(dropout_rate))
-
-    # Output layer - binary classification
-    model.add(layers.Dense(1, activation="sigmoid"))
-
-    # Compile model
     model.compile(
         optimizer=optimizers.Adam(learning_rate=learning_rate),
-        loss="binary_crossentropy",
-        metrics=["accuracy"]
+        loss="sparse_categorical_crossentropy",
+        metrics=["accuracy"],
     )
 
     return model
@@ -245,21 +216,18 @@ async def health_check():
     """Health check endpoint."""
     return {
         "status": "healthy",
-        "service": "Week 4: Neural Networks - Breast Cancer Diagnosis Classification",
-        "class_names": CLASS_NAMES
+        "service": "Week 4: Neural Networks - MNIST Digit Classification",
+        "class_names": CLASS_NAMES,
     }
 
 
 @app.get("/dataset_info", response_model=DatasetInfo)
 async def get_dataset_info():
     """Return information about the dataset."""
-    data = load_cancer_data()
+    data = load_mnist_data()
 
     y_all = np.concatenate([data["y_train"], data["y_test"]])
-    class_dist = {
-        "Benign": int(np.sum(y_all == 0)),
-        "Malignant": int(np.sum(y_all == 1))
-    }
+    class_dist = {str(i): int(np.sum(y_all == i)) for i in range(10)}
 
     return DatasetInfo(
         n_samples=len(y_all),
@@ -267,146 +235,190 @@ async def get_dataset_info():
         n_train=len(data["y_train"]),
         n_test=len(data["y_test"]),
         class_distribution=class_dist,
-        feature_names=data["feature_names"]
+        feature_names=data["feature_names"],
     )
 
 
 @app.get("/sample_data", response_model=SampleDataResponse)
 async def get_sample_data():
-    """Return sample data points with labels."""
-    data = load_cancer_data()
+    """Return one sample image per digit (10 total) from the test set."""
+    data = load_mnist_data()
 
-    # Get 5 samples from each class (10 total)
     samples = []
-    for class_idx in range(2):
-        # Find indices of this class
+    for class_idx in range(10):
         class_indices = np.where(data["y_test"] == class_idx)[0]
-        # Take first 5 samples
-        selected_indices = class_indices[:5]
-
-        for idx in selected_indices:
-            features = data["x_test"][idx]
-            samples.append(SampleData(
-                features=[float(f) for f in features],
-                feature_names=data["feature_names"],
-                label=int(class_idx),
-                label_name=CLASS_NAMES[class_idx]
-            ))
+        if len(class_indices) == 0:
+            continue
+        idx = int(class_indices[0])
+        features = data["x_test"][idx]
+        samples.append(SampleData(
+            features=[float(f) for f in features],
+            feature_names=data["feature_names"],
+            label=int(class_idx),
+            label_name=CLASS_NAMES[class_idx],
+        ))
 
     return SampleDataResponse(
         samples=samples,
         class_names=CLASS_NAMES,
-        feature_names=data["feature_names"]
+        feature_names=data["feature_names"],
     )
 
 
-def _train_model_sync(request: TrainRequest) -> TrainResponse:
-    """Synchronous training logic — runs in a thread pool to avoid blocking the event loop."""
-    _tf, keras, _layers, _models, _optimizers, callbacks = _load_tf()
+def _run_training(request: TrainRequest, q: "queue.Queue"):
+    """Run Keras training in a thread; push per-epoch + final messages onto `q`.
 
-    # Load data
-    data = load_cancer_data()
-    x_train = data["x_train"].copy()
-    y_train = data["y_train"].copy()
-    x_test = data["x_test"]
-    y_test = data["y_test"]
-    n_features = data["n_features"]
+    Communicates with the async generator via a thread-safe queue. The final
+    sentinel (None) tells the generator the stream is complete.
+    """
+    try:
+        _tf, keras, _layers, _models, _optimizers, callbacks = _load_tf()
 
-    # Split training data for validation
-    val_split = 0.15
-    val_size = int(len(x_train) * val_split)
-    x_val = x_train[-val_size:]
-    y_val = y_train[-val_size:]
-    x_train = x_train[:-val_size]
-    y_train = y_train[:-val_size]
+        # Load data
+        data = load_mnist_data()
+        x_train = data["x_train"].copy()
+        y_train = data["y_train"].copy()
+        x_test = data["x_test"]
+        y_test = data["y_test"]
+        n_features = data["n_features"]
 
-    # Build model
-    model = build_model(
-        n_features=n_features,
-        hidden_layers=request.hidden_layers,
-        activation=request.activation,
-        dropout_rate=request.dropout_rate,
-        use_batch_norm=request.use_batch_norm,
-        learning_rate=request.learning_rate
-    )
+        # Split off a validation set from the training data
+        val_split = 0.15
+        val_size = int(len(x_train) * val_split)
+        x_val = x_train[-val_size:]
+        y_val = y_train[-val_size:]
+        x_train = x_train[:-val_size]
+        y_train = y_train[:-val_size]
 
-    # Get model summary
-    model_summary = get_model_summary(model)
-    total_params = model.count_params()
+        # Build model
+        model = build_model(
+            n_features=n_features,
+            hidden_layers=request.hidden_layers,
+            activation=request.activation,
+            learning_rate=request.learning_rate,
+        )
 
-    # Early stopping callback
-    early_stop = callbacks.EarlyStopping(
-        monitor="val_loss",
-        patience=15,
-        restore_best_weights=True
-    )
+        model_summary = get_model_summary(model)
+        total_params = int(model.count_params())
 
-    # Train model
-    start_time = time.time()
-    history = model.fit(
-        x_train, y_train,
-        validation_data=(x_val, y_val),
-        epochs=request.epochs,
-        batch_size=request.batch_size,
-        callbacks=[early_stop],
-        verbose=0
-    )
-    training_time = time.time() - start_time
+        # Early stopping (matches the notebook: patience=5, restore best weights)
+        early_stop = callbacks.EarlyStopping(
+            monitor="val_loss",
+            patience=5,
+            restore_best_weights=True,
+        )
 
-    # Evaluate on test set
-    test_loss, test_accuracy = model.evaluate(x_test, y_test, verbose=0)
+        # Per-epoch streaming callback — enqueues a message at the end of each epoch.
+        class StreamCallback(callbacks.Callback):
+            def on_epoch_end(self, epoch, logs=None):
+                logs = logs or {}
+                q.put({
+                    "type": "epoch",
+                    "epoch": int(epoch) + 1,
+                    "train_loss": float(logs.get("loss", 0.0)),
+                    "val_loss": float(logs.get("val_loss", 0.0)),
+                    "train_accuracy": float(logs.get("accuracy", 0.0)),
+                    "val_accuracy": float(logs.get("val_accuracy", 0.0)),
+                })
 
-    # Get predictions for confusion matrix
-    y_pred_proba = model.predict(x_test, verbose=0)
-    y_pred_classes = (y_pred_proba > 0.5).astype(int).flatten()
-    cm = confusion_matrix(y_test, y_pred_classes)
+        start_time = time.time()
+        history = model.fit(
+            x_train, y_train,
+            validation_data=(x_val, y_val),
+            epochs=request.epochs,
+            batch_size=request.batch_size,
+            callbacks=[StreamCallback(), early_stop],
+            verbose=0,
+        )
+        training_time = time.time() - start_time
 
-    # Clear model from memory
-    keras.backend.clear_session()
+        # Test evaluation + confusion matrix (runs after best weights are restored)
+        test_loss, test_accuracy = model.evaluate(x_test, y_test, verbose=0)
+        y_pred_proba = model.predict(x_test, verbose=0)
+        y_pred_classes = np.argmax(y_pred_proba, axis=1)
+        cm = confusion_matrix(y_test, y_pred_classes, labels=list(range(10)))
 
-    return TrainResponse(
-        train_accuracy_history=[float(x) for x in history.history["accuracy"]],
-        val_accuracy_history=[float(x) for x in history.history["val_accuracy"]],
-        train_loss_history=[float(x) for x in history.history["loss"]],
-        val_loss_history=[float(x) for x in history.history["val_loss"]],
-        test_accuracy=float(test_accuracy),
-        test_loss=float(test_loss),
-        confusion_matrix=cm.tolist(),
-        training_time=float(training_time),
-        model_summary=model_summary,
-        total_params=total_params
-    )
+        keras.backend.clear_session()
+
+        q.put({
+            "type": "final",
+            "train_accuracy_history": [float(x) for x in history.history["accuracy"]],
+            "val_accuracy_history": [float(x) for x in history.history["val_accuracy"]],
+            "train_loss_history": [float(x) for x in history.history["loss"]],
+            "val_loss_history": [float(x) for x in history.history["val_loss"]],
+            "test_accuracy": float(test_accuracy),
+            "test_loss": float(test_loss),
+            "confusion_matrix": cm.tolist(),
+            "training_time": float(training_time),
+            "model_summary": model_summary,
+            "total_params": total_params,
+        })
+    except Exception as exc:  # noqa: BLE001
+        q.put({"type": "error", "detail": str(exc)})
+    finally:
+        q.put(None)  # sentinel: stream is done
 
 
-@app.post("/train", response_model=TrainResponse)
+async def _stream_training(request: TrainRequest):
+    """Async generator yielding NDJSON lines as training progresses."""
+    loop = asyncio.get_event_loop()
+    q: "queue.Queue" = queue.Queue()
+
+    thread = threading.Thread(target=_run_training, args=(request, q), daemon=True)
+    thread.start()
+
+    while True:
+        # Offload the blocking q.get() to a worker thread so the event
+        # loop stays responsive to health checks during long trainings.
+        item = await loop.run_in_executor(None, q.get)
+        if item is None:
+            break
+        yield (json.dumps(item) + "\n").encode("utf-8")
+
+
+@app.post("/train")
 async def train_model(request: TrainRequest):
-    """Train a custom neural network with specified hyperparameters."""
+    """Stream per-epoch training progress as NDJSON.
+
+    Response body is a sequence of newline-delimited JSON objects:
+      - {"type": "epoch", "epoch": N, "train_loss": ..., "val_loss": ..., ...}
+      - {"type": "final", "confusion_matrix": ..., "test_accuracy": ..., ...}
+      - {"type": "error", "detail": "..."}  (on failure)
+    """
 
     # Validate activation function
     if request.activation not in ["relu", "sigmoid", "tanh"]:
         raise HTTPException(
             status_code=400,
-            detail="Activation must be one of: relu, sigmoid, tanh"
+            detail="Activation must be one of: relu, sigmoid, tanh",
         )
 
     # Validate batch size
     if request.batch_size not in [16, 32, 64, 128]:
         raise HTTPException(
             status_code=400,
-            detail="Batch size must be one of: 16, 32, 64, 128"
+            detail="Batch size must be one of: 16, 32, 64, 128",
         )
 
-    # Run blocking TF training in a thread so health checks stay responsive
-    loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(None, partial(_train_model_sync, request))
+    # Headers hint to proxies/CDNs not to buffer the stream (important on
+    # Cloud Run behind the Google Front End).
+    headers = {
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no",
+    }
+    return StreamingResponse(
+        _stream_training(request),
+        media_type="application/x-ndjson",
+        headers=headers,
+    )
 
 
 def _compare_models_sync() -> CompareResponse:
-    """Synchronous compare logic — runs in a thread pool to avoid blocking the event loop."""
+    """Compare XGBoost vs Simple NN vs Deep NN on the MNIST subsample."""
     _tf, keras, _layers, _models, _optimizers, _cb = _load_tf()
     XGBClassifier = _load_xgboost()
 
-    data = load_cancer_data()
+    data = load_mnist_data()
     x_train = data["x_train"]
     y_train = data["y_train"]
     x_test = data["x_test"]
@@ -415,7 +427,7 @@ def _compare_models_sync() -> CompareResponse:
 
     comparisons = []
 
-    # 1. XGBoost
+    # 1. XGBoost (multi-class softprob)
     print("Training XGBoost...")
     start_time = time.time()
     xgb_model = XGBClassifier(
@@ -423,7 +435,9 @@ def _compare_models_sync() -> CompareResponse:
         max_depth=4,
         learning_rate=0.1,
         n_jobs=2,
-        random_state=42
+        objective="multi:softprob",
+        num_class=10,
+        random_state=42,
     )
     xgb_model.fit(x_train, y_train)
     xgb_time = time.time() - start_time
@@ -432,7 +446,7 @@ def _compare_models_sync() -> CompareResponse:
         model_name="XGBoost",
         test_accuracy=float(xgb_accuracy),
         training_time=float(xgb_time),
-        description="Gradient boosted trees (100 estimators, max_depth=4)"
+        description="Gradient boosted trees (100 estimators, max_depth=4)",
     ))
 
     # 2. Simple NN (single hidden layer)
@@ -442,9 +456,7 @@ def _compare_models_sync() -> CompareResponse:
         n_features=n_features,
         hidden_layers=[32],
         activation="relu",
-        dropout_rate=0.0,
-        use_batch_norm=False,
-        learning_rate=0.001
+        learning_rate=0.001,
     )
     start_time = time.time()
     simple_nn.fit(x_train, y_train, epochs=50, batch_size=32, verbose=0)
@@ -454,19 +466,17 @@ def _compare_models_sync() -> CompareResponse:
         model_name="Simple NN",
         test_accuracy=float(simple_accuracy),
         training_time=float(simple_time),
-        description="Single hidden layer (32 units), no regularization"
+        description="Single hidden layer (32 units)",
     ))
 
-    # 3. Deep NN (multiple hidden layers, no regularization)
+    # 3. Deep NN (matches notebook: 32, 64, 32)
     print("Training Deep NN...")
     keras.backend.clear_session()
     deep_nn = build_model(
         n_features=n_features,
-        hidden_layers=[64, 32, 16],
+        hidden_layers=[32, 64, 32],
         activation="relu",
-        dropout_rate=0.0,
-        use_batch_norm=False,
-        learning_rate=0.001
+        learning_rate=0.001,
     )
     start_time = time.time()
     deep_nn.fit(x_train, y_train, epochs=50, batch_size=32, verbose=0)
@@ -476,29 +486,7 @@ def _compare_models_sync() -> CompareResponse:
         model_name="Deep NN",
         test_accuracy=float(deep_accuracy),
         training_time=float(deep_time),
-        description="Three hidden layers (64, 32, 16), no regularization"
-    ))
-
-    # 4. Regularized NN (with dropout and batch norm)
-    print("Training Regularized NN...")
-    keras.backend.clear_session()
-    reg_nn = build_model(
-        n_features=n_features,
-        hidden_layers=[64, 32, 16],
-        activation="relu",
-        dropout_rate=0.3,
-        use_batch_norm=True,
-        learning_rate=0.001
-    )
-    start_time = time.time()
-    reg_nn.fit(x_train, y_train, epochs=75, batch_size=32, verbose=0)
-    reg_time = time.time() - start_time
-    _, reg_accuracy = reg_nn.evaluate(x_test, y_test, verbose=0)
-    comparisons.append(ModelComparison(
-        model_name="Regularized NN",
-        test_accuracy=float(reg_accuracy),
-        training_time=float(reg_time),
-        description="Three hidden layers with dropout (0.3) and batch normalization"
+        description="Three hidden layers (32, 64, 32)",
     ))
 
     # Clear memory
@@ -509,13 +497,13 @@ def _compare_models_sync() -> CompareResponse:
 
     return CompareResponse(
         comparisons=comparisons,
-        best_model=best_model.model_name
+        best_model=best_model.model_name,
     )
 
 
 @app.get("/compare", response_model=CompareResponse)
 async def compare_models():
-    """Compare XGBoost vs simple NN vs deep NN vs regularized NN."""
+    """Compare XGBoost vs simple NN vs deep NN on the MNIST subsample."""
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(None, _compare_models_sync)
 
@@ -527,6 +515,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 async def serve_frontend():
     """Serve the frontend application."""
     return FileResponse(os.path.join(BASE_DIR, "index.html"))
+
 
 # Serve static assets — mounted AFTER explicit routes so they take priority
 app.mount("/static", StaticFiles(directory=BASE_DIR), name="static")

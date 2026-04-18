@@ -116,7 +116,7 @@ deploy_week4() {
         --region "$REGION" \
         --cpu "$CPU" \
         --memory "$MEMORY" \
-        --timeout 300 \
+        --timeout 600 \
         --concurrency 1 \
         --no-cpu-throttling \
         --min-instances 0 \

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Week 4: Neural Networks - Breast Cancer Diagnosis | UCLA Anderson</title>
+    <title>Week 4: Neural Networks - MNIST Digit Classification | UCLA Anderson</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -598,6 +598,18 @@
             100% { filter: brightness(1); }
         }
 
+        /* Signal-flow animation for network connection edges — a short
+           dash slides from the input side to the output side, giving each
+           edge a visible "signal traveling along it" effect during training. */
+        @keyframes edgeFlow {
+            from { stroke-dashoffset: 18; }
+            to   { stroke-dashoffset: 0;  }
+        }
+        .edge-flow {
+            stroke-dasharray: 3 15;
+            animation: edgeFlow 1.4s linear infinite;
+        }
+
         .training-progress {
             margin-top: 1rem;
         }
@@ -695,9 +707,6 @@
             lightText: '#1a1a1a',
             lightMuted: '#666666',
         };
-
-        // Breast Cancer class labels
-        const CANCER_CLASSES = ['Benign', 'Malignant'];
 
         // Activation function colors - using UCLA theme
         const ACTIVATION_COLORS = {
@@ -864,31 +873,23 @@
             return <canvas ref={canvasRef} />;
         };
 
-        // Neural Network Visualization Component
-        const NeuralNetworkViz = ({ layers, activation, dropout, batchNorm, isTraining, currentEpoch, nFeatures = 30 }) => {
+        // Neural Network Visualization Component — each connection edge
+        // shows a small dash flowing from input side to output side during
+        // training (via a CSS stroke-dashoffset animation). Input-layer
+        // nodes stay fully static so nothing flickers near the left.
+        const NeuralNetworkViz = ({ layers, activation, isTraining, currentEpoch, nFeatures = 784 }) => {
             const svgRef = useRef(null);
-            const [animationPhase, setAnimationPhase] = useState(0);
-
-            // Animation loop during training
-            useEffect(() => {
-                if (isTraining) {
-                    const interval = setInterval(() => {
-                        setAnimationPhase(prev => (prev + 1) % 100);
-                    }, 50);
-                    return () => clearInterval(interval);
-                }
-            }, [isTraining]);
 
             const networkLayout = useMemo(() => {
                 const allLayers = [
-                    { type: 'input', nodes: nFeatures, display: Math.min(nFeatures, 15), label: `Input (${nFeatures} features)` },
+                    { type: 'input', nodes: nFeatures, display: Math.min(nFeatures, 12), label: `Input (${nFeatures} pixels)` },
                     ...layers.map((nodes, i) => ({
                         type: 'hidden',
                         nodes,
                         display: Math.min(nodes, 12),
                         label: `Hidden ${i + 1} (${nodes})`
                     })),
-                    { type: 'output', nodes: 2, display: 2, label: 'Output (2)' }
+                    { type: 'output', nodes: 10, display: 10, label: 'Output (10 digits)' }
                 ];
                 return allLayers;
             }, [layers, nFeatures]);
@@ -899,7 +900,7 @@
 
             const layerSpacing = (svgWidth - padding.left - padding.right) / (networkLayout.length - 1);
 
-            // Calculate positions for all nodes
+            // Calculate positions for all nodes (static — no dropout sampling)
             const nodePositions = useMemo(() => {
                 const positions = [];
 
@@ -914,36 +915,22 @@
                         layerPositions.push({
                             x,
                             y: startY + i * nodeSpacing,
-                            isDropout: dropout > 0 && layer.type === 'hidden' && Math.random() < dropout,
                             layerType: layer.type,
                             nodeIdx: i,
-                            totalNodes: layer.nodes
+                            totalNodes: layer.nodes,
                         });
                     }
                     positions.push(layerPositions);
                 });
 
                 return positions;
-            }, [networkLayout, dropout, svgHeight, layerSpacing]);
+            }, [networkLayout, svgHeight, layerSpacing]);
 
-            // Get node color based on layer type and activation
-            const getNodeColor = (layerType, nodeIdx) => {
+            // Node color based on layer type (output nodes share the hidden/activation color)
+            const getNodeColor = (layerType) => {
                 if (layerType === 'input') return '#6b7280';
-                if (layerType === 'output') {
-                    return nodeIdx === 0 ? '#22c55e' : '#ef4444'; // Benign green, Malignant red
-                }
+                if (layerType === 'output') return colors.primary;
                 return ACTIVATION_COLORS[activation] || colors.primary;
-            };
-
-            // Calculate firing intensity during training — one clean wave that
-            // sweeps left-to-right through the layers. Each layer pulses as a
-            // unit instead of every node firing independently.
-            const getFiringIntensity = (layerIdx) => {
-                if (!isTraining) return 0;
-                const phase = (animationPhase + layerIdx * 20) % 100;
-                if (phase < 25) return phase / 25;
-                if (phase < 50) return 1 - (phase - 25) / 25;
-                return 0;
             };
 
             return (
@@ -954,88 +941,47 @@
                     viewBox={`0 0 ${svgWidth} ${svgHeight}`}
                     style={{ background: 'transparent' }}
                 >
-                    <defs>
-                        <linearGradient id="connectionGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor="#6b7280" stopOpacity="0.3" />
-                            <stop offset="50%" stopColor={colors.primary} stopOpacity="0.5" />
-                            <stop offset="100%" stopColor={colors.positive} stopOpacity="0.3" />
-                        </linearGradient>
-                        <filter id="glow">
-                            <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-                            <feMerge>
-                                <feMergeNode in="coloredBlur"/>
-                                <feMergeNode in="SourceGraphic"/>
-                            </feMerge>
-                        </filter>
-                        <filter id="strongGlow">
-                            <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
-                            <feMerge>
-                                <feMergeNode in="coloredBlur"/>
-                                <feMergeNode in="SourceGraphic"/>
-                            </feMerge>
-                        </filter>
-                    </defs>
-
-                    {/* Draw connections — static lines, gently brighten with the
-                        per-layer firing wave during training. */}
-                    {nodePositions.slice(0, -1).map((layerNodes, layerIdx) => {
-                        const layerFiring = getFiringIntensity(layerIdx);
-                        const connOpacity = isTraining ? 0.15 + layerFiring * 0.25 : 0.15;
-                        const connStroke = isTraining ? ACTIVATION_COLORS[activation] : '#9ca3af';
-                        return layerNodes.map((node, nodeIdx) =>
+                    {/* Connections — each edge shows a flowing dash during
+                        training (CSS keyframe on stroke-dashoffset). Edges
+                        always exist as faint static lines; the .edge-flow
+                        class adds the moving signal on top. */}
+                    {nodePositions.slice(0, -1).map((layerNodes, layerIdx) => (
+                        layerNodes.map((node, nodeIdx) =>
                             nodePositions[layerIdx + 1].map((nextNode, nextIdx) => (
-                                <line
-                                    key={`conn-${layerIdx}-${nodeIdx}-${nextIdx}`}
-                                    x1={node.x}
-                                    y1={node.y}
-                                    x2={nextNode.x}
-                                    y2={nextNode.y}
-                                    stroke={connStroke}
-                                    strokeWidth={0.5}
-                                    opacity={connOpacity}
-                                />
+                                <g key={`conn-${layerIdx}-${nodeIdx}-${nextIdx}`}>
+                                    {/* Static base line — always visible, very faint */}
+                                    <line
+                                        x1={node.x}
+                                        y1={node.y}
+                                        x2={nextNode.x}
+                                        y2={nextNode.y}
+                                        stroke="#9ca3af"
+                                        strokeWidth={0.5}
+                                        opacity={0.18}
+                                    />
+                                    {/* Flowing signal overlay — only during training */}
+                                    {isTraining && (
+                                        <line
+                                            className="edge-flow"
+                                            x1={node.x}
+                                            y1={node.y}
+                                            x2={nextNode.x}
+                                            y2={nextNode.y}
+                                            stroke={ACTIVATION_COLORS[activation]}
+                                            strokeWidth={0.9}
+                                            opacity={0.55}
+                                        />
+                                    )}
+                                </g>
                             ))
-                        );
-                    })}
+                        )
+                    ))}
 
-                    {/* Draw batch normalization layers */}
-                    {batchNorm && networkLayout.slice(1, -1).map((layer, idx) => {
-                        const x = padding.left + (idx + 1) * layerSpacing - layerSpacing / 2;
-                        return (
-                            <g key={`bn-${idx}`}>
-                                <rect
-                                    x={x - 15}
-                                    y={svgHeight / 2 - 40}
-                                    width={30}
-                                    height={80}
-                                    rx={4}
-                                    fill="rgba(139, 184, 232, 0.2)"
-                                    stroke={colors.lightBlue}
-                                    strokeWidth={1}
-                                    strokeDasharray="4,2"
-                                />
-                                <text
-                                    x={x}
-                                    y={svgHeight / 2}
-                                    textAnchor="middle"
-                                    fill={colors.lightBlue}
-                                    fontSize="8"
-                                    fontWeight="500"
-                                >
-                                    BN
-                                </text>
-                            </g>
-                        );
-                    })}
-
-                    {/* Draw nodes — whole layer fires as one unit, subtle
-                        opacity shift only, no radius pumping or stacked glows. */}
-                    {nodePositions.map((layerNodes, layerIdx) => {
-                        const layerFiring = getFiringIntensity(layerIdx);
-                        return layerNodes.map((node, nodeIdx) => {
-                            const color = getNodeColor(node.layerType, nodeIdx);
-                            const radius = node.layerType === 'input' ? 4 : (node.layerType === 'output' ? 14 : 8);
-
+                    {/* Nodes — solid, fully static (no flicker anywhere) */}
+                    {nodePositions.map((layerNodes, layerIdx) => (
+                        layerNodes.map((node, nodeIdx) => {
+                            const color = getNodeColor(node.layerType);
+                            const radius = node.layerType === 'input' ? 4 : (node.layerType === 'output' ? 10 : 8);
                             return (
                                 <g key={`node-${layerIdx}-${nodeIdx}`}>
                                     <circle
@@ -1043,27 +989,24 @@
                                         cy={node.y}
                                         r={radius}
                                         fill={color}
-                                        opacity={node.isDropout ? 0.3 : 0.7 + layerFiring * 0.3}
-                                        strokeDasharray={node.isDropout ? '3,2' : 'none'}
-                                        stroke={node.isDropout ? color : 'none'}
-                                        strokeWidth={node.isDropout ? 1.5 : 0}
+                                        opacity={0.85}
                                     />
                                     {node.layerType === 'output' && (
                                         <text
                                             x={node.x}
-                                            y={node.y + 4}
+                                            y={node.y + 3}
                                             textAnchor="middle"
                                             fill="white"
                                             fontSize="8"
                                             fontWeight="600"
                                         >
-                                            {nodeIdx === 0 ? 'B' : 'M'}
+                                            {nodeIdx}
                                         </text>
                                     )}
                                 </g>
                             );
-                        });
-                    })}
+                        })
+                    ))}
 
                     {/* Layer labels */}
                     {networkLayout.map((layer, idx) => (
@@ -1080,106 +1023,77 @@
                         </text>
                     ))}
 
-                    {/* Output labels */}
-                    <text
-                        x={padding.left + (networkLayout.length - 1) * layerSpacing + 35}
-                        y={nodePositions[nodePositions.length - 1][0].y + 4}
-                        fill="#22c55e"
-                        fontSize="9"
-                        fontWeight="500"
-                    >
-                        Benign
-                    </text>
-                    <text
-                        x={padding.left + (networkLayout.length - 1) * layerSpacing + 35}
-                        y={nodePositions[nodePositions.length - 1][1].y + 4}
-                        fill="#ef4444"
-                        fontSize="9"
-                        fontWeight="500"
-                    >
-                        Malignant
-                    </text>
-
-                    {/* Training indicator */}
+                    {/* Training indicator — just text, no pulsing dot */}
                     {isTraining && (
-                        <g>
-                            <text
-                                x={svgWidth / 2}
-                                y={25}
-                                textAnchor="middle"
-                                fill={colors.primary}
-                                fontSize="12"
-                                fontWeight="600"
-                            >
-                                Training... Epoch {currentEpoch}
-                            </text>
-                            <circle
-                                cx={svgWidth / 2 - 80}
-                                cy={22}
-                                r={4}
-                                fill={colors.primary}
-                                opacity={0.5 + Math.sin(animationPhase / 10) * 0.5}
-                            />
-                        </g>
+                        <text
+                            x={svgWidth / 2}
+                            y={25}
+                            textAnchor="middle"
+                            fill={colors.primary}
+                            fontSize="12"
+                            fontWeight="600"
+                        >
+                            Training... Epoch {currentEpoch}
+                        </text>
                     )}
                 </svg>
             );
         };
 
-        // Confusion Matrix Component (2x2 for binary classification)
+        // Confusion Matrix Component (10x10 for MNIST digit classification)
         const ConfusionMatrix = ({ matrix }) => {
+            const numClasses = matrix.length;
             const total = matrix.flat().reduce((a, b) => a + b, 0);
-            const tn = matrix[0][0];
-            const fp = matrix[0][1];
-            const fn = matrix[1][0];
-            const tp = matrix[1][1];
+            // Diagonal entries (i, i) are correct predictions
+            const correct = matrix.reduce((acc, row, i) => acc + row[i], 0);
+            const accuracy = total === 0 ? '—' : ((correct / total) * 100).toFixed(1) + '%';
 
-            // Standard binary-classification rates derived straight from the
-            // confusion matrix — no precision/recall naming.
-            const pct = (num, den) => (den === 0 ? '—' : (num / den * 100).toFixed(1) + '%');
-            const accuracy = pct(tp + tn, total);
-            const tpr = pct(tp, tp + fn);  // True Positive Rate  (sensitivity)
-            const fnr = pct(fn, tp + fn);  // False Negative Rate
-            const tnr = pct(tn, tn + fp);  // True Negative Rate  (specificity)
-            const fpr = pct(fp, tn + fp);  // False Positive Rate
+            // Heatmap: scale each cell's blue intensity by its share of the row.
+            const cellStyle = (rowIdx, colIdx, val) => {
+                const rowTotal = matrix[rowIdx].reduce((a, b) => a + b, 0);
+                const intensity = rowTotal === 0 ? 0 : val / rowTotal;
+                const isDiag = rowIdx === colIdx;
+                const bgAlpha = isDiag ? 0.15 + intensity * 0.6 : intensity * 0.5;
+                return {
+                    backgroundColor: `rgba(39, 116, 174, ${bgAlpha})`,
+                    color: bgAlpha > 0.45 ? 'white' : '#1a1a1a',
+                    fontWeight: isDiag ? 600 : 400,
+                    textAlign: 'center',
+                    padding: '4px 6px',
+                    fontSize: '0.75rem',
+                    minWidth: '28px',
+                };
+            };
 
             return (
                 <div className="confusion-matrix">
-                    <table className="matrix-table" style={{ marginBottom: '1rem' }}>
-                        <thead>
-                            <tr>
-                                <th></th>
-                                <th style={{ color: '#22c55e' }}>Pred: Benign</th>
-                                <th style={{ color: '#ef4444' }}>Pred: Malignant</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <th style={{ color: '#22c55e' }}>Actual: Benign</th>
-                                <td style={{ backgroundColor: 'rgba(34, 197, 94, 0.3)', color: '#166534', fontWeight: 600 }}>
-                                    {tn} (TN)
-                                </td>
-                                <td style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#991b1b' }}>
-                                    {fp} (FP)
-                                </td>
-                            </tr>
-                            <tr>
-                                <th style={{ color: '#ef4444' }}>Actual: Malignant</th>
-                                <td style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#991b1b' }}>
-                                    {fn} (FN)
-                                </td>
-                                <td style={{ backgroundColor: 'rgba(34, 197, 94, 0.3)', color: '#166534', fontWeight: 600 }}>
-                                    {tp} (TP)
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem 1.25rem', justifyContent: 'center', fontSize: '0.8rem' }}>
-                        <div><strong>Accuracy:</strong> {accuracy}</div>
-                        <div><strong>True Positive Rate:</strong> {tpr}</div>
-                        <div><strong>False Positive Rate:</strong> {fpr}</div>
-                        <div><strong>True Negative Rate:</strong> {tnr}</div>
-                        <div><strong>False Negative Rate:</strong> {fnr}</div>
+                    <div style={{ overflowX: 'auto' }}>
+                        <table className="matrix-table" style={{ marginBottom: '1rem', margin: '0 auto', borderCollapse: 'collapse' }}>
+                            <thead>
+                                <tr>
+                                    <th style={{ padding: '4px 6px', fontSize: '0.7rem', color: '#666' }}>actual \ pred</th>
+                                    {Array.from({ length: numClasses }, (_, i) => (
+                                        <th key={`h-${i}`} style={{ padding: '4px 6px', fontSize: '0.75rem' }}>{i}</th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {matrix.map((row, rowIdx) => (
+                                    <tr key={`r-${rowIdx}`}>
+                                        <th style={{ padding: '4px 6px', fontSize: '0.75rem' }}>{rowIdx}</th>
+                                        {row.map((val, colIdx) => (
+                                            <td key={`c-${rowIdx}-${colIdx}`} style={cellStyle(rowIdx, colIdx, val)}>
+                                                {val}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem 1.25rem', justifyContent: 'center', fontSize: '0.85rem' }}>
+                        <div><strong>Test accuracy:</strong> {accuracy}</div>
+                        <div><strong>Correct:</strong> {correct} / {total}</div>
                     </div>
                 </div>
             );
@@ -1193,17 +1107,16 @@
             // Network configuration
             const [hiddenLayers, setHiddenLayers] = useState([64, 32]);
             const [activation, setActivation] = useState('relu');
-            // Dropout UI removed — dropout is disabled entirely.
-            // Batch-norm UI removed — batch norm is always on.
-            const dropout = 0;
-            const batchNorm = true;
             const [learningRate, setLearningRate] = useState(0.001);
             const [batchSize, setBatchSize] = useState(32);
             const [epochs, setEpochs] = useState(50);
 
             // Training results
             const [trainingHistory, setTrainingHistory] = useState([]);
-            const [confusionMatrix, setConfusionMatrix] = useState([[0, 0], [0, 0]]);
+            // Confusion matrix starts as 10x10 zeros (one row/col per digit)
+            const [confusionMatrix, setConfusionMatrix] = useState(
+                () => Array.from({ length: 10 }, () => Array(10).fill(0))
+            );
             const [metrics, setMetrics] = useState({
                 trainAcc: 0,
                 valAcc: 0,
@@ -1216,15 +1129,14 @@
             // Calculate parameter count
             const paramCount = useMemo(() => {
                 let params = 0;
-                let prevSize = 30; // 30 features
+                let prevSize = 784; // 28 * 28 pixels flattened
                 hiddenLayers.forEach(size => {
                     params += prevSize * size + size; // weights + biases
-                    if (batchNorm) params += size * 4; // gamma, beta, running mean, var
                     prevSize = size;
                 });
-                params += prevSize * 1 + 1; // output layer (binary)
+                params += prevSize * 10 + 10; // output layer (10 digit classes)
                 return params;
-            }, [hiddenLayers, batchNorm]);
+            }, [hiddenLayers]);
 
             // Add hidden layer
             const addLayer = () => {
@@ -1247,70 +1159,81 @@
                 setHiddenLayers(newLayers);
             };
 
-            // Call real backend API for training
+            // Call backend /train endpoint, which streams NDJSON: one
+            // {"type":"epoch", ...} per epoch and one {"type":"final", ...}
+            // at the end. Charts populate live as each line arrives.
             const startTraining = async () => {
                 setIsTraining(true);
                 setTrainingHistory([]);
                 setCurrentEpoch(0);
-                setConfusionMatrix([[0, 0], [0, 0]]);
+                setConfusionMatrix(Array.from({ length: 10 }, () => Array(10).fill(0)));
 
                 try {
-                    // Call real backend API
                     const response = await fetch(`${API_BASE}/train`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             hidden_layers: hiddenLayers,
                             activation: activation,
-                            dropout_rate: dropout,
-                            use_batch_norm: batchNorm,
                             learning_rate: learningRate,
                             batch_size: batchSize,
                             epochs: epochs
                         })
                     });
 
-                    if (!response.ok) {
+                    if (!response.ok || !response.body) {
                         const err = await response.json().catch(() => ({}));
                         throw new Error(err.detail || 'Training failed');
                     }
 
-                    const result = await response.json();
-
-                    // Animate through epochs to build charts progressively
-                    const totalEpochs = result.train_accuracy_history.length;
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let buffer = '';
                     const history = [];
 
-                    for (let i = 0; i < totalEpochs; i++) {
-                        const epochData = {
-                            epoch: i + 1,
-                            trainLoss: result.train_loss_history[i],
-                            valLoss: result.val_loss_history[i],
-                            trainAcc: result.train_accuracy_history[i],
-                            valAcc: result.val_accuracy_history[i]
-                        };
-                        history.push(epochData);
-                        setTrainingHistory([...history]);
-                        setCurrentEpoch(i + 1);
+                    // Read the NDJSON stream line by line
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
 
-                        // Small delay for animation effect
-                        await new Promise(resolve => setTimeout(resolve, 30));
+                        buffer += decoder.decode(value, { stream: true });
+                        const lines = buffer.split('\n');
+                        buffer = lines.pop() || ''; // keep any trailing partial line
+
+                        for (const line of lines) {
+                            const trimmed = line.trim();
+                            if (!trimmed) continue;
+
+                            let msg;
+                            try { msg = JSON.parse(trimmed); }
+                            catch { continue; }
+
+                            if (msg.type === 'epoch') {
+                                history.push({
+                                    epoch: msg.epoch,
+                                    trainLoss: msg.train_loss,
+                                    valLoss: msg.val_loss,
+                                    trainAcc: msg.train_accuracy,
+                                    valAcc: msg.val_accuracy
+                                });
+                                setTrainingHistory([...history]);
+                                setCurrentEpoch(msg.epoch);
+                            } else if (msg.type === 'final') {
+                                setConfusionMatrix(msg.confusion_matrix);
+                                const lastIdx = msg.train_accuracy_history.length - 1;
+                                setMetrics({
+                                    trainAcc: msg.train_accuracy_history[lastIdx],
+                                    valAcc: msg.val_accuracy_history[lastIdx],
+                                    trainLoss: msg.train_loss_history[lastIdx],
+                                    valLoss: msg.val_loss_history[lastIdx],
+                                    params: msg.total_params,
+                                    trainTime: msg.training_time
+                                });
+                            } else if (msg.type === 'error') {
+                                throw new Error(msg.detail || 'Training failed');
+                            }
+                        }
                     }
-
-                    // Set confusion matrix from real results
-                    setConfusionMatrix(result.confusion_matrix);
-
-                    // Set final metrics from real results
-                    const lastIdx = totalEpochs - 1;
-                    setMetrics({
-                        trainAcc: result.train_accuracy_history[lastIdx],
-                        valAcc: result.val_accuracy_history[lastIdx],
-                        trainLoss: result.train_loss_history[lastIdx],
-                        valLoss: result.val_loss_history[lastIdx],
-                        params: result.total_params,
-                        trainTime: result.training_time
-                    });
-
                 } catch (error) {
                     console.error('Training error:', error);
                     alert('Training failed: ' + error.message + '\n\nMake sure the backend server is running.');
@@ -1338,7 +1261,7 @@
                                     Week 4: Neural Networks
                                 </h1>
                                 <p style={{ fontSize: '0.85rem', color: '#c0c0c0', marginTop: '0.25rem' }}>
-                                    Breast Cancer Diagnosis Classification
+                                    MNIST Digit Classification
                                 </p>
                             </div>
                             <div style={{ textAlign: 'right' }}>
@@ -1461,7 +1384,7 @@
                                             onClick={startTraining}
                                             disabled={isTraining}
                                         >
-                                            {isTraining ? (currentEpoch > 0 ? `Rendering... Epoch ${currentEpoch}` : 'Training on server...') : 'Train Model (Tensorflow/Keras)'}
+                                            {isTraining ? (currentEpoch > 0 ? `Rendering... Epoch ${currentEpoch}` : 'Training on server...') : 'Train (Tensorflow/Keras)'}
                                         </button>
 
                                         {isTraining && (
@@ -1495,45 +1418,24 @@
                                                 <NeuralNetworkViz
                                                     layers={hiddenLayers}
                                                     activation={activation}
-                                                    dropout={dropout}
-                                                    batchNorm={batchNorm}
                                                     isTraining={isTraining}
                                                     currentEpoch={currentEpoch}
-                                                    nFeatures={30}
+                                                    nFeatures={784}
                                                 />
                                             </div>
                                             <div className="network-legend">
                                                 <div className="legend-item">
                                                     <div className="legend-dot" style={{ background: '#6b7280' }}></div>
-                                                    Input (30 features)
+                                                    Input (784 pixels)
                                                 </div>
                                                 <div className="legend-item">
                                                     <div className="legend-dot" style={{ background: ACTIVATION_COLORS[activation] }}></div>
                                                     Hidden ({activation.toUpperCase()})
                                                 </div>
                                                 <div className="legend-item">
-                                                    <div className="legend-dot" style={{ background: '#22c55e' }}></div>
-                                                    Benign
+                                                    <div className="legend-dot" style={{ background: colors.primary }}></div>
+                                                    Output (digits 0-9)
                                                 </div>
-                                                <div className="legend-item">
-                                                    <div className="legend-dot" style={{ background: '#ef4444' }}></div>
-                                                    Malignant
-                                                </div>
-                                                {dropout > 0 && (
-                                                    <div className="legend-item">
-                                                        <div className="legend-dot" style={{
-                                                            background: 'transparent',
-                                                            border: `2px dashed ${colors.primary}`
-                                                        }}></div>
-                                                        Dropout Nodes
-                                                    </div>
-                                                )}
-                                                {batchNorm && (
-                                                    <div className="legend-item">
-                                                        <div className="legend-bar" style={{ background: colors.lightBlue }}></div>
-                                                        Batch Norm
-                                                    </div>
-                                                )}
                                             </div>
                                         </div>
 
