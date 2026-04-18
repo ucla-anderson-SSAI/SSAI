@@ -1110,6 +1110,8 @@
             const [learningRate, setLearningRate] = useState(0.001);
             const [batchSize, setBatchSize] = useState(32);
             const [epochs, setEpochs] = useState(50);
+            const [useEarlyStopping, setUseEarlyStopping] = useState(true);
+            const [patience, setPatience] = useState(10);
 
             // Training results
             const [trainingHistory, setTrainingHistory] = useState([]);
@@ -1177,7 +1179,9 @@
                             activation: activation,
                             learning_rate: learningRate,
                             batch_size: batchSize,
-                            epochs: epochs
+                            epochs: epochs,
+                            use_early_stopping: useEarlyStopping,
+                            patience: patience
                         })
                     });
 
@@ -1377,6 +1381,34 @@
                                                     onChange={(e) => setEpochs(parseInt(e.target.value))}
                                                 />
                                             </div>
+
+                                            <div className="control-group">
+                                                <label className="control-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={useEarlyStopping}
+                                                        onChange={(e) => setUseEarlyStopping(e.target.checked)}
+                                                        style={{ width: 'auto', margin: 0 }}
+                                                    />
+                                                    Early Stopping
+                                                </label>
+                                                {useEarlyStopping && (
+                                                    <div style={{ marginTop: '0.5rem' }}>
+                                                        <label className="control-label">
+                                                            Patience
+                                                            <span className="control-value">{patience}</span>
+                                                        </label>
+                                                        <input
+                                                            type="range"
+                                                            min="1"
+                                                            max="50"
+                                                            step="1"
+                                                            value={patience}
+                                                            onChange={(e) => setPatience(parseInt(e.target.value))}
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
 
                                         <button
@@ -1384,7 +1416,7 @@
                                             onClick={startTraining}
                                             disabled={isTraining}
                                         >
-                                            {isTraining ? (currentEpoch > 0 ? `Rendering... Epoch ${currentEpoch}` : 'Training on server...') : 'Train (Tensorflow/Keras)'}
+                                            {isTraining ? (currentEpoch > 0 ? `Rendering... Epoch ${currentEpoch}` : 'Training on Google Cloud...') : 'Train (Tensorflow/Keras)'}
                                         </button>
 
                                         {isTraining && (

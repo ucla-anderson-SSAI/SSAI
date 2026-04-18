@@ -128,6 +128,8 @@ class TrainRequest(BaseModel):
     learning_rate: float = Field(default=0.001, ge=0.0001, le=0.1, description="Learning rate")
     batch_size: int = Field(default=32, description="Batch size: 16, 32, 64, 128")
     epochs: int = Field(default=50, ge=10, le=200, description="Number of epochs")
+    use_early_stopping: bool = Field(default=True, description="Halt when val_loss stops improving")
+    patience: int = Field(default=10, ge=1, le=50, description="Epochs of no improvement before stopping")
 
 
 class TrainResponse(BaseModel):
@@ -301,13 +303,6 @@ def _run_training(request: TrainRequest, q: "queue.Queue"):
         model_summary = get_model_summary(model)
         total_params = int(model.count_params())
 
-        # Early stopping (matches the notebook: patience=5, restore best weights)
-        early_stop = callbacks.EarlyStopping(
-            monitor="val_loss",
-            patience=5,
-            restore_best_weights=True,
-        )
-
         # Per-epoch streaming callback — enqueues a message at the end of each epoch.
         class StreamCallback(callbacks.Callback):
             def on_epoch_end(self, epoch, logs=None):
@@ -321,13 +316,24 @@ def _run_training(request: TrainRequest, q: "queue.Queue"):
                     "val_accuracy": float(logs.get("val_accuracy", 0.0)),
                 })
 
+        # Early stopping is now opt-in from the UI. When enabled, `patience`
+        # (default 10) is the number of epochs without val_loss improvement
+        # before training halts and the best weights are restored.
+        fit_callbacks = [StreamCallback()]
+        if request.use_early_stopping:
+            fit_callbacks.append(callbacks.EarlyStopping(
+                monitor="val_loss",
+                patience=request.patience,
+                restore_best_weights=True,
+            ))
+
         start_time = time.time()
         history = model.fit(
             x_train, y_train,
             validation_data=(x_val, y_val),
             epochs=request.epochs,
             batch_size=request.batch_size,
-            callbacks=[StreamCallback(), early_stop],
+            callbacks=fit_callbacks,
             verbose=0,
         )
         training_time = time.time() - start_time
