@@ -8,8 +8,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies.
-# Cloud Run installs BOTH the light deps and the heavy ML deps.
-# (Railway only installs requirements.txt via Nixpacks, not requirements-ml.txt.)
+# This file is named Dockerfile.cloudrun (not Dockerfile) so Railway's builder
+# does NOT auto-detect it. Railway falls back to Nixpacks + requirements.txt
+# only (no TensorFlow, no XGBoost). deploy-cloudrun.sh renames this to
+# Dockerfile at deploy time so `gcloud run deploy --source .` picks it up.
 COPY requirements.txt requirements-ml.txt ./
 RUN pip install --no-cache-dir -r requirements.txt -r requirements-ml.txt
 

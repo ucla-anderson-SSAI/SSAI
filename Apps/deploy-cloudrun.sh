@@ -111,6 +111,14 @@ deploy_week4() {
     echo "--- Deploying Week 4: Neural Networks API ---"
     cd "$SCRIPT_DIR/week4-app"
 
+    # The Dockerfile is named Dockerfile.cloudrun so Railway's builder does
+    # NOT auto-detect it (Railway uses Nixpacks + requirements.txt only).
+    # gcloud run deploy --source . only picks up a file literally named
+    # "Dockerfile", so we copy it into place for the deploy and clean up
+    # afterward — including on error.
+    cp Dockerfile.cloudrun Dockerfile
+    trap 'rm -f "$SCRIPT_DIR/week4-app/Dockerfile"' EXIT
+
     gcloud run deploy "$WEEK4_SERVICE" \
         --source . \
         --region "$REGION" \
@@ -124,6 +132,9 @@ deploy_week4() {
         --allow-unauthenticated \
         --set-env-vars="PYTHONUNBUFFERED=1" \
         --quiet
+
+    rm -f Dockerfile
+    trap - EXIT
 
     WEEK4_URL=$(gcloud run services describe "$WEEK4_SERVICE" --region "$REGION" --format='value(status.url)')
     echo "Week 4 API deployed: $WEEK4_URL"
