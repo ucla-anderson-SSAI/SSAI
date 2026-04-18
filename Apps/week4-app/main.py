@@ -129,7 +129,6 @@ class TrainRequest(BaseModel):
     batch_size: int = Field(default=32, description="Batch size: 16, 32, 64, 128")
     epochs: int = Field(default=50, ge=10, le=200, description="Number of epochs")
     use_early_stopping: bool = Field(default=True, description="Halt when val_loss stops improving")
-    patience: int = Field(default=10, ge=1, le=50, description="Epochs of no improvement before stopping")
 
 
 class TrainResponse(BaseModel):
@@ -316,14 +315,14 @@ def _run_training(request: TrainRequest, q: "queue.Queue"):
                     "val_accuracy": float(logs.get("val_accuracy", 0.0)),
                 })
 
-        # Early stopping is now opt-in from the UI. When enabled, `patience`
-        # (default 10) is the number of epochs without val_loss improvement
-        # before training halts and the best weights are restored.
+        # Early stopping is opt-in from the UI. Patience is hardcoded to 10:
+        # training halts after 10 epochs of no val_loss improvement and the
+        # best weights are restored.
         fit_callbacks = [StreamCallback()]
         if request.use_early_stopping:
             fit_callbacks.append(callbacks.EarlyStopping(
                 monitor="val_loss",
-                patience=request.patience,
+                patience=10,
                 restore_best_weights=True,
             ))
 
