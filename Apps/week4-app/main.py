@@ -363,20 +363,32 @@ def _run_training(request: TrainRequest, q: "queue.Queue"):
         y_pred_classes = np.argmax(y_pred_proba, axis=1)
         cm = confusion_matrix(y_test, y_pred_classes, labels=list(range(10)))
 
-        # Pull a few misclassified test images so the UI can display the
-        # actual digit pixels alongside the predicted vs. true label.
-        # Order is deterministic (np.where returns indices in ascending
-        # order) and the seed is fixed, so every student sees the same
-        # examples for the same hyperparameters.
+        # Sample 5 correctly-classified and 5 misclassified test images so the
+        # UI can show side-by-side examples of what the model got right vs.
+        # wrong. We use a fresh RNG seeded with a fixed value so that (a) the
+        # selection is reproducible across students, and (b) the picks are
+        # spread across the whole test set instead of always the first few.
+        sampler = np.random.default_rng(42)
+        correct_indices = np.where(y_pred_classes == y_test)[0]
         misclass_indices = np.where(y_pred_classes != y_test)[0]
-        max_examples = 6
-        misclassified_examples = []
-        for idx in misclass_indices[:max_examples]:
-            misclassified_examples.append({
-                "pixels": [float(p) for p in x_test[idx]],
-                "true_label": int(y_test[idx]),
-                "predicted_label": int(y_pred_classes[idx]),
-            })
+
+        def _sample_examples(indices, n):
+            if len(indices) == 0:
+                return []
+            chosen = sampler.choice(
+                indices, size=min(n, len(indices)), replace=False
+            )
+            out = []
+            for idx in sorted(chosen):
+                out.append({
+                    "pixels": [float(p) for p in x_test[idx]],
+                    "true_label": int(y_test[idx]),
+                    "predicted_label": int(y_pred_classes[idx]),
+                })
+            return out
+
+        correct_examples = _sample_examples(correct_indices, 5)
+        misclassified_examples = _sample_examples(misclass_indices, 5)
 
         keras.backend.clear_session()
 
@@ -392,6 +404,7 @@ def _run_training(request: TrainRequest, q: "queue.Queue"):
             "training_time": float(training_time),
             "model_summary": model_summary,
             "total_params": total_params,
+            "correct_examples": correct_examples,
             "misclassified_examples": misclassified_examples,
         })
     except Exception as exc:  # noqa: BLE001

@@ -1155,8 +1155,9 @@
             const [confusionMatrix, setConfusionMatrix] = useState(
                 () => Array.from({ length: 10 }, () => Array(10).fill(0))
             );
-            // Misclassified examples to display under the confusion matrix.
+            // Sample predictions to display under the confusion matrix.
             // Each entry: { pixels: [784 floats], true_label: int, predicted_label: int }
+            const [correctExamples, setCorrectExamples] = useState([]);
             const [misclassifiedExamples, setMisclassifiedExamples] = useState([]);
             const [metrics, setMetrics] = useState({
                 trainAcc: 0,
@@ -1208,6 +1209,7 @@
                 setTrainingHistory([]);
                 setCurrentEpoch(0);
                 setConfusionMatrix(Array.from({ length: 10 }, () => Array(10).fill(0)));
+                setCorrectExamples([]);
                 setMisclassifiedExamples([]);
 
                 try {
@@ -1263,6 +1265,7 @@
                                 setCurrentEpoch(msg.epoch);
                             } else if (msg.type === 'final') {
                                 setConfusionMatrix(msg.confusion_matrix);
+                                setCorrectExamples(msg.correct_examples || []);
                                 setMisclassifiedExamples(msg.misclassified_examples || []);
                                 const lastIdx = msg.train_accuracy_history.length - 1;
                                 setMetrics({
@@ -1564,29 +1567,78 @@
                                     </div>
                                 )}
 
-                                {/* Misclassified Examples */}
-                                {misclassifiedExamples.length > 0 && (
+                                {/* Sample Predictions: 5 correct + 5 misclassified */}
+                                {(correctExamples.length > 0 || misclassifiedExamples.length > 0) && (
                                     <div className="chart-card" style={{ marginTop: '1rem' }}>
                                         <h3 className="card-title">
-                                            Misclassified Examples
+                                            Sample Predictions
                                         </h3>
-                                        <div style={{
-                                            display: 'flex',
-                                            gap: '1.25rem',
-                                            flexWrap: 'wrap',
-                                            justifyContent: 'center',
-                                            padding: '0.5rem'
-                                        }}>
-                                            {misclassifiedExamples.map((ex, idx) => (
-                                                <div key={`mis-${idx}`} style={{ textAlign: 'center' }}>
-                                                    <DigitImage pixels={ex.pixels} size={72} />
-                                                    <div style={{ fontSize: '0.8rem', marginTop: '0.4rem', lineHeight: 1.4 }}>
-                                                        <div>Predicted: <strong style={{ color: '#e74c3c' }}>{ex.predicted_label}</strong></div>
-                                                        <div>True: <strong style={{ color: '#27ae60' }}>{ex.true_label}</strong></div>
-                                                    </div>
+
+                                        {correctExamples.length > 0 && (
+                                            <div style={{ marginBottom: '1.5rem' }}>
+                                                <div style={{
+                                                    fontSize: '0.85rem',
+                                                    fontWeight: 600,
+                                                    color: '#27ae60',
+                                                    marginBottom: '0.6rem',
+                                                    textAlign: 'center',
+                                                    letterSpacing: '0.05em',
+                                                    textTransform: 'uppercase'
+                                                }}>
+                                                    Correctly Classified
                                                 </div>
-                                            ))}
-                                        </div>
+                                                <div style={{
+                                                    display: 'flex',
+                                                    gap: '1.25rem',
+                                                    flexWrap: 'wrap',
+                                                    justifyContent: 'center',
+                                                    padding: '0.25rem'
+                                                }}>
+                                                    {correctExamples.map((ex, idx) => (
+                                                        <div key={`cor-${idx}`} style={{ textAlign: 'center' }}>
+                                                            <DigitImage pixels={ex.pixels} size={72} />
+                                                            <div style={{ fontSize: '0.8rem', marginTop: '0.4rem', lineHeight: 1.4 }}>
+                                                                <div>Predicted: <strong style={{ color: '#27ae60' }}>{ex.predicted_label}</strong></div>
+                                                                <div>True: <strong>{ex.true_label}</strong></div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {misclassifiedExamples.length > 0 && (
+                                            <div>
+                                                <div style={{
+                                                    fontSize: '0.85rem',
+                                                    fontWeight: 600,
+                                                    color: '#e74c3c',
+                                                    marginBottom: '0.6rem',
+                                                    textAlign: 'center',
+                                                    letterSpacing: '0.05em',
+                                                    textTransform: 'uppercase'
+                                                }}>
+                                                    Misclassified
+                                                </div>
+                                                <div style={{
+                                                    display: 'flex',
+                                                    gap: '1.25rem',
+                                                    flexWrap: 'wrap',
+                                                    justifyContent: 'center',
+                                                    padding: '0.25rem'
+                                                }}>
+                                                    {misclassifiedExamples.map((ex, idx) => (
+                                                        <div key={`mis-${idx}`} style={{ textAlign: 'center' }}>
+                                                            <DigitImage pixels={ex.pixels} size={72} />
+                                                            <div style={{ fontSize: '0.8rem', marginTop: '0.4rem', lineHeight: 1.4 }}>
+                                                                <div>Predicted: <strong style={{ color: '#e74c3c' }}>{ex.predicted_label}</strong></div>
+                                                                <div>True: <strong style={{ color: '#27ae60' }}>{ex.true_label}</strong></div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 
