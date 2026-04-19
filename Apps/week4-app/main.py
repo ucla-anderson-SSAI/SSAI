@@ -363,6 +363,21 @@ def _run_training(request: TrainRequest, q: "queue.Queue"):
         y_pred_classes = np.argmax(y_pred_proba, axis=1)
         cm = confusion_matrix(y_test, y_pred_classes, labels=list(range(10)))
 
+        # Pull a few misclassified test images so the UI can display the
+        # actual digit pixels alongside the predicted vs. true label.
+        # Order is deterministic (np.where returns indices in ascending
+        # order) and the seed is fixed, so every student sees the same
+        # examples for the same hyperparameters.
+        misclass_indices = np.where(y_pred_classes != y_test)[0]
+        max_examples = 6
+        misclassified_examples = []
+        for idx in misclass_indices[:max_examples]:
+            misclassified_examples.append({
+                "pixels": [float(p) for p in x_test[idx]],
+                "true_label": int(y_test[idx]),
+                "predicted_label": int(y_pred_classes[idx]),
+            })
+
         keras.backend.clear_session()
 
         q.put({
@@ -377,6 +392,7 @@ def _run_training(request: TrainRequest, q: "queue.Queue"):
             "training_time": float(training_time),
             "model_summary": model_summary,
             "total_params": total_params,
+            "misclassified_examples": misclassified_examples,
         })
     except Exception as exc:  # noqa: BLE001
         q.put({"type": "error", "detail": str(exc)})

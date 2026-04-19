@@ -806,6 +806,41 @@
             return <canvas ref={canvasRef} />;
         };
 
+        // Renders a 28x28 MNIST digit (784 floats in [0,1]) onto a canvas
+        // scaled up with crisp pixel edges. Used for misclassified examples.
+        const DigitImage = ({ pixels, size = 64 }) => {
+            const canvasRef = useRef(null);
+            useEffect(() => {
+                if (!canvasRef.current || !pixels) return;
+                const canvas = canvasRef.current;
+                canvas.width = 28;
+                canvas.height = 28;
+                const ctx = canvas.getContext('2d');
+                const imgData = ctx.createImageData(28, 28);
+                for (let i = 0; i < pixels.length; i++) {
+                    const v = Math.round(pixels[i] * 255);
+                    imgData.data[i*4 + 0] = v;
+                    imgData.data[i*4 + 1] = v;
+                    imgData.data[i*4 + 2] = v;
+                    imgData.data[i*4 + 3] = 255;
+                }
+                ctx.putImageData(imgData, 0, 0);
+            }, [pixels]);
+            return (
+                <canvas
+                    ref={canvasRef}
+                    style={{
+                        width: size,
+                        height: size,
+                        imageRendering: 'pixelated',
+                        border: '1px solid #ddd',
+                        borderRadius: 4,
+                        background: '#000',
+                    }}
+                />
+            );
+        };
+
         // Loss Chart - Incremental updates
         const LossChart = ({ trainingHistory, totalEpochs }) => {
             const canvasRef = useRef(null);
@@ -840,9 +875,11 @@
                             },
                             y: {
                                 title: { display: true, text: 'Loss', color: '#666' },
-                                min: 0,
-                                max: 1.0,
-                                ticks: { color: '#666', stepSize: 0.2 },
+                                // No hard max — Chart.js auto-scales the y-axis on each
+                                // update so high-loss runs (e.g., lr=0.1 divergence,
+                                // early-epoch sigmoid) stay in frame.
+                                beginAtZero: true,
+                                ticks: { color: '#666' },
                                 grid: { color: 'rgba(0,0,0,0.05)' }
                             }
                         }
@@ -1118,6 +1155,9 @@
             const [confusionMatrix, setConfusionMatrix] = useState(
                 () => Array.from({ length: 10 }, () => Array(10).fill(0))
             );
+            // Misclassified examples to display under the confusion matrix.
+            // Each entry: { pixels: [784 floats], true_label: int, predicted_label: int }
+            const [misclassifiedExamples, setMisclassifiedExamples] = useState([]);
             const [metrics, setMetrics] = useState({
                 trainAcc: 0,
                 valAcc: 0,
@@ -1168,6 +1208,7 @@
                 setTrainingHistory([]);
                 setCurrentEpoch(0);
                 setConfusionMatrix(Array.from({ length: 10 }, () => Array(10).fill(0)));
+                setMisclassifiedExamples([]);
 
                 try {
                     const response = await fetch(`${API_BASE}/train`, {
@@ -1222,6 +1263,7 @@
                                 setCurrentEpoch(msg.epoch);
                             } else if (msg.type === 'final') {
                                 setConfusionMatrix(msg.confusion_matrix);
+                                setMisclassifiedExamples(msg.misclassified_examples || []);
                                 const lastIdx = msg.train_accuracy_history.length - 1;
                                 setMetrics({
                                     trainAcc: msg.train_accuracy_history[lastIdx],
@@ -1519,6 +1561,32 @@
                                             Confusion Matrix
                                         </h3>
                                         <ConfusionMatrix matrix={confusionMatrix} />
+                                    </div>
+                                )}
+
+                                {/* Misclassified Examples */}
+                                {misclassifiedExamples.length > 0 && (
+                                    <div className="chart-card" style={{ marginTop: '1rem' }}>
+                                        <h3 className="card-title">
+                                            Misclassified Examples
+                                        </h3>
+                                        <div style={{
+                                            display: 'flex',
+                                            gap: '1.25rem',
+                                            flexWrap: 'wrap',
+                                            justifyContent: 'center',
+                                            padding: '0.5rem'
+                                        }}>
+                                            {misclassifiedExamples.map((ex, idx) => (
+                                                <div key={`mis-${idx}`} style={{ textAlign: 'center' }}>
+                                                    <DigitImage pixels={ex.pixels} size={72} />
+                                                    <div style={{ fontSize: '0.8rem', marginTop: '0.4rem', lineHeight: 1.4 }}>
+                                                        <div>Predicted: <strong style={{ color: '#e74c3c' }}>{ex.predicted_label}</strong></div>
+                                                        <div>True: <strong style={{ color: '#27ae60' }}>{ex.true_label}</strong></div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
 
