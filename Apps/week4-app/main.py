@@ -10,6 +10,7 @@ of MNIST so training is fast enough to run live in the browser.
 import asyncio
 import json
 import queue
+import random
 import threading
 import time
 from functools import partial
@@ -274,6 +275,25 @@ def _run_training(request: TrainRequest, q: "queue.Queue"):
     """
     try:
         _tf, keras, _layers, _models, _optimizers, callbacks = _load_tf()
+
+        # Fix all random seeds at the start of every request so every student
+        # running the same hyperparameters gets identical results (test
+        # accuracy, confusion matrix, epoch-stop count). Re-seeding per request
+        # is essential: the global RNG state advances across requests, so
+        # without this the Nth student's run would diverge from the 1st.
+        # Seeds must be set BEFORE build_model (weight init) and BEFORE
+        # model.fit (batch shuffling).
+        seed = 42
+        os.environ["PYTHONHASHSEED"] = str(seed)
+        random.seed(seed)
+        np.random.seed(seed)
+        keras.utils.set_random_seed(seed)
+        try:
+            _tf.config.experimental.enable_op_determinism()
+        except Exception:  # noqa: BLE001
+            # Older TF versions don't have this; CPU runs are still
+            # mostly deterministic with the seeds above.
+            pass
 
         # Load data
         data = load_mnist_data()

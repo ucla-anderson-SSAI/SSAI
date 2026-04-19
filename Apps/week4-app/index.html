@@ -1073,14 +1073,14 @@
                                 <tr>
                                     <th style={{ padding: '4px 6px', fontSize: '0.7rem', color: '#666' }}>actual \ pred</th>
                                     {Array.from({ length: numClasses }, (_, i) => (
-                                        <th key={`h-${i}`} style={{ padding: '4px 6px', fontSize: '0.75rem' }}>{i}</th>
+                                        <th key={`h-${i}`} style={{ padding: '4px 6px', fontSize: '0.85rem', fontWeight: 700 }}>{i}</th>
                                     ))}
                                 </tr>
                             </thead>
                             <tbody>
                                 {matrix.map((row, rowIdx) => (
                                     <tr key={`r-${rowIdx}`}>
-                                        <th style={{ padding: '4px 6px', fontSize: '0.75rem' }}>{rowIdx}</th>
+                                        <th style={{ padding: '4px 6px', fontSize: '0.85rem', fontWeight: 700 }}>{rowIdx}</th>
                                         {row.map((val, colIdx) => (
                                             <td key={`c-${rowIdx}-${colIdx}`} style={cellStyle(rowIdx, colIdx, val)}>
                                                 {val}
@@ -1381,14 +1381,14 @@
                                             </div>
 
                                             <div className="control-group">
-                                                <label className="control-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                <label className="control-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                    Early Stopping
                                                     <input
                                                         type="checkbox"
                                                         checked={useEarlyStopping}
                                                         onChange={(e) => setUseEarlyStopping(e.target.checked)}
                                                         style={{ width: 'auto', margin: 0 }}
                                                     />
-                                                    Early Stopping (patience=10)
                                                 </label>
                                             </div>
                                         </div>
@@ -1456,9 +1456,9 @@
                                         {/* Training Charts - side by side below network */}
                                         <div className="charts-grid" style={{ marginBottom: 0 }}>
                                             <div className="chart-card">
-                                                <h3 className="card-title">Accuracy Over Epochs</h3>
+                                                <h3 className="card-title">Loss Over Epochs</h3>
                                                 <div className="chart-container">
-                                                    <AccuracyChart
+                                                    <LossChart
                                                         trainingHistory={trainingHistory}
                                                         totalEpochs={epochs}
                                                     />
@@ -1466,9 +1466,9 @@
                                             </div>
 
                                             <div className="chart-card">
-                                                <h3 className="card-title">Loss Over Epochs</h3>
+                                                <h3 className="card-title">Accuracy Over Epochs</h3>
                                                 <div className="chart-container">
-                                                    <LossChart
+                                                    <AccuracyChart
                                                         trainingHistory={trainingHistory}
                                                         totalEpochs={epochs}
                                                     />
