@@ -1443,7 +1443,7 @@
                                             onClick={startTraining}
                                             disabled={isTraining}
                                         >
-                                            {isTraining ? (currentEpoch > 0 ? `Rendering... Epoch ${currentEpoch}` : 'Training on Google Cloud...') : 'Train (Tensorflow/Keras)'}
+                                            {isTraining ? 'Training on Google Cloud...' : 'Train (Tensorflow/Keras)'}
                                         </button>
 
                                         {isTraining && (
