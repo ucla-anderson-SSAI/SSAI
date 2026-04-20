@@ -173,35 +173,27 @@
       <div class="card">
         <div class="card-label">Starting Weights</div>
         <div class="slider-group">
-          <div class="slider-header"><span class="slider-label">w₁ (hours)</span><span class="slider-value" id="gd_w1val">0.050</span></div>
-          <input type="range" id="gd_w1" min="-1" max="1" step="0.001" value="0.05">
+          <div class="slider-header"><span class="slider-label">w₁ (hours)</span><span class="slider-value" id="gd_w1val">-0.010</span></div>
+          <input type="range" id="gd_w1" min="-1" max="1" step="0.001" value="-0.01">
           <div class="slider-bounds"><span>-1</span><span>1</span></div>
         </div>
         <div class="slider-group">
-          <div class="slider-header"><span class="slider-label">w₂ (days)</span><span class="slider-value" id="gd_w2val">0.100</span></div>
-          <input type="range" id="gd_w2" min="-1" max="1" step="0.001" value="0.1">
+          <div class="slider-header"><span class="slider-label">w₂ (days)</span><span class="slider-value" id="gd_w2val">-0.160</span></div>
+          <input type="range" id="gd_w2" min="-1" max="1" step="0.001" value="-0.16">
           <div class="slider-bounds"><span>-1</span><span>1</span></div>
         </div>
         <div class="slider-group">
-          <div class="slider-header"><span class="slider-label">bias (b)</span><span class="slider-value" id="gd_bval">-0.500</span></div>
-          <input type="range" id="gd_bias" min="-1" max="1" step="0.01" value="-0.5">
+          <div class="slider-header"><span class="slider-label">bias (b)</span><span class="slider-value" id="gd_bval">-0.430</span></div>
+          <input type="range" id="gd_bias" min="-1" max="1" step="0.01" value="-0.43">
           <div class="slider-bounds"><span>-1</span><span>1</span></div>
         </div>
       </div>
       <div class="card">
         <div class="card-label">Gradient Descent</div>
         <div class="slider-group">
-          <div class="slider-header"><span class="slider-label">Learning Rate (α)</span><span class="slider-value" id="lrval">0.010</span></div>
-          <input type="range" id="lr" min="-4" max="0" step="0.1" value="-0.5">
-          <div class="slider-bounds"><span>0.0001</span><span>1.0</span></div>
-        </div>
-        <div style="margin-bottom:10px">
-          <div class="slider-label" style="margin-bottom:6px">Speed</div>
-          <div style="display:flex;gap:6px">
-            <button class="speed-btn active" data-speed="1" id="spd1">1×</button>
-            <button class="speed-btn" data-speed="5" id="spd5">5×</button>
-            <button class="speed-btn" data-speed="10" id="spd10">10×</button>
-          </div>
+          <div class="slider-header"><span class="slider-label">Learning Rate (α)</span><span class="slider-value" id="lrval">0.0001</span></div>
+          <input type="range" id="lr" min="-4" max="-2" step="0.1" value="-4">
+          <div class="slider-bounds"><span>0.0001</span><span>0.01</span></div>
         </div>
         <div style="display:flex;gap:8px;margin-bottom:12px">
           <button class="gd-btn gd-btn-primary" id="gdStart" style="flex:1">▶ Run</button>
@@ -223,15 +215,15 @@
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
           <div class="gd-stat" style="background:#f8fafc;border-radius:6px">
             <div class="gd-stat-label">w₁</div>
-            <div class="gd-stat-value" id="gdCurW1" style="font-size:14px">0.050</div>
+            <div class="gd-stat-value" id="gdCurW1" style="font-size:14px">-0.010</div>
           </div>
           <div class="gd-stat" style="background:#f8fafc;border-radius:6px">
             <div class="gd-stat-label">w₂</div>
-            <div class="gd-stat-value" id="gdCurW2" style="font-size:14px">0.100</div>
+            <div class="gd-stat-value" id="gdCurW2" style="font-size:14px">-0.160</div>
           </div>
           <div class="gd-stat" style="background:#f8fafc;border-radius:6px">
             <div class="gd-stat-label">bias</div>
-            <div class="gd-stat-value" id="gdCurB" style="font-size:14px">-0.500</div>
+            <div class="gd-stat-value" id="gdCurB" style="font-size:14px">-0.430</div>
           </div>
         </div>
       </div>
@@ -398,13 +390,12 @@ const gdEls={
   curW1:document.getElementById('gdCurW1'),curW2:document.getElementById('gdCurW2'),curB:document.getElementById('gdCurB'),
   tbody:document.getElementById('gdTableBody'),
   note:document.getElementById('plotNoteGD'),
-  spd1:document.getElementById('spd1'),spd5:document.getElementById('spd5'),spd10:document.getElementById('spd10'),
 };
 
-let gdRunning=false, gdAnimId=null, gdSpeed=1, gdStepCount=0;
-let gdW1=0.05, gdW2=0.1, gdBias=-0.5;
+let gdRunning=false, gdAnimId=null, gdStepCount=0;
+let gdW1=-0.01, gdW2=-0.16, gdBias=-0.43;
 let gdTrailW1=[], gdTrailW2=[], gdTrailL=[];
-let gdBiasCache=-0.5, gdSurfCache=buildSurface(-0.5), gdPlotReady=false;
+let gdBiasCache=-0.43, gdSurfCache=buildSurface(-0.43), gdPlotReady=false;
 
 function getLR(){ return Math.pow(10,+gdEls.lr.value); }
 gdEls.lr.addEventListener('input',function(){ gdEls.lrval.textContent=getLR().toFixed(4); });
@@ -413,14 +404,6 @@ gdEls.lrval.textContent=getLR().toFixed(4);
 gdSliders.w1.addEventListener('input',function(){ gdSliders.w1v.textContent=(+this.value).toFixed(3); if(!gdRunning&&gdTrailW1.length===0) updateGDTab(); });
 gdSliders.w2.addEventListener('input',function(){ gdSliders.w2v.textContent=(+this.value).toFixed(3); if(!gdRunning&&gdTrailW1.length===0) updateGDTab(); });
 gdSliders.bias.addEventListener('input',function(){ gdSliders.bv.textContent=(+this.value).toFixed(3); if(!gdRunning&&gdTrailW1.length===0) updateGDTab(); });
-
-[gdEls.spd1,gdEls.spd5,gdEls.spd10].forEach(btn=>{
-  btn.addEventListener('click',function(){
-    if(gdRunning) return;
-    gdSpeed=+this.dataset.speed;
-    [gdEls.spd1,gdEls.spd5,gdEls.spd10].forEach(b=>b.classList.toggle('active',b===this));
-  });
-});
 
 function gdGradients(w1,w2,b){
   let g1=0,g2=0,gb=0;
@@ -487,7 +470,7 @@ function gdDoStep(){
 
 function gdTick(){
   if(!gdRunning) return;
-  for(let i=0;i<gdSpeed;i++) gdDoStep();
+  gdDoStep();
   gdAnimId=setTimeout(gdTick,330);
 }
 
@@ -497,7 +480,6 @@ gdEls.start.addEventListener('click',function(){
     gdEls.start.textContent='▶ Run';gdEls.start.classList.remove('gd-btn-stop');gdEls.start.classList.add('gd-btn-primary');
     gdSliders.w1.disabled=false;gdSliders.w2.disabled=false;gdSliders.bias.disabled=false;
     gdEls.lr.disabled=false;
-    [gdEls.spd1,gdEls.spd5,gdEls.spd10].forEach(b=>b.disabled=false);
   } else {
     if(gdTrailW1.length===0){
       gdW1=+gdSliders.w1.value;gdW2=+gdSliders.w2.value;gdBias=+gdSliders.bias.value;
@@ -509,7 +491,6 @@ gdEls.start.addEventListener('click',function(){
     gdEls.start.textContent='⏸ Pause';gdEls.start.classList.remove('gd-btn-primary');gdEls.start.classList.add('gd-btn-stop');
     gdSliders.w1.disabled=true;gdSliders.w2.disabled=true;gdSliders.bias.disabled=true;
     gdEls.lr.disabled=true;
-    [gdEls.spd1,gdEls.spd5,gdEls.spd10].forEach(b=>b.disabled=true);
     gdTick();
   }
 });
@@ -521,7 +502,6 @@ gdEls.reset.addEventListener('click',function(){
   gdBiasCache=gdBias;gdSurfCache=buildSurface(gdBias);
   gdSliders.w1.disabled=false;gdSliders.w2.disabled=false;gdSliders.bias.disabled=false;
   gdEls.lr.disabled=false;
-  [gdEls.spd1,gdEls.spd5,gdEls.spd10].forEach(b=>b.disabled=false);
   gdEls.start.textContent='▶ Run';gdEls.start.classList.remove('gd-btn-stop');gdEls.start.classList.add('gd-btn-primary');
   gdEls.step.textContent='0';gdEls.loss.textContent='—';gdEls.loss.style.color='#0f172a';
   updateGDTab();
