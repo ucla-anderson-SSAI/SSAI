@@ -145,7 +145,7 @@ deploy_week5() {
     echo "--- Deploying Week 5: CNN Training API ---"
     cd "$SCRIPT_DIR/week5-app"
 
-    cp Dockerfile.cloudrun Dockerfile
+    cp cloudrun.Dockerfile Dockerfile
     trap 'rm -f "$SCRIPT_DIR/week5-app/Dockerfile"' EXIT
 
     gcloud run deploy "$WEEK5_SERVICE" \
