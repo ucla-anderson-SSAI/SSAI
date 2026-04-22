@@ -211,26 +211,62 @@
 
         .toggle.active .toggle-knob { left: 27px; }
 
-        .run-button {
+        .train-btn {
             width: 100%;
-            padding: 1rem;
-            background: #2774AE;
+            padding: 14px;
+            background: linear-gradient(135deg, #2774AE 0%, #005587 100%);
             border: none;
-            border-radius: 10px;
-            color: #ffffff;
-            font-family: 'Inter', sans-serif;
+            border-radius: 8px;
+            color: white;
+            font-family: inherit;
+            font-size: 0.95rem;
             font-weight: 600;
-            font-size: 1rem;
             cursor: pointer;
             transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(39, 116, 174, 0.4);
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 0.75rem;
         }
 
-        .run-button:hover { background: #005587; }
-        .run-button:disabled { opacity: 0.6; cursor: not-allowed; }
+        .train-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(39, 116, 174, 0.5);
+        }
+
+        .train-btn:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; }
+
+        .train-btn.training {
+            background: linear-gradient(135deg, #8BB8E8 0%, #2774AE 100%);
+        }
+
+        .training-progress {
+            margin-top: 1rem;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #2774AE, #8BB8E8);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 0.5rem;
+            text-align: center;
+        }
 
         .loading-spinner {
             width: 20px; height: 20px;
@@ -1485,9 +1521,20 @@
                                 )}
                             </div>
 
-                            <button className="run-button" onClick={runTraining} disabled={isTraining || backendStatus !== 'connected'}>
-                                {isTraining ? <><div className="loading-spinner" /> {trainingStatus}</> : <>▶ Train CNN (Python/Keras)</>}
+                            <button className={`train-btn ${isTraining ? 'training' : ''}`} onClick={runTraining} disabled={isTraining || backendStatus !== 'connected'}>
+                                {isTraining ? 'Training on Google Cloud...' : 'Train CNN (TensorFlow/Keras)'}
                             </button>
+
+                            {isTraining && (
+                                <div className="training-progress">
+                                    <div className="progress-bar">
+                                        <div className="progress-fill" style={{ width: `${(currentEpoch / config.epochs) * 100}%` }} />
+                                    </div>
+                                    <div className="progress-text">
+                                        {trainingStatus} — {Math.round((currentEpoch / config.epochs) * 100)}% complete
+                                    </div>
+                                </div>
+                            )}
 
                             {isTraining && totalBatches > 0 && (
                                 <div style={{ marginTop: '1rem' }}>
@@ -1707,7 +1754,7 @@
                             }}>
                                 <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#2774AE' }}>MobileNetV2</div>
                                 <div style={{ fontSize: '0.75rem', color: '#666', marginTop: '0.25rem' }}>
-                                    Lightweight CNN (3.4M params) pre-trained on ImageNet's 1.2M images across 1,000 categories · We reuse its learned visual features and replace the final classifier to distinguish our 3 animal classes · Input upscaled from 32×32 to 96×96
+                                    Lightweight CNN (3.4M params) pre-trained on ImageNet's 1.2M images across 1,000 categories · We reuse its learned visual features and replace the final classifier to distinguish our 3 animal classes
                                 </div>
                             </div>
 
@@ -1778,11 +1825,21 @@
                                 <span>{backendStatus === 'connected' ? 'Backend connected' : 'Backend not connected'}</span>
                             </div>
 
-                            <button className="run-button" onClick={runTransferLearning}
+                            <button className={`train-btn ${isTraining ? 'training' : ''}`} onClick={runTransferLearning}
                                 disabled={isTraining || backendStatus !== 'connected'}>
-                                {isTraining ? <><div className="loading-spinner" /> {trainingStatus}</> :
-                                    <>▶ Fine-tune MobileNetV2 ({MAX_EPOCHS} epochs)</>}
+                                {isTraining ? 'Training on Google Cloud...' : `Train MobileNetV2 (TensorFlow/Keras)`}
                             </button>
+
+                            {isTraining && (
+                                <div className="training-progress">
+                                    <div className="progress-bar">
+                                        <div className="progress-fill" style={{ width: `${trainingHistory.length / MAX_EPOCHS * 100}%` }} />
+                                    </div>
+                                    <div className="progress-text">
+                                        {trainingStatus} — {Math.round(trainingHistory.length / MAX_EPOCHS * 100)}% complete
+                                    </div>
+                                </div>
+                            )}
 
                             {testAccuracy && (
                                 <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#4CAF50' }}>
@@ -2029,8 +2086,8 @@
                                 {error || loadingStatus}
                             </div>
                             
-                            <button 
-                                className="run-button" 
+                            <button
+                                className="train-btn"
                                 style={{ marginTop: '1rem' }}
                                 onClick={isRunning ? stopCamera : startCamera}
                                 disabled={isLoading || !!error}
