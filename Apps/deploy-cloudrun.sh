@@ -145,18 +145,25 @@ deploy_week5() {
     echo "--- Deploying Week 5: CNN Training API ---"
     cd "$SCRIPT_DIR/week5-app"
 
+    cp Dockerfile.cloudrun Dockerfile
+    trap 'rm -f "$SCRIPT_DIR/week5-app/Dockerfile"' EXIT
+
     gcloud run deploy "$WEEK5_SERVICE" \
         --source . \
         --region "$REGION" \
         --cpu "$CPU" \
         --memory "$MEMORY" \
         --timeout 600 \
-        --concurrency 10 \
-        --min-instances 1 \
-        --max-instances "$MAX_INSTANCES" \
+        --concurrency 1 \
+        --no-cpu-throttling \
+        --min-instances 0 \
+        --max-instances 100 \
         --allow-unauthenticated \
         --set-env-vars="PYTHONUNBUFFERED=1" \
         --quiet
+
+    rm -f Dockerfile
+    trap - EXIT
 
     WEEK5_URL=$(gcloud run services describe "$WEEK5_SERVICE" --region "$REGION" --format='value(status.url)')
     echo "Week 5 API deployed: $WEEK5_URL"
