@@ -1,292 +1,255 @@
 """
-Flask backend for Week 5 CNN Training App
-CNN training on CIFAR-100 subset: Lions, Tigers, and Bears!
-OPTIMIZED for 80 concurrent students
+Week 5: Convolutional Neural Networks – Lions, Tigers, and Bears!
+FastAPI backend for CNN training on a CIFAR-100 subset.
+
+Architecture mirrors Week 4: each training request is a single NDJSON-streamed
+HTTP response. Cloud Run scales by spinning up container replicas — no shared
+in-memory state, no session queues. Each request is fully self-contained.
 """
 
-from flask import Flask, jsonify, request, send_file
-from flask_cors import CORS
-import numpy as np
+import asyncio
+import json
 import os
-import time
-from collections import deque
-from datetime import datetime, timedelta
+import queue
+import random
 import threading
-import uuid
-import base64
-from io import BytesIO
-from PIL import Image
+import time
+from typing import List, Optional
 
-# Set TensorFlow to CPU only and reduce logging BEFORE importing
+import numpy as np
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
+
+# Force CPU and suppress TF noise BEFORE import
 os.environ['CUDA_VISIBLE_DEVICES'] = ''
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
-app = Flask(__name__)
-CORS(app)
+# TensorFlow is LAZY-LOADED. Railway (frontend-only) never imports it.
+_TF_INITIALIZED = False
 
-# ============================================
-# Configuration - OPTIMIZED FOR 80 STUDENTS
-# ============================================
-MAX_CONCURRENT_TRAININGS = 30
-SESSION_TIMEOUT_MINUTES = 15
-CLEANUP_INTERVAL_SECONDS = 30
 
-# Default training settings optimized for speed
-DEFAULT_EPOCHS = 10
-DEFAULT_NUM_SAMPLES = 300
-MAX_EPOCHS = 10
-MAX_SAMPLES = 500  # Max is 500 per class in CIFAR-100 fine classes
+def _load_tf():
+    """Lazy-import TF + Keras. Cached after first call."""
+    global _TF_INITIALIZED
+    import tensorflow as tf
+    from tensorflow import keras
+    from tensorflow.keras import layers
+
+    if not _TF_INITIALIZED:
+        tf.get_logger().setLevel("ERROR")
+        try:
+            tf.config.threading.set_intra_op_parallelism_threads(2)
+            tf.config.threading.set_inter_op_parallelism_threads(2)
+        except RuntimeError:
+            pass
+        _TF_INITIALIZED = True
+
+    return tf, keras, layers
+
 
 # ============================================
 # CIFAR-100 Class Configuration
-# Lions, Tigers, and Bears - Oh My!
+# Lions, Tigers, and Bears — Oh My!
 # ============================================
 CIFAR100_TARGET_CLASSES = {
-    3: 'bear',    # CIFAR-100 index 3 -> our class 0
-    43: 'lion',   # CIFAR-100 index 43 -> our class 1
-    88: 'tiger'   # CIFAR-100 index 88 -> our class 2
+    3: 'bear',    # CIFAR-100 index 3  → our class 0
+    43: 'lion',   # CIFAR-100 index 43 → our class 1
+    88: 'tiger'   # CIFAR-100 index 88 → our class 2
 }
-
-# Our simplified class names (in order: 0, 1, 2)
 CLASS_NAMES = ['bear', 'lion', 'tiger']
 NUM_CLASSES = 3
 
+# Training caps
+DEFAULT_EPOCHS = 10
+MAX_EPOCHS = 10
+DEFAULT_NUM_SAMPLES = 300
+MAX_SAMPLES = 500
+
+# Transfer learning caps
+TRANSFER_MAX_EPOCHS = 3
+TRANSFER_IMAGE_SIZE = 96  # Upscale 32×32 → 96×96 for MobileNetV2
+
+# Global dataset cache
+_dataset_cache = None
+_X_TRAIN_96 = None
+_X_TEST_96 = None
+
+
+app = FastAPI(
+    title="Week 5: CNNs – Lions, Tigers, and Bears",
+    description="Train CNNs and MobileNetV2 transfer learning on a CIFAR-100 subset",
+    version="2.0.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
 # ============================================
-# Global State
+# Image helpers
 # ============================================
-training_sessions = {}
-training_queue = deque()
-active_trainings = set()
-state_lock = threading.Lock()
-
-# Lazy-loaded data
-_tf_loaded = False
-_data_loaded = False
-_X_TRAIN = None
-_Y_TRAIN = None
-_X_TEST = None
-_Y_TEST = None
-_tf = None
-_keras = None
-_layers = None
-
-
 def image_array_to_base64(img_array):
-    """Convert numpy array (32x32x3, normalized 0-1) to base64 data URL"""
-    # Convert from float [0,1] to uint8 [0,255]
+    """Convert numpy array (32×32×3, normalized 0-1) to base64 data URL."""
+    import base64
+    from io import BytesIO
+    from PIL import Image
+
     img_uint8 = (img_array * 255).astype(np.uint8)
-
-    # Create PIL Image
     img = Image.fromarray(img_uint8, mode='RGB')
-
-    # Save to BytesIO buffer as PNG
     buffer = BytesIO()
     img.save(buffer, format='PNG')
     buffer.seek(0)
-
-    # Encode to base64
     img_base64 = base64.b64encode(buffer.read()).decode('utf-8')
-
-    # Return as data URL
     return f'data:image/png;base64,{img_base64}'
 
 
-def load_tensorflow():
-    """Lazy load TensorFlow"""
-    global _tf_loaded, _tf, _keras, _layers
-    if _tf_loaded:
-        return
-
-    print("Loading TensorFlow...")
-    import tensorflow as tf
-
-    # Limit TensorFlow memory and threads for better concurrent performance
-    tf.config.threading.set_intra_op_parallelism_threads(2)
-    tf.config.threading.set_inter_op_parallelism_threads(2)
-
-    from tensorflow import keras
-    from tensorflow.keras import layers
-    _tf = tf
-    _keras = keras
-    _layers = layers
-    _tf_loaded = True
-    print(f"TensorFlow {tf.__version__} loaded (optimized for concurrency)")
-
-
+# ============================================
+# Data loading
+# ============================================
 def load_data():
-    """Lazy load CIFAR-100 and filter to lions, tigers, bears"""
-    global _data_loaded, _X_TRAIN, _Y_TRAIN, _X_TEST, _Y_TEST
-    if _data_loaded:
-        return
+    """Load and cache CIFAR-100 filtered to lions, tigers, bears."""
+    global _dataset_cache
+    if _dataset_cache is not None:
+        return _dataset_cache
 
-    load_tensorflow()
+    tf, keras, layers = _load_tf()
 
     print("Loading CIFAR-100 dataset...")
     from tensorflow.keras.datasets import cifar100
     (X_train_full, y_train_full), (X_test_full, y_test_full) = cifar100.load_data(label_mode='fine')
-    
+
     y_train_full = y_train_full.flatten()
     y_test_full = y_test_full.flatten()
-    
-    # Filter to only our target classes
+
     target_indices = list(CIFAR100_TARGET_CLASSES.keys())
-    
-    # Training data
+
     train_mask = np.isin(y_train_full, target_indices)
     X_train_filtered = X_train_full[train_mask].astype('float32') / 255.0
     y_train_filtered = y_train_full[train_mask]
-    
-    # Test data
+
     test_mask = np.isin(y_test_full, target_indices)
     X_test_filtered = X_test_full[test_mask].astype('float32') / 255.0
     y_test_filtered = y_test_full[test_mask]
-    
-    # Remap labels: CIFAR-100 indices -> 0, 1, 2
+
+    # Remap labels: {3: 0, 43: 1, 88: 2} → bear=0, lion=1, tiger=2
     label_map = {old_idx: new_idx for new_idx, old_idx in enumerate(sorted(target_indices))}
-    # label_map: {3: 0, 43: 1, 88: 2} -> bear=0, lion=1, tiger=2
-    
-    _Y_TRAIN = np.array([label_map[y] for y in y_train_filtered])
-    _Y_TEST = np.array([label_map[y] for y in y_test_filtered])
-    _X_TRAIN = X_train_filtered
-    _X_TEST = X_test_filtered
-    
-    _data_loaded = True
-    
-    # Print class distribution
-    print(f"Loaded Lions, Tigers, and Bears dataset:")
+    Y_TRAIN = np.array([label_map[y] for y in y_train_filtered])
+    Y_TEST = np.array([label_map[y] for y in y_test_filtered])
+
+    _dataset_cache = {
+        "X_train": X_train_filtered,
+        "Y_train": Y_TRAIN,
+        "X_test": X_test_filtered,
+        "Y_test": Y_TEST,
+    }
+
     for i, name in enumerate(CLASS_NAMES):
-        train_count = np.sum(_Y_TRAIN == i)
-        test_count = np.sum(_Y_TEST == i)
+        train_count = np.sum(Y_TRAIN == i)
+        test_count = np.sum(Y_TEST == i)
         print(f"  {name}: {train_count} train, {test_count} test")
-    print(f"Total: {len(_X_TRAIN)} training, {len(_X_TEST)} test images")
+    print(f"Total: {len(X_train_filtered)} training, {len(X_test_filtered)} test images")
+
+    return _dataset_cache
+
+
+def get_upscaled_data():
+    """Lazily upscale CIFAR images to 96×96 for transfer learning."""
+    global _X_TRAIN_96, _X_TEST_96
+    if _X_TRAIN_96 is not None:
+        return _X_TRAIN_96, _X_TEST_96
+
+    tf, keras, layers = _load_tf()
+    data = load_data()
+
+    print("Upscaling images to 96×96 for transfer learning...")
+    _X_TRAIN_96 = tf.image.resize(data["X_train"], [TRANSFER_IMAGE_SIZE, TRANSFER_IMAGE_SIZE]).numpy()
+    _X_TEST_96 = tf.image.resize(data["X_test"], [TRANSFER_IMAGE_SIZE, TRANSFER_IMAGE_SIZE]).numpy()
+    print(f"Upscaled: train {_X_TRAIN_96.shape}, test {_X_TEST_96.shape}")
+
+    return _X_TRAIN_96, _X_TEST_96
 
 
 # ============================================
-# Session Cleanup Thread
+# Pydantic models
 # ============================================
-def cleanup_old_sessions():
-    """Remove sessions older than SESSION_TIMEOUT_MINUTES"""
-    while True:
-        time.sleep(CLEANUP_INTERVAL_SECONDS)
-        now = datetime.now()
+class TrainRequest(BaseModel):
+    convBlocks: int = Field(default=2, ge=1, le=5)
+    filters: int = Field(default=32)
+    kernelSize: int = Field(default=3)
+    batchNorm: bool = Field(default=False)
+    dropout: float = Field(default=0.0, ge=0.0, le=0.5)
+    epochs: int = Field(default=10, ge=1, le=10)
+    numSamples: int = Field(default=300)
 
-        with state_lock:
-            expired = []
-            for session_id, session in training_sessions.items():
-                created = session.get('created_at', now)
-                if now - created > timedelta(minutes=SESSION_TIMEOUT_MINUTES):
-                    expired.append(session_id)
 
-            for session_id in expired:
-                if session_id in active_trainings:
-                    active_trainings.discard(session_id)
-                if session_id in training_queue:
-                    training_queue.remove(session_id)
-                if training_sessions[session_id].get('model'):
-                    del training_sessions[session_id]['model']
-                del training_sessions[session_id]
-
-            if expired:
-                print(f"Cleaned up {len(expired)} expired sessions")
+class TransferRequest(BaseModel):
+    strategy: str = Field(default="finetune")
+    freezeLayers: int = Field(default=90, ge=0, le=100)
+    numSamples: int = Field(default=300)
+    epochs: int = Field(default=3, ge=1, le=3)
 
 
 # ============================================
-# Queue Processor Thread
+# CNN model building
 # ============================================
-def process_queue():
-    """Process training queue - start jobs when slots available"""
-    while True:
-        time.sleep(0.3)
+def build_cnn_model(config: dict):
+    """Build CNN model based on frontend config."""
+    tf, keras, layers = _load_tf()
 
-        with state_lock:
-            while len(active_trainings) < MAX_CONCURRENT_TRAININGS and training_queue:
-                session_id = training_queue.popleft()
-
-                if session_id not in training_sessions:
-                    continue
-
-                session = training_sessions[session_id]
-
-                if session['status'] not in ['queued']:
-                    continue
-
-                active_trainings.add(session_id)
-                session['status'] = 'starting'
-
-                # Dispatch to correct training function
-                target_fn = train_transfer_async if session.get('is_transfer') else train_model_async
-                thread = threading.Thread(
-                    target=target_fn,
-                    args=(session_id, session['config'])
-                )
-                thread.daemon = True
-                thread.start()
-
-
-# ============================================
-# Model Building and Training
-# ============================================
-def build_cnn_model(config):
-    """Build CNN model based on frontend config"""
-    model = _keras.Sequential()
-
+    model = keras.Sequential()
     for i in range(config['convBlocks']):
         filters = config['filters'] * (2 ** min(i, 2))
 
         if i == 0:
-            model.add(_layers.Conv2D(
-                filters,
-                (config['kernelSize'], config['kernelSize']),
-                padding='same',
-                activation='relu',
-                input_shape=(32, 32, 3),
-                name=f'conv2d_{i}'
+            model.add(layers.Conv2D(
+                filters, (config['kernelSize'], config['kernelSize']),
+                padding='same', activation='relu',
+                input_shape=(32, 32, 3), name=f'conv2d_{i}'
             ))
         else:
-            model.add(_layers.Conv2D(
-                filters,
-                (config['kernelSize'], config['kernelSize']),
-                padding='same',
-                activation='relu',
-                name=f'conv2d_{i}'
+            model.add(layers.Conv2D(
+                filters, (config['kernelSize'], config['kernelSize']),
+                padding='same', activation='relu', name=f'conv2d_{i}'
             ))
 
         if config.get('batchNorm', False):
-            model.add(_layers.BatchNormalization(name=f'bn_{i}'))
+            model.add(layers.BatchNormalization(name=f'bn_{i}'))
 
-        model.add(_layers.MaxPooling2D(pool_size=(2, 2), name=f'pool_{i}'))
+        model.add(layers.MaxPooling2D(pool_size=(2, 2), name=f'pool_{i}'))
 
         if config.get('dropout', 0) > 0:
-            model.add(_layers.Dropout(config['dropout']))
+            model.add(layers.Dropout(config['dropout']))
 
-    model.add(_layers.Flatten())
-    model.add(_layers.Dense(64, activation='relu'))
-    model.add(_layers.Dropout(0.5))
-    model.add(_layers.Dense(NUM_CLASSES, activation='softmax'))  # 3 classes now!
+    model.add(layers.Flatten())
+    model.add(layers.Dense(64, activation='relu'))
+    model.add(layers.Dropout(0.5))
+    model.add(layers.Dense(NUM_CLASSES, activation='softmax'))
 
     model.compile(
-        optimizer=_keras.optimizers.Adam(learning_rate=0.001),
+        optimizer=keras.optimizers.Adam(learning_rate=0.001),
         loss='sparse_categorical_crossentropy',
         metrics=['accuracy']
     )
-
     return model
 
 
 def extract_filters(model, num_blocks):
-    """Extract filter weights from trained model"""
+    """Extract filter weights from trained model."""
     filters = {}
-
     for i in range(num_blocks):
         try:
             layer = model.get_layer(f'conv2d_{i}')
             weights = layer.get_weights()[0]
-
             h, w, in_c, out_f = weights.shape
             layer_filters = []
-
-            # Only extract first 16 filters to reduce response size
             for f in range(min(out_f, 16)):
                 filter_data = []
                 for y in range(h):
@@ -296,223 +259,53 @@ def extract_filters(model, num_blocks):
                         row.append(channels)
                     filter_data.append(row)
                 layer_filters.append(filter_data)
-
             filters[f'layer{i + 1}'] = layer_filters
         except Exception as e:
             print(f"Error extracting layer {i}: {e}")
-
     return filters
 
 
-def train_model_async(session_id, config):
-    """Train model in background thread"""
-    session = training_sessions.get(session_id)
-    if not session:
-        return
-
-    try:
-        load_data()
-
-        # Apply caps to prevent abuse
-        num_samples = min(config.get('numSamples', DEFAULT_NUM_SAMPLES), MAX_SAMPLES)
-        epochs = min(config.get('epochs', DEFAULT_EPOCHS), MAX_EPOCHS)
-
-        print(f"\n{'='*60}")
-        print(f"[Session {session_id[:8]}] Starting new training session")
-        print(f"  Config received: {config}")
-        print(f"  Epochs (after cap): {epochs}")
-        print(f"  Samples (after cap): {num_samples}")
-        print(f"{'='*60}\n")
-        
-        session['status'] = f'Preparing {num_samples} training samples...'
-
-        # Sample balanced across 3 classes
-        samples_per_class = num_samples // NUM_CLASSES
-        indices = []
-        for class_idx in range(NUM_CLASSES):
-            class_indices = np.where(_Y_TRAIN == class_idx)[0]
-            selected = np.random.choice(
-                class_indices, 
-                size=min(samples_per_class, len(class_indices)), 
-                replace=False
-            )
-            indices.extend(selected)
-
-        np.random.shuffle(indices)
-        X_train = _X_TRAIN[indices]
-        y_train = _Y_TRAIN[indices]
-
-        # Validation set
-        val_indices = np.random.choice(len(_X_TEST), size=min(300, len(_X_TEST)), replace=False)
-        X_val = _X_TEST[val_indices]
-        y_val = _Y_TEST[val_indices]
-
-        # Data quality checks
-        print(f"[Session {session_id[:8]}] Data quality checks:")
-        print(f"  - X_train: min={X_train.min():.4f}, max={X_train.max():.4f}, mean={X_train.mean():.4f}")
-        print(f"  - X_val: min={X_val.min():.4f}, max={X_val.max():.4f}, mean={X_val.mean():.4f}")
-        print(f"  - y_train unique: {np.unique(y_train)}, counts: {np.bincount(y_train)}")
-        print(f"  - y_val unique: {np.unique(y_val)}, counts: {np.bincount(y_val)}")
-        print(f"  - Any NaN in X_train: {np.isnan(X_train).any()}")
-        print(f"  - Any Inf in X_train: {np.isinf(X_train).any()}")
-
-        session['status'] = 'Building model...'
-        model = build_cnn_model(config)
-
-        session['status'] = 'Training...'
-        session['history'] = []
-        session['current_epoch'] = 0
-        session['current_batch'] = 0
-        session['total_batches'] = 0
-
-        class ProgressCallback(_keras.callbacks.Callback):
-            def on_epoch_begin(self, epoch, logs=None):
-                session['current_batch'] = 0
-                session['total_batches'] = len(X_train) // 64  # batch_size = 64
-
-            def on_batch_end(self, batch, logs=None):
-                session['current_batch'] = batch + 1
-
-            def on_epoch_end(self, epoch, logs=None):
-                print(f"[Session {session_id[:8]}] Completed epoch {epoch + 1}/{epochs}")
-                print(f"  - Train Acc: {logs['accuracy']:.4f}, Val Acc: {logs['val_accuracy']:.4f}")
-                print(f"  - Train Loss: {logs['loss']:.4f}, Val Loss: {logs['val_loss']:.4f}")
-
-                session['current_epoch'] = epoch + 1
-                session['history'].append({
-                    'trainAcc': float(logs['accuracy'] * 100),
-                    'valAcc': float(logs['val_accuracy'] * 100),
-                    'trainLoss': float(logs['loss']),
-                    'valLoss': float(logs['val_loss'])
-                })
-                session['status'] = f"Epoch {epoch + 1}/{epochs}"
-                session['current_batch'] = 0  # Reset for next epoch
-
-        print(f"[Session {session_id[:8]}] Starting training: {epochs} epochs, {len(X_train)} samples")
-        print(f"  - Training set shape: {X_train.shape}, labels: {y_train.shape}")
-        print(f"  - Validation set shape: {X_val.shape}, labels: {y_val.shape}")
-
-        history = model.fit(
-            X_train, y_train,
-            batch_size=64,
-            epochs=epochs,
-            validation_data=(X_val, y_val),
-            callbacks=[ProgressCallback()],
-            verbose=0
-        )
-
-        print(f"[Session {session_id[:8]}] Training completed. Total epochs in history: {len(history.history['loss'])}")
-
-        session['status'] = 'Extracting learned filters...'
-        filters = extract_filters(model, config['convBlocks'])
-        session['filters'] = filters
-
-        session['status'] = 'Evaluating...'
-        test_loss, test_acc = model.evaluate(_X_TEST, _Y_TEST, verbose=0)
-        session['test_accuracy'] = float(test_acc * 100)
-
-        # Sample predictions - get examples from each class
-        sample_predictions = []
-        for class_idx in range(NUM_CLASSES):
-            class_test_indices = np.where(_Y_TEST == class_idx)[0]
-            if len(class_test_indices) > 0:
-                # Get 2-3 examples per class
-                selected = np.random.choice(class_test_indices, size=min(3, len(class_test_indices)), replace=False)
-                for idx in selected:
-                    pred = model.predict(_X_TEST[idx:idx+1], verbose=0)[0]
-                    sample_predictions.append({
-                        'true': int(_Y_TEST[idx]),
-                        'predicted': int(np.argmax(pred)),
-                        'confidence': float(np.max(pred)),
-                        'probabilities': [float(p) for p in pred],
-                        'imageData': image_array_to_base64(_X_TEST[idx])
-                    })
-
-        session['sample_predictions'] = sample_predictions[:8]  # Limit to 8
-        session['status'] = 'complete'
-        session['model'] = model
-
-    except Exception as e:
-        import traceback
-        session['status'] = 'error'
-        session['error'] = str(e)
-        print(f"Training error: {traceback.format_exc()}")
-
-    finally:
-        with state_lock:
-            active_trainings.discard(session_id)
-
-
 # ============================================
-# Transfer Learning with MobileNetV2
+# Transfer learning model building
 # ============================================
-TRANSFER_MAX_EPOCHS = 3
-TRANSFER_IMAGE_SIZE = 96  # Upscale CIFAR 32x32 -> 96x96 for MobileNetV2
+def build_transfer_model(config: dict):
+    """Build MobileNetV2 transfer learning model."""
+    tf, keras, layers = _load_tf()
 
-# Cache for upscaled images (computed once)
-_X_TRAIN_96 = None
-_X_TEST_96 = None
-
-
-def get_upscaled_data():
-    """Lazily upscale CIFAR images to 96x96 for transfer learning"""
-    global _X_TRAIN_96, _X_TEST_96
-    if _X_TRAIN_96 is not None:
-        return _X_TRAIN_96, _X_TEST_96
-
-    load_data()
-    print("Upscaling images to 96x96 for transfer learning...")
-
-    _X_TRAIN_96 = _tf.image.resize(_X_TRAIN, [TRANSFER_IMAGE_SIZE, TRANSFER_IMAGE_SIZE]).numpy()
-    _X_TEST_96 = _tf.image.resize(_X_TEST, [TRANSFER_IMAGE_SIZE, TRANSFER_IMAGE_SIZE]).numpy()
-
-    print(f"Upscaled: train {_X_TRAIN_96.shape}, test {_X_TEST_96.shape}")
-    return _X_TRAIN_96, _X_TEST_96
-
-
-def build_transfer_model(config):
-    """Build MobileNetV2 transfer learning model"""
     freeze_pct = config.get('freezeLayers', 90) / 100.0
     strategy = config.get('strategy', 'finetune')
 
-    # Load MobileNetV2 with ImageNet weights, no top classifier
-    base_model = _keras.applications.MobileNetV2(
+    base_model = keras.applications.MobileNetV2(
         input_shape=(TRANSFER_IMAGE_SIZE, TRANSFER_IMAGE_SIZE, 3),
         include_top=False,
         weights='imagenet'
     )
 
-    # Freeze layers based on percentage
     total_layers = len(base_model.layers)
     freeze_count = int(total_layers * freeze_pct)
 
     if strategy == 'feature':
-        # Feature extraction: freeze everything
         base_model.trainable = False
     else:
-        # Fine-tuning: freeze first N% of layers
         base_model.trainable = True
         for i, layer in enumerate(base_model.layers):
             layer.trainable = i >= freeze_count
 
     trainable_count = sum(1 for l in base_model.layers if l.trainable)
     frozen_count = total_layers - trainable_count
-    print(f"MobileNetV2: {total_layers} layers, {frozen_count} frozen, {trainable_count} trainable")
 
-    # Build full model
-    inputs = _keras.Input(shape=(TRANSFER_IMAGE_SIZE, TRANSFER_IMAGE_SIZE, 3))
-    x = _keras.applications.mobilenet_v2.preprocess_input(inputs)
+    inputs = keras.Input(shape=(TRANSFER_IMAGE_SIZE, TRANSFER_IMAGE_SIZE, 3))
+    x = keras.applications.mobilenet_v2.preprocess_input(inputs)
     x = base_model(x, training=(strategy == 'finetune'))
-    x = _layers.GlobalAveragePooling2D()(x)
-    x = _layers.Dropout(0.3)(x)
-    outputs = _layers.Dense(NUM_CLASSES, activation='softmax')(x)
+    x = layers.GlobalAveragePooling2D()(x)
+    x = layers.Dropout(0.3)(x)
+    outputs = layers.Dense(NUM_CLASSES, activation='softmax')(x)
 
-    model = _keras.Model(inputs, outputs)
+    model = keras.Model(inputs, outputs)
 
-    # Use lower learning rate for fine-tuning pretrained weights
     lr = 0.0001 if strategy == 'finetune' else 0.001
     model.compile(
-        optimizer=_keras.optimizers.Adam(learning_rate=lr),
+        optimizer=keras.optimizers.Adam(learning_rate=lr),
         loss='sparse_categorical_crossentropy',
         metrics=['accuracy']
     )
@@ -520,31 +313,120 @@ def build_transfer_model(config):
     return model, total_layers, frozen_count, trainable_count
 
 
-def train_transfer_async(session_id, config):
-    """Train transfer learning model in background thread"""
-    session = training_sessions.get(session_id)
-    if not session:
-        return
-
+# ============================================
+# Streaming training (Week 4 pattern)
+# ============================================
+def _run_cnn_training(config: dict, q: "queue.Queue"):
+    """Run CNN training in a thread; push NDJSON messages onto q."""
     try:
-        session['status'] = 'Loading MobileNetV2 and preparing data...'
+        tf, keras, layers = _load_tf()
+        data = load_data()
+
+        num_samples = min(config.get('numSamples', DEFAULT_NUM_SAMPLES), MAX_SAMPLES)
+        epochs = min(config.get('epochs', DEFAULT_EPOCHS), MAX_EPOCHS)
+
+        # Sample balanced across 3 classes
+        samples_per_class = num_samples // NUM_CLASSES
+        indices = []
+        for class_idx in range(NUM_CLASSES):
+            class_indices = np.where(data["Y_train"] == class_idx)[0]
+            selected = np.random.choice(
+                class_indices,
+                size=min(samples_per_class, len(class_indices)),
+                replace=False
+            )
+            indices.extend(selected)
+        np.random.shuffle(indices)
+
+        X_train = data["X_train"][indices]
+        y_train = data["Y_train"][indices]
+
+        # Validation set
+        val_indices = np.random.choice(len(data["X_test"]), size=min(300, len(data["X_test"])), replace=False)
+        X_val = data["X_test"][val_indices]
+        y_val = data["Y_test"][val_indices]
+
+        model = build_cnn_model(config)
+
+        # Per-epoch streaming callback
+        class StreamCallback(keras.callbacks.Callback):
+            def on_epoch_end(self, epoch, logs=None):
+                logs = logs or {}
+                q.put({
+                    "type": "epoch",
+                    "epoch": int(epoch) + 1,
+                    "total_epochs": epochs,
+                    "trainAcc": float(logs.get("accuracy", 0.0) * 100),
+                    "valAcc": float(logs.get("val_accuracy", 0.0) * 100),
+                    "trainLoss": float(logs.get("loss", 0.0)),
+                    "valLoss": float(logs.get("val_loss", 0.0)),
+                })
+
+        start_time = time.time()
+        model.fit(
+            X_train, y_train,
+            batch_size=64,
+            epochs=epochs,
+            validation_data=(X_val, y_val),
+            callbacks=[StreamCallback()],
+            verbose=0
+        )
+        training_time = time.time() - start_time
+
+        # Extract learned filters
+        filters = extract_filters(model, config['convBlocks'])
+
+        # Evaluate on full test set
+        test_loss, test_acc = model.evaluate(data["X_test"], data["Y_test"], verbose=0)
+
+        # Sample predictions — a few examples per class
+        sample_predictions = []
+        for class_idx in range(NUM_CLASSES):
+            class_test_indices = np.where(data["Y_test"] == class_idx)[0]
+            if len(class_test_indices) > 0:
+                selected = np.random.choice(class_test_indices, size=min(3, len(class_test_indices)), replace=False)
+                for idx in selected:
+                    pred = model.predict(data["X_test"][idx:idx+1], verbose=0)[0]
+                    sample_predictions.append({
+                        'true': int(data["Y_test"][idx]),
+                        'predicted': int(np.argmax(pred)),
+                        'confidence': float(np.max(pred)),
+                        'probabilities': [float(p) for p in pred],
+                        'imageData': image_array_to_base64(data["X_test"][idx])
+                    })
+
+        keras.backend.clear_session()
+
+        q.put({
+            "type": "final",
+            "test_accuracy": float(test_acc * 100),
+            "training_time": float(training_time),
+            "filters": filters,
+            "sample_predictions": sample_predictions[:8],
+            "classes": CLASS_NAMES,
+        })
+
+    except Exception as exc:
+        q.put({"type": "error", "detail": str(exc)})
+    finally:
+        q.put(None)  # sentinel
+
+
+def _run_transfer_training(config: dict, q: "queue.Queue"):
+    """Run MobileNetV2 transfer learning in a thread; push NDJSON messages onto q."""
+    try:
+        tf, keras, layers = _load_tf()
         X_train_96, X_test_96 = get_upscaled_data()
+        data = load_data()
 
         epochs = min(config.get('epochs', TRANSFER_MAX_EPOCHS), TRANSFER_MAX_EPOCHS)
         num_samples = min(config.get('numSamples', 300), MAX_SAMPLES)
-
-        print(f"\n{'='*60}")
-        print(f"[Transfer {session_id[:8]}] Starting transfer learning")
-        print(f"  Strategy: {config.get('strategy', 'finetune')}")
-        print(f"  Freeze: {config.get('freezeLayers', 90)}%")
-        print(f"  Epochs: {epochs}, Samples: {num_samples}")
-        print(f"{'='*60}\n")
 
         # Sample balanced training data
         samples_per_class = num_samples // NUM_CLASSES
         indices = []
         for class_idx in range(NUM_CLASSES):
-            class_indices = np.where(_Y_TRAIN == class_idx)[0]
+            class_indices = np.where(data["Y_train"] == class_idx)[0]
             selected = np.random.choice(
                 class_indices,
                 size=min(samples_per_class, len(class_indices)),
@@ -554,344 +436,228 @@ def train_transfer_async(session_id, config):
         np.random.shuffle(indices)
 
         X_train = X_train_96[indices]
-        y_train = _Y_TRAIN[indices]
+        y_train = data["Y_train"][indices]
 
-        # Validation set
         val_indices = np.random.choice(len(X_test_96), size=min(300, len(X_test_96)), replace=False)
         X_val = X_test_96[val_indices]
-        y_val = _Y_TEST[val_indices]
+        y_val = data["Y_test"][val_indices]
 
-        session['status'] = 'Building MobileNetV2 model...'
         model, total_layers, frozen_count, trainable_count = build_transfer_model(config)
 
-        session['model_info'] = {
+        model_info = {
             'total_layers': total_layers,
             'frozen_layers': frozen_count,
             'trainable_layers': trainable_count,
             'total_params': int(model.count_params()),
             'trainable_params': int(sum(
-                _keras.backend.count_params(w) for w in model.trainable_weights
+                keras.backend.count_params(w) for w in model.trainable_weights
             ))
         }
 
-        session['status'] = 'Training...'
-        session['history'] = []
-        session['current_epoch'] = 0
+        # Send model info immediately so frontend can display it during training
+        q.put({
+            "type": "model_info",
+            "model_info": model_info,
+        })
 
-        class ProgressCallback(_keras.callbacks.Callback):
+        class StreamCallback(keras.callbacks.Callback):
             def on_epoch_end(self, epoch, logs=None):
-                print(f"[Transfer {session_id[:8]}] Epoch {epoch+1}/{epochs} - "
-                      f"acc: {logs['accuracy']:.4f}, val_acc: {logs['val_accuracy']:.4f}")
-                session['current_epoch'] = epoch + 1
-                session['history'].append({
-                    'trainAcc': float(logs['accuracy'] * 100),
-                    'valAcc': float(logs['val_accuracy'] * 100),
-                    'trainLoss': float(logs['loss']),
-                    'valLoss': float(logs['val_loss'])
+                logs = logs or {}
+                q.put({
+                    "type": "epoch",
+                    "epoch": int(epoch) + 1,
+                    "total_epochs": epochs,
+                    "trainAcc": float(logs.get("accuracy", 0.0) * 100),
+                    "valAcc": float(logs.get("val_accuracy", 0.0) * 100),
+                    "trainLoss": float(logs.get("loss", 0.0)),
+                    "valLoss": float(logs.get("val_loss", 0.0)),
                 })
-                session['status'] = f"Epoch {epoch + 1}/{epochs}"
 
+        start_time = time.time()
         model.fit(
             X_train, y_train,
             batch_size=32,
             epochs=epochs,
             validation_data=(X_val, y_val),
-            callbacks=[ProgressCallback()],
+            callbacks=[StreamCallback()],
             verbose=0
         )
+        training_time = time.time() - start_time
 
         # Evaluate on full test set
-        session['status'] = 'Evaluating...'
-        test_loss, test_acc = model.evaluate(X_test_96, _Y_TEST, verbose=0)
-        session['test_accuracy'] = float(test_acc * 100)
+        test_loss, test_acc = model.evaluate(X_test_96, data["Y_test"], verbose=0)
 
-        # Sample predictions with full probabilities
+        # Sample predictions
         sample_predictions = []
         for class_idx in range(NUM_CLASSES):
-            class_test_indices = np.where(_Y_TEST == class_idx)[0]
+            class_test_indices = np.where(data["Y_test"] == class_idx)[0]
             if len(class_test_indices) > 0:
                 selected = np.random.choice(class_test_indices, size=min(3, len(class_test_indices)), replace=False)
                 for idx in selected:
                     pred = model.predict(X_test_96[idx:idx+1], verbose=0)[0]
                     sample_predictions.append({
-                        'true': int(_Y_TEST[idx]),
+                        'true': int(data["Y_test"][idx]),
                         'predicted': int(np.argmax(pred)),
                         'confidence': float(np.max(pred)),
                         'probabilities': [float(p) for p in pred],
-                        'imageData': image_array_to_base64(_X_TEST[idx])  # Show original 32x32
+                        'imageData': image_array_to_base64(data["X_test"][idx])
                     })
 
-        session['sample_predictions'] = sample_predictions[:8]
-        session['status'] = 'complete'
-        session['model'] = model
+        keras.backend.clear_session()
 
-        print(f"[Transfer {session_id[:8]}] Complete! Test accuracy: {test_acc*100:.1f}%")
+        q.put({
+            "type": "final",
+            "test_accuracy": float(test_acc * 100),
+            "training_time": float(training_time),
+            "model_info": model_info,
+            "sample_predictions": sample_predictions[:8],
+            "classes": CLASS_NAMES,
+        })
 
-    except Exception as e:
-        import traceback
-        session['status'] = 'error'
-        session['error'] = str(e)
-        print(f"Transfer learning error: {traceback.format_exc()}")
-
+    except Exception as exc:
+        q.put({"type": "error", "detail": str(exc)})
     finally:
-        with state_lock:
-            active_trainings.discard(session_id)
+        q.put(None)  # sentinel
+
+
+async def _stream_training(run_fn, config: dict):
+    """Async generator yielding NDJSON lines as training progresses."""
+    loop = asyncio.get_event_loop()
+    q: "queue.Queue" = queue.Queue()
+
+    thread = threading.Thread(target=run_fn, args=(config, q), daemon=True)
+    thread.start()
+
+    while True:
+        item = await loop.run_in_executor(None, q.get)
+        if item is None:
+            break
+        yield (json.dumps(item) + "\n").encode("utf-8")
 
 
 # ============================================
 # API Endpoints
 # ============================================
-@app.route('/api/health', methods=['GET'])
-def health():
-    """Health check"""
-    with state_lock:
-        queue_length = len(training_queue)
-        active_count = len(active_trainings)
-        total_sessions = len(training_sessions)
-
-    return jsonify({
-        'status': 'ok',
-        'tf_loaded': _tf_loaded,
-        'data_loaded': _data_loaded,
-        'queue_length': queue_length,
-        'active_trainings': active_count,
-        'max_concurrent': MAX_CONCURRENT_TRAININGS,
-        'total_sessions': total_sessions,
-        'dataset': 'Lions, Tigers, and Bears (CIFAR-100 subset)',
-        'classes': CLASS_NAMES,
-        'optimized_for': '80 students'
-    })
-
-
-@app.route('/api/warmup', methods=['POST'])
-def warmup():
-    """Pre-load TensorFlow and dataset"""
-    load_data()
-    return jsonify({
-        'status': 'ok',
-        'tf_version': _tf.__version__,
-        'classes': CLASS_NAMES,
-        'train_samples': len(_X_TRAIN),
-        'test_samples': len(_X_TEST)
-    })
-
-
-@app.route('/api/train', methods=['POST'])
-def start_training():
-    """Start a new training session"""
-    config = request.json
-    session_id = str(uuid.uuid4())
-    
-    config['epochs'] = min(config.get('epochs', DEFAULT_EPOCHS), MAX_EPOCHS)
-    config['numSamples'] = min(config.get('numSamples', DEFAULT_NUM_SAMPLES), MAX_SAMPLES)
-
-    with state_lock:
-        training_sessions[session_id] = {
-            'status': 'queued',
-            'config': config,
-            'current_epoch': 0,
-            'history': [],
-            'filters': None,
-            'model': None,
-            'test_accuracy': None,
-            'sample_predictions': None,
-            'created_at': datetime.now(),
-            'queue_position': len(training_queue) + 1
-        }
-
-        training_queue.append(session_id)
-        queue_position = len(training_queue)
-        active_count = len(active_trainings)
-
-    estimated_wait = max(0, (queue_position - MAX_CONCURRENT_TRAININGS)) * 25
-
-    return jsonify({
-        'session_id': session_id,
-        'queue_position': queue_position,
-        'active_trainings': active_count,
-        'max_concurrent': MAX_CONCURRENT_TRAININGS,
-        'estimated_wait_seconds': estimated_wait
-    })
-
-
-@app.route('/api/train/<session_id>', methods=['GET'])
-def get_training_status(session_id):
-    """Get training status and results"""
-    if session_id not in training_sessions:
-        return jsonify({'error': 'Session not found'}), 404
-
-    session = training_sessions[session_id]
-
-    with state_lock:
-        if session_id in training_queue:
-            queue_position = list(training_queue).index(session_id) + 1
-        else:
-            queue_position = 0
-        active_count = len(active_trainings)
-
-    response = {
-        'status': session['status'],
-        'current_epoch': session['current_epoch'],
-        'total_epochs': session['config']['epochs'],
-        'current_batch': session.get('current_batch', 0),
-        'total_batches': session.get('total_batches', 0),
-        'history': session['history'],
-        'queue_position': queue_position,
-        'active_trainings': active_count,
-        'max_concurrent': MAX_CONCURRENT_TRAININGS,
-        'classes': CLASS_NAMES  # Include class names for frontend
+@app.get("/api/health")
+async def health_check():
+    """Health check endpoint."""
+    return {
+        "status": "ok",
+        "tf_loaded": _TF_INITIALIZED,
+        "dataset": "Lions, Tigers, and Bears (CIFAR-100 subset)",
+        "classes": CLASS_NAMES,
+        "architecture": "stateless-streaming",
+        "optimized_for": "100+ students via Cloud Run autoscaling",
     }
 
-    if session['status'] == 'complete':
-        response['filters'] = session['filters']
-        response['test_accuracy'] = session['test_accuracy']
-        response['sample_predictions'] = session['sample_predictions']
 
-    if session.get('model_info'):
-        response['model_info'] = session['model_info']
-
-    if session.get('error'):
-        response['error'] = session['error']
-
-    return jsonify(response)
-
-
-@app.route('/api/transfer/train', methods=['POST'])
-def start_transfer_training():
-    """Start a new transfer learning training session"""
-    config = request.json
-    session_id = str(uuid.uuid4())
-
-    config['epochs'] = min(config.get('epochs', TRANSFER_MAX_EPOCHS), TRANSFER_MAX_EPOCHS)
-    config['numSamples'] = min(config.get('numSamples', 300), MAX_SAMPLES)
-
-    with state_lock:
-        training_sessions[session_id] = {
-            'status': 'queued',
-            'config': config,
-            'current_epoch': 0,
-            'history': [],
-            'filters': None,
-            'model': None,
-            'model_info': None,
-            'test_accuracy': None,
-            'sample_predictions': None,
-            'created_at': datetime.now(),
-            'queue_position': len(training_queue) + 1,
-            'is_transfer': True
-        }
-
-        training_queue.append(session_id)
-        queue_position = len(training_queue)
-        active_count = len(active_trainings)
-
-    return jsonify({
-        'session_id': session_id,
-        'queue_position': queue_position,
-        'active_trainings': active_count,
-        'max_concurrent': MAX_CONCURRENT_TRAININGS
-    })
+@app.post("/api/warmup")
+async def warmup():
+    """Pre-load TensorFlow and dataset."""
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, load_data)
+    tf, keras, layers = _load_tf()
+    data = load_data()
+    return {
+        "status": "ok",
+        "tf_version": tf.__version__,
+        "classes": CLASS_NAMES,
+        "train_samples": len(data["X_train"]),
+        "test_samples": len(data["X_test"]),
+    }
 
 
-@app.route('/api/predict', methods=['POST'])
-def predict():
-    """Make prediction with trained model"""
-    data = request.json
-    session_id = data.get('session_id')
-
-    if session_id not in training_sessions:
-        return jsonify({'error': 'Session not found'}), 404
-
-    session = training_sessions[session_id]
-    if session.get('model') is None:
-        return jsonify({'error': 'Model not trained yet'}), 400
-
-    image_data = data.get('image')
-
-    if isinstance(image_data, list):
-        img_array = np.array(image_data).reshape(1, 32, 32, 3) / 255.0
-    else:
-        return jsonify({'error': 'Invalid image format'}), 400
-
-    prediction = session['model'].predict(img_array, verbose=0)[0]
-
-    return jsonify({
-        'predictions': [
-            {'class': CLASS_NAMES[i], 'probability': float(prediction[i])}
-            for i in range(NUM_CLASSES)
-        ],
-        'top_class': CLASS_NAMES[int(np.argmax(prediction))],
-        'confidence': float(np.max(prediction))
-    })
+@app.get("/api/classes")
+async def get_classes():
+    """Get the class names."""
+    return {
+        "classes": CLASS_NAMES,
+        "num_classes": NUM_CLASSES,
+        "dataset": "CIFAR-100 subset",
+    }
 
 
-@app.route('/api/classes', methods=['GET'])
-def get_classes():
-    """Get the class names"""
-    return jsonify({
-        'classes': CLASS_NAMES,
-        'num_classes': NUM_CLASSES,
-        'dataset': 'CIFAR-100 subset'
-    })
-
-
-@app.route('/api/sample-images', methods=['GET'])
-def get_sample_images():
-    """Get sample training images for each class"""
-    load_data()
+@app.get("/api/sample-images")
+async def get_sample_images():
+    """Get sample training images for each class."""
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, load_data)
+    data = load_data()
 
     sample_images = []
-    # Get 3 examples per class (3 × 3 = 9), then limit to 8
     for class_idx in range(NUM_CLASSES):
-        class_train_indices = np.where(_Y_TRAIN == class_idx)[0]
+        class_train_indices = np.where(data["Y_train"] == class_idx)[0]
         if len(class_train_indices) > 0:
-            # Get 3 examples per class
             selected = np.random.choice(class_train_indices, size=min(3, len(class_train_indices)), replace=False)
             for idx in selected:
                 sample_images.append({
-                    'imageData': image_array_to_base64(_X_TRAIN[idx]),
+                    'imageData': image_array_to_base64(data["X_train"][idx]),
                     'className': CLASS_NAMES[class_idx],
-                    'classIndex': int(class_idx)
+                    'classIndex': int(class_idx),
                 })
 
-    return jsonify({
-        'samples': sample_images[:8],  # Limit to 8 total
-        'classes': CLASS_NAMES
-    })
+    return {"samples": sample_images[:8], "classes": CLASS_NAMES}
 
 
-@app.route('/api/stats', methods=['GET'])
-def get_stats():
-    """Get server statistics"""
-    with state_lock:
-        return jsonify({
-            'queue_length': len(training_queue),
-            'active_trainings': len(active_trainings),
-            'max_concurrent': MAX_CONCURRENT_TRAININGS,
-            'total_sessions': len(training_sessions),
-            'queued_sessions': [sid for sid in training_queue],
-            'active_sessions': list(active_trainings)
-        })
+@app.post("/api/train")
+async def train_model(request: TrainRequest):
+    """Stream CNN training progress as NDJSON.
+
+    Response body is a sequence of newline-delimited JSON objects:
+      - {"type": "epoch", "epoch": N, "trainAcc": ..., "valAcc": ..., ...}
+      - {"type": "final", "test_accuracy": ..., "filters": ..., ...}
+      - {"type": "error", "detail": "..."}  (on failure)
+    """
+    config = request.model_dump()
+    config['epochs'] = min(config.get('epochs', DEFAULT_EPOCHS), MAX_EPOCHS)
+    config['numSamples'] = min(config.get('numSamples', DEFAULT_NUM_SAMPLES), MAX_SAMPLES)
+
+    headers = {
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no",
+    }
+    return StreamingResponse(
+        _stream_training(_run_cnn_training, config),
+        media_type="application/x-ndjson",
+        headers=headers,
+    )
 
 
-@app.route('/', methods=['GET'])
-def root():
-    """Serve the frontend"""
-    return send_file('index.html')
+@app.post("/api/transfer/train")
+async def train_transfer(request: TransferRequest):
+    """Stream MobileNetV2 transfer learning progress as NDJSON.
+
+    Response body is a sequence of newline-delimited JSON objects:
+      - {"type": "model_info", "model_info": {...}}
+      - {"type": "epoch", "epoch": N, "trainAcc": ..., "valAcc": ..., ...}
+      - {"type": "final", "test_accuracy": ..., "model_info": ..., ...}
+      - {"type": "error", "detail": "..."}  (on failure)
+    """
+    config = request.model_dump()
+    config['epochs'] = min(config.get('epochs', TRANSFER_MAX_EPOCHS), TRANSFER_MAX_EPOCHS)
+    config['numSamples'] = min(config.get('numSamples', 300), MAX_SAMPLES)
+
+    headers = {
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no",
+    }
+    return StreamingResponse(
+        _stream_training(_run_transfer_training, config),
+        media_type="application/x-ndjson",
+        headers=headers,
+    )
 
 
-# Start background threads
-cleanup_thread = threading.Thread(target=cleanup_old_sessions, daemon=True)
-cleanup_thread.start()
-
-queue_thread = threading.Thread(target=process_queue, daemon=True)
-queue_thread.start()
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    print(f"Starting server on port {port}")
-    print(f"Dataset: Lions, Tigers, and Bears (CIFAR-100 subset)")
-    print(f"Classes: {CLASS_NAMES}")
-    print(f"Max concurrent trainings: {MAX_CONCURRENT_TRAININGS}")
-    app.run(host='0.0.0.0', port=port, debug=False, threaded=True)
+@app.get("/")
+async def serve_frontend():
+    """Serve the frontend application."""
+    return FileResponse(os.path.join(BASE_DIR, "index.html"))
+
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.getenv("PORT", 8080))
+    uvicorn.run(app, host="0.0.0.0", port=port)

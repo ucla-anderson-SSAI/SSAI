@@ -1,18 +1,3 @@
-FROM python:3.11-slim
-
-WORKDIR /app
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy application
-COPY app.py .
-
-# Run with gunicorn for better concurrency
-CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:8080", "--timeout", "600", "--workers", "2", "--threads", "4"]
+# DEPRECATED — use Dockerfile.cloudrun for Cloud Run deployments.
+# Railway uses NIXPACKS (see railway.json) and ignores this file.
+# This file is kept empty to avoid confusion.

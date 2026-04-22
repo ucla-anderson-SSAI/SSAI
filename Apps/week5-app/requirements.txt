@@ -1,6 +1,9 @@
-flask==3.0.0
-flask-cors==4.0.0
-tensorflow-cpu==2.18.0
+# Lightweight deps — always installed.
+# Railway (Nixpacks) installs ONLY this file, so it stays small enough for
+# Railway's tier (no TensorFlow, no Pillow).
+# Cloud Run's Dockerfile installs this PLUS requirements-ml.txt.
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+gunicorn>=21.2.0
 numpy>=1.24.0
-gunicorn==21.2.0
-pillow>=10.0.0
+pydantic>=2.5.0

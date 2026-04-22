@@ -1209,10 +1209,7 @@
             const [classificationResults, setClassificationResults] = useState([]);
             const [trainingStatus, setTrainingStatus] = useState('');
             const [testAccuracy, setTestAccuracy] = useState(null);
-            const [sessionId, setSessionId] = useState(null);
             const [backendStatus, setBackendStatus] = useState('checking');
-            const [queuePosition, setQueuePosition] = useState(0);
-            const [serverStats, setServerStats] = useState({ active: 0, max: 5 });
             const [currentBatch, setCurrentBatch] = useState(0);
             const [totalBatches, setTotalBatches] = useState(0);
 
@@ -1223,7 +1220,6 @@
                         .then(r => r.json())
                         .then(data => {
                             setBackendStatus('connected');
-                            setServerStats({ active: data.active_trainings || 0, max: data.max_concurrent || 5, queue: data.queue_length || 0 });
                             console.log('Backend connected:', data);
                         })
                         .catch(err => {
@@ -1297,7 +1293,7 @@
                 setTrainingStatus('Starting training on Python backend...');
 
                 try {
-                    // Start training session
+                    // Stream training via NDJSON (stateless — no session/polling)
                     const response = await fetch(`${API_BASE_URL}/api/train`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -1308,71 +1304,54 @@
                         throw new Error('Failed to start training');
                     }
 
-                    const { session_id } = await response.json();
-                    setSessionId(session_id);
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let buffer = '';
+                    const historyAccum = [];
 
-                    // Poll for progress - check every 200ms for smoother per-epoch updates
-                    let complete = false;
-                    while (!complete) {
-                        await new Promise(r => setTimeout(r, 200));
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
 
-                        const statusRes = await fetch(`${API_BASE_URL}/api/train/${session_id}`);
-                        const status = await statusRes.json();
+                        buffer += decoder.decode(value, { stream: true });
+                        const lines = buffer.split('\n');
+                        buffer = lines.pop(); // keep incomplete line in buffer
 
-                        if (status.error) {
-                            throw new Error(status.error);
-                        }
+                        for (const line of lines) {
+                            if (!line.trim()) continue;
+                            const msg = JSON.parse(line);
 
-                        // Update queue info
-                        setQueuePosition(status.queue_position || 0);
-                        setServerStats({ active: status.active_trainings || 0, max: status.max_concurrent || 5 });
-
-                        // Update batch progress
-                        setCurrentBatch(status.current_batch || 0);
-                        setTotalBatches(status.total_batches || 0);
-
-                        // Show appropriate status message
-                        if (status.queue_position > 0) {
-                            setTrainingStatus(`In queue: position ${status.queue_position} (${status.active_trainings}/${status.max_concurrent} training)`);
-                        } else {
-                            setTrainingStatus(status.status);
-                        }
-                        setCurrentEpoch(status.current_epoch || 0);
-
-                        if (status.history && status.history.length > 0) {
-                            setTrainingHistory([...status.history]);
-                        }
-
-                        if (status.status === 'complete') {
-                            complete = true;
-
-                            // Set filters from backend
-                            if (status.filters) {
-                                setTrainedFilters(status.filters);
+                            if (msg.type === 'epoch') {
+                                setCurrentEpoch(msg.epoch);
+                                setTrainingStatus(`Epoch ${msg.epoch}/${msg.total_epochs}`);
+                                historyAccum.push({
+                                    trainAcc: msg.trainAcc,
+                                    valAcc: msg.valAcc,
+                                    trainLoss: msg.trainLoss,
+                                    valLoss: msg.valLoss
+                                });
+                                setTrainingHistory([...historyAccum]);
                             }
 
-                            // Set test accuracy
-                            if (status.test_accuracy) {
-                                setTestAccuracy(status.test_accuracy);
+                            if (msg.type === 'final') {
+                                if (msg.filters) setTrainedFilters(msg.filters);
+                                if (msg.test_accuracy) setTestAccuracy(msg.test_accuracy);
+                                if (msg.sample_predictions) {
+                                    const results = msg.sample_predictions.map(pred => ({
+                                        imageData: pred.imageData,
+                                        trueLabel: CLASSES[pred.true],
+                                        predictedLabel: CLASSES[pred.predicted],
+                                        probabilities: pred.probabilities || null
+                                    }));
+                                    setClassificationResults(results);
+                                }
+                                setIsModelTrained(true);
+                                setTrainingStatus('Training complete!');
                             }
 
-                            // Set predictions - use actual images from backend
-                            if (status.sample_predictions) {
-                                const results = status.sample_predictions.map(pred => ({
-                                    imageData: pred.imageData,
-                                    trueLabel: CLASSES[pred.true],
-                                    predictedLabel: CLASSES[pred.predicted],
-                                    probabilities: pred.probabilities || null
-                                }));
-                                setClassificationResults(results);
+                            if (msg.type === 'error') {
+                                throw new Error(msg.detail || 'Training failed');
                             }
-
-                            setIsModelTrained(true);
-                            setTrainingStatus('Training complete!');
-                        }
-
-                        if (status.status === 'error') {
-                            throw new Error(status.error || 'Training failed');
                         }
                     }
 
@@ -1501,8 +1480,7 @@
                                         color: '#666',
                                         fontSize: '0.75rem'
                                     }}>
-                                        <span>🖥️ {serverStats.active}/{serverStats.max} active</span>
-                                        {serverStats.queue > 0 && <span>• {serverStats.queue} queued</span>}
+                                        <span>🖥️ Cloud Run (auto-scaling)</span>
                                     </div>
                                 )}
                             </div>
@@ -1656,50 +1634,55 @@
 
                     if (!response.ok) throw new Error('Failed to start transfer learning');
 
-                    const { session_id } = await response.json();
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let buffer = '';
+                    const historyAccum = [];
 
-                    let complete = false;
-                    while (!complete) {
-                        await new Promise(r => setTimeout(r, 500));
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
 
-                        const statusRes = await fetch(`${API_BASE_URL}/api/train/${session_id}`);
-                        const status = await statusRes.json();
+                        buffer += decoder.decode(value, { stream: true });
+                        const lines = buffer.split('\n');
+                        buffer = lines.pop();
 
-                        if (status.error) throw new Error(status.error);
+                        for (const line of lines) {
+                            if (!line.trim()) continue;
+                            const msg = JSON.parse(line);
 
-                        if (status.queue_position > 0) {
-                            setTrainingStatus(`In queue: position ${status.queue_position}`);
-                        } else {
-                            setTrainingStatus(status.status);
-                        }
-
-                        if (status.history && status.history.length > 0) {
-                            setTrainingHistory([...status.history]);
-                        }
-
-                        if (status.model_info) {
-                            setModelInfo(status.model_info);
-                        }
-
-                        if (status.status === 'complete') {
-                            complete = true;
-
-                            if (status.test_accuracy) setTestAccuracy(status.test_accuracy);
-
-                            if (status.sample_predictions) {
-                                setClassificationResults(status.sample_predictions.map(pred => ({
-                                    imageData: pred.imageData,
-                                    trueLabel: CLASSES[pred.true],
-                                    predictedLabel: CLASSES[pred.predicted],
-                                    probabilities: pred.probabilities || null
-                                })));
+                            if (msg.type === 'model_info') {
+                                setModelInfo(msg.model_info);
                             }
 
-                            setTrainingStatus('Training complete!');
-                        }
+                            if (msg.type === 'epoch') {
+                                setTrainingStatus(`Epoch ${msg.epoch}/${msg.total_epochs}`);
+                                historyAccum.push({
+                                    trainAcc: msg.trainAcc,
+                                    valAcc: msg.valAcc,
+                                    trainLoss: msg.trainLoss,
+                                    valLoss: msg.valLoss
+                                });
+                                setTrainingHistory([...historyAccum]);
+                            }
 
-                        if (status.status === 'error') {
-                            throw new Error(status.error || 'Training failed');
+                            if (msg.type === 'final') {
+                                if (msg.test_accuracy) setTestAccuracy(msg.test_accuracy);
+                                if (msg.model_info) setModelInfo(msg.model_info);
+                                if (msg.sample_predictions) {
+                                    setClassificationResults(msg.sample_predictions.map(pred => ({
+                                        imageData: pred.imageData,
+                                        trueLabel: CLASSES[pred.true],
+                                        predictedLabel: CLASSES[pred.predicted],
+                                        probabilities: pred.probabilities || null
+                                    })));
+                                }
+                                setTrainingStatus('Training complete!');
+                            }
+
+                            if (msg.type === 'error') {
+                                throw new Error(msg.detail || 'Training failed');
+                            }
                         }
                     }
                 } catch (error) {
