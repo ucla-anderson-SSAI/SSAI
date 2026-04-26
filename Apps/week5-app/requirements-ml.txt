@@ -1,6 +1,9 @@
-# Heavy ML deps — Cloud Run ONLY (installed via Dockerfile.cloudrun).
+# Heavy ML deps — Cloud Run ONLY (installed via cloudrun.Dockerfile).
 # Railway does NOT install this file; its Nixpacks builder only picks up
 # requirements.txt, so these stay off Railway's small tier.
 # app.py lazy-imports these modules, so the app still boots without them.
-tensorflow-cpu>=2.15.0
-pillow>=10.0.0
+#
+# Pin these so a redeploy does not silently pick up a newer TensorFlow/Keras
+# stack that behaves differently for MobileNetV2 transfer learning.
+tensorflow-cpu==2.15.0
+pillow==10.4.0

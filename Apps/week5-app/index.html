@@ -1386,6 +1386,7 @@
                             }
 
                             if (msg.type === 'error') {
+                                console.error('Backend training error:', msg);
                                 throw new Error(msg.detail || 'Training failed');
                             }
                         }
@@ -1689,6 +1690,7 @@
                             }
 
                             if (msg.type === 'error') {
+                                console.error('Transfer backend error:', msg);
                                 throw new Error(msg.detail || 'Training failed');
                             }
                         }

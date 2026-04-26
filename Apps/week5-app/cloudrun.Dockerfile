@@ -15,6 +15,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt requirements-ml.txt ./
 RUN pip install --no-cache-dir -r requirements.txt -r requirements-ml.txt
 
+# Cache MobileNetV2 ImageNet weights at build time so the transfer-learning
+# endpoint does not have to download them during a Cloud Run request/cold start.
+ENV KERAS_HOME=/app/.keras
+RUN mkdir -p "$KERAS_HOME" && python - <<'PYDOCKER'
+from tensorflow import keras
+keras.applications.MobileNetV2(
+    input_shape=(96, 96, 3),
+    include_top=False,
+    weights="imagenet",
+)
+print("MobileNetV2 ImageNet weights cached")
+PYDOCKER
+
 # Copy application
 COPY app.py .
 COPY index.html .
