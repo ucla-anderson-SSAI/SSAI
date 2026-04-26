@@ -1555,7 +1555,12 @@
                             </div>
 
                             <div style={{ marginTop: '1.5rem' }}>
-                                <div className="section-title" style={{ fontSize: '0.9rem' }}>Network Architecture</div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                    <div className="section-title" style={{ fontSize: '0.9rem', marginBottom: 0 }}>Network Architecture</div>
+                                    <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.8rem', color: '#2774AE', fontWeight: 600 }}>
+                                        {(calculateParams / 1000).toFixed(0)}K parameters
+                                    </div>
+                                </div>
                                 <CNNPipeline config={config} isTraining={isTraining} />
                             </div>
                         </div>
@@ -1614,7 +1619,7 @@
 
             const TOTAL_MOBILENET_LAYERS = 155; // MobileNetV2 layer count
             const frozenLayers = Math.round(TOTAL_MOBILENET_LAYERS * freezeLayers / 100);
-            const MAX_EPOCHS = 3;
+            const MAX_EPOCHS = 5;
 
             useEffect(() => {
                 fetch(`${API_BASE_URL}/api/health`)
@@ -1737,15 +1742,16 @@
                                 </div>
                             </div>
 
-                            <div className="control-group" style={{ marginTop: '1rem' }}>
-                                <div className="control-label">
-                                    <span>Freeze Layers</span>
-                                    <span className="control-value">{freezeLayers}% (~{frozenLayers}/{TOTAL_MOBILENET_LAYERS})</span>
+                            {strategy !== 'feature' && (
+                                <div className="control-group" style={{ marginTop: '1rem' }}>
+                                    <div className="control-label">
+                                        <span>Freeze Layers</span>
+                                        <span className="control-value">{freezeLayers}% (~{frozenLayers}/{TOTAL_MOBILENET_LAYERS})</span>
+                                    </div>
+                                    <input type="range" className="slider" min="50" max="100" value={freezeLayers}
+                                        onChange={(e) => setFreezeLayers(parseInt(e.target.value))} />
                                 </div>
-                                <input type="range" className="slider" min="50" max="100" value={freezeLayers}
-                                    onChange={(e) => setFreezeLayers(parseInt(e.target.value))}
-                                    disabled={strategy === 'feature'} />
-                            </div>
+                            )}
 
                             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
                                 <div style={{

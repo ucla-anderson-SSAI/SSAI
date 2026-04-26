@@ -73,7 +73,7 @@ DEFAULT_NUM_SAMPLES = 300
 MAX_SAMPLES = 500
 
 # Transfer learning caps
-TRANSFER_MAX_EPOCHS = 3
+TRANSFER_MAX_EPOCHS = 5
 TRANSFER_IMAGE_SIZE = 96  # Upscale 32×32 → 96×96 for MobileNetV2
 
 # Global dataset cache
@@ -198,7 +198,7 @@ class TransferRequest(BaseModel):
     strategy: str = Field(default="finetune")
     freezeLayers: int = Field(default=90, ge=0, le=100)
     numSamples: int = Field(default=300)
-    epochs: int = Field(default=3, ge=1, le=3)
+    epochs: int = Field(default=5, ge=1, le=5)
 
 
 # ============================================
