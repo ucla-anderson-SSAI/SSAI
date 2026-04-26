@@ -1495,7 +1495,7 @@
                                         <div className="progress-fill" style={{ width: `${(currentEpoch / config.epochs) * 100}%` }} />
                                     </div>
                                     <div className="progress-text">
-                                        {trainingStatus} — {Math.round((currentEpoch / config.epochs) * 100)}% complete
+                                        {trainingStatus}
                                     </div>
                                 </div>
                             )}
@@ -1520,7 +1520,7 @@
 
                             {isModelTrained && testAccuracy && (
                                 <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#4CAF50' }}>
-                                    ✓ Model trained — Test Accuracy: {testAccuracy.toFixed(1)}%
+                                    ✓ Model trained
                                 </div>
                             )}
                         </div>
@@ -1615,18 +1615,10 @@
             const [testAccuracy, setTestAccuracy] = useState(null);
             const [classificationResults, setClassificationResults] = useState([]);
             const [modelInfo, setModelInfo] = useState(null);
-            const [backendStatus, setBackendStatus] = useState('checking');
 
             const TOTAL_MOBILENET_LAYERS = 155; // MobileNetV2 layer count
             const frozenLayers = Math.round(TOTAL_MOBILENET_LAYERS * freezeLayers / 100);
             const MAX_EPOCHS = 5;
-
-            useEffect(() => {
-                fetch(`${API_BASE_URL}/api/health`)
-                    .then(r => r.json())
-                    .then(() => setBackendStatus('connected'))
-                    .catch(() => setBackendStatus('disconnected'));
-            }, []);
 
             const runTransferLearning = async () => {
                 setIsTraining(true);
@@ -1737,8 +1729,8 @@
                                 </div>
                                 <div style={{ fontSize: '0.7rem', color: '#888', marginTop: '0.3rem' }}>
                                     {strategy === 'feature'
-                                        ? 'Use MobileNetV2 as a fixed feature extractor — all backbone layers are frozen, and only the new 3-class classifier head is trained'
-                                        : ''}
+                                        ? 'Freeze all convolutional blocks and train the 3-class classifier head only.'
+                                        : 'Unfreeze the top layers and fine-tune alongside the classifier head.'}
                                 </div>
                             </div>
 
@@ -1785,7 +1777,7 @@
 
 
                             <button className={`train-btn ${isTraining ? 'training' : ''}`} onClick={runTransferLearning}
-                                disabled={isTraining || backendStatus !== 'connected'}>
+                                disabled={isTraining}>
                                 {isTraining ? 'Training on Google Cloud...' : `Train MobileNetV2 (TensorFlow/Keras)`}
                             </button>
 
@@ -1795,14 +1787,14 @@
                                         <div className="progress-fill" style={{ width: `${trainingHistory.length / MAX_EPOCHS * 100}%` }} />
                                     </div>
                                     <div className="progress-text">
-                                        {trainingStatus} — {Math.round(trainingHistory.length / MAX_EPOCHS * 100)}% complete
+                                        {trainingStatus}
                                     </div>
                                 </div>
                             )}
 
                             {testAccuracy && (
                                 <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#4CAF50' }}>
-                                    ✓ Test Accuracy: {testAccuracy.toFixed(1)}%
+                                    ✓ Model trained
                                 </div>
                             )}
                         </div>

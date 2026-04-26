@@ -45,10 +45,6 @@ def _load_tf():
             tf.config.threading.set_inter_op_parallelism_threads(2)
         except RuntimeError:
             pass
-        # Fix random seeds so students get consistent results for the same config
-        np.random.seed(42)
-        random.seed(42)
-        tf.random.set_seed(42)
         _TF_INITIALIZED = True
 
     return tf, keras, layers
@@ -329,6 +325,10 @@ def _run_cnn_training(config: dict, q: "queue.Queue"):
         num_samples = min(config.get('numSamples', DEFAULT_NUM_SAMPLES), MAX_SAMPLES)
         epochs = min(config.get('epochs', DEFAULT_EPOCHS), MAX_EPOCHS)
 
+        # Seed before data sampling so students get consistent splits for the same config
+        np.random.seed(42)
+        random.seed(42)
+
         # Sample balanced across 3 classes
         samples_per_class = num_samples // NUM_CLASSES
         indices = []
@@ -425,6 +425,10 @@ def _run_transfer_training(config: dict, q: "queue.Queue"):
 
         epochs = min(config.get('epochs', TRANSFER_MAX_EPOCHS), TRANSFER_MAX_EPOCHS)
         num_samples = min(config.get('numSamples', 300), MAX_SAMPLES)
+
+        # Seed before data sampling so students get consistent splits for the same config
+        np.random.seed(42)
+        random.seed(42)
 
         # Sample balanced training data
         samples_per_class = num_samples // NUM_CLASSES
