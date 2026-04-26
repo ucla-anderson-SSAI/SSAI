@@ -68,7 +68,7 @@ NUM_CLASSES = 3
 
 # Training caps
 DEFAULT_EPOCHS = 10
-MAX_EPOCHS = 10
+MAX_EPOCHS = 20
 DEFAULT_NUM_SAMPLES = 300
 MAX_SAMPLES = 500
 
@@ -190,7 +190,7 @@ class TrainRequest(BaseModel):
     kernelSize: int = Field(default=3)
     batchNorm: bool = Field(default=False)
     dropout: float = Field(default=0.0, ge=0.0, le=0.5)
-    epochs: int = Field(default=10, ge=1, le=10)
+    epochs: int = Field(default=10, ge=1, le=20)
     numSamples: int = Field(default=300)
 
 

@@ -1451,7 +1451,7 @@
                                     <span>Training Epochs</span>
                                     <span className="control-value">{config.epochs}</span>
                                 </div>
-                                <input type="range" className="slider" min="1" max="10" step="1" value={config.epochs}
+                                <input type="range" className="slider" min="1" max="20" step="1" value={config.epochs}
                                     onChange={(e) => setConfig({...config, epochs: parseInt(e.target.value)})} />
                             </div>
 
@@ -1733,7 +1733,7 @@
                                 <div style={{ fontSize: '0.7rem', color: '#888', marginTop: '0.3rem' }}>
                                     {strategy === 'feature'
                                         ? 'Use MobileNetV2 as a fixed feature extractor — all backbone layers are frozen, and only the new 3-class classifier head is trained'
-                                        : 'Allow the top layers of MobileNetV2 to adapt their weights to our animal dataset, while keeping early layers (edges, textures) frozen'}
+                                        : ''}
                                 </div>
                             </div>
 
