@@ -8,12 +8,26 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies.
-# This file is named Dockerfile.cloudrun (not Dockerfile) so Railway's builder
+# This file is named cloudrun.Dockerfile (not Dockerfile) so Railway's builder
 # does NOT auto-detect it. Railway falls back to Nixpacks + requirements.txt
 # only (no TensorFlow, no Pillow). deploy-cloudrun.sh renames this to
 # Dockerfile at deploy time so `gcloud run deploy --source .` picks it up.
 COPY requirements.txt requirements-ml.txt ./
 RUN pip install --no-cache-dir -r requirements.txt -r requirements-ml.txt
+
+# Cache MobileNetV2 ImageNet weights at image-build time instead of during the
+# first student request. This makes the transfer-learning tab more reliable on
+# Cloud Run cold starts.
+ENV KERAS_HOME=/app/.keras
+RUN python - <<'PY'
+from tensorflow import keras
+keras.applications.MobileNetV2(
+    input_shape=(96, 96, 3),
+    include_top=False,
+    weights="imagenet",
+)
+print("MobileNetV2 ImageNet weights cached")
+PY
 
 # Copy application
 COPY app.py .

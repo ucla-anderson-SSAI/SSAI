@@ -14,6 +14,7 @@ import queue
 import random
 import threading
 import time
+import traceback
 from typing import List, Optional
 
 import numpy as np
@@ -69,13 +70,11 @@ DEFAULT_NUM_SAMPLES = 300
 MAX_SAMPLES = 500
 
 # Transfer learning caps
-TRANSFER_MAX_EPOCHS = 5
+TRANSFER_MAX_EPOCHS = 3
 TRANSFER_IMAGE_SIZE = 96  # Upscale 32×32 → 96×96 for MobileNetV2
 
 # Global dataset cache
 _dataset_cache = None
-_X_TRAIN_96 = None
-_X_TEST_96 = None
 
 
 app = FastAPI(
@@ -160,21 +159,19 @@ def load_data():
     return _dataset_cache
 
 
-def get_upscaled_data():
-    """Lazily upscale CIFAR images to 96×96 for transfer learning."""
-    global _X_TRAIN_96, _X_TEST_96
-    if _X_TRAIN_96 is not None:
-        return _X_TRAIN_96, _X_TEST_96
+def resize_for_transfer(images: np.ndarray) -> np.ndarray:
+    """Resize a batch of 32×32 CIFAR images to MobileNetV2's 96×96 input size.
 
+    Important: this intentionally resizes only the batch/split needed for a
+    request instead of caching the entire upscaled dataset globally. That keeps
+    Cloud Run memory usage much lower for the transfer-learning tab.
+    """
     tf, keras, layers = _load_tf()
-    data = load_data()
-
-    print("Upscaling images to 96×96 for transfer learning...")
-    _X_TRAIN_96 = tf.image.resize(data["X_train"], [TRANSFER_IMAGE_SIZE, TRANSFER_IMAGE_SIZE]).numpy()
-    _X_TEST_96 = tf.image.resize(data["X_test"], [TRANSFER_IMAGE_SIZE, TRANSFER_IMAGE_SIZE]).numpy()
-    print(f"Upscaled: train {_X_TRAIN_96.shape}, test {_X_TEST_96.shape}")
-
-    return _X_TRAIN_96, _X_TEST_96
+    return tf.image.resize(
+        images,
+        [TRANSFER_IMAGE_SIZE, TRANSFER_IMAGE_SIZE],
+        method="bilinear",
+    ).numpy().astype("float32")
 
 
 # ============================================
@@ -194,7 +191,7 @@ class TransferRequest(BaseModel):
     strategy: str = Field(default="finetune")
     freezeLayers: int = Field(default=90, ge=0, le=100)
     numSamples: int = Field(default=300)
-    epochs: int = Field(default=5, ge=1, le=5)
+    epochs: int = Field(default=3, ge=1, le=3)
 
 
 # ============================================
@@ -269,7 +266,12 @@ def extract_filters(model, num_blocks):
 # Transfer learning model building
 # ============================================
 def build_transfer_model(config: dict):
-    """Build MobileNetV2 transfer learning model."""
+    """Build MobileNetV2 transfer learning model.
+
+    "Frozen Backbone" freezes the MobileNetV2 backbone only. The newly
+    attached 3-class classifier head remains trainable in every strategy, so
+    trainable_params should never be zero.
+    """
     tf, keras, layers = _load_tf()
 
     freeze_pct = config.get('freezeLayers', 90) / 100.0
@@ -281,8 +283,8 @@ def build_transfer_model(config: dict):
         weights='imagenet'
     )
 
-    total_layers = len(base_model.layers)
-    freeze_count = int(total_layers * freeze_pct)
+    backbone_total_layers = len(base_model.layers)
+    freeze_count = int(backbone_total_layers * freeze_pct)
 
     if strategy == 'feature':
         base_model.trainable = False
@@ -291,15 +293,23 @@ def build_transfer_model(config: dict):
         for i, layer in enumerate(base_model.layers):
             layer.trainable = i >= freeze_count
 
-    trainable_count = sum(1 for l in base_model.layers if l.trainable)
-    frozen_count = total_layers - trainable_count
+    backbone_trainable_layers = sum(1 for layer in base_model.layers if layer.trainable)
+    backbone_frozen_layers = backbone_total_layers - backbone_trainable_layers
 
     inputs = keras.Input(shape=(TRANSFER_IMAGE_SIZE, TRANSFER_IMAGE_SIZE, 3))
-    x = keras.applications.mobilenet_v2.preprocess_input(inputs)
-    x = base_model(x, training=(strategy == 'finetune'))
-    x = layers.GlobalAveragePooling2D()(x)
-    x = layers.Dropout(0.3)(x)
-    outputs = layers.Dense(NUM_CLASSES, activation='softmax')(x)
+
+    # load_data() normalizes CIFAR images to 0–1. MobileNetV2's preprocess_input
+    # expects 0–255-style pixel values before mapping them to [-1, 1].
+    x = layers.Rescaling(255.0, name='restore_0_255_pixels')(inputs)
+    x = keras.applications.mobilenet_v2.preprocess_input(x)
+
+    # Keep MobileNetV2 BatchNorm layers in inference mode during transfer
+    # learning. This is more stable for small classroom-sized batches. Trainable
+    # non-BatchNorm layers still receive gradient updates when unfrozen.
+    x = base_model(x, training=False)
+    x = layers.GlobalAveragePooling2D(name='global_avg_pool')(x)
+    x = layers.Dropout(0.3, name='classifier_dropout')(x)
+    outputs = layers.Dense(NUM_CLASSES, activation='softmax', name='three_class_classifier')(x)
 
     model = keras.Model(inputs, outputs)
 
@@ -310,7 +320,33 @@ def build_transfer_model(config: dict):
         metrics=['accuracy']
     )
 
-    return model, total_layers, frozen_count, trainable_count
+    count_params = keras.backend.count_params
+    total_params = int(model.count_params())
+    trainable_params = int(sum(count_params(w) for w in model.trainable_weights))
+    frozen_params = int(sum(count_params(w) for w in model.non_trainable_weights))
+    backbone_trainable_params = int(sum(count_params(w) for w in base_model.trainable_weights))
+    backbone_total_params = int(sum(count_params(w) for w in base_model.weights))
+    head_trainable_params = trainable_params - backbone_trainable_params
+
+    model_info = {
+        'strategy': strategy,
+        'total_params': total_params,
+        'trainable_params': trainable_params,
+        'frozen_params': frozen_params,
+        'backbone_total_params': backbone_total_params,
+        'backbone_trainable_params': backbone_trainable_params,
+        'head_trainable_params': head_trainable_params,
+        'classifier_head_classes': NUM_CLASSES,
+        'backbone_total_layers': backbone_total_layers,
+        'backbone_frozen_layers': backbone_frozen_layers,
+        'backbone_trainable_layers': backbone_trainable_layers,
+        # Backward-compatible aliases used by the existing frontend.
+        'total_layers': backbone_total_layers,
+        'frozen_layers': backbone_frozen_layers,
+        'trainable_layers': backbone_trainable_layers,
+    }
+
+    return model, model_info
 
 
 # ============================================
@@ -411,7 +447,11 @@ def _run_cnn_training(config: dict, q: "queue.Queue"):
         })
 
     except Exception as exc:
-        q.put({"type": "error", "detail": str(exc)})
+        q.put({
+            "type": "error",
+            "detail": f"{type(exc).__name__}: {exc}",
+            "traceback": traceback.format_exc(),
+        })
     finally:
         q.put(None)  # sentinel
 
@@ -419,12 +459,16 @@ def _run_cnn_training(config: dict, q: "queue.Queue"):
 def _run_transfer_training(config: dict, q: "queue.Queue"):
     """Run MobileNetV2 transfer learning in a thread; push NDJSON messages onto q."""
     try:
+        # Emit a first chunk immediately. The old Flask/queue version returned
+        # quickly with a session id; the streaming version should also give the
+        # browser/proxy something right away before TensorFlow/MobileNet setup.
+        q.put({"type": "status", "message": "Loading TensorFlow and CIFAR-100 data..."})
         tf, keras, layers = _load_tf()
-        X_train_96, X_test_96 = get_upscaled_data()
         data = load_data()
 
         epochs = min(config.get('epochs', TRANSFER_MAX_EPOCHS), TRANSFER_MAX_EPOCHS)
         num_samples = min(config.get('numSamples', 300), MAX_SAMPLES)
+        q.put({"type": "status", "message": f"Preparing {num_samples} transfer-learning samples..."})
 
         # Seed before data sampling so students get consistent splits for the same config
         np.random.seed(42)
@@ -443,24 +487,23 @@ def _run_transfer_training(config: dict, q: "queue.Queue"):
             indices.extend(selected)
         np.random.shuffle(indices)
 
-        X_train = X_train_96[indices]
+        # Resize only the sampled training/validation arrays for this request.
+        # Avoid globally caching all CIFAR images at 96×96, which can trigger
+        # memory pressure on deployed Cloud Run instances.
+        q.put({"type": "status", "message": "Resizing sampled images to 96×96..."})
+        X_train = resize_for_transfer(data["X_train"][indices])
         y_train = data["Y_train"][indices]
 
-        val_indices = np.random.choice(len(X_test_96), size=min(300, len(X_test_96)), replace=False)
-        X_val = X_test_96[val_indices]
+        val_indices = np.random.choice(
+            len(data["X_test"]),
+            size=min(300, len(data["X_test"])),
+            replace=False,
+        )
+        X_val = resize_for_transfer(data["X_test"][val_indices])
         y_val = data["Y_test"][val_indices]
 
-        model, total_layers, frozen_count, trainable_count = build_transfer_model(config)
-
-        model_info = {
-            'total_layers': total_layers,
-            'frozen_layers': frozen_count,
-            'trainable_layers': trainable_count,
-            'total_params': int(model.count_params()),
-            'trainable_params': int(sum(
-                keras.backend.count_params(w) for w in model.trainable_weights
-            ))
-        }
+        q.put({"type": "status", "message": "Building MobileNetV2 transfer model..."})
+        model, model_info = build_transfer_model(config)
 
         # Send model info immediately so frontend can display it during training
         q.put({
@@ -468,9 +511,27 @@ def _run_transfer_training(config: dict, q: "queue.Queue"):
             "model_info": model_info,
         })
 
+        def validation_snapshot():
+            """Manually predict validation labels with the model's current weights.
+
+            Keras already computes val_accuracy after each epoch using the latest
+            weights. This explicit snapshot is a deployment/debugging guardrail:
+            it proves the validation display is coming from fresh predictions and
+            shows whether the model collapsed to one class.
+            """
+            val_probs = model.predict(X_val, batch_size=32, verbose=0)
+            val_pred = np.argmax(val_probs, axis=1)
+            return {
+                "manualValAcc": float(np.mean(val_pred == y_val) * 100),
+                "valPredCounts": [int(x) for x in np.bincount(val_pred, minlength=NUM_CLASSES)],
+                "valTrueCounts": [int(x) for x in np.bincount(y_val, minlength=NUM_CLASSES)],
+                "valAvgConfidence": float(np.mean(np.max(val_probs, axis=1)) * 100),
+            }
+
         class StreamCallback(keras.callbacks.Callback):
             def on_epoch_end(self, epoch, logs=None):
                 logs = logs or {}
+                snapshot = validation_snapshot()
                 q.put({
                     "type": "epoch",
                     "epoch": int(epoch) + 1,
@@ -479,8 +540,10 @@ def _run_transfer_training(config: dict, q: "queue.Queue"):
                     "valAcc": float(logs.get("val_accuracy", 0.0) * 100),
                     "trainLoss": float(logs.get("loss", 0.0)),
                     "valLoss": float(logs.get("val_loss", 0.0)),
+                    **snapshot,
                 })
 
+        q.put({"type": "status", "message": f"Training MobileNetV2 for {epochs} epoch(s)..."})
         start_time = time.time()
         model.fit(
             X_train, y_train,
@@ -492,8 +555,19 @@ def _run_transfer_training(config: dict, q: "queue.Queue"):
         )
         training_time = time.time() - start_time
 
-        # Evaluate on full test set
+        # Evaluate on the full 300-image filtered test set. This is small enough
+        # to resize here without keeping a long-lived global 96×96 cache.
+        q.put({"type": "status", "message": "Evaluating transfer model..."})
+        X_test_96 = resize_for_transfer(data["X_test"])
         test_loss, test_acc = model.evaluate(X_test_96, data["Y_test"], verbose=0)
+
+        test_probs = model.predict(X_test_96, batch_size=32, verbose=0)
+        test_pred = np.argmax(test_probs, axis=1)
+        final_diagnostics = {
+            "testPredCounts": [int(x) for x in np.bincount(test_pred, minlength=NUM_CLASSES)],
+            "testTrueCounts": [int(x) for x in np.bincount(data["Y_test"], minlength=NUM_CLASSES)],
+            "testAvgConfidence": float(np.mean(np.max(test_probs, axis=1)) * 100),
+        }
 
         # Sample predictions
         sample_predictions = []
@@ -502,7 +576,7 @@ def _run_transfer_training(config: dict, q: "queue.Queue"):
             if len(class_test_indices) > 0:
                 selected = np.random.choice(class_test_indices, size=min(3, len(class_test_indices)), replace=False)
                 for idx in selected:
-                    pred = model.predict(X_test_96[idx:idx+1], verbose=0)[0]
+                    pred = test_probs[idx]
                     sample_predictions.append({
                         'true': int(data["Y_test"][idx]),
                         'predicted': int(np.argmax(pred)),
@@ -520,10 +594,15 @@ def _run_transfer_training(config: dict, q: "queue.Queue"):
             "model_info": model_info,
             "sample_predictions": sample_predictions[:8],
             "classes": CLASS_NAMES,
+            **final_diagnostics,
         })
 
     except Exception as exc:
-        q.put({"type": "error", "detail": str(exc)})
+        q.put({
+            "type": "error",
+            "detail": f"{type(exc).__name__}: {exc}",
+            "traceback": traceback.format_exc(),
+        })
     finally:
         q.put(None)  # sentinel
 
