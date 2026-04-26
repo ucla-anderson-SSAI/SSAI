@@ -298,10 +298,10 @@ def build_transfer_model(config: dict):
 
     inputs = keras.Input(shape=(TRANSFER_IMAGE_SIZE, TRANSFER_IMAGE_SIZE, 3))
 
-    # load_data() normalizes CIFAR images to 0–1. MobileNetV2's preprocess_input
-    # expects 0–255-style pixel values before mapping them to [-1, 1].
-    x = layers.Rescaling(255.0, name='restore_0_255_pixels')(inputs)
-    x = keras.applications.mobilenet_v2.preprocess_input(x)
+    # load_data() normalizes CIFAR images to [0, 1]. MobileNetV2 expects [-1, 1].
+    # Map directly with a Rescaling layer instead of preprocess_input(), which
+    # can silently misfire when traced inside a Keras functional model graph.
+    x = layers.Rescaling(scale=2.0, offset=-1.0, name='normalize_to_neg1_pos1')(inputs)
 
     # Keep MobileNetV2 BatchNorm layers in inference mode during transfer
     # learning. This is more stable for small classroom-sized batches. Trainable
