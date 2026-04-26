@@ -1784,13 +1784,13 @@
                                     flex: strategy === 'feature' ? 100 : freezeLayers,
                                     background: 'linear-gradient(90deg, #8BB8E8, #2774AE)',
                                     padding: '0.4rem', borderRadius: '6px', color: 'white', fontSize: '0.7rem', textAlign: 'center'
-                                }}>Frozen Backbone</div>
+                                }}>Frozen</div>
                                 {strategy !== 'feature' && (
                                     <div style={{
                                         flex: 100 - freezeLayers,
                                         background: 'linear-gradient(90deg, #FFD100, #FFA500)',
                                         padding: '0.4rem', borderRadius: '6px', color: '#333', fontSize: '0.7rem', textAlign: 'center'
-                                    }}>Trainable Backbone</div>
+                                    }}>Trainable</div>
                                 )}
                             </div>
                             <div style={{ fontSize: '0.68rem', color: '#888', marginTop: '0.35rem' }}>
@@ -1854,18 +1854,6 @@
                                             <div className="metric-label">Train Loss</div>
                                         </div>
                                     </div>
-                                    {latestMetrics.manualValAcc !== undefined && (
-                                        <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: '#fffbea', border: '1px solid rgba(255, 209, 0, 0.35)', borderRadius: '8px', fontSize: '0.72rem', color: '#555' }}>
-                                            <div style={{ fontWeight: 600, color: '#333', marginBottom: '0.2rem' }}>
-                                                Manual validation check using current epoch weights: {latestMetrics.manualValAcc.toFixed(1)}%
-                                            </div>
-                                            <div>True validation mix: {formatCounts(latestMetrics.valTrueCounts)}</div>
-                                            <div>Predicted validation mix: {formatCounts(latestMetrics.valPredCounts)}</div>
-                                            {latestMetrics.valAvgConfidence !== undefined && (
-                                                <div>Average validation confidence: {latestMetrics.valAvgConfidence.toFixed(1)}%</div>
-                                            )}
-                                        </div>
-                                    )}
                                 </>
                             )}
 
