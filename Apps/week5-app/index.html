@@ -1484,42 +1484,6 @@
                                 </div>
                             </div>
 
-                            <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                gap: '0.5rem',
-                                marginBottom: '0.5rem',
-                                padding: '0.5rem 0.75rem',
-                                borderRadius: '6px',
-                                background: backendStatus === 'connected' ? '#e8f5e9' : backendStatus === 'checking' ? '#fff3e0' : '#ffebee',
-                                fontSize: '0.8rem'
-                            }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <div style={{
-                                        width: '8px',
-                                        height: '8px',
-                                        borderRadius: '50%',
-                                        background: backendStatus === 'connected' ? '#4CAF50' : backendStatus === 'checking' ? '#FF9800' : '#f44336'
-                                    }} />
-                                    <span>
-                                        {backendStatus === 'connected' && 'Python backend connected'}
-                                        {backendStatus === 'checking' && 'Checking backend...'}
-                                        {backendStatus === 'disconnected' && 'Backend not connected — start Python server on port 5000'}
-                                    </span>
-                                </div>
-                                {backendStatus === 'connected' && (
-                                    <div style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '0.5rem',
-                                        color: '#666',
-                                        fontSize: '0.75rem'
-                                    }}>
-                                        <span>🖥️ Cloud Run (auto-scaling)</span>
-                                    </div>
-                                )}
-                            </div>
 
                             <button className={`train-btn ${isTraining ? 'training' : ''}`} onClick={runTraining} disabled={isTraining || backendStatus !== 'connected'}>
                                 {isTraining ? 'Training on Google Cloud...' : 'Train CNN (TensorFlow/Keras)'}
@@ -1599,11 +1563,11 @@
 
                     <div className="grid-2" style={{ marginTop: '1.5rem' }}>
                         <div className="section-card">
-                            <div className="section-title">📈 Accuracy vs Epoch</div>
+                            <div className="section-title">Accuracy vs Epoch</div>
                             <div className="chart-container"><TrainingChart trainingHistory={trainingHistory} totalEpochs={config.epochs} /></div>
                         </div>
                         <div className="section-card">
-                            <div className="section-title">📉 Loss vs Epoch</div>
+                            <div className="section-title">Loss vs Epoch</div>
                             <div className="chart-container"><LossChart trainingHistory={trainingHistory} totalEpochs={config.epochs} /></div>
                         </div>
                     </div>
@@ -1762,13 +1726,13 @@
                                 <div className="control-label">Transfer Strategy</div>
                                 <div className="button-group">
                                     <button className={`option-btn ${strategy === 'feature' ? 'active' : ''}`}
-                                        onClick={() => setStrategy('feature')}>Feature Extraction</button>
+                                        onClick={() => setStrategy('feature')}>Frozen Backbone</button>
                                     <button className={`option-btn ${strategy === 'finetune' ? 'active' : ''}`}
                                         onClick={() => setStrategy('finetune')}>Fine-tuning</button>
                                 </div>
                                 <div style={{ fontSize: '0.7rem', color: '#888', marginTop: '0.3rem' }}>
                                     {strategy === 'feature'
-                                        ? 'Use MobileNetV2 as a fixed feature extractor — all pre-trained layers are frozen, and only the new 3-class classifier head is trained'
+                                        ? 'Use MobileNetV2 as a fixed feature extractor — all backbone layers are frozen, and only the new 3-class classifier head is trained'
                                         : 'Allow the top layers of MobileNetV2 to adapt their weights to our animal dataset, while keeping early layers (edges, textures) frozen'}
                                 </div>
                             </div>
@@ -1788,7 +1752,7 @@
                                     flex: strategy === 'feature' ? 100 : freezeLayers,
                                     background: 'linear-gradient(90deg, #8BB8E8, #2774AE)',
                                     padding: '0.4rem', borderRadius: '6px', color: 'white', fontSize: '0.7rem', textAlign: 'center'
-                                }}>Frozen (ImageNet weights)</div>
+                                }}>Frozen</div>
                                 {strategy !== 'feature' && (
                                     <div style={{
                                         flex: 100 - freezeLayers,
@@ -1813,17 +1777,6 @@
                                 </div>
                             </div>
 
-                            <div style={{
-                                display: 'flex', alignItems: 'center', gap: '0.5rem',
-                                marginBottom: '0.5rem', marginTop: '1rem', padding: '0.5rem 0.75rem', borderRadius: '6px',
-                                background: backendStatus === 'connected' ? '#e8f5e9' : '#ffebee', fontSize: '0.8rem'
-                            }}>
-                                <div style={{
-                                    width: '8px', height: '8px', borderRadius: '50%',
-                                    background: backendStatus === 'connected' ? '#4CAF50' : '#f44336'
-                                }} />
-                                <span>{backendStatus === 'connected' ? 'Backend connected' : 'Backend not connected'}</span>
-                            </div>
 
                             <button className={`train-btn ${isTraining ? 'training' : ''}`} onClick={runTransferLearning}
                                 disabled={isTraining || backendStatus !== 'connected'}>
@@ -1849,7 +1802,7 @@
                         </div>
 
                         <div className="section-card">
-                            <div className="section-title">📈 Training Progress</div>
+                            <div className="section-title">Training Progress</div>
                             <div className="chart-container">
                                 <TrainingChart trainingHistory={trainingHistory} totalEpochs={MAX_EPOCHS} />
                             </div>

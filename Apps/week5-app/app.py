@@ -45,6 +45,10 @@ def _load_tf():
             tf.config.threading.set_inter_op_parallelism_threads(2)
         except RuntimeError:
             pass
+        # Fix random seeds so students get consistent results for the same config
+        np.random.seed(42)
+        random.seed(42)
+        tf.random.set_seed(42)
         _TF_INITIALIZED = True
 
     return tf, keras, layers
