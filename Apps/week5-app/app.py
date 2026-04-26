@@ -14,7 +14,6 @@ import queue
 import random
 import threading
 import time
-import traceback
 from typing import List, Optional
 
 import numpy as np
@@ -75,6 +74,8 @@ TRANSFER_IMAGE_SIZE = 96  # Upscale 32×32 → 96×96 for MobileNetV2
 
 # Global dataset cache
 _dataset_cache = None
+_X_TRAIN_96 = None
+_X_TEST_96 = None
 
 
 app = FastAPI(
@@ -159,19 +160,21 @@ def load_data():
     return _dataset_cache
 
 
-def resize_for_transfer(images: np.ndarray) -> np.ndarray:
-    """Resize a batch of 32×32 CIFAR images to MobileNetV2's 96×96 input size.
+def get_upscaled_data():
+    """Lazily upscale CIFAR images to 96×96 for transfer learning."""
+    global _X_TRAIN_96, _X_TEST_96
+    if _X_TRAIN_96 is not None:
+        return _X_TRAIN_96, _X_TEST_96
 
-    Important: this intentionally resizes only the batch/split needed for a
-    request instead of caching the entire upscaled dataset globally. That keeps
-    Cloud Run memory usage much lower for the transfer-learning tab.
-    """
     tf, keras, layers = _load_tf()
-    return tf.image.resize(
-        images,
-        [TRANSFER_IMAGE_SIZE, TRANSFER_IMAGE_SIZE],
-        method="bilinear",
-    ).numpy().astype("float32")
+    data = load_data()
+
+    print("Upscaling images to 96×96 for transfer learning...")
+    _X_TRAIN_96 = tf.image.resize(data["X_train"], [TRANSFER_IMAGE_SIZE, TRANSFER_IMAGE_SIZE]).numpy()
+    _X_TEST_96 = tf.image.resize(data["X_test"], [TRANSFER_IMAGE_SIZE, TRANSFER_IMAGE_SIZE]).numpy()
+    print(f"Upscaled: train {_X_TRAIN_96.shape}, test {_X_TEST_96.shape}")
+
+    return _X_TRAIN_96, _X_TEST_96
 
 
 # ============================================
@@ -292,15 +295,8 @@ def build_transfer_model(config: dict):
     frozen_count = total_layers - trainable_count
 
     inputs = keras.Input(shape=(TRANSFER_IMAGE_SIZE, TRANSFER_IMAGE_SIZE, 3))
-
-    # load_data() normalizes CIFAR images to 0–1. MobileNetV2's preprocess_input
-    # expects 0–255-style pixel values before mapping them to [-1, 1].
-    x = layers.Rescaling(255.0)(inputs)
-    x = keras.applications.mobilenet_v2.preprocess_input(x)
-
-    # Keep MobileNetV2 BatchNorm layers in inference mode during transfer
-    # learning. This is more stable for small classroom-sized batches.
-    x = base_model(x, training=False)
+    x = keras.applications.mobilenet_v2.preprocess_input(inputs)
+    x = base_model(x, training=(strategy == 'finetune'))
     x = layers.GlobalAveragePooling2D()(x)
     x = layers.Dropout(0.3)(x)
     outputs = layers.Dense(NUM_CLASSES, activation='softmax')(x)
@@ -415,11 +411,7 @@ def _run_cnn_training(config: dict, q: "queue.Queue"):
         })
 
     except Exception as exc:
-        q.put({
-            "type": "error",
-            "detail": f"{type(exc).__name__}: {exc}",
-            "traceback": traceback.format_exc(),
-        })
+        q.put({"type": "error", "detail": str(exc)})
     finally:
         q.put(None)  # sentinel
 
@@ -428,6 +420,7 @@ def _run_transfer_training(config: dict, q: "queue.Queue"):
     """Run MobileNetV2 transfer learning in a thread; push NDJSON messages onto q."""
     try:
         tf, keras, layers = _load_tf()
+        X_train_96, X_test_96 = get_upscaled_data()
         data = load_data()
 
         epochs = min(config.get('epochs', TRANSFER_MAX_EPOCHS), TRANSFER_MAX_EPOCHS)
@@ -450,18 +443,11 @@ def _run_transfer_training(config: dict, q: "queue.Queue"):
             indices.extend(selected)
         np.random.shuffle(indices)
 
-        # Resize only the sampled training/validation arrays for this request.
-        # Avoid globally caching all CIFAR images at 96×96, which can trigger
-        # memory pressure on deployed Cloud Run instances.
-        X_train = resize_for_transfer(data["X_train"][indices])
+        X_train = X_train_96[indices]
         y_train = data["Y_train"][indices]
 
-        val_indices = np.random.choice(
-            len(data["X_test"]),
-            size=min(300, len(data["X_test"])),
-            replace=False,
-        )
-        X_val = resize_for_transfer(data["X_test"][val_indices])
+        val_indices = np.random.choice(len(X_test_96), size=min(300, len(X_test_96)), replace=False)
+        X_val = X_test_96[val_indices]
         y_val = data["Y_test"][val_indices]
 
         model, total_layers, frozen_count, trainable_count = build_transfer_model(config)
@@ -506,9 +492,7 @@ def _run_transfer_training(config: dict, q: "queue.Queue"):
         )
         training_time = time.time() - start_time
 
-        # Evaluate on the full 300-image filtered test set. This is small enough
-        # to resize here without keeping a long-lived global 96×96 cache.
-        X_test_96 = resize_for_transfer(data["X_test"])
+        # Evaluate on full test set
         test_loss, test_acc = model.evaluate(X_test_96, data["Y_test"], verbose=0)
 
         # Sample predictions
@@ -539,11 +523,7 @@ def _run_transfer_training(config: dict, q: "queue.Queue"):
         })
 
     except Exception as exc:
-        q.put({
-            "type": "error",
-            "detail": f"{type(exc).__name__}: {exc}",
-            "traceback": traceback.format_exc(),
-        })
+        q.put({"type": "error", "detail": str(exc)})
     finally:
         q.put(None)  # sentinel
 
