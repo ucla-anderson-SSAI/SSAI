@@ -1,2416 +1,455 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Week 6: Word Embeddings & Transformers | UCLA Anderson</title>
-    <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
-    <script>window.API_BASE = 'https://week6-transformer-api-eb5aqs4exq-uc.a.run.app';</script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #2774AE;
-            --darkBlue: #005587;
-            --lightBlue: #8BB8E8;
-            --gold: #FFD100;
-            --bg: #ffffff;
-            --card: #ffffff;
-            --text: #1a1a1a;
-            --textMuted: #666;
-            --border: rgba(0,0,0,0.08);
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #f8f9fa;
-            min-height: 100vh;
-            color: var(--text);
-        }
-
-        .app-container { min-height: 100vh; }
-
-        /* Header */
-        .header {
-            background: var(--primary);
-            padding: 1rem 2rem 1.5rem 2rem;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .header-content {
-            max-width: 1400px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .header-left .course-label {
-            font-size: 0.65rem;
-            font-weight: 400;
-            color: #FFD100;
-            margin-bottom: 0.25rem;
-            letter-spacing: 0.2em;
-            text-transform: uppercase;
-        }
-
-        .header-left h1 {
-            font-size: 1.4rem;
-            font-weight: 600;
-            color: #ffffff;
-        }
-
-        .header-left .subtitle {
-            color: rgba(255,255,255,0.8);
-            font-size: 0.85rem;
-            margin-top: 0.25rem;
-        }
-
-        .header-right {
-            text-align: right;
-            color: #ffffff;
-            font-weight: 500;
-        }
-
-        .header-gold-line {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: var(--gold);
-        }
-
-        /* Tabs */
-        .tabs-container {
-            background: #ffffff;
-            border-bottom: 1px solid var(--border);
-            padding: 0 2rem;
-            position: sticky;
-            top: 72px;
-            z-index: 99;
-        }
-
-        .tabs {
-            max-width: 1400px;
-            margin: 0 auto;
-            display: flex;
-            gap: 0;
-        }
-
-        .tab {
-            padding: 1rem 2rem;
-            background: transparent;
-            border: none;
-            color: var(--textMuted);
-            font-size: 0.95rem;
-            font-weight: 500;
-            cursor: pointer;
-            white-space: nowrap;
-            border-bottom: 3px solid transparent;
-            transition: all 0.2s;
-        }
-
-        .tab:hover { color: var(--primary); }
-
-        .tab.active {
-            color: var(--primary);
-            border-bottom-color: var(--primary);
-        }
-
-        /* Main Content */
-        .main-content {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-
-        /* Cards */
-        .card {
-            background: var(--card);
-            border-radius: 12px;
-            padding: 1.5rem;
-            border: 1px solid var(--border);
-            margin-bottom: 1.5rem;
-        }
-
-        .card-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: var(--text);
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .card-title svg {
-            width: 20px;
-            height: 20px;
-            color: var(--primary);
-        }
-
-        /* Grid layouts */
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
-        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; }
-
-        @media (max-width: 900px) {
-            .grid-2, .grid-3 { grid-template-columns: 1fr; }
-        }
-
-        /* Input styles */
-        .input-group {
-            margin-bottom: 1rem;
-        }
-
-        .input-label {
-            display: block;
-            font-size: 0.85rem;
-            font-weight: 500;
-            color: var(--textMuted);
-            margin-bottom: 0.5rem;
-        }
-
-        .text-input {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 1rem;
-            font-family: inherit;
-            transition: border-color 0.2s;
-        }
-
-        .text-input:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
-
-        /* Buttons */
-        .btn {
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .btn-primary {
-            background: var(--primary);
-            color: white;
-        }
-
-        .btn-primary:hover { background: var(--darkBlue); }
-
-        .btn-secondary {
-            background: #f0f0f0;
-            color: var(--text);
-        }
-
-        .btn-secondary:hover { background: #e0e0e0; }
-
-        .btn-group {
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
-
-        .btn-option {
-            padding: 0.5rem 1rem;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            background: white;
-            color: var(--textMuted);
-            font-size: 0.85rem;
-            cursor: pointer;
-            transition: all 0.15s;
-        }
-
-        .btn-option:hover { border-color: var(--primary); }
-
-        .btn-option.active {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
-        }
-
-        .btn-option:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        /* Explanation box */
-        .explanation {
-            background: linear-gradient(135deg, rgba(39, 116, 174, 0.08), rgba(139, 184, 232, 0.08));
-            border-left: 3px solid var(--primary);
-            padding: 1rem 1.25rem;
-            border-radius: 0 8px 8px 0;
-            margin-bottom: 1.5rem;
-            font-size: 0.9rem;
-            line-height: 1.6;
-        }
-
-        /* Stats grid */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .stat-card {
-            background: #f8f9fa;
-            padding: 1rem;
-            border-radius: 8px;
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: var(--primary);
-        }
-
-        .stat-label {
-            font-size: 0.75rem;
-            color: var(--textMuted);
-            margin-top: 0.25rem;
-        }
-
-        /* Result display */
-        .result-box {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 1.5rem;
-            text-align: center;
-        }
-
-        .result-value {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: var(--primary);
-        }
-
-        .result-label {
-            font-size: 0.9rem;
-            color: var(--textMuted);
-            margin-top: 0.5rem;
-        }
-
-        /* Word chips */
-        .word-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            background: var(--primary);
-            color: white;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            margin: 0.25rem;
-        }
-
-        .word-chip.result {
-            background: var(--gold);
-            color: #333;
-        }
-
-        .word-chip .score {
-            background: rgba(255,255,255,0.2);
-            padding: 0.15rem 0.5rem;
-            border-radius: 10px;
-            font-size: 0.8rem;
-        }
-
-        /* Spinner */
-        .spinner {
-            width: 20px;
-            height: 20px;
-            border: 2px solid rgba(0,0,0,0.1);
-            border-top-color: var(--primary);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* Footer */
-        .footer {
-            text-align: center;
-            padding: 2rem;
-            color: var(--textMuted);
-            font-size: 0.85rem;
-        }
-
-        /* Comparison cards */
-        .comparison-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-        }
-
-        @media (max-width: 900px) {
-            .comparison-grid { grid-template-columns: 1fr; }
-        }
-
-        .comparison-card {
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 1.5rem;
-        }
-
-        .comparison-card.winner {
-            background: linear-gradient(135deg, rgba(39, 116, 174, 0.1), rgba(139, 184, 232, 0.1));
-            border: 2px solid var(--primary);
-        }
-
-        .comparison-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .comparison-title .badge {
-            background: var(--gold);
-            color: #333;
-            padding: 0.2rem 0.6rem;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-
-        /* Heatmap for attention */
-        .heatmap-container {
-            overflow-x: auto;
-            padding: 1rem 0;
-        }
-
-        .heatmap-grid {
-            display: inline-block;
-            min-width: 100%;
-        }
-
-        .heatmap-row {
-            display: flex;
-            align-items: center;
-            gap: 2px;
-            margin-bottom: 2px;
-        }
-
-        .heatmap-label {
-            width: 60px;
-            font-size: 0.75rem;
-            text-align: right;
-            padding-right: 8px;
-            color: var(--textMuted);
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        .heatmap-cell {
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.7rem;
-            font-family: 'JetBrains Mono', monospace;
-            border-radius: 4px;
-        }
-
-        .heatmap-header {
-            display: flex;
-            margin-left: 68px;
-            margin-bottom: 4px;
-        }
-
-        .heatmap-header-cell {
-            width: 40px;
-            margin-right: 2px;
-            font-size: 0.75rem;
-            text-align: center;
-            color: var(--textMuted);
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        /* Error message */
-        .error-box {
-            background: rgba(220, 53, 69, 0.1);
-            border: 1px solid #dc3545;
-            color: #dc3545;
-            padding: 1rem;
-            border-radius: 8px;
-            margin-top: 1rem;
-        }
-
-        /* Success message */
-        .success-box {
-            background: rgba(40, 167, 69, 0.1);
-            border: 1px solid #28a745;
-            color: #28a745;
-            padding: 1rem;
-            border-radius: 8px;
-        }
-
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Week 6: Tiny LLM Lab</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    :root {
+      --blue: #2774ae;
+      --gold: #ffd100;
+      --ink: #1f2937;
+      --muted: #667085;
+      --line: #d8dee8;
+      --panel: #ffffff;
+      --soft: #f5f7fb;
+      --green: #12805c;
+      --red: #b42318;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--soft);
+      color: var(--ink);
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+    }
+
+    header {
+      background: #fff;
+      border-bottom: 4px solid var(--gold);
+      padding: 22px 28px 18px;
+    }
+
+    .shell {
+      max-width: 1180px;
+      margin: 0 auto;
+    }
+
+    .course {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 30px;
+      line-height: 1.1;
+      font-weight: 750;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin-top: 8px;
+      max-width: 720px;
+      line-height: 1.45;
+    }
+
+    main {
+      max-width: 1180px;
+      margin: 22px auto;
+      padding: 0 18px 28px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 18px;
+    }
+
+    .tab {
+      border: 1px solid var(--line);
+      border-bottom: 0;
+      background: #eef2f7;
+      color: var(--ink);
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 700;
+      border-radius: 6px 6px 0 0;
+    }
+
+    .tab.active {
+      background: #fff;
+      color: var(--blue);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 350px 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .panel, .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .panel {
+      padding: 18px;
+    }
+
+    .card {
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: 20px;
+    }
+
+    h3 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+
+    p {
+      color: var(--muted);
+      line-height: 1.45;
+      margin: 0 0 12px;
+    }
+
+    label {
+      display: block;
+      font-weight: 700;
+      font-size: 13px;
+      margin: 14px 0 6px;
+    }
+
+    input, select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px 11px;
+      font-size: 15px;
+      background: #fff;
+      color: var(--ink);
+    }
+
+    button {
+      border: 0;
+      background: var(--blue);
+      color: #fff;
+      border-radius: 6px;
+      padding: 10px 13px;
+      margin-top: 12px;
+      cursor: pointer;
+      font-weight: 750;
+      min-height: 40px;
+    }
+
+    button.secondary {
+      background: #e8eef6;
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+
+    .metric-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .metric {
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px;
+    }
+
+    .metric .value {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--blue);
+    }
+
+    .metric .label {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    .list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .item {
+      display: grid;
+      grid-template-columns: 110px 1fr 52px;
+      gap: 10px;
+      align-items: center;
+      font-size: 14px;
+    }
+
+    .bar {
+      height: 10px;
+      background: #e6edf5;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .fill {
+      height: 100%;
+      background: var(--blue);
+    }
+
+    .token .fill { background: var(--green); }
+
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: #344054;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px;
+      overflow-wrap: anywhere;
+    }
+
+    .status {
+      color: var(--muted);
+      font-size: 13px;
+      min-height: 18px;
+      margin-top: 8px;
+    }
+
+    .error { color: var(--red); }
+
+    .experiment-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    @media (max-width: 850px) {
+      .grid, .experiment-grid, .metric-row {
+        grid-template-columns: 1fr;
+      }
+
+      h1 { font-size: 24px; }
+      header { padding-left: 18px; padding-right: 18px; }
+    }
+  </style>
 </head>
 <body>
-    <div id="root"></div>
+  <header>
+    <div class="shell">
+      <div class="course">MGMT298D: Science and Strategy of AI</div>
+      <h1>Week 6: Tiny LLM Lab</h1>
+      <div class="subtitle">Explore word embeddings, analogies, next-token predictions, and why more data and more training change language-model behavior.</div>
+    </div>
+  </header>
 
-    <script type="text/babel">
-        const { useState, useEffect, useMemo } = React;
+  <main id="root"></main>
 
-        // API Base URL - empty string uses same origin
-        const API_BASE = window.API_BASE || '';
+  <script type="text/babel">
+    const API = "";
+    const { useEffect, useState } = React;
 
-        // ===========================================
-        // Tab 1: Word Embeddings
-        // ===========================================
-        const EmbeddingsTab = () => {
-            const [word1, setWord1] = useState('king');
-            const [word2, setWord2] = useState('queen');
-            const [similarity, setSimilarity] = useState(null);
-            const [similarityLoading, setSimilarityLoading] = useState(false);
-            const [similarityError, setSimilarityError] = useState(null);
+    async function postJson(path, body) {
+      const response = await fetch(`${API}${path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Request failed");
+      return data;
+    }
 
-            const [analogyA, setAnalogyA] = useState('king');
-            const [analogyB, setAnalogyB] = useState('man');
-            const [analogyC, setAnalogyC] = useState('woman');
-            const [analogyResults, setAnalogyResults] = useState(null);
-            const [analogyLoading, setAnalogyLoading] = useState(false);
-            const [analogyError, setAnalogyError] = useState(null);
-
-            const [availableWords, setAvailableWords] = useState([]);
-
-            // Fetch available words on mount
-            useEffect(() => {
-                fetch(`${API_BASE}/available_words?limit=100`)
-                    .then(res => res.json())
-                    .then(data => setAvailableWords(data.sample_words || []))
-                    .catch(err => console.log('Could not fetch words:', err));
-            }, []);
-
-            const computeSimilarity = async () => {
-                setSimilarityLoading(true);
-                setSimilarityError(null);
-                setSimilarity(null);
-
-                try {
-                    const response = await fetch(`${API_BASE}/similarity`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ word1, word2 })
-                    });
-
-                    if (!response.ok) {
-                        const err = await response.json();
-                        throw new Error(err.detail || 'Failed to compute similarity');
-                    }
-
-                    const data = await response.json();
-                    setSimilarity(data.similarity);
-                } catch (err) {
-                    setSimilarityError(err.message);
-                } finally {
-                    setSimilarityLoading(false);
-                }
-            };
-
-            const solveAnalogy = async () => {
-                setAnalogyLoading(true);
-                setAnalogyError(null);
-                setAnalogyResults(null);
-
-                try {
-                    const response = await fetch(`${API_BASE}/analogy`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            word_a: analogyA,
-                            word_b: analogyB,
-                            word_c: analogyC,
-                            top_n: 5
-                        })
-                    });
-
-                    if (!response.ok) {
-                        const err = await response.json();
-                        throw new Error(err.detail || 'Failed to solve analogy');
-                    }
-
-                    const data = await response.json();
-                    setAnalogyResults(data);
-                } catch (err) {
-                    setAnalogyError(err.message);
-                } finally {
-                    setAnalogyLoading(false);
-                }
-            };
-
-            const examplePairs = [
-                ['king', 'queen'],
-                ['man', 'woman'],
-                ['dog', 'cat'],
-                ['happy', 'sad'],
-                ['france', 'paris'],
-                ['good', 'bad']
-            ];
-
-            const exampleAnalogies = [
-                ['king', 'man', 'woman'],      // queen
-                ['france', 'paris', 'tokyo'],  // japan
-                ['big', 'small', 'fast'],      // slow
-            ];
-
+    function ScoreList({ rows, tokenMode=false }) {
+      if (!rows || rows.length === 0) return <p>No results yet.</p>;
+      const max = Math.max(...rows.map((r) => tokenMode ? r.probability : r.similarity), 0.01);
+      return (
+        <div className="list">
+          {rows.map((row) => {
+            const value = tokenMode ? row.probability : row.similarity;
+            const label = tokenMode ? row.token : row.word;
             return (
-                <div>
-                    <div className="grid-2">
-                        {/* Word Similarity */}
-                        <div className="card">
-                            <div className="card-title">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <circle cx="12" cy="12" r="10"/>
-                                    <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
-                                    <line x1="9" y1="9" x2="9.01" y2="9"/>
-                                    <line x1="15" y1="9" x2="15.01" y2="9"/>
-                                </svg>
-                                Word Similarity
-                            </div>
-
-                            <p style={{ marginBottom: '1rem', color: 'var(--textMuted)', fontSize: '0.9rem' }}>
-                                Cosine similarity measures how similar two word vectors are (-1 to 1, higher = more similar).
-                            </p>
-
-                            <div className="input-group">
-                                <label className="input-label">Word 1:</label>
-                                <input
-                                    type="text"
-                                    className="text-input"
-                                    value={word1}
-                                    onChange={(e) => setWord1(e.target.value.toLowerCase())}
-                                    placeholder="Enter first word"
-                                />
-                            </div>
-
-                            <div className="input-group">
-                                <label className="input-label">Word 2:</label>
-                                <input
-                                    type="text"
-                                    className="text-input"
-                                    value={word2}
-                                    onChange={(e) => setWord2(e.target.value.toLowerCase())}
-                                    placeholder="Enter second word"
-                                />
-                            </div>
-
-                            <div style={{ marginBottom: '1rem' }}>
-                                <label className="input-label">Try these pairs:</label>
-                                <div className="btn-group">
-                                    {examplePairs.map(([w1, w2], i) => (
-                                        <button
-                                            key={i}
-                                            className="btn-option"
-                                            onClick={() => { setWord1(w1); setWord2(w2); }}
-                                        >
-                                            {w1} / {w2}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <button
-                                className="btn btn-primary"
-                                onClick={computeSimilarity}
-                                disabled={similarityLoading || !word1 || !word2}
-                                style={{ width: '100%', justifyContent: 'center' }}
-                            >
-                                {similarityLoading ? (
-                                    <><div className="spinner" style={{ width: 16, height: 16, borderTopColor: 'white' }} /> Computing...</>
-                                ) : 'Compute Similarity'}
-                            </button>
-
-                            {similarityError && (
-                                <div className="error-box">{similarityError}</div>
-                            )}
-
-                            {similarity !== null && (
-                                <div className="result-box" style={{ marginTop: '1rem' }}>
-                                    <div className="result-value">{(similarity * 100).toFixed(1)}%</div>
-                                    <div className="result-label">
-                                        Cosine Similarity between "{word1}" and "{word2}"
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Word Analogies */}
-                        <div className="card">
-                            <div className="card-title">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                                    <path d="M2 17l10 5 10-5"/>
-                                    <path d="M2 12l10 5 10-5"/>
-                                </svg>
-                                Word Analogies
-                            </div>
-
-                            <p style={{ marginBottom: '1rem', color: 'var(--textMuted)', fontSize: '0.9rem' }}>
-                                Solve: <strong>A - B + C = ?</strong><br/>
-                                Example: king - man + woman = queen
-                            </p>
-
-                            <div className="grid-3" style={{ marginBottom: '1rem' }}>
-                                <div className="input-group" style={{ marginBottom: 0 }}>
-                                    <label className="input-label">A:</label>
-                                    <input
-                                        type="text"
-                                        className="text-input"
-                                        value={analogyA}
-                                        onChange={(e) => setAnalogyA(e.target.value.toLowerCase())}
-                                        placeholder="king"
-                                    />
-                                </div>
-                                <div className="input-group" style={{ marginBottom: 0 }}>
-                                    <label className="input-label">B:</label>
-                                    <input
-                                        type="text"
-                                        className="text-input"
-                                        value={analogyB}
-                                        onChange={(e) => setAnalogyB(e.target.value.toLowerCase())}
-                                        placeholder="man"
-                                    />
-                                </div>
-                                <div className="input-group" style={{ marginBottom: 0 }}>
-                                    <label className="input-label">C:</label>
-                                    <input
-                                        type="text"
-                                        className="text-input"
-                                        value={analogyC}
-                                        onChange={(e) => setAnalogyC(e.target.value.toLowerCase())}
-                                        placeholder="woman"
-                                    />
-                                </div>
-                            </div>
-
-                            <div style={{ marginBottom: '1rem' }}>
-                                <label className="input-label">Try these analogies:</label>
-                                <div className="btn-group">
-                                    {exampleAnalogies.map(([a, b, c], i) => (
-                                        <button
-                                            key={i}
-                                            className="btn-option"
-                                            onClick={() => { setAnalogyA(a); setAnalogyB(b); setAnalogyC(c); }}
-                                        >
-                                            {a} - {b} + {c}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <button
-                                className="btn btn-primary"
-                                onClick={solveAnalogy}
-                                disabled={analogyLoading || !analogyA || !analogyB || !analogyC}
-                                style={{ width: '100%', justifyContent: 'center' }}
-                            >
-                                {analogyLoading ? (
-                                    <><div className="spinner" style={{ width: 16, height: 16, borderTopColor: 'white' }} /> Solving...</>
-                                ) : 'Solve Analogy'}
-                            </button>
-
-                            {analogyError && (
-                                <div className="error-box">{analogyError}</div>
-                            )}
-
-                            {analogyResults && (
-                                <div style={{ marginTop: '1rem' }}>
-                                    <div style={{
-                                        background: '#f8f9fa',
-                                        padding: '1rem',
-                                        borderRadius: '8px',
-                                        textAlign: 'center',
-                                        marginBottom: '1rem'
-                                    }}>
-                                        <span style={{ fontSize: '1.1rem' }}>
-                                            <strong>{analogyA}</strong> - <strong>{analogyB}</strong> + <strong>{analogyC}</strong> = ?
-                                        </span>
-                                    </div>
-                                    <label className="input-label">Top Results:</label>
-                                    <div>
-                                        {analogyResults.results.map((result, i) => (
-                                            <div key={i} className="word-chip result" style={{
-                                                display: 'inline-flex',
-                                                opacity: 1 - (i * 0.15)
-                                            }}>
-                                                {result.word}
-                                                <span className="score">{(result.similarity * 100).toFixed(0)}%</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Available words */}
-                    {availableWords.length > 0 && (
-                        <div className="card">
-                            <div className="card-title">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/>
-                                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
-                                </svg>
-                                Available Words in Vocabulary
-                            </div>
-                            <p style={{ marginBottom: '1rem', color: 'var(--textMuted)', fontSize: '0.9rem' }}>
-                                Click any word to use it in the similarity or analogy calculations.
-                            </p>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                {availableWords.slice(0, 60).map((word, i) => (
-                                    <button
-                                        key={i}
-                                        className="btn-option"
-                                        onClick={() => setWord1(word)}
-                                        style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}
-                                    >
-                                        {word}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </div>
+              <div className={`item ${tokenMode ? "token" : ""}`} key={label}>
+                <strong>{label}</strong>
+                <div className="bar"><div className="fill" style={{ width: `${(value / max) * 100}%` }} /></div>
+                <span>{value.toFixed(2)}</span>
+              </div>
             );
-        };
+          })}
+        </div>
+      );
+    }
 
-        // ===========================================
-        // Architecture Visualization Component - 3D Canvas Style
-        // ===========================================
-        const ArchitectureDiagram = ({ config }) => {
-            const canvasRef = React.useRef(null);
-            const animationRef = React.useRef(null);
+    function EmbeddingsTab() {
+      const [word, setWord] = useState("king");
+      const [nearest, setNearest] = useState(null);
+      const [a, setA] = useState("king");
+      const [b, setB] = useState("man");
+      const [c, setC] = useState("woman");
+      const [analogy, setAnalogy] = useState(null);
+      const [status, setStatus] = useState("");
 
-            const layers = React.useMemo(() => {
-                const result = [];
-                let x = 30;
+      async function runNearest() {
+        try {
+          setStatus("");
+          const data = await postJson("/api/nearest", { word });
+          setNearest(data);
+        } catch (err) {
+          setStatus(err.message);
+        }
+      }
 
-                // UCLA color scheme for transformer layers
-                const colors = {
-                    input: '#4CAF50',      // green (input)
-                    embedding: '#FFD100',  // UCLA gold
-                    attention: '#8B5CF6',  // purple
-                    ffn: '#10B981',        // emerald
-                    pooling: '#8BB8E8',    // UCLA light blue
-                    dense: '#2774AE',      // UCLA blue
-                    output: '#FFD100'      // UCLA gold
-                };
+      async function runAnalogy() {
+        try {
+          setStatus("");
+          const data = await postJson("/api/analogy", { a, b, c });
+          setAnalogy(data);
+        } catch (err) {
+          setStatus(err.message);
+        }
+      }
 
-                // Input
-                result.push({ type: 'Input', x, h: 80, w: 35, d: 14, color: colors.input });
-                x += 55;
+      useEffect(() => {
+        runNearest();
+        runAnalogy();
+      }, []);
 
-                // Embeddings
-                result.push({ type: 'Embeddings', x, h: 85, w: 45, d: 18, color: colors.embedding });
-                x += 70;
+      return (
+        <div className="grid">
+          <section className="panel">
+            <h2>Word Embeddings</h2>
+            <p>Embeddings place words in a vector space. Nearby words have similar contexts or meanings.</p>
 
-                // Transformer blocks (attention + ffn pairs)
-                for (let i = 0; i < config.num_blocks; i++) {
-                    result.push({ type: 'Attention', x, h: 75, w: 40, d: 16, color: colors.attention });
-                    x += 55;
-                    result.push({ type: 'Feed-Fwd', x, h: 70, w: 38, d: 15, color: colors.ffn });
-                    x += 55;
-                }
+            <label>Find nearest neighbors</label>
+            <input value={word} onChange={(e) => setWord(e.target.value)} />
+            <button onClick={runNearest}>Find Neighbors</button>
 
-                // Pooling
-                result.push({ type: 'Pooling', x, h: 65, w: 35, d: 14, color: colors.pooling });
-                x += 52;
+            <label>Analogy</label>
+            <div className="row">
+              <input value={a} onChange={(e) => setA(e.target.value)} />
+              <input value={b} onChange={(e) => setB(e.target.value)} />
+              <input value={c} onChange={(e) => setC(e.target.value)} />
+            </div>
+            <button className="secondary" onClick={runAnalogy}>Compute a - b + c</button>
+            <div className={`status ${status ? "error" : ""}`}>{status}</div>
+          </section>
 
-                // Dense
-                result.push({ type: 'Dense', x, h: 70, w: 36, d: 15, color: colors.dense });
-                x += 54;
+          <section>
+            <div className="card">
+              <h3>Nearest Words</h3>
+              {nearest && <p>Words closest to <strong>{nearest.word}</strong>.</p>}
+              <ScoreList rows={nearest?.neighbors} />
+            </div>
+            <div className="card">
+              <h3>Vector Arithmetic</h3>
+              {analogy && <p><span className="mono">{analogy.formula} = ?</span></p>}
+              <ScoreList rows={analogy?.results} />
+            </div>
+          </section>
+        </div>
+      );
+    }
 
-                // Output
-                result.push({ type: 'Output', x, h: 60, w: 32, d: 13, color: colors.output });
+    function LmTab() {
+      const [prompt, setPrompt] = useState("the fish tacos were");
+      const [data, setData] = useState(null);
+      const [status, setStatus] = useState("");
 
-                return result;
-            }, [config.num_blocks]);
+      async function run() {
+        try {
+          setStatus("");
+          const result = await postJson("/api/generate", { prompt });
+          setData(result);
+        } catch (err) {
+          setStatus(err.message);
+        }
+      }
 
-            React.useEffect(() => {
-                const canvas = canvasRef.current;
-                if (!canvas) return;
-                const ctx = canvas.getContext('2d');
-                const dpr = window.devicePixelRatio || 1;
+      useEffect(() => { run(); }, []);
 
-                const rect = canvas.getBoundingClientRect();
-                canvas.width = rect.width * dpr;
-                canvas.height = rect.height * dpr;
-                ctx.scale(dpr, dpr);
+      return (
+        <div>
+          <div className="grid">
+            <section className="panel">
+              <h2>Next-Token Prediction</h2>
+              <p>A language model predicts a distribution over the next token, then generates by repeatedly sampling or choosing from that distribution.</p>
+              <label>Prompt</label>
+              <input value={prompt} onChange={(e) => setPrompt(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") run(); }} />
+              <button onClick={run}>Compare Experiments</button>
+              <div className={`status ${status ? "error" : ""}`}>{status}</div>
+            </section>
 
-                let time = 0;
+            <section className="panel">
+              <h2>Training Setups</h2>
+              <div className="metric-row">
+                <div className="metric"><div className="value">10k</div><div className="label">reviews, 1 epoch</div></div>
+                <div className="metric"><div className="value">500k</div><div className="label">reviews, 1 epoch</div></div>
+                <div className="metric"><div className="value">5x</div><div className="label">epochs on 500k</div></div>
+              </div>
+              <p>The app shows representative outcomes from the Week 6 training experiments without running heavy training jobs on the web server.</p>
+            </section>
+          </div>
 
-                function shadeColor(color, percent) {
-                    const num = parseInt(color.replace('#', ''), 16);
-                    const amt = Math.round(2.55 * percent);
-                    const R = Math.min(255, Math.max(0, (num >> 16) + amt));
-                    const G = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amt));
-                    const B = Math.min(255, Math.max(0, (num & 0x0000FF) + amt));
-                    return `rgb(${R},${G},${B})`;
-                }
-
-                function drawBlock(x, y, w, h, d, color) {
-                    // Right face (darker)
-                    ctx.fillStyle = shadeColor(color, -18);
-                    ctx.beginPath();
-                    ctx.moveTo(x + w, y);
-                    ctx.lineTo(x + w + d * 0.7, y - d * 0.4);
-                    ctx.lineTo(x + w + d * 0.7, y + h - d * 0.4);
-                    ctx.lineTo(x + w, y + h);
-                    ctx.closePath();
-                    ctx.fill();
-
-                    // Top face (lighter)
-                    ctx.fillStyle = shadeColor(color, 12);
-                    ctx.beginPath();
-                    ctx.moveTo(x, y);
-                    ctx.lineTo(x + d * 0.7, y - d * 0.4);
-                    ctx.lineTo(x + w + d * 0.7, y - d * 0.4);
-                    ctx.lineTo(x + w, y);
-                    ctx.closePath();
-                    ctx.fill();
-
-                    // Front face
-                    ctx.fillStyle = color;
-                    ctx.fillRect(x, y, w, h);
-
-                    // Subtle edge highlight
-                    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-                    ctx.lineWidth = 0.5;
-                    ctx.beginPath();
-                    ctx.moveTo(x, y);
-                    ctx.lineTo(x + w, y);
-                    ctx.stroke();
-                }
-
-                const draw = () => {
-                    const width = rect.width;
-                    const height = rect.height;
-                    ctx.clearRect(0, 0, width, height);
-
-                    const centerY = height / 2;
-
-                    // Draw connection lines
-                    ctx.strokeStyle = 'rgba(120, 120, 120, 0.25)';
-                    ctx.lineWidth = 1.5;
-
-                    for (let i = 0; i < layers.length - 1; i++) {
-                        const from = layers[i];
-                        const to = layers[i + 1];
-                        const fromX = from.x + from.w + from.d * 0.7;
-                        const toX = to.x;
-
-                        ctx.beginPath();
-                        ctx.moveTo(fromX, centerY);
-                        ctx.lineTo(toX, centerY);
-                        ctx.stroke();
-                    }
-
-                    // Draw blocks
-                    layers.forEach(layer => {
-                        const y = centerY - layer.h / 2;
-                        drawBlock(layer.x, y, layer.w, layer.h, layer.d, layer.color);
-                    });
-
-                    // Labels
-                    ctx.fillStyle = '#666';
-                    ctx.font = '10px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
-                    ctx.textAlign = 'center';
-                    layers.forEach(layer => {
-                        const labelX = layer.x + layer.w / 2 + layer.d * 0.35;
-                        ctx.fillText(layer.type, labelX, centerY + layer.h / 2 + 16);
-                    });
-
-                    time++;
-                    animationRef.current = requestAnimationFrame(draw);
-                };
-
-                draw();
-
-                return () => {
-                    if (animationRef.current) cancelAnimationFrame(animationRef.current);
-                };
-            }, [layers]);
-
-            return (
-                <div style={{ background: '#f8f9fa', borderRadius: '12px', padding: '1.5rem' }}>
-                    <canvas
-                        ref={canvasRef}
-                        style={{ width: '100%', height: '150px', display: 'block' }}
-                    />
+          {data && (
+            <div className="experiment-grid" style={{ marginTop: 16 }}>
+              {data.results.map((result) => (
+                <div className="card" key={result.key}>
+                  <h3>{result.label}</h3>
+                  <div className="metric-row">
+                    <div className="metric"><div className="value">{result.train_loss.toFixed(2)}</div><div className="label">train loss</div></div>
+                    <div className="metric"><div className="value">{result.val_loss.toFixed(2)}</div><div className="label">val loss</div></div>
+                    <div className="metric"><div className="value">{result.top_tokens[0].token}</div><div className="label">top next token</div></div>
+                  </div>
+                  <h3>Top Next Tokens</h3>
+                  <ScoreList rows={result.top_tokens} tokenMode />
+                  <h3 style={{ marginTop: 16 }}>Generated Continuation</h3>
+                  <div className="mono">{result.continuation}</div>
                 </div>
-            );
-        };
-
-        // ===========================================
-        // Tab 2: Train Transformers
-        // ===========================================
-        const TrainTransformerTab = () => {
-            const [config, setConfig] = useState({
-                numSamples: 500,
-                epochs: 8,
-                embed_dim: 128,
-                num_heads: 4,
-                ff_dim: 128,
-                num_blocks: 2,
-                dropout: 0.1
-            });
-            const [sessionId, setSessionId] = useState(null);
-            const [status, setStatus] = useState('idle');
-            const [progress, setProgress] = useState(null);
-            const [results, setResults] = useState(null);
-            const [error, setError] = useState(null);
-            const [serverStatus, setServerStatus] = useState(null);
-            const [activeHead, setActiveHead] = useState(0);
-            const [activeBlock, setActiveBlock] = useState(0);
-
-            // Training samples state
-            const [trainingSamples, setTrainingSamples] = useState([]);
-
-            // Fetch training samples on mount
-            useEffect(() => {
-                fetch(`${API_BASE}/api/training_samples?num=8`)
-                    .then(res => res.json())
-                    .then(data => setTrainingSamples(data.samples || []))
-                    .catch(err => console.log('Could not fetch training samples:', err));
-            }, []);
-
-            // Check server health on mount
-            useEffect(() => {
-                fetch(`${API_BASE}/api/health`)
-                    .then(res => res.json())
-                    .then(data => setServerStatus(data))
-                    .catch(err => {
-                        // Try the FastAPI endpoint too
-                        fetch(`${API_BASE}/`)
-                            .then(res => res.json())
-                            .then(data => setServerStatus(data))
-                            .catch(() => setServerStatus({ error: 'Server not reachable' }));
-                    });
-            }, []);
-
-            // Poll for training progress
-            useEffect(() => {
-                if (!sessionId || status === 'complete' || status === 'error') return;
-
-                const interval = setInterval(() => {
-                    fetch(`${API_BASE}/api/train/${sessionId}`)
-                        .then(res => res.json())
-                        .then(data => {
-                            setProgress(data);
-                            if (data.status === 'complete') {
-                                setStatus('complete');
-                                setResults(data);
-                            } else if (data.status === 'error') {
-                                setStatus('error');
-                                setError(data.error);
-                            }
-                        })
-                        .catch(err => {
-                            setError(err.message);
-                            setStatus('error');
-                        });
-                }, 1000);
-
-                return () => clearInterval(interval);
-            }, [sessionId, status]);
-
-            const startTraining = async () => {
-                setStatus('starting');
-                setError(null);
-                setResults(null);
-                setProgress(null);
-
-                try {
-                    const response = await fetch(`${API_BASE}/api/train`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(config)
-                    });
-
-                    const data = await response.json();
-                    setSessionId(data.session_id);
-                    setStatus('training');
-                } catch (err) {
-                    setError(err.message);
-                    setStatus('error');
-                }
-            };
-
-            const getColor = (weight) => {
-                const intensity = Math.pow(weight, 0.5);
-                return `rgba(39, 116, 174, ${0.1 + intensity * 0.9})`;
-            };
-
-            const batchSize = 32;
-            const totalBatches = Math.max(1, Math.ceil(config.numSamples / batchSize));
-            const currentBatch = progress && progress.current_epoch > 0
-                ? Math.floor((Date.now() / 100) % totalBatches)
-                : 0;
-            const epochProgress = progress && progress.current_epoch > 0
-                ? (currentBatch + 1) / totalBatches
-                : 0;
-            const overallProgress = progress
-                ? (Math.max(progress.current_epoch - 1, 0) + epochProgress) / progress.total_epochs
-                : 0;
-
-            return (
-                <div>
-                    {/* Server Status Banner */}
-                    {serverStatus && (
-                        <div className="card" style={{
-                            background: serverStatus.error ? 'rgba(220, 53, 69, 0.1)' : 'rgba(40, 167, 69, 0.1)',
-                            borderColor: serverStatus.error ? '#dc3545' : '#28a745'
-                        }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                <div style={{
-                                    width: 12,
-                                    height: 12,
-                                    borderRadius: '50%',
-                                    background: serverStatus.error ? '#dc3545' : '#28a745'
-                                }} />
-                                <div>
-                                    {serverStatus.error ? (
-                                        <span>Backend server not available. Please deploy to Railway first.</span>
-                                    ) : (
-                                        <span>
-                                            Server ready • TensorFlow {serverStatus.tf_loaded || serverStatus.tensorflow_version ? 'loaded' : 'loading'} •
-                                            {serverStatus.active_trainings !== undefined ? ` ${serverStatus.active_trainings}/${serverStatus.max_concurrent} active trainings` : ` ${serverStatus.num_embeddings || 0} embeddings loaded`}
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Architecture Diagram */}
-                    <div className="card">
-                        <div className="card-title">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                                <line x1="3" y1="9" x2="21" y2="9"/>
-                                <line x1="3" y1="15" x2="21" y2="15"/>
-                                <line x1="9" y1="3" x2="9" y2="21"/>
-                            </svg>
-                            Transformer Architecture
-                        </div>
-                        <p style={{ marginBottom: '1rem', color: 'var(--textMuted)', fontSize: '0.9rem' }}>
-                            The transformer processes review text through attention and feed-forward layers to predict star ratings (1-5).
-                        </p>
-                        <ArchitectureDiagram config={config} />
-                    </div>
-
-                    <div className="grid-2">
-                            {/* Configuration */}
-                            <div className="card">
-                                <div className="card-title">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <circle cx="12" cy="12" r="3"/>
-                                        <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
-                                    </svg>
-                                    Training Configuration
-                                </div>
-
-                                <div className="input-group">
-                                    <label className="input-label">Transformer Blocks:</label>
-                                    <div className="btn-group">
-                                        {[1, 2, 3, 4].map(n => (
-                                            <button key={n} className={`btn-option ${config.num_blocks === n ? 'active' : ''}`}
-                                                onClick={() => setConfig({...config, num_blocks: n})}
-                                                disabled={status === 'training'}
-                                            >{n}</button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="input-group">
-                                    <label className="input-label">Training Samples:</label>
-                                    <div className="btn-group">
-                                        {[100, 500, 1000].map(n => (
-                                            <button key={n} className={`btn-option ${config.numSamples === n ? 'active' : ''}`}
-                                                onClick={() => setConfig({...config, numSamples: n})}
-                                                disabled={status === 'training'}
-                                            >{n}</button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="input-group">
-                                    <label className="input-label">Epochs:</label>
-                                    <div className="btn-group">
-                                        {[4, 6, 8, 10].map(n => (
-                                            <button key={n} className={`btn-option ${config.epochs === n ? 'active' : ''}`}
-                                                onClick={() => setConfig({...config, epochs: n})}
-                                                disabled={status === 'training'}
-                                            >{n}</button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="input-group">
-                                    <label className="input-label">Embedding Dimension:</label>
-                                    <div className="btn-group">
-                                        {[64, 128, 256].map(n => (
-                                            <button key={n} className={`btn-option ${config.embed_dim === n ? 'active' : ''}`}
-                                                onClick={() => setConfig({...config, embed_dim: n})}
-                                                disabled={status === 'training'}
-                                            >{n}</button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="input-group">
-                                    <label className="input-label">Attention Heads:</label>
-                                    <div className="btn-group">
-                                        {[2, 4, 8].map(n => (
-                                            <button key={n} className={`btn-option ${config.num_heads === n ? 'active' : ''}`}
-                                                onClick={() => setConfig({...config, num_heads: n})}
-                                                disabled={status === 'training'}
-                                            >{n}</button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <button
-                                    className="btn btn-primary"
-                                    onClick={startTraining}
-                                    disabled={status === 'training' || status === 'starting' || serverStatus?.error}
-                                    style={{ width: '100%', marginTop: '1rem', justifyContent: 'center' }}
-                                >
-                                    {status === 'training' || status === 'starting' ? (
-                                        <>
-                                            <div className="spinner" style={{
-                                                width: 16,
-                                                height: 16,
-                                                border: '2px solid rgba(255,255,255,0.3)',
-                                                borderTopColor: 'white'
-                                            }} />
-                                            Training...
-                                        </>
-                                    ) : 'Start Training'}
-                                </button>
-
-                                {error && (
-                                    <div className="error-box">{error}</div>
-                                )}
-                            </div>
-
-                            {/* Training Progress */}
-                            <div className="card">
-                                <div className="card-title">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-                                    </svg>
-                                    Training Progress
-                                </div>
-
-                                {status === 'idle' && (
-                                    <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--textMuted)' }}>
-                                        Configure parameters and click "Start Training" to begin
-                                    </div>
-                                )}
-
-                                {(status === 'training' || status === 'starting') && progress && (
-                                    <>
-                                        <div style={{ marginBottom: '1rem' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                                <span>{progress.status}</span>
-                                                <span>{progress.current_epoch}/{progress.total_epochs} epochs</span>
-                                            </div>
-                                            <div style={{ height: 8, background: '#e0e0e0', borderRadius: 4, overflow: 'hidden' }}>
-                                                <div style={{
-                                                    height: '100%',
-                                                    width: `${Math.min(1, Math.max(0, overallProgress)) * 100}%`,
-                                                    background: 'var(--primary)',
-                                                    transition: 'width 0.3s'
-                                                }} />
-                                            </div>
-                                        </div>
-
-                                        {progress.queue_position > 0 && (
-                                            <div className="explanation">
-                                                Your job is in queue. Position: {progress.queue_position}
-                                            </div>
-                                        )}
-
-                                        {/* Mini-batch visualizer */}
-                                        {progress.current_epoch > 0 && (
-                                            <div style={{ marginBottom: '1.5rem' }}>
-                                                <div style={{ fontSize: '0.85rem', color: 'var(--textMuted)', marginBottom: '0.5rem' }}>
-                                                    Processing Mini-Batches (batch size: {batchSize})
-                                                </div>
-                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                                                    {Array.from({ length: Math.min(totalBatches, 50) }).map((_, i) => (
-                                                        <div
-                                                            key={i}
-                                                            style={{
-                                                                width: '12px',
-                                                                height: '12px',
-                                                                borderRadius: '2px',
-                                                                background: i <= currentBatch ? 'var(--primary)' : '#e0e0e0',
-                                                                transition: 'background 0.2s'
-                                                            }}
-                                                            title={`Batch ${i + 1}/${totalBatches}`}
-                                                        />
-                                                    ))}
-                                                    {totalBatches > 50 && (
-                                                        <span style={{ fontSize: '0.75rem', color: 'var(--textMuted)', alignSelf: 'center', marginLeft: '0.5rem' }}>
-                                                            +{totalBatches - 50} more
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <div style={{ fontSize: '0.75rem', color: 'var(--textMuted)', marginTop: '0.5rem' }}>
-                                                    {totalBatches} batches total • ~{Math.ceil(totalBatches / 10)} batches/second
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {progress.history && progress.history.length > 0 && (
-                                            <div style={{ marginTop: '1rem' }}>
-                                                <svg width="100%" height="200" viewBox="0 0 400 200">
-                                                    <line x1="50" y1="170" x2="380" y2="170" stroke="#ccc" strokeWidth="1"/>
-                                                    <line x1="50" y1="20" x2="50" y2="170" stroke="#ccc" strokeWidth="1"/>
-                                                    <text x="215" y="195" textAnchor="middle" fontSize="12" fill="#666">Epoch</text>
-                                                    <text x="20" y="95" textAnchor="middle" fontSize="12" fill="#666" transform="rotate(-90, 20, 95)">Accuracy %</text>
-
-                                                    {[0, 25, 50, 75, 100].map((v, i) => (
-                                                        <g key={i}>
-                                                            <line x1="50" y1={170 - v * 1.5} x2="380" y2={170 - v * 1.5} stroke="#eee" strokeWidth="1"/>
-                                                            <text x="45" y={175 - v * 1.5} textAnchor="end" fontSize="10" fill="#999">{v}</text>
-                                                        </g>
-                                                    ))}
-
-                                                    <polyline
-                                                        fill="none"
-                                                        stroke="var(--primary)"
-                                                        strokeWidth="2"
-                                                        points={progress.history.map((h, i) =>
-                                                            `${50 + (i + 1) * (330 / (progress.total_epochs || 10))},${170 - h.trainAcc * 1.5}`
-                                                        ).join(' ')}
-                                                    />
-
-                                                    <polyline
-                                                        fill="none"
-                                                        stroke="var(--gold)"
-                                                        strokeWidth="2"
-                                                        points={progress.history.map((h, i) =>
-                                                            `${50 + (i + 1) * (330 / (progress.total_epochs || 10))},${170 - h.valAcc * 1.5}`
-                                                        ).join(' ')}
-                                                    />
-
-                                                    <rect x="280" y="25" width="12" height="12" fill="var(--primary)"/>
-                                                    <text x="297" y="35" fontSize="10" fill="#666">Train</text>
-                                                    <rect x="330" y="25" width="12" height="12" fill="var(--gold)"/>
-                                                    <text x="347" y="35" fontSize="10" fill="#666">Val</text>
-                                                </svg>
-                                            </div>
-                                        )}
-
-                                        {progress.history && progress.history.length > 0 && (() => {
-                                            const lossMax = Math.max(
-                                                ...progress.history.map((h) => Math.max(h.trainLoss ?? 0, h.valLoss ?? 0)),
-                                                0.1
-                                            );
-                                            const ticks = [0, 0.25, 0.5, 0.75, 1].map((t) => t * lossMax);
-                                            return (
-                                                <div style={{ marginTop: '1rem' }}>
-                                                    <svg width="100%" height="200" viewBox="0 0 400 200">
-                                                        <line x1="50" y1="170" x2="380" y2="170" stroke="#ccc" strokeWidth="1"/>
-                                                        <line x1="50" y1="20" x2="50" y2="170" stroke="#ccc" strokeWidth="1"/>
-                                                        <text x="215" y="195" textAnchor="middle" fontSize="12" fill="#666">Epoch</text>
-                                                        <text x="20" y="95" textAnchor="middle" fontSize="12" fill="#666" transform="rotate(-90, 20, 95)">Loss</text>
-
-                                                        {ticks.map((v, i) => (
-                                                            <g key={i}>
-                                                                <line x1="50" y1={170 - (v / lossMax) * 150} x2="380" y2={170 - (v / lossMax) * 150} stroke="#eee" strokeWidth="1"/>
-                                                                <text x="45" y={175 - (v / lossMax) * 150} textAnchor="end" fontSize="10" fill="#999">{v.toFixed(2)}</text>
-                                                            </g>
-                                                        ))}
-
-                                                        <polyline
-                                                            fill="none"
-                                                            stroke="var(--primary)"
-                                                            strokeWidth="2"
-                                                            points={progress.history.map((h, i) =>
-                                                                `${50 + (i + 1) * (330 / (progress.total_epochs || 10))},${170 - ((h.trainLoss ?? 0) / lossMax) * 150}`
-                                                            ).join(' ')}
-                                                        />
-
-                                                        <polyline
-                                                            fill="none"
-                                                            stroke="var(--gold)"
-                                                            strokeWidth="2"
-                                                            points={progress.history.map((h, i) =>
-                                                                `${50 + (i + 1) * (330 / (progress.total_epochs || 10))},${170 - ((h.valLoss ?? 0) / lossMax) * 150}`
-                                                            ).join(' ')}
-                                                        />
-
-                                                        <rect x="280" y="25" width="12" height="12" fill="var(--primary)"/>
-                                                        <text x="297" y="35" fontSize="10" fill="#666">Train</text>
-                                                        <rect x="330" y="25" width="12" height="12" fill="var(--gold)"/>
-                                                        <text x="347" y="35" fontSize="10" fill="#666">Val</text>
-                                                    </svg>
-                                                </div>
-                                            );
-                                        })()}
-                                    </>
-                                )}
-
-                                {status === 'complete' && results && (
-                                    <div>
-                                        <div className="stats-grid" style={{ gridTemplateColumns: '1fr 1fr', marginBottom: '1rem' }}>
-                                            <div className="stat-card">
-                                                <div className="stat-value">{results.test_accuracy?.toFixed(1)}%</div>
-                                                <div className="stat-label">Test Accuracy</div>
-                                            </div>
-                                            <div className="stat-card">
-                                                <div className="stat-value">{results.num_params ? (results.num_params / 1000).toFixed(0) + 'K' : '-'}</div>
-                                                <div className="stat-label">Parameters</div>
-                                            </div>
-                                        </div>
-
-                                        {results.history && (
-                                            <div style={{ marginBottom: '1.5rem' }}>
-                                                <h4 style={{ fontSize: '0.9rem', marginBottom: '0.75rem' }}>Training History</h4>
-                                                <svg width="100%" height="200" viewBox="0 0 400 200">
-                                                    <line x1="50" y1="170" x2="380" y2="170" stroke="#ccc" strokeWidth="1"/>
-                                                    <line x1="50" y1="20" x2="50" y2="170" stroke="#ccc" strokeWidth="1"/>
-                                                    {[0, 25, 50, 75, 100].map((v, i) => (
-                                                        <g key={i}>
-                                                            <line x1="50" y1={170 - v * 1.5} x2="380" y2={170 - v * 1.5} stroke="#eee" strokeWidth="1"/>
-                                                            <text x="45" y={175 - v * 1.5} textAnchor="end" fontSize="10" fill="#999">{v}</text>
-                                                        </g>
-                                                    ))}
-                                                    <polyline
-                                                        fill="none"
-                                                        stroke="var(--primary)"
-                                                        strokeWidth="2"
-                                                        points={results.history.map((h, i) =>
-                                                            `${50 + (i + 1) * (330 / results.history.length)},${170 - h.trainAcc * 1.5}`
-                                                        ).join(' ')}
-                                                    />
-                                                    <polyline
-                                                        fill="none"
-                                                        stroke="var(--gold)"
-                                                        strokeWidth="2"
-                                                        points={results.history.map((h, i) =>
-                                                            `${50 + (i + 1) * (330 / results.history.length)},${170 - h.valAcc * 1.5}`
-                                                        ).join(' ')}
-                                                    />
-                                                    <rect x="280" y="25" width="12" height="12" fill="var(--primary)"/>
-                                                    <text x="297" y="35" fontSize="10" fill="#666">Train</text>
-                                                    <rect x="330" y="25" width="12" height="12" fill="var(--gold)"/>
-                                                    <text x="347" y="35" fontSize="10" fill="#666">Val</text>
-                                                </svg>
-                                            </div>
-                                        )}
-
-                                        {results.history && results.history.length > 0 && (() => {
-                                            const lossMax = Math.max(
-                                                ...results.history.map((h) => Math.max(h.trainLoss ?? 0, h.valLoss ?? 0)),
-                                                0.1
-                                            );
-                                            const ticks = [0, 0.25, 0.5, 0.75, 1].map((t) => t * lossMax);
-                                            return (
-                                                <div style={{ marginBottom: '1.5rem' }}>
-                                                    <h4 style={{ fontSize: '0.9rem', marginBottom: '0.75rem' }}>Loss History</h4>
-                                                    <svg width="100%" height="200" viewBox="0 0 400 200">
-                                                        <line x1="50" y1="170" x2="380" y2="170" stroke="#ccc" strokeWidth="1"/>
-                                                        <line x1="50" y1="20" x2="50" y2="170" stroke="#ccc" strokeWidth="1"/>
-
-                                                        {ticks.map((v, i) => (
-                                                            <g key={i}>
-                                                                <line x1="50" y1={170 - (v / lossMax) * 150} x2="380" y2={170 - (v / lossMax) * 150} stroke="#eee" strokeWidth="1"/>
-                                                                <text x="45" y={175 - (v / lossMax) * 150} textAnchor="end" fontSize="10" fill="#999">{v.toFixed(2)}</text>
-                                                            </g>
-                                                        ))}
-                                                        <polyline
-                                                            fill="none"
-                                                            stroke="var(--primary)"
-                                                            strokeWidth="2"
-                                                            points={results.history.map((h, i) =>
-                                                                `${50 + (i + 1) * (330 / results.history.length)},${170 - ((h.trainLoss ?? 0) / lossMax) * 150}`
-                                                            ).join(' ')}
-                                                        />
-                                                        <polyline
-                                                            fill="none"
-                                                            stroke="var(--gold)"
-                                                            strokeWidth="2"
-                                                            points={results.history.map((h, i) =>
-                                                                `${50 + (i + 1) * (330 / results.history.length)},${170 - ((h.valLoss ?? 0) / lossMax) * 150}`
-                                                            ).join(' ')}
-                                                        />
-                                                        <rect x="280" y="25" width="12" height="12" fill="var(--primary)"/>
-                                                        <text x="297" y="35" fontSize="10" fill="#666">Train</text>
-                                                        <rect x="330" y="25" width="12" height="12" fill="var(--gold)"/>
-                                                        <text x="347" y="35" fontSize="10" fill="#666">Val</text>
-                                                    </svg>
-                                                </div>
-                                            );
-                                        })()}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Training & Test Samples Visualization */}
-                        {(status === 'complete' || trainingSamples.length > 0) && (
-                            <div className="grid-2" style={{ marginTop: '1.5rem' }}>
-                                {/* Training Samples */}
-                                <div className="card">
-                                    <div className="card-title">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/>
-                                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
-                                        </svg>
-                                        Training Examples
-                                    </div>
-                                    {trainingSamples.length > 0 ? (
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem' }}>
-                                            {trainingSamples.map((sample, i) => (
-                                                <div key={i} style={{
-                                                    padding: '0.75rem',
-                                                    background: '#f8f9fa',
-                                                    borderRadius: 8,
-                                                    border: '1px solid #ddd',
-                                                    fontSize: '0.8rem'
-                                                }}>
-                                                    <div style={{ marginBottom: '0.5rem', fontSize: '0.75rem', color: '#666', fontStyle: 'italic', lineHeight: '1.4' }}>
-                                                        "{sample.text}..."
-                                                    </div>
-                                                    <div style={{ marginTop: '0.5rem', fontWeight: 600, color: '#FFD100', textShadow: '0 0 1px #000' }}>
-                                                        {'⭐'.repeat(sample.stars)}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div style={{ textAlign: 'center', padding: '2rem', color: '#888' }}>
-                                            Loading training samples...
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Test Predictions (moved here) */}
-                                {status === 'complete' && results && results.sample_predictions && (
-                                    <div className="card">
-                                        <div className="card-title">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M9 11l3 3L22 4"/>
-                                                <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
-                                            </svg>
-                                            Test Set Predictions
-                                        </div>
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem' }}>
-                                            {results.sample_predictions.map((pred, i) => (
-                                                <div key={i} style={{
-                                                    padding: '0.75rem',
-                                                    background: pred.correct ? 'rgba(40, 167, 69, 0.05)' : 'rgba(220, 53, 69, 0.05)',
-                                                    borderRadius: 8,
-                                                    border: `2px solid ${pred.correct ? '#28a745' : '#dc3545'}`,
-                                                    fontSize: '0.8rem'
-                                                }}>
-                                                    <div style={{ marginBottom: '0.5rem', fontSize: '0.75rem', color: '#666', fontStyle: 'italic', lineHeight: '1.4' }}>
-                                                        "{pred.text}..."
-                                                    </div>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
-                                                        <div>
-                                                            <span style={{ fontWeight: 600 }}>True:</span> {'⭐'.repeat(pred.true + 1)}<br/>
-                                                            <span style={{ fontWeight: 600 }}>Pred:</span> {'⭐'.repeat(pred.predicted + 1)}
-                                                        </div>
-                                                        <div style={{ fontSize: '0.7rem', color: pred.correct ? '#28a745' : '#dc3545', fontWeight: 600 }}>
-                                                            {pred.correct ? '✓' : '✗'}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                    {/* Attention Weights Visualization */}
-                    {status === 'complete' && results && results.attention_weights && (
-                        <div className="card">
-                            <div className="card-title">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                    <circle cx="12" cy="12" r="3"/>
-                                </svg>
-                                Learned Attention Weights
-                            </div>
-
-                            <div className="explanation">
-                                These are the actual attention patterns learned by your trained transformer. Each head learns different patterns - some focus on nearby tokens, others on specific relationships.
-                            </div>
-
-                            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-                                <div>
-                                    <label className="input-label">Block:</label>
-                                    <div className="btn-group">
-                                        {Object.keys(results.attention_weights).map((block, i) => (
-                                            <button key={i}
-                                                className={`btn-option ${activeBlock === i ? 'active' : ''}`}
-                                                onClick={() => setActiveBlock(i)}
-                                            >
-                                                Block {i + 1}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="input-label">Head:</label>
-                                    <div className="btn-group">
-                                        {results.attention_weights[`block_${activeBlock}`] &&
-                                            Object.keys(results.attention_weights[`block_${activeBlock}`]).map((head, i) => (
-                                                <button key={i}
-                                                    className={`btn-option ${activeHead === i ? 'active' : ''}`}
-                                                    onClick={() => setActiveHead(i)}
-                                                >
-                                                    Head {i + 1}
-                                                </button>
-                                            ))
-                                        }
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="heatmap-container">
-                                {results.attention_tokens && (
-                                    <div className="heatmap-header">
-                                        {results.attention_tokens.slice(0, 8).map((tok, i) => (
-                                            <div key={i} className="heatmap-header-cell">{tok}</div>
-                                        ))}
-                                    </div>
-                                )}
-                                <div className="heatmap-grid">
-                                    {results.attention_weights[`block_${activeBlock}`] &&
-                                     results.attention_weights[`block_${activeBlock}`][activeHead] &&
-                                        results.attention_weights[`block_${activeBlock}`][activeHead].slice(0, 8).map((row, i) => (
-                                            <div key={i} className="heatmap-row">
-                                                <div className="heatmap-label">
-                                                    {results.attention_tokens ? results.attention_tokens[i] : `pos ${i}`}
-                                                </div>
-                                                {row.slice(0, 8).map((weight, j) => (
-                                                    <div
-                                                        key={j}
-                                                        className="heatmap-cell"
-                                                        style={{
-                                                            background: getColor(weight),
-                                                            color: weight > 0.4 ? 'white' : '#333'
-                                                        }}
-                                                        title={`${(weight * 100).toFixed(1)}%`}
-                                                    >
-                                                        {(weight * 100).toFixed(0)}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        ))
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            );
-        };
-
-        // ===========================================
-        // Tab 3: Fine-tune Pre-trained Models
-        // ===========================================
-        const FinetuneTab = () => {
-            const [config, setConfig] = useState({
-                frozen_layers: 4,  // 4/6 frozen = only train last 2 layers
-                learning_rate: 5e-5,
-                num_samples: 500,
-                epochs: 3
-            });
-            const [status, setStatus] = useState('idle');
-            const [finetuneProgress, setFinetuneProgress] = useState(null);
-            const [sessionId, setSessionId] = useState(null);
-            const [results, setResults] = useState(null);
-            const [error, setError] = useState(null);
-            const [trainingSamples, setTrainingSamples] = useState([]);
-
-            // Fetch training samples
-            useEffect(() => {
-                fetch(`${API_BASE}/api/training_samples?num=8`)
-                    .then(res => res.json())
-                    .then(data => setTrainingSamples(data.samples || []))
-                    .catch(err => console.log('Could not fetch training samples:', err));
-            }, []);
-
-            useEffect(() => {
-                if (!sessionId || status === 'complete' || status === 'error') return;
-
-                const interval = setInterval(() => {
-                    fetch(`${API_BASE}/api/finetune/${sessionId}`)
-                        .then(res => res.json())
-                        .then(data => {
-                            setFinetuneProgress(data);
-                            if (data.status === 'complete') {
-                                setStatus('complete');
-                                setResults(data);
-                            } else if (data.status === 'error') {
-                                setStatus('error');
-                                setError(data.error || 'Fine-tuning failed');
-                            } else {
-                                setStatus('training');
-                            }
-                        })
-                        .catch(err => {
-                            setError(err.message);
-                            setStatus('error');
-                        });
-                }, 1000);
-
-                return () => clearInterval(interval);
-            }, [sessionId, status]);
-
-            const startFineTuning = async () => {
-                setStatus('starting');
-                setError(null);
-                setResults(null);
-                setFinetuneProgress(null);
-                setSessionId(null);
-
-                try {
-                    const response = await fetch(`${API_BASE}/api/finetune`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            ...config,
-                            freeze_percent: (config.frozen_layers / 6) * 100
-                        })
-                    });
-
-                    const data = await response.json();
-                    if (!response.ok || !data.session_id) {
-                        throw new Error(data.error || 'Fine-tuning failed');
-                    }
-
-                    setSessionId(data.session_id);
-                    setStatus('training');
-                } catch (err) {
-                    setError(err.message);
-                    setStatus('error');
-                }
-            };
-
-            // DistilBERT Architecture Diagram
-            const DistilBERTDiagram = () => {
-                const canvasRef = React.useRef(null);
-                const animationRef = React.useRef(null);
-
-                const layers = React.useMemo(() => {
-                    const result = [];
-                    let x = 25;
-
-                    const colors = {
-                        input: '#4CAF50',
-                        embedding: '#FFD100',
-                        transformer: '#2774AE',
-                        output: '#FFD100'
-                    };
-
-                    // Input
-                    result.push({ type: 'Input', x, h: 100, w: 50, d: 20, color: colors.input, params: null });
-                    x += 72;
-
-                    // Embeddings (word + position embeddings: vocab_size*768 + 512*768 ≈ 23.8M)
-                    result.push({ type: 'Embeddings', x, h: 115, w: 60, d: 22, color: colors.embedding, params: '23.8M' });
-                    x += 85;
-
-                    // 6 Transformer layers (each layer ≈ 7.1M params)
-                    for (let i = 0; i < 6; i++) {
-                        const frozen = i < config.frozen_layers;
-                        result.push({
-                            type: `Layer ${i + 1}`,
-                            x,
-                            h: 100,
-                            w: 55,
-                            d: 20,
-                            color: frozen ? '#95a5a6' : colors.transformer,
-                            frozen,
-                            params: '7.1M'
-                        });
-                        x += 72;
-                    }
-
-                    // Dense Layer (768*768 ≈ 0.59M)
-                    result.push({ type: 'Dense Layer', x, h: 95, w: 58, d: 20, color: '#2774AE', params: '0.59M' });
-                    x += 78;
-
-                    // Softmax (768*5 ≈ 3.8K)
-                    result.push({ type: 'Softmax', x, h: 75, w: 45, d: 16, color: colors.output, params: '3.8K' });
-
-                    return result;
-                }, [config.frozen_layers]);
-
-                React.useEffect(() => {
-                    const canvas = canvasRef.current;
-                    if (!canvas) return;
-                    const ctx = canvas.getContext('2d');
-                    const dpr = window.devicePixelRatio || 1;
-
-                    const rect = canvas.getBoundingClientRect();
-                    canvas.width = rect.width * dpr;
-                    canvas.height = rect.height * dpr;
-                    ctx.scale(dpr, dpr);
-
-                    function shadeColor(color, percent) {
-                        const num = parseInt(color.replace('#', ''), 16);
-                        const amt = Math.round(2.55 * percent);
-                        const R = Math.min(255, Math.max(0, (num >> 16) + amt));
-                        const G = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amt));
-                        const B = Math.min(255, Math.max(0, (num & 0x0000FF) + amt));
-                        return `rgb(${R},${G},${B})`;
-                    }
-
-                    function drawBlock(x, y, w, h, d, color) {
-                        ctx.fillStyle = shadeColor(color, -18);
-                        ctx.beginPath();
-                        ctx.moveTo(x + w, y);
-                        ctx.lineTo(x + w + d * 0.7, y - d * 0.4);
-                        ctx.lineTo(x + w + d * 0.7, y + h - d * 0.4);
-                        ctx.lineTo(x + w, y + h);
-                        ctx.closePath();
-                        ctx.fill();
-
-                        ctx.fillStyle = shadeColor(color, 12);
-                        ctx.beginPath();
-                        ctx.moveTo(x, y);
-                        ctx.lineTo(x + d * 0.7, y - d * 0.4);
-                        ctx.lineTo(x + w + d * 0.7, y - d * 0.4);
-                        ctx.lineTo(x + w, y);
-                        ctx.closePath();
-                        ctx.fill();
-
-                        ctx.fillStyle = color;
-                        ctx.fillRect(x, y, w, h);
-
-                        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-                        ctx.lineWidth = 0.5;
-                        ctx.beginPath();
-                        ctx.moveTo(x, y);
-                        ctx.lineTo(x + w, y);
-                        ctx.stroke();
-                    }
-
-                    const draw = () => {
-                        const width = rect.width;
-                        const height = rect.height;
-                        ctx.clearRect(0, 0, width, height);
-
-                        const centerY = height / 2;
-
-                        // Connection lines
-                        ctx.strokeStyle = 'rgba(120, 120, 120, 0.25)';
-                        ctx.lineWidth = 1.5;
-
-                        for (let i = 0; i < layers.length - 1; i++) {
-                            const from = layers[i];
-                            const to = layers[i + 1];
-                            const fromX = from.x + from.w + from.d * 0.7;
-                            const toX = to.x;
-
-                            ctx.beginPath();
-                            ctx.moveTo(fromX, centerY);
-                            ctx.lineTo(toX, centerY);
-                            ctx.stroke();
-                        }
-
-                        // Draw blocks
-                        layers.forEach(layer => {
-                            const y = centerY - layer.h / 2;
-                            drawBlock(layer.x, y, layer.w, layer.h, layer.d, layer.color);
-                        });
-
-                        // Labels
-                        ctx.fillStyle = '#666';
-                        ctx.font = '13px Inter, sans-serif';
-                        ctx.textAlign = 'center';
-                        layers.forEach(layer => {
-                            const labelX = layer.x + layer.w / 2 + layer.d * 0.35;
-                            ctx.fillStyle = '#444';
-                            ctx.font = '13px Inter, sans-serif';
-                            ctx.fillText(layer.type, labelX, centerY + layer.h / 2 + 18);
-
-                            if (layer.params) {
-                                ctx.font = '11px Inter, sans-serif';
-                                ctx.fillStyle = '#888';
-                                ctx.fillText(layer.params, labelX, centerY + layer.h / 2 + 34);
-                            }
-
-                            if (layer.frozen) {
-                                ctx.font = '12px Inter, sans-serif';
-                                ctx.fillStyle = '#95a5a6';
-                                ctx.fillText('🔒', labelX, centerY - layer.h / 2 - 8);
-                                ctx.font = '13px Inter, sans-serif';
-                                ctx.fillStyle = '#666';
-                            }
-                        });
-
-                        animationRef.current = requestAnimationFrame(draw);
-                    };
-
-                    draw();
-
-                    return () => {
-                        if (animationRef.current) cancelAnimationFrame(animationRef.current);
-                    };
-                }, [layers]);
-
-                return (
-                    <div style={{ background: '#f8f9fa', borderRadius: '12px', padding: '1.5rem' }}>
-                        <canvas ref={canvasRef} style={{ width: '100%', height: '280px', display: 'block' }} />
-                    </div>
-                );
-            };
-
-            const numFrozenLayers = config.frozen_layers;
-            const numTrainableLayers = 6 - config.frozen_layers;
-            const finetuneBatchSize = 16;
-            const finetuneTotalBatches = Math.max(1, Math.ceil(config.num_samples / finetuneBatchSize));
-            const finetuneCurrentBatch = finetuneProgress
-                ? Math.floor((Date.now() / 100) % finetuneTotalBatches)
-                : 0;
-            const finetuneEpochProgress = finetuneProgress
-                ? (finetuneCurrentBatch + 1) / finetuneTotalBatches
-                : 0;
-            const finetuneOverallProgress = finetuneProgress
-                ? (Math.max((finetuneProgress.current_epoch || 0) - 1, 0) + finetuneEpochProgress) / Math.max(finetuneProgress.total_epochs || 1, 1)
-                : 0;
-
-            return (
-                <div>
-                    {/* DistilBERT Info Card */}
-                    <div className="card">
-                        <div className="card-title">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="12" cy="12" r="10"/>
-                                <path d="M12 6v6l4 2"/>
-                            </svg>
-                            DistilBERT Architecture
-                        </div>
-                        <p style={{ marginBottom: '1rem', fontSize: '0.85rem', color: 'var(--textMuted)' }}>
-                            Gray blocks 🔒 are frozen. Blue blocks are trainable.
-                        </p>
-                        <DistilBERTDiagram />
-                        <div style={{ marginTop: '1.25rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', fontSize: '0.85rem', marginBottom: '0.75rem' }}>
-                                <div><strong>Total Parameters:</strong> 67M</div>
-                                <div><strong>Layers:</strong> 6</div>
-                                <div><strong>Hidden Size:</strong> 768</div>
-                            </div>
-                            <div style={{ background: '#f0f4f8', borderRadius: '8px', padding: '1rem', fontSize: '0.8rem', color: '#555', lineHeight: '1.7' }}>
-                                <strong style={{ color: '#333' }}>Parameter Breakdown:</strong><br/>
-                                <span style={{ display: 'inline-block', width: '12px', height: '12px', background: '#FFD100', borderRadius: '2px', verticalAlign: 'middle', marginRight: '6px' }}></span>
-                                Embeddings (word + position): <strong>23.8M</strong> (vocab 30,522 × 768 + 512 × 768)<br/>
-                                <span style={{ display: 'inline-block', width: '12px', height: '12px', background: '#2774AE', borderRadius: '2px', verticalAlign: 'middle', marginRight: '6px' }}></span>
-                                Transformer Layer × 6: <strong>7.1M each</strong> (multi-head attention + feed-forward) = <strong>42.5M</strong><br/>
-                                <span style={{ display: 'inline-block', width: '12px', height: '12px', background: '#2774AE', borderRadius: '2px', verticalAlign: 'middle', marginRight: '6px' }}></span>
-                                Dense Layer: <strong>0.59M</strong> (768 × 768)<br/>
-                                <span style={{ display: 'inline-block', width: '12px', height: '12px', background: '#FFD100', borderRadius: '2px', verticalAlign: 'middle', marginRight: '6px' }}></span>
-                                Softmax: <strong>3.8K</strong> (768 × 5)
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="grid-2">
-                        {/* Configuration */}
-                        <div className="card">
-                            <div className="card-title">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
-                                </svg>
-                                Fine-tuning Configuration
-                            </div>
-
-                            <div className="input-group">
-                                <label className="input-label">
-                                    Freeze Layers: {config.frozen_layers}/6 frozen ({6 - config.frozen_layers} trainable)
-                                </label>
-                                <input
-                                    type="range"
-                                    min="3"
-                                    max="6"
-                                    step="1"
-                                    value={config.frozen_layers}
-                                    onChange={(e) => setConfig({...config, frozen_layers: parseInt(e.target.value)})}
-                                    disabled={status === 'training' || status === 'starting'}
-                                    style={{ width: '100%' }}
-                                />
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#888', marginTop: '0.25rem', padding: '0 2px' }}>
-                                    <span>3/6</span>
-                                    <span>4/6</span>
-                                    <span>5/6</span>
-                                    <span>6/6</span>
-                                </div>
-                                <div style={{ display: 'flex', marginTop: '0.5rem', gap: '0.5rem' }}>
-                                    <div style={{
-                                        flex: config.frozen_layers,
-                                        background: 'linear-gradient(90deg, #95a5a6, #7f8c8d)',
-                                        padding: '0.5rem',
-                                        borderRadius: '6px',
-                                        color: 'white',
-                                        fontSize: '0.75rem',
-                                        textAlign: 'center'
-                                    }}>Frozen 🔒 ({config.frozen_layers})</div>
-                                    {config.frozen_layers < 6 && (
-                                        <div style={{
-                                            flex: 6 - config.frozen_layers,
-                                            background: 'linear-gradient(90deg, #2774AE, #005587)',
-                                            padding: '0.5rem',
-                                            borderRadius: '6px',
-                                            color: 'white',
-                                            fontSize: '0.75rem',
-                                            textAlign: 'center'
-                                        }}>Trainable ✏️ ({6 - config.frozen_layers})</div>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="input-group">
-                                <label className="input-label">Learning Rate:</label>
-                                <div className="btn-group">
-                                    {[1e-5, 5e-5, 1e-4].map(lr => (
-                                        <button
-                                            key={lr}
-                                            className={`btn-option ${config.learning_rate === lr ? 'active' : ''}`}
-                                            onClick={() => setConfig({...config, learning_rate: lr})}
-                                            disabled={status === 'training' || status === 'starting'}
-                                        >{lr}</button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="input-group">
-                                <label className="input-label">Training Samples:</label>
-                                <div className="btn-group">
-                                    {[100, 500, 1000].map(n => (
-                                        <button
-                                            key={n}
-                                            className={`btn-option ${config.num_samples === n ? 'active' : ''}`}
-                                            onClick={() => setConfig({...config, num_samples: n})}
-                                            disabled={status === 'training' || status === 'starting'}
-                                        >{n}</button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="input-group">
-                                <label className="input-label">Epochs:</label>
-                                <div className="btn-group">
-                                    {[2, 3, 5].map(n => (
-                                        <button
-                                            key={n}
-                                            className={`btn-option ${config.epochs === n ? 'active' : ''}`}
-                                            onClick={() => setConfig({...config, epochs: n})}
-                                            disabled={status === 'training' || status === 'starting'}
-                                        >{n}</button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <button
-                                className="btn btn-primary"
-                                onClick={startFineTuning}
-                                disabled={status === 'training' || status === 'starting'}
-                                style={{ width: '100%', marginTop: '1rem', justifyContent: 'center' }}
-                            >
-                                {status === 'training' || status === 'starting' ? (
-                                    <>
-                                        <div className="spinner" style={{
-                                            width: 16,
-                                            height: 16,
-                                            border: '2px solid rgba(255,255,255,0.3)',
-                                            borderTopColor: 'white'
-                                        }} />
-                                        Training...
-                                    </>
-                                ) : 'Start Training'}
-                            </button>
-
-                            {error && (
-                                <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(220, 53, 69, 0.1)', borderRadius: '8px', color: '#dc3545' }}>
-                                    Error: {error}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Results */}
-                        <div className="card">
-                            <div className="card-title">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-                                </svg>
-                                Results Comparison
-                            </div>
-
-                            {status === 'idle' && (
-                                <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--textMuted)' }}>
-                                    Configure parameters and click "Start Training"
-                                </div>
-                            )}
-
-                            {(status === 'training' || status === 'starting') && (
-                                <div style={{ padding: '1.5rem' }}>
-                                    {!finetuneProgress ? (
-                                        <div style={{ textAlign: 'center', color: 'var(--textMuted)' }}>
-                                            Preparing fine-tuning session...
-                                        </div>
-                                    ) : (
-                                        <>
-                                            <div style={{ marginBottom: '1rem' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                                    <span>{finetuneProgress.status}</span>
-                                                    <span>{finetuneProgress.current_epoch}/{finetuneProgress.total_epochs} epochs</span>
-                                                </div>
-                                                <div style={{ height: 8, background: '#e0e0e0', borderRadius: 4, overflow: 'hidden' }}>
-                                                    <div style={{
-                                                        height: '100%',
-                                                        width: `${Math.min(1, Math.max(0, finetuneOverallProgress)) * 100}%`,
-                                                        background: 'var(--primary)',
-                                                        transition: 'width 0.3s'
-                                                    }} />
-                                                </div>
-                                            </div>
-
-                                            <div style={{ marginBottom: '1.5rem' }}>
-                                                <div style={{ fontSize: '0.85rem', color: 'var(--textMuted)', marginBottom: '0.5rem' }}>
-                                                    Processing Mini-Batches (batch size: {finetuneBatchSize})
-                                                </div>
-                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                                                    {Array.from({ length: Math.min(finetuneTotalBatches, 50) }).map((_, i) => (
-                                                        <div
-                                                            key={i}
-                                                            style={{
-                                                                width: '12px',
-                                                                height: '12px',
-                                                                borderRadius: '2px',
-                                                                background: i <= finetuneCurrentBatch ? 'var(--primary)' : '#e0e0e0',
-                                                                transition: 'background 0.2s'
-                                                            }}
-                                                            title={`Batch ${i + 1}/${finetuneTotalBatches}`}
-                                                        />
-                                                    ))}
-                                                    {finetuneTotalBatches > 50 && (
-                                                        <span style={{ fontSize: '0.75rem', color: 'var(--textMuted)', alignSelf: 'center', marginLeft: '0.5rem' }}>
-                                                            +{finetuneTotalBatches - 50} more
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <div style={{ fontSize: '0.75rem', color: 'var(--textMuted)', marginTop: '0.5rem' }}>
-                                                    {finetuneTotalBatches} batches total • ~{Math.ceil(finetuneTotalBatches / 10)} batches/second
-                                                </div>
-                                            </div>
-
-                                            {finetuneProgress.history && finetuneProgress.history.train_loss && finetuneProgress.history.train_loss.length > 0 && (() => {
-                                                const lossMax = Math.max(
-                                                    ...finetuneProgress.history.train_loss,
-                                                    ...finetuneProgress.history.val_loss,
-                                                    0.1
-                                                );
-                                                const ticks = [0, 0.25, 0.5, 0.75, 1].map((t) => t * lossMax);
-                                                return (
-                                                    <div style={{ marginBottom: '1.25rem' }}>
-                                                        <h4 style={{ fontSize: '0.9rem', marginBottom: '0.75rem' }}>Loss Progress</h4>
-                                                        <svg width="100%" height="150" viewBox="0 0 400 150">
-                                                            <line x1="50" y1="130" x2="380" y2="130" stroke="#ccc" strokeWidth="1"/>
-                                                            <line x1="50" y1="20" x2="50" y2="130" stroke="#ccc" strokeWidth="1"/>
-
-                                                            {ticks.map((v, i) => (
-                                                                <g key={i}>
-                                                                    <line x1="50" y1={130 - (v / lossMax) * 100} x2="380" y2={130 - (v / lossMax) * 100} stroke="#eee" strokeWidth="1"/>
-                                                                    <text x="45" y={135 - (v / lossMax) * 100} textAnchor="end" fontSize="10" fill="#999">{v.toFixed(2)}</text>
-                                                                </g>
-                                                            ))}
-
-                                                            <polyline
-                                                                fill="none"
-                                                                stroke="var(--primary)"
-                                                                strokeWidth="2"
-                                                                points={finetuneProgress.history.train_loss.map((loss, i) =>
-                                                                    `${50 + (i + 1) * (330 / (finetuneProgress.total_epochs || 1))},${130 - (loss / lossMax) * 100}`
-                                                                ).join(' ')}
-                                                            />
-
-                                                            <polyline
-                                                                fill="none"
-                                                                stroke="var(--gold)"
-                                                                strokeWidth="2"
-                                                                points={finetuneProgress.history.val_loss.map((loss, i) =>
-                                                                    `${50 + (i + 1) * (330 / (finetuneProgress.total_epochs || 1))},${130 - (loss / lossMax) * 100}`
-                                                                ).join(' ')}
-                                                            />
-
-                                                            <rect x="280" y="25" width="12" height="12" fill="var(--primary)"/>
-                                                            <text x="297" y="35" fontSize="10" fill="#666">Train</text>
-                                                            <rect x="330" y="25" width="12" height="12" fill="var(--gold)"/>
-                                                            <text x="347" y="35" fontSize="10" fill="#666">Val</text>
-                                                        </svg>
-                                                    </div>
-                                                );
-                                            })()}
-
-                                            <div style={{ fontSize: '0.85rem', color: 'var(--textMuted)', textAlign: 'center' }}>
-                                                This may take 30-60 seconds
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-                            )}
-
-                            {status === 'complete' && results && (
-                                <div>
-                                    <div className="grid-2" style={{ gap: '1rem', marginBottom: '1.5rem' }}>
-                                        <div style={{ padding: '1rem', background: 'rgba(39, 116, 174, 0.1)', borderRadius: '8px', border: '2px solid #2774AE' }}>
-                                            <div style={{ fontSize: '0.85rem', color: '#666', marginBottom: '0.5rem' }}>Base Model</div>
-                                            <div style={{ fontSize: '2rem', fontWeight: 700, color: '#2774AE' }}>
-                                                {results.base_accuracy.toFixed(1)}%
-                                            </div>
-                                            <div style={{ fontSize: '0.75rem', color: '#666', marginTop: '0.25rem' }}>No fine-tuning</div>
-                                        </div>
-
-                                        <div style={{ padding: '1rem', background: 'rgba(40, 167, 69, 0.1)', borderRadius: '8px', border: '2px solid #28a745' }}>
-                                            <div style={{ fontSize: '0.85rem', color: '#666', marginBottom: '0.5rem' }}>Fine-tuned Model</div>
-                                            <div style={{ fontSize: '2rem', fontWeight: 700, color: '#28a745' }}>
-                                                {results.finetuned_accuracy.toFixed(1)}%
-                                            </div>
-                                            <div style={{ fontSize: '0.75rem', color: '#28a745', marginTop: '0.25rem', fontWeight: 600 }}>
-                                                +{results.improvement.toFixed(1)}% improvement!
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div style={{ marginBottom: '1.5rem' }}>
-                                        <div style={{ fontSize: '0.85rem', marginBottom: '0.5rem', color: '#666' }}>
-                                            <strong>Parameters:</strong> {(results.frozen_params / 1e6).toFixed(1)}M frozen, {(results.trainable_params / 1e6).toFixed(1)}M trainable
-                                        </div>
-                                        <div style={{ fontSize: '0.85rem', color: '#666' }}>
-                                            <strong>Layers:</strong> {results.num_frozen_layers} frozen, {results.num_trainable_layers} trainable
-                                        </div>
-                                    </div>
-
-                                    {results.history && results.history.train_acc.length > 0 && (
-                                        <div>
-                                            <h4 style={{ fontSize: '0.9rem', marginBottom: '0.75rem' }}>Training Progress</h4>
-                                            <svg width="100%" height="150" viewBox="0 0 400 150">
-                                                <line x1="50" y1="130" x2="380" y2="130" stroke="#ccc" strokeWidth="1"/>
-                                                <line x1="50" y1="20" x2="50" y2="130" stroke="#ccc" strokeWidth="1"/>
-
-                                                {[0, 25, 50, 75, 100].map((v, i) => (
-                                                    <g key={i}>
-                                                        <line x1="50" y1={130 - v * 1.1} x2="380" y2={130 - v * 1.1} stroke="#eee" strokeWidth="1"/>
-                                                        <text x="45" y={135 - v * 1.1} textAnchor="end" fontSize="10" fill="#999">{v}</text>
-                                                    </g>
-                                                ))}
-
-                                                <polyline
-                                                    fill="none"
-                                                    stroke="var(--primary)"
-                                                    strokeWidth="2"
-                                                    points={results.history.train_acc.map((acc, i) =>
-                                                        `${50 + (i + 1) * (330 / results.epochs)},${130 - acc * 1.1}`
-                                                    ).join(' ')}
-                                                />
-
-                                                <polyline
-                                                    fill="none"
-                                                    stroke="var(--gold)"
-                                                    strokeWidth="2"
-                                                    points={results.history.val_acc.map((acc, i) =>
-                                                        `${50 + (i + 1) * (330 / results.epochs)},${130 - acc * 1.1}`
-                                                    ).join(' ')}
-                                                />
-
-                                                <rect x="280" y="25" width="12" height="12" fill="var(--primary)"/>
-                                                <text x="297" y="35" fontSize="10" fill="#666">Train</text>
-                                                <rect x="330" y="25" width="12" height="12" fill="var(--gold)"/>
-                                                <text x="347" y="35" fontSize="10" fill="#666">Val</text>
-                                            </svg>
-                                        </div>
-                                    )}
-
-                                    {results.history && results.history.train_loss.length > 0 && (() => {
-                                        const lossMax = Math.max(
-                                            ...results.history.train_loss,
-                                            ...results.history.val_loss,
-                                            0.1
-                                        );
-                                        const ticks = [0, 0.25, 0.5, 0.75, 1].map((t) => t * lossMax);
-                                        return (
-                                            <div style={{ marginTop: '1.25rem' }}>
-                                                <h4 style={{ fontSize: '0.9rem', marginBottom: '0.75rem' }}>Loss Progress</h4>
-                                                <svg width="100%" height="150" viewBox="0 0 400 150">
-                                                    <line x1="50" y1="130" x2="380" y2="130" stroke="#ccc" strokeWidth="1"/>
-                                                    <line x1="50" y1="20" x2="50" y2="130" stroke="#ccc" strokeWidth="1"/>
-
-                                                    {ticks.map((v, i) => (
-                                                        <g key={i}>
-                                                            <line x1="50" y1={130 - (v / lossMax) * 100} x2="380" y2={130 - (v / lossMax) * 100} stroke="#eee" strokeWidth="1"/>
-                                                            <text x="45" y={135 - (v / lossMax) * 100} textAnchor="end" fontSize="10" fill="#999">{v.toFixed(2)}</text>
-                                                        </g>
-                                                    ))}
-
-                                                    <polyline
-                                                        fill="none"
-                                                        stroke="var(--primary)"
-                                                        strokeWidth="2"
-                                                        points={results.history.train_loss.map((loss, i) =>
-                                                            `${50 + (i + 1) * (330 / results.epochs)},${130 - (loss / lossMax) * 100}`
-                                                        ).join(' ')}
-                                                    />
-
-                                                    <polyline
-                                                        fill="none"
-                                                        stroke="var(--gold)"
-                                                        strokeWidth="2"
-                                                        points={results.history.val_loss.map((loss, i) =>
-                                                            `${50 + (i + 1) * (330 / results.epochs)},${130 - (loss / lossMax) * 100}`
-                                                        ).join(' ')}
-                                                    />
-
-                                                    <rect x="280" y="25" width="12" height="12" fill="var(--primary)"/>
-                                                    <text x="297" y="35" fontSize="10" fill="#666">Train</text>
-                                                    <rect x="330" y="25" width="12" height="12" fill="var(--gold)"/>
-                                                    <text x="347" y="35" fontSize="10" fill="#666">Val</text>
-                                                </svg>
-                                            </div>
-                                        );
-                                    })()}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Sample Predictions */}
-                    {status === 'complete' && results && results.sample_predictions && (
-                        <div className="card" style={{ marginTop: '1.5rem' }}>
-                            <div className="card-title">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M9 11l3 3L22 4"/>
-                                    <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
-                                </svg>
-                                Fine-tuned Model Predictions
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem' }}>
-                                {results.sample_predictions.map((pred, i) => (
-                                    <div key={i} style={{
-                                        padding: '0.75rem',
-                                        background: pred.correct ? 'rgba(40, 167, 69, 0.05)' : 'rgba(220, 53, 69, 0.05)',
-                                        borderRadius: 8,
-                                        border: `2px solid ${pred.correct ? '#28a745' : '#dc3545'}`,
-                                        fontSize: '0.8rem'
-                                    }}>
-                                        <div style={{ marginBottom: '0.5rem', fontSize: '0.75rem', color: '#666', fontStyle: 'italic', lineHeight: '1.4' }}>
-                                            "{pred.text}..."
-                                        </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
-                                            <div>
-                                                <span style={{ fontWeight: 600 }}>True:</span> {'⭐'.repeat(pred.true + 1)}<br/>
-                                                <span style={{ fontWeight: 600 }}>Pred:</span> {'⭐'.repeat(pred.predicted + 1)}
-                                            </div>
-                                            <div style={{ fontSize: '0.7rem', color: pred.correct ? '#28a745' : '#dc3545', fontWeight: 600 }}>
-                                                {pred.correct ? '✓' : '✗'}
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </div>
-            );
-        };
-
-        // ===========================================
-        // Main App
-        // ===========================================
-        const App = () => {
-            const [activeTab, setActiveTab] = useState('embeddings');
-
-            const tabs = [
-                { id: 'embeddings', label: 'Word Embeddings' },
-                { id: 'training', label: 'Train Transformers' },
-                { id: 'finetune', label: 'Fine-tune Pre-trained' },
-            ];
-
-            const renderTab = () => {
-                switch (activeTab) {
-                    case 'embeddings': return <EmbeddingsTab />;
-                    case 'training': return <TrainTransformerTab />;
-                    case 'finetune': return <FinetuneTab />;
-                    default: return <EmbeddingsTab />;
-                }
-            };
-
-            return (
-                <div className="app-container">
-                    <header className="header">
-                        <div className="header-content">
-                            <div className="header-left">
-                                <p className="course-label">MGMT298D: Science and Strategy of AI</p>
-                                <h1>Week 6: Word Embeddings & Transformers</h1>
-                                <p className="subtitle">Explore word embeddings and train real transformer models</p>
-                            </div>
-                            <div className="header-right">
-                                UCLA Anderson
-                            </div>
-                        </div>
-                        <div className="header-gold-line" />
-                    </header>
-
-                    <div className="tabs-container">
-                        <div className="tabs">
-                            {tabs.map(tab => (
-                                <button
-                                    key={tab.id}
-                                    className={`tab ${activeTab === tab.id ? 'active' : ''}`}
-                                    onClick={() => setActiveTab(tab.id)}
-                                >
-                                    {tab.label}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    <main className="main-content">
-                        {renderTab()}
-                    </main>
-
-                    <footer className="footer">
-                        MGMT298D: Science and Strategy of AI | UCLA Anderson School of Management
-                    </footer>
-                </div>
-            );
-        };
-
-        ReactDOM.render(<App />, document.getElementById('root'));
-    </script>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    function App() {
+      const [tab, setTab] = useState("lm");
+      return (
+        <>
+          <div className="tabs">
+            <button className={`tab ${tab === "lm" ? "active" : ""}`} onClick={() => setTab("lm")}>Tiny LLM</button>
+            <button className={`tab ${tab === "embeddings" ? "active" : ""}`} onClick={() => setTab("embeddings")}>Embeddings</button>
+          </div>
+          {tab === "lm" ? <LmTab /> : <EmbeddingsTab />}
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
 </body>
 </html>
