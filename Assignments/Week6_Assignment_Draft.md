@@ -6,7 +6,7 @@
 
 ### Question 1
 
-In the Embeddings tab, find the nearest neighbors for `king`, then run the analogy `king - man + woman`. Report the top result for each. What does this suggest about how word embeddings represent relationships between words?
+In the Embeddings tab, find the nearest neighbors for `king`, then run the embedding math `king + woman - man`. Report the top result for each. What does this suggest about how word embeddings represent relationships between words?
 
 ### Question 2
 

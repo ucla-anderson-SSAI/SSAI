@@ -202,15 +202,21 @@ def analogy():
     load_embeddings()
     payload = request.get_json(force=True)
     a = str(payload.get("a", "king")).lower().strip()
-    b = str(payload.get("b", "man")).lower().strip()
-    c = str(payload.get("c", "woman")).lower().strip()
+    b = str(payload.get("b", "woman")).lower().strip()
+    c = str(payload.get("c", "man")).lower().strip()
+    limit = int(payload.get("limit", 5))
+    limit = max(1, min(limit, 10))
     missing = [w for w in [a, b, c] if w not in _embeddings]
     if missing:
         return jsonify({"error": f"Missing words: {', '.join(missing)}"}), 404
-    result = _embeddings[a] - _embeddings[b] + _embeddings[c]
+    result = _embeddings[a] + _embeddings[b] - _embeddings[c]
+    ranked = nearest(result, exclude=[a, b, c], limit=limit)
     return jsonify({
-        "formula": f"{a} - {b} + {c}",
-        "results": nearest(result, exclude=[a, b, c], limit=5),
+        "formula": f"{a} + {b} - {c}",
+        "results": [
+            {**row, "rank": idx + 1}
+            for idx, row in enumerate(ranked)
+        ],
     })
 
 

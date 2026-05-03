@@ -203,10 +203,15 @@
 
     .item {
       display: grid;
-      grid-template-columns: 110px 1fr 52px;
+      grid-template-columns: 42px 110px 1fr 52px;
       gap: 10px;
       align-items: center;
       font-size: 14px;
+    }
+
+    .rank {
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
     }
 
     .bar {
@@ -292,8 +297,10 @@
           {rows.map((row) => {
             const value = tokenMode ? row.probability : row.similarity;
             const label = tokenMode ? row.token : row.word;
+            const rank = row.rank || rows.indexOf(row) + 1;
             return (
               <div className={`item ${tokenMode ? "token" : ""}`} key={label}>
+                <span className="rank">#{rank}</span>
                 <strong>{label}</strong>
                 <div className="bar"><div className="fill" style={{ width: `${(value / max) * 100}%` }} /></div>
                 <span>{value.toFixed(2)}</span>
@@ -308,8 +315,9 @@
       const [word, setWord] = useState("king");
       const [nearest, setNearest] = useState(null);
       const [a, setA] = useState("king");
-      const [b, setB] = useState("man");
-      const [c, setC] = useState("woman");
+      const [b, setB] = useState("woman");
+      const [c, setC] = useState("man");
+      const [limit, setLimit] = useState(5);
       const [analogy, setAnalogy] = useState(null);
       const [status, setStatus] = useState("");
 
@@ -326,7 +334,7 @@
       async function runAnalogy() {
         try {
           setStatus("");
-          const data = await postJson("/api/analogy", { a, b, c });
+          const data = await postJson("/api/analogy", { a, b, c, limit });
           setAnalogy(data);
         } catch (err) {
           setStatus(err.message);
@@ -354,7 +362,12 @@
               <input value={b} onChange={(e) => setB(e.target.value)} />
               <input value={c} onChange={(e) => setC(e.target.value)} />
             </div>
-            <button className="secondary" onClick={runAnalogy}>Compute a - b + c</button>
+            <label>Ranked results</label>
+            <select value={limit} onChange={(e) => setLimit(Number(e.target.value))}>
+              <option value={5}>Top 5</option>
+              <option value={10}>Top 10</option>
+            </select>
+            <button className="secondary" onClick={runAnalogy}>Compute A + B - C</button>
             <div className={`status ${status ? "error" : ""}`}>{status}</div>
           </section>
 
