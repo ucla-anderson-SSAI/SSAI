@@ -2,20 +2,20 @@
   "vocab_size": 2000,
   "seq_len": 64,
   "batch_size": 32,
-  "generated_tokens": 8,
   "embed_dim": 128,
   "num_heads": 4,
   "ff_dim": 256,
   "num_blocks": 2,
+  "generated_tokens": 8,
   "standardize": "lowercase_keep_punctuation",
   "models": {
     "10k_1epoch": "tiny_yelp_10k_1epoch.keras",
     "500k_1epoch": "tiny_yelp_500k_1epoch.keras",
-    "500k_5epochs": "tiny_yelp_500k_5epochs.keras"
+    "500k_20epochs": "tiny_yelp_500k_20epochs.keras"
   },
   "vocabs": {
     "10k_1epoch": "vocab_10k.json",
     "500k_1epoch": "vocab_500k.json",
-    "500k_5epochs": "vocab_500k.json"
+    "500k_20epochs": "vocab_500k.json"
   }
 }
