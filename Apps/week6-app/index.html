@@ -378,7 +378,6 @@
         <div className="grid">
           <section className="panel">
             <h2>Next Token</h2>
-            <p>The pretrained Tiny LLM predicts a probability distribution over the next token after your prompt.</p>
             <label>Prompt</label>
             <input value={prompt} onChange={(e) => setPrompt(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") run(); }} />
             <label>Pretrained model</label>
@@ -436,7 +435,6 @@
         <div className="grid">
           <section className="panel">
             <h2>Completion</h2>
-            <p>Completion repeats next-token prediction many times. Temperature controls how adventurous the sampling is.</p>
             <label>Prompt</label>
             <input value={prompt} onChange={(e) => setPrompt(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") run(); }} />
             <label>Pretrained model</label>
