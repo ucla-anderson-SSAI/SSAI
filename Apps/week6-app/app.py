@@ -109,7 +109,7 @@ def load_embeddings(max_words: int = 50000) -> None:
             vectors = vectors / (np.linalg.norm(vectors, axis=1, keepdims=True) + 1e-8)
             for word, vec in zip(words, vectors):
                 _embeddings[str(word)] = vec
-            _embedding_source = f"GloVe subset ({len(_embeddings):,} words)"
+            _embedding_source = "GloVe embeddings"
             return
 
         if not os.path.exists(GLOVE_TEXT):
@@ -123,7 +123,7 @@ def load_embeddings(max_words: int = 50000) -> None:
                 if len(parts) != 51:
                     continue
                 _embeddings[parts[0]] = _unit(np.array(parts[1:], dtype=np.float32))
-        _embedding_source = f"GloVe 6B 50d subset ({len(_embeddings):,} words)"
+        _embedding_source = "GloVe embeddings"
     except Exception as exc:
         print(f"Could not load GloVe; using fallback embeddings: {exc}", flush=True)
         _embeddings.clear()
@@ -287,7 +287,7 @@ def health():
     export_ready = os.path.exists(os.path.join(EXPORT_DIR, "config.json"))
     return jsonify({
         "status": "healthy",
-        "service": "Week 6 Tiny LLM Lab",
+        "service": "Week 6: Embeddings and Transformers",
         "exports_ready": export_ready,
         "llm_loaded": bool(_llm_models),
         "embedding_source": _embedding_source,
@@ -328,10 +328,11 @@ def analogy():
     missing = [w for w in [a, b, c] if w not in _embeddings]
     if missing:
         return jsonify({"error": f"Missing words: {', '.join(missing)}"}), 404
-    result = _embeddings[a] + _embeddings[b] - _embeddings[c]
+    result = _embeddings[a] - _embeddings[b] + _embeddings[c]
     rows = nearest(result, exclude=[a, b, c], limit=limit)
     return jsonify({
-        "formula": f"{a} + {b} - {c}",
+        "relationship": f"{b} : {c} :: {a} : ?",
+        "formula": f"{a} - {b} + {c}",
         "source": _embedding_source,
         "results": [{**row, "rank": idx + 1} for idx, row in enumerate(rows)],
     })
