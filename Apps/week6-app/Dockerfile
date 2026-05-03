@@ -14,7 +14,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application
 COPY app.py .
 COPY index.html .
+COPY glove_subset.npz .
 COPY week6_tiny_llm_exports ./week6_tiny_llm_exports
 
+EXPOSE 8080
+
 # Run with gunicorn. Cloud Run/Railway provide PORT; 8080 is the fallback.
-CMD exec gunicorn app:app --bind 0.0.0.0:${PORT:-8080} --timeout 120 --workers 1 --threads 4
+CMD ["sh", "-c", "exec gunicorn app:app --bind 0.0.0.0:${PORT:-8080} --timeout 120 --workers 1 --threads 4"]
