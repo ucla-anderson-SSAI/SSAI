@@ -43,7 +43,7 @@ _load_lock = threading.Lock()
 MODEL_LABELS = {
     "10k_1epoch": "10,000 reviews, 1 epoch",
     "500k_1epoch": "500,000 reviews, 1 epoch",
-    "500k_5epochs": "500,000 reviews, 5 epochs",
+    "500k_20epochs": "500,000 reviews, 20 epochs",
 }
 
 
@@ -287,7 +287,7 @@ def health():
     export_ready = os.path.exists(os.path.join(EXPORT_DIR, "config.json"))
     return jsonify({
         "status": "healthy",
-        "service": "Week 6: Embeddings and Transformers",
+        "service": "Week 6: Transformers and Next Token Prediction",
         "exports_ready": export_ready,
         "llm_loaded": bool(_llm_models),
         "embedding_source": _embedding_source,
@@ -342,7 +342,7 @@ def analogy():
 def llm_models():
     load_llm_artifacts()
     return jsonify({
-        "models": [model_summary(key) for key in ["10k_1epoch", "500k_1epoch", "500k_5epochs"]],
+        "models": [model_summary(key) for key in ["10k_1epoch", "500k_1epoch", "500k_20epochs"]],
         "config": _llm_config,
     })
 
@@ -351,7 +351,7 @@ def llm_models():
 def llm_next_token():
     payload = request.get_json(force=True)
     prompt = re.sub(r"\s+", " ", str(payload.get("prompt", "the fish tacos were")).strip())
-    key = str(payload.get("model", "500k_5epochs"))
+    key = str(payload.get("model", "500k_20epochs"))
     top_k = max(1, min(int(payload.get("top_k", 10)), 10))
     if key not in MODEL_LABELS:
         return jsonify({"error": f"Unknown model: {key}"}), 400
@@ -366,7 +366,7 @@ def llm_next_token():
 def llm_generate():
     payload = request.get_json(force=True)
     prompt = re.sub(r"\s+", " ", str(payload.get("prompt", "the fish tacos were")).strip())
-    key = str(payload.get("model", "500k_5epochs"))
+    key = str(payload.get("model", "500k_20epochs"))
     length = int(payload.get("length", 20))
     temperature = float(payload.get("temperature", 0.8))
     if key not in MODEL_LABELS:
@@ -384,7 +384,7 @@ def generate_compare():
     payload = request.get_json(force=True)
     prompt = re.sub(r"\s+", " ", str(payload.get("prompt", "the fish tacos were")).strip())
     results = []
-    for key in ["10k_1epoch", "500k_1epoch", "500k_5epochs"]:
+    for key in ["10k_1epoch", "500k_1epoch", "500k_20epochs"]:
         summary = model_summary(key)
         results.append({
             "key": key,

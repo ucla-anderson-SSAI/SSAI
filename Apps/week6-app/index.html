@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Week 6: Embeddings and Transformers</title>
+  <title>Week 6: Transformers and Next Token Prediction</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -294,7 +294,7 @@
     <div class="header-content">
       <div class="header-left">
         <div class="course-label">MGMT298D: Science and Strategy of AI</div>
-        <h1>Week 6: Embeddings and Transformers</h1>
+        <h1>Week 6: Transformers and Next Token Prediction</h1>
         <p>Yelp Review Generation</p>
       </div>
       <div class="header-right">
@@ -347,14 +347,14 @@
         <select value={model} onChange={(e) => setModel(e.target.value)}>
           <option value="10k_1epoch">10,000 reviews, 1 epoch</option>
           <option value="500k_1epoch">500,000 reviews, 1 epoch</option>
-          <option value="500k_5epochs">500,000 reviews, 5 epochs</option>
+          <option value="500k_20epochs">500,000 reviews, 20 epochs</option>
         </select>
       );
     }
 
     function NextToken() {
       const [prompt, setPrompt] = useState("the fish tacos were");
-      const [model, setModel] = useState("500k_5epochs");
+      const [model, setModel] = useState("500k_20epochs");
       const [topK, setTopK] = useState(10);
       const [data, setData] = useState(null);
       const [status, setStatus] = useState("");
@@ -410,7 +410,7 @@
 
     function Completion() {
       const [prompt, setPrompt] = useState("the fish tacos were");
-      const [model, setModel] = useState("500k_5epochs");
+      const [model, setModel] = useState("500k_20epochs");
       const [length, setLength] = useState(20);
       const [temperature, setTemperature] = useState(0.8);
       const [data, setData] = useState(null);
