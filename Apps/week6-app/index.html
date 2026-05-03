@@ -14,7 +14,7 @@
       --ink: #1f2937;
       --muted: #667085;
       --line: #d8dee8;
-      --panel: #ffffff;
+      --panel: #fff;
       --soft: #f5f7fb;
       --green: #12805c;
       --red: #b42318;
@@ -36,15 +36,17 @@
       padding: 22px 28px 18px;
     }
 
-    .shell {
+    .shell, main {
       max-width: 1180px;
       margin: 0 auto;
     }
 
+    main { padding: 22px 18px 30px; }
+
     .course {
       color: var(--muted);
       font-size: 13px;
-      font-weight: 600;
+      font-weight: 650;
       margin-bottom: 8px;
     }
 
@@ -52,20 +54,29 @@
       margin: 0;
       font-size: 30px;
       line-height: 1.1;
-      font-weight: 750;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: 20px;
+    }
+
+    h3 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+
+    p {
+      margin: 0 0 12px;
+      color: var(--muted);
+      line-height: 1.45;
     }
 
     .subtitle {
       color: var(--muted);
       margin-top: 8px;
-      max-width: 720px;
+      max-width: 820px;
       line-height: 1.45;
-    }
-
-    main {
-      max-width: 1180px;
-      margin: 22px auto;
-      padding: 0 18px 28px;
     }
 
     .tabs {
@@ -73,6 +84,7 @@
       gap: 8px;
       border-bottom: 1px solid var(--line);
       margin-bottom: 18px;
+      overflow-x: auto;
     }
 
     .tab {
@@ -82,8 +94,10 @@
       color: var(--ink);
       padding: 10px 14px;
       cursor: pointer;
-      font-weight: 700;
+      font-weight: 750;
       border-radius: 6px 6px 0 0;
+      white-space: nowrap;
+      min-height: 40px;
     }
 
     .tab.active {
@@ -104,34 +118,12 @@
       border-radius: 8px;
     }
 
-    .panel {
-      padding: 18px;
-    }
-
-    .card {
-      padding: 16px;
-      margin-bottom: 14px;
-    }
-
-    h2 {
-      margin: 0 0 12px;
-      font-size: 20px;
-    }
-
-    h3 {
-      margin: 0 0 10px;
-      font-size: 16px;
-    }
-
-    p {
-      color: var(--muted);
-      line-height: 1.45;
-      margin: 0 0 12px;
-    }
+    .panel { padding: 18px; }
+    .card { padding: 16px; margin-bottom: 14px; }
 
     label {
       display: block;
-      font-weight: 700;
+      font-weight: 750;
       font-size: 13px;
       margin: 14px 0 6px;
     }
@@ -164,10 +156,21 @@
       border: 1px solid var(--line);
     }
 
+    button:disabled {
+      opacity: 0.6;
+      cursor: progress;
+    }
+
     .row {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
       gap: 8px;
+    }
+
+    .two {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
     }
 
     .metric-row {
@@ -182,12 +185,14 @@
       border: 1px solid var(--line);
       border-radius: 6px;
       padding: 10px;
+      min-height: 66px;
     }
 
     .metric .value {
       font-size: 20px;
       font-weight: 800;
       color: var(--blue);
+      overflow-wrap: anywhere;
     }
 
     .metric .label {
@@ -203,7 +208,7 @@
 
     .item {
       display: grid;
-      grid-template-columns: 42px 110px 1fr 52px;
+      grid-template-columns: 42px 120px 1fr 58px;
       gap: 10px;
       align-items: center;
       font-size: 14px;
@@ -236,6 +241,7 @@
       border-radius: 6px;
       padding: 10px;
       overflow-wrap: anywhere;
+      line-height: 1.45;
     }
 
     .status {
@@ -247,17 +253,16 @@
 
     .error { color: var(--red); }
 
-    .experiment-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 14px;
+    .source {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 10px;
     }
 
     @media (max-width: 850px) {
-      .grid, .experiment-grid, .metric-row {
-        grid-template-columns: 1fr;
-      }
-
+      .grid, .metric-row, .two { grid-template-columns: 1fr; }
+      .row { grid-template-columns: 1fr; }
+      .item { grid-template-columns: 36px 96px 1fr 52px; }
       h1 { font-size: 24px; }
       header { padding-left: 18px; padding-right: 18px; }
     }
@@ -268,18 +273,17 @@
     <div class="shell">
       <div class="course">MGMT298D: Science and Strategy of AI</div>
       <h1>Week 6: Tiny LLM Lab</h1>
-      <div class="subtitle">Explore word embeddings, analogies, next-token predictions, and why more data and more training change language-model behavior.</div>
+      <div class="subtitle">Use real word embeddings and pretrained tiny Yelp language models to inspect embedding math, next-token prediction, and short generation.</div>
     </div>
   </header>
 
   <main id="root"></main>
 
   <script type="text/babel">
-    const API = "";
     const { useEffect, useState } = React;
 
     async function postJson(path, body) {
-      const response = await fetch(`${API}${path}`, {
+      const response = await fetch(path, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -294,16 +298,16 @@
       const max = Math.max(...rows.map((r) => tokenMode ? r.probability : r.similarity), 0.01);
       return (
         <div className="list">
-          {rows.map((row) => {
+          {rows.map((row, i) => {
             const value = tokenMode ? row.probability : row.similarity;
             const label = tokenMode ? row.token : row.word;
-            const rank = row.rank || rows.indexOf(row) + 1;
+            const width = Math.max(2, (value / max) * 100);
             return (
-              <div className={`item ${tokenMode ? "token" : ""}`} key={label}>
-                <span className="rank">#{rank}</span>
+              <div className={`item ${tokenMode ? "token" : ""}`} key={`${label}-${i}`}>
+                <span className="rank">#{row.rank || i + 1}</span>
                 <strong>{label}</strong>
-                <div className="bar"><div className="fill" style={{ width: `${(value / max) * 100}%` }} /></div>
-                <span>{value.toFixed(2)}</span>
+                <div className="bar"><div className="fill" style={{ width: `${width}%` }} /></div>
+                <span>{value.toFixed(3)}</span>
               </div>
             );
           })}
@@ -311,7 +315,17 @@
       );
     }
 
-    function EmbeddingsTab() {
+    function ModelSelect({ model, setModel }) {
+      return (
+        <select value={model} onChange={(e) => setModel(e.target.value)}>
+          <option value="10k_1epoch">10,000 reviews, 1 epoch</option>
+          <option value="500k_1epoch">500,000 reviews, 1 epoch</option>
+          <option value="500k_5epochs">500,000 reviews, 5 epochs</option>
+        </select>
+      );
+    }
+
+    function EmbeddingMath() {
       const [word, setWord] = useState("king");
       const [nearest, setNearest] = useState(null);
       const [a, setA] = useState("king");
@@ -320,43 +334,44 @@
       const [limit, setLimit] = useState(5);
       const [analogy, setAnalogy] = useState(null);
       const [status, setStatus] = useState("");
+      const [busy, setBusy] = useState(false);
 
       async function runNearest() {
         try {
-          setStatus("");
-          const data = await postJson("/api/nearest", { word });
+          setBusy(true); setStatus("");
+          const data = await postJson("/api/nearest", { word, limit });
           setNearest(data);
         } catch (err) {
           setStatus(err.message);
+        } finally {
+          setBusy(false);
         }
       }
 
       async function runAnalogy() {
         try {
-          setStatus("");
+          setBusy(true); setStatus("");
           const data = await postJson("/api/analogy", { a, b, c, limit });
           setAnalogy(data);
         } catch (err) {
           setStatus(err.message);
+        } finally {
+          setBusy(false);
         }
       }
 
-      useEffect(() => {
-        runNearest();
-        runAnalogy();
-      }, []);
+      useEffect(() => { runNearest(); runAnalogy(); }, []);
 
       return (
         <div className="grid">
           <section className="panel">
-            <h2>Word Embeddings</h2>
-            <p>Embeddings place words in a vector space. Nearby words have similar contexts or meanings.</p>
+            <h2>Embedding Math</h2>
+            <p>Use real word vectors to find nearby words and compute analogies like A + B - C.</p>
+            <label>Nearest neighbors</label>
+            <input value={word} onChange={(e) => setWord(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") runNearest(); }} />
+            <button onClick={runNearest} disabled={busy}>Find Neighbors</button>
 
-            <label>Find nearest neighbors</label>
-            <input value={word} onChange={(e) => setWord(e.target.value)} />
-            <button onClick={runNearest}>Find Neighbors</button>
-
-            <label>Analogy</label>
+            <label>Embedding math: A + B - C</label>
             <div className="row">
               <input value={a} onChange={(e) => setA(e.target.value)} />
               <input value={b} onChange={(e) => setB(e.target.value)} />
@@ -367,8 +382,9 @@
               <option value={5}>Top 5</option>
               <option value={10}>Top 10</option>
             </select>
-            <button className="secondary" onClick={runAnalogy}>Compute A + B - C</button>
-            <div className={`status ${status ? "error" : ""}`}>{status}</div>
+            <button className="secondary" onClick={runAnalogy} disabled={busy}>Compute A + B - C</button>
+            <div className={`status ${status ? "error" : ""}`}>{status || (busy ? "Loading..." : "")}</div>
+            <div className="source">{analogy?.source || nearest?.source || ""}</div>
           </section>
 
           <section>
@@ -378,8 +394,8 @@
               <ScoreList rows={nearest?.neighbors} />
             </div>
             <div className="card">
-              <h3>Vector Arithmetic</h3>
-              {analogy && <p><span className="mono">{analogy.formula} = ?</span></p>}
+              <h3>Embedding Math Results</h3>
+              {analogy && <p><span className="mono">{analogy.formula} ≈ ?</span></p>}
               <ScoreList rows={analogy?.results} />
             </div>
           </section>
@@ -387,77 +403,146 @@
       );
     }
 
-    function LmTab() {
+    function NextToken() {
       const [prompt, setPrompt] = useState("the fish tacos were");
+      const [model, setModel] = useState("500k_5epochs");
+      const [topK, setTopK] = useState(10);
       const [data, setData] = useState(null);
       const [status, setStatus] = useState("");
+      const [busy, setBusy] = useState(false);
 
       async function run() {
         try {
-          setStatus("");
-          const result = await postJson("/api/generate", { prompt });
+          setBusy(true); setStatus("");
+          const result = await postJson("/api/llm/next-token", { prompt, model, top_k: topK });
           setData(result);
         } catch (err) {
           setStatus(err.message);
+        } finally {
+          setBusy(false);
         }
       }
 
       useEffect(() => { run(); }, []);
 
       return (
-        <div>
-          <div className="grid">
-            <section className="panel">
-              <h2>Next-Token Prediction</h2>
-              <p>A language model predicts a distribution over the next token, then generates by repeatedly sampling or choosing from that distribution.</p>
-              <label>Prompt</label>
-              <input value={prompt} onChange={(e) => setPrompt(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") run(); }} />
-              <button onClick={run}>Compare Experiments</button>
-              <div className={`status ${status ? "error" : ""}`}>{status}</div>
-            </section>
+        <div className="grid">
+          <section className="panel">
+            <h2>Next Token</h2>
+            <p>The pretrained Tiny LLM predicts a probability distribution over the next token after your prompt.</p>
+            <label>Prompt</label>
+            <input value={prompt} onChange={(e) => setPrompt(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") run(); }} />
+            <label>Pretrained model</label>
+            <ModelSelect model={model} setModel={setModel} />
+            <label>Ranked tokens</label>
+            <select value={topK} onChange={(e) => setTopK(Number(e.target.value))}>
+              <option value={5}>Top 5</option>
+              <option value={10}>Top 10</option>
+            </select>
+            <button onClick={run} disabled={busy}>Predict Next Token</button>
+            <div className={`status ${status ? "error" : ""}`}>{status || (busy ? "Loading model inference..." : "")}</div>
+          </section>
 
-            <section className="panel">
-              <h2>Training Setups</h2>
-              <div className="metric-row">
-                <div className="metric"><div className="value">10k</div><div className="label">reviews, 1 epoch</div></div>
-                <div className="metric"><div className="value">500k</div><div className="label">reviews, 1 epoch</div></div>
-                <div className="metric"><div className="value">5x</div><div className="label">epochs on 500k</div></div>
-              </div>
-              <p>The app shows representative outcomes from the Week 6 training experiments without running heavy training jobs on the web server.</p>
-            </section>
-          </div>
-
-          {data && (
-            <div className="experiment-grid" style={{ marginTop: 16 }}>
-              {data.results.map((result) => (
-                <div className="card" key={result.key}>
-                  <h3>{result.label}</h3>
-                  <div className="metric-row">
-                    <div className="metric"><div className="value">{result.train_loss.toFixed(2)}</div><div className="label">train loss</div></div>
-                    <div className="metric"><div className="value">{result.val_loss.toFixed(2)}</div><div className="label">val loss</div></div>
-                    <div className="metric"><div className="value">{result.top_tokens[0].token}</div><div className="label">top next token</div></div>
-                  </div>
-                  <h3>Top Next Tokens</h3>
-                  <ScoreList rows={result.top_tokens} tokenMode />
-                  <h3 style={{ marginTop: 16 }}>Generated Continuation</h3>
-                  <div className="mono">{result.continuation}</div>
+          <section>
+            <div className="card">
+              <h3>{data?.model?.label || "Model Results"}</h3>
+              {data?.model && (
+                <div className="metric-row">
+                  <div className="metric"><div className="value">{data.model.train_loss?.toFixed(3)}</div><div className="label">train loss</div></div>
+                  <div className="metric"><div className="value">{data.model.val_loss?.toFixed(3)}</div><div className="label">validation loss</div></div>
+                  <div className="metric"><div className="value">{data.top_tokens?.[0]?.token || ""}</div><div className="label">top next token</div></div>
                 </div>
-              ))}
+              )}
+              <ScoreList rows={data?.top_tokens} tokenMode />
             </div>
-          )}
+          </section>
+        </div>
+      );
+    }
+
+    function Generation() {
+      const [prompt, setPrompt] = useState("the fish tacos were");
+      const [model, setModel] = useState("500k_5epochs");
+      const [length, setLength] = useState(20);
+      const [temperature, setTemperature] = useState(0.8);
+      const [data, setData] = useState(null);
+      const [status, setStatus] = useState("");
+      const [busy, setBusy] = useState(false);
+
+      async function run() {
+        try {
+          setBusy(true); setStatus("");
+          const result = await postJson("/api/llm/generate", { prompt, model, length, temperature });
+          setData(result);
+        } catch (err) {
+          setStatus(err.message);
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      useEffect(() => { run(); }, []);
+
+      return (
+        <div className="grid">
+          <section className="panel">
+            <h2>Generation</h2>
+            <p>Generation repeats next-token prediction many times. Temperature controls how adventurous the sampling is.</p>
+            <label>Prompt</label>
+            <input value={prompt} onChange={(e) => setPrompt(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") run(); }} />
+            <label>Pretrained model</label>
+            <ModelSelect model={model} setModel={setModel} />
+            <div className="two">
+              <div>
+                <label>Tokens</label>
+                <select value={length} onChange={(e) => setLength(Number(e.target.value))}>
+                  <option value={8}>8</option>
+                  <option value={20}>20</option>
+                  <option value={40}>40</option>
+                </select>
+              </div>
+              <div>
+                <label>Temperature</label>
+                <select value={temperature} onChange={(e) => setTemperature(Number(e.target.value))}>
+                  <option value={0.5}>0.5</option>
+                  <option value={0.8}>0.8</option>
+                  <option value={1.1}>1.1</option>
+                </select>
+              </div>
+            </div>
+            <button onClick={run} disabled={busy}>Generate Text</button>
+            <div className={`status ${status ? "error" : ""}`}>{status || (busy ? "Generating..." : "")}</div>
+          </section>
+
+          <section>
+            <div className="card">
+              <h3>{data?.model?.label || "Generated Text"}</h3>
+              {data?.model && (
+                <div className="metric-row">
+                  <div className="metric"><div className="value">{data.model.train_loss?.toFixed(3)}</div><div className="label">train loss</div></div>
+                  <div className="metric"><div className="value">{data.model.val_loss?.toFixed(3)}</div><div className="label">validation loss</div></div>
+                  <div className="metric"><div className="value">{temperature}</div><div className="label">temperature</div></div>
+                </div>
+              )}
+              <div className="mono">{data?.text || "No generation yet."}</div>
+            </div>
+          </section>
         </div>
       );
     }
 
     function App() {
-      const [tab, setTab] = useState("lm");
+      const [tab, setTab] = useState("embedding");
       return (
         <>
           <div className="tabs">
-            <button className={`tab ${tab === "lm" ? "active" : ""}`} onClick={() => setTab("lm")}>Tiny LLM</button>
-            <button className={`tab ${tab === "embeddings" ? "active" : ""}`} onClick={() => setTab("embeddings")}>Embeddings</button>
+            <button className={`tab ${tab === "embedding" ? "active" : ""}`} onClick={() => setTab("embedding")}>Embedding Math</button>
+            <button className={`tab ${tab === "next" ? "active" : ""}`} onClick={() => setTab("next")}>Next Token</button>
+            <button className={`tab ${tab === "generation" ? "active" : ""}`} onClick={() => setTab("generation")}>Generation</button>
           </div>
-          {tab === "lm" ? <LmTab /> : <EmbeddingsTab />}
+          {tab === "embedding" && <EmbeddingMath />}
+          {tab === "next" && <NextToken />}
+          {tab === "generation" && <Generation />}
         </>
       );
     }
