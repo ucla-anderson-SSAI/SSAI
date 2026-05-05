@@ -45,6 +45,7 @@ MODEL_LABELS = {
     "500k_1epoch": "500,000 reviews, 1 epoch",
     "500k_20epochs": "500,000 reviews, 20 epochs",
 }
+SPECIAL_LLM_TOKENS = {"", "[unk]", "<unk>", "unk"}
 
 
 def _unit(vec: np.ndarray) -> np.ndarray:
@@ -215,6 +216,25 @@ def tokenize_prompt(prompt: str, key: str) -> List[int]:
     return [word_to_id.get(token, 1) for token in tokens if token]
 
 
+def special_token_ids(vocab: List[str]) -> List[int]:
+    return [
+        idx
+        for idx, token in enumerate(vocab)
+        if str(token).strip().lower() in SPECIAL_LLM_TOKENS
+    ]
+
+
+def mask_special_tokens(probs: np.ndarray, vocab: List[str]) -> np.ndarray:
+    probs = probs.copy()
+    for idx in special_token_ids(vocab):
+        if 0 <= idx < len(probs):
+            probs[idx] = 0
+    total = probs.sum()
+    if total <= 0:
+        raise ValueError("Model produced no valid token probabilities after masking special tokens.")
+    return probs / total
+
+
 def next_token_distribution(prompt: str, key: str, top_k: int = 10):
     load_llm_artifacts()
     tf, _keras_local = load_tf()
@@ -232,9 +252,7 @@ def next_token_distribution(prompt: str, key: str, top_k: int = 10):
 
     logits = model.predict(padded[np.newaxis, :], verbose=0)[0][pred_pos]
     probs = tf.nn.softmax(logits).numpy().astype("float64")
-    probs[0] = 0
-    probs[1] = 0
-    probs = probs / probs.sum()
+    probs = mask_special_tokens(probs, vocab)
     top_ids = np.argsort(probs)[-top_k:][::-1]
     return [
         {"token": vocab[int(i)], "probability": float(probs[int(i)]), "rank": rank + 1}
@@ -262,12 +280,11 @@ def generate_text(prompt: str, key: str, length: int = 20, temperature: float = 
         logits = model.predict(padded[np.newaxis, :], verbose=0)[0][pred_pos]
         logits = logits / temperature
         probs = tf.nn.softmax(logits).numpy().astype("float64")
-        probs[0] = 0
-        probs[1] = 0
-        probs = probs / probs.sum()
+        probs = mask_special_tokens(probs, vocab)
         ids.append(int(rng.choice(len(probs), p=probs)))
 
-    return " ".join(vocab[i] for i in ids if 0 <= i < len(vocab))
+    blocked = set(special_token_ids(vocab))
+    return " ".join(vocab[i] for i in ids if 0 <= i < len(vocab) and i not in blocked)
 
 
 def model_summary(key: str):
