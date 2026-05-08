@@ -97,6 +97,109 @@
       margin-top: 22px;
     }
 
+    .submission-portal {
+      margin-top: 22px;
+      border: 1px solid rgba(39, 116, 174, 0.55);
+      border-bottom: 5px solid var(--ucla-gold);
+      border-radius: 8px;
+      padding: 18px;
+      background: var(--white);
+      box-shadow: 0 8px 22px rgba(31, 41, 51, 0.07);
+    }
+
+    .submission-portal h2 {
+      margin-bottom: 14px;
+    }
+
+    .submission-form {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      align-items: end;
+    }
+
+    .form-field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .form-field.full-width {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      color: var(--ink);
+      font-size: var(--text-small);
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    input,
+    select {
+      width: 100%;
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: var(--white);
+      font: inherit;
+      font-size: var(--text-base);
+    }
+
+    input[type="file"] {
+      padding: 8px;
+    }
+
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--ucla-blue);
+      box-shadow: 0 0 0 3px rgba(39, 116, 174, 0.18);
+    }
+
+    .submit-row {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .submit-button {
+      min-height: 44px;
+      border: 1px solid var(--ucla-blue);
+      border-radius: 6px;
+      padding: 10px 16px;
+      color: var(--white);
+      background: var(--ucla-blue);
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .submit-button:hover,
+    .submit-button:focus-visible {
+      background: #00598c;
+    }
+
+    .submit-button:disabled {
+      cursor: wait;
+      opacity: 0.68;
+    }
+
+    .submit-button:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(39, 116, 174, 0.28);
+    }
+
+    .form-status {
+      margin: 0;
+      color: var(--muted);
+      font-size: var(--text-small);
+      line-height: 1.4;
+    }
+
     .section {
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -282,6 +385,10 @@
         padding: 18px;
       }
 
+      .submission-form {
+        grid-template-columns: 1fr;
+      }
+
       .section-toggle {
         min-height: 72px;
         padding: 16px 14px;
@@ -304,6 +411,41 @@
       <span class="course-code">MGMT298D</span>
       <h1>The Science and Strategy of Artificial Intelligence</h1>
     </header>
+
+    <section class="submission-portal" aria-label="Assignment submissions">
+      <h2>Assignment Submissions</h2>
+      <form class="submission-form" data-submission-endpoint="/submit" method="post" enctype="multipart/form-data">
+        <div class="form-field">
+          <label for="submission-assignment">Assignment</label>
+          <select id="submission-assignment" name="assignment" required>
+            <option value="">Select assignment</option>
+            <option value="Product Sprint">Product Sprint</option>
+            <option value="Week 1">Week 1</option>
+            <option value="Week 2">Week 2</option>
+            <option value="Week 3">Week 3</option>
+            <option value="Week 4">Week 4</option>
+            <option value="Week 5">Week 5</option>
+            <option value="Week 6">Week 6</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label for="student-name">Student name</label>
+          <input id="student-name" name="student_name" type="text" autocomplete="name" required>
+        </div>
+        <div class="form-field">
+          <label for="student-email">UCLA email</label>
+          <input id="student-email" name="student_email" type="email" autocomplete="email" required>
+        </div>
+        <div class="form-field">
+          <label for="submission-file">PDF file</label>
+          <input id="submission-file" name="submission_pdf" type="file" accept="application/pdf,.pdf" required>
+        </div>
+        <div class="submit-row">
+          <button class="submit-button" type="submit">Submit PDF</button>
+          <p class="form-status" role="status" aria-live="polite"></p>
+        </div>
+      </form>
+    </section>
 
     <section class="grid" aria-label="Course resources">
       <article class="section">
@@ -427,6 +569,54 @@
   </main>
   <script>
     document.documentElement.classList.add("js");
+
+    const submissionForm = document.querySelector(".submission-form");
+    if (submissionForm) {
+      const status = submissionForm.querySelector(".form-status");
+      const fileInput = submissionForm.querySelector('input[type="file"]');
+
+      submissionForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const endpoint = submissionForm.dataset.submissionEndpoint;
+        const file = fileInput.files[0];
+        const isPdf = file && (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf"));
+        const submitButton = submissionForm.querySelector(".submit-button");
+
+        if (!isPdf) {
+          status.textContent = "Please choose a PDF file before submitting.";
+          fileInput.focus();
+          return;
+        }
+
+        if (!endpoint) {
+          status.textContent = "Submissions are not open yet.";
+          return;
+        }
+
+        status.textContent = "Uploading...";
+        submitButton.disabled = true;
+
+        try {
+          const response = await fetch(endpoint, {
+            method: "POST",
+            body: new FormData(submissionForm),
+          });
+          const result = await response.json();
+
+          if (!response.ok || !result.ok) {
+            throw new Error(result.detail || "Upload failed.");
+          }
+
+          submissionForm.reset();
+          status.textContent = "Submission received.";
+        } catch (error) {
+          status.textContent = error.message || "Upload failed. Please try again.";
+        } finally {
+          submitButton.disabled = false;
+        }
+      });
+    }
 
     document.querySelectorAll(".section").forEach((section, index) => {
       const heading = section.querySelector("h2");
