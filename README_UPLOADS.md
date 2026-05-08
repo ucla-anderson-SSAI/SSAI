@@ -1,15 +1,15 @@
-# MGMT298D Course Site Upload Backend
+# Assignment Upload Backend
 
-This FastAPI app serves the root course `index.html` and accepts private PDF assignment submissions at `/submit`.
+This repo can now be deployed as a FastAPI app that serves the course website and accepts private PDF submissions at `/submit`.
 
-## Local Run
+## Run Locally
 
 ```bash
-cd /path/to/SSAI
-python -m uvicorn Apps.course_site.main:app --reload
+python -m pip install -r requirements.txt
+python -m uvicorn main:app --reload
 ```
 
-Open `http://127.0.0.1:8000`.
+Then open `http://127.0.0.1:8000`.
 
 ## Production Settings
 

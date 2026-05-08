@@ -10,17 +10,16 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 
-APP_DIR = Path(__file__).resolve().parent
-REPO_ROOT = APP_DIR.parents[1]
-SUBMISSION_DIR = Path(os.getenv("SUBMISSION_STORAGE_DIR", REPO_ROOT / "private_submissions")).resolve()
+BASE_DIR = Path(__file__).resolve().parent
+SUBMISSION_DIR = Path(os.getenv("SUBMISSION_STORAGE_DIR", BASE_DIR / "private_submissions")).resolve()
 MAX_UPLOAD_BYTES = int(os.getenv("MAX_UPLOAD_BYTES", str(25 * 1024 * 1024)))
 ADMIN_TOKEN = os.getenv("SUBMISSION_ADMIN_TOKEN", "")
 
 PUBLIC_DIRS = {
-    "Assignments": REPO_ROOT / "Assignments",
-    "Slides": REPO_ROOT / "Slides",
-    "Notebooks": REPO_ROOT / "Notebooks",
-    "Simulation Demos": REPO_ROOT / "Simulation Demos",
+    "Assignments": BASE_DIR / "Assignments",
+    "Slides": BASE_DIR / "Slides",
+    "Notebooks": BASE_DIR / "Notebooks",
+    "Simulation Demos": BASE_DIR / "Simulation Demos",
 }
 
 app = FastAPI(title="MGMT298D Course Site")
@@ -65,7 +64,7 @@ def ensure_storage_dir() -> None:
 
 @app.get("/")
 def home() -> FileResponse:
-    return FileResponse(REPO_ROOT / "index.html")
+    return FileResponse(BASE_DIR / "index.html")
 
 
 @app.get("/health")
