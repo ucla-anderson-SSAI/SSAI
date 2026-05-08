@@ -177,9 +177,13 @@
       line-height: 1;
     }
 
+    .section.is-open .section-toggle {
+      border-bottom-color: var(--line);
+    }
+
     .section.is-open .section-toggle-icon {
       transform: rotate(45deg);
-      background: rgba(255, 209, 0, 0.3);
+      background: rgba(39, 116, 174, 0.12);
     }
 
     .js .section-panel {
@@ -451,18 +455,13 @@
       const button = document.createElement("button");
       button.className = "section-toggle";
       button.type = "button";
-      button.setAttribute("aria-expanded", index === 1 ? "true" : "false");
+      button.setAttribute("aria-expanded", "false");
       button.setAttribute("aria-controls", panel.id);
       button.innerHTML = `<span>${heading.textContent}</span><span class="section-toggle-icon" aria-hidden="true"></span>`;
 
       heading.textContent = "";
       heading.appendChild(button);
       section.appendChild(panel);
-
-      if (index === 1) {
-        section.classList.add("is-open");
-        panel.style.maxHeight = `${panel.scrollHeight}px`;
-      }
 
       button.addEventListener("click", () => {
         const isOpen = section.classList.toggle("is-open");
