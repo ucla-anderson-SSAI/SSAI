@@ -412,22 +412,10 @@
       <h1>The Science and Strategy of Artificial Intelligence</h1>
     </header>
 
-    <section class="submission-portal" aria-label="Assignment submissions">
-      <h2>Assignment Submissions</h2>
+    <section class="submission-portal" aria-label="Assignment 6 submission">
+      <h2>Assignment 6 Submission</h2>
       <form class="submission-form" data-submission-endpoint="/submit" method="post" enctype="multipart/form-data">
-        <div class="form-field">
-          <label for="submission-assignment">Assignment</label>
-          <select id="submission-assignment" name="assignment" required>
-            <option value="">Select assignment</option>
-            <option value="Product Sprint">Product Sprint</option>
-            <option value="Week 1">Week 1</option>
-            <option value="Week 2">Week 2</option>
-            <option value="Week 3">Week 3</option>
-            <option value="Week 4">Week 4</option>
-            <option value="Week 5">Week 5</option>
-            <option value="Week 6">Week 6</option>
-          </select>
-        </div>
+        <input type="hidden" name="assignment" value="Assignment 6">
         <div class="form-field">
           <label for="student-name">Student name</label>
           <input id="student-name" name="student_name" type="text" autocomplete="name" required>
@@ -441,7 +429,7 @@
           <input id="submission-file" name="submission_pdf" type="file" accept="application/pdf,.pdf" required>
         </div>
         <div class="submit-row">
-          <button class="submit-button" type="submit">Submit PDF</button>
+          <button class="submit-button" type="submit">Submit Assignment 6 PDF</button>
           <p class="form-status" role="status" aria-live="polite"></p>
         </div>
       </form>
