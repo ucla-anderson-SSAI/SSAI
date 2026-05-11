@@ -270,6 +270,20 @@
 
     .resource-list a {
       color: var(--darkest-blue);
+      text-decoration: none;
+    }
+
+    .resource-list a:hover,
+    .resource-list a:focus {
+      text-decoration: underline;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
+    }
+
+    .resource-kind {
+      color: var(--ucla-blue);
+      font-weight: 700;
+      letter-spacing: 0.01em;
     }
 
     .team {
@@ -371,9 +385,9 @@
       </div>
     </section>
 
-    <section class="section-band" aria-labelledby="weekly-materials-heading">
+    <section class="section-band" aria-labelledby="weekly-modules-heading">
       <div class="section-heading">
-        <h2 id="weekly-materials-heading">Weekly Materials</h2>
+        <h2 id="weekly-modules-heading">Weekly Modules</h2>
       </div>
       <div class="week-list">
         <article class="week-module">
@@ -384,14 +398,14 @@
           </button>
           <div class="week-content">
             <ul class="resource-list">
-              <li><a href="Slides/Week%201/Week%201%20Slides.pdf" target="_blank" rel="noopener">Lecture Slides</a></li>
-              <li><a href="Assignments/Week1_Assignment.pdf" target="_blank" rel="noopener">Assignment Instructions</a></li>
-              <li><a href="https://ucla-ssai-week1.up.railway.app/" target="_blank" rel="noopener">Assignment App</a></li>
-              <li><a href="https://colab.research.google.com/github/ucla-anderson-SSAI/SSAI/blob/main/Notebooks/Week1.ipynb" target="_blank" rel="noopener">Colab Notebook</a></li>
-              <li><a href="https://bruinlearn.ucla.edu/courses/226742/files/24124873?wrap=1" target="_blank" rel="noopener">Case: Demand Forecasting at H&amp;M</a></li>
-              <li><a href="Slides/Week%201/H%26M,%20a%20Fashion%20Giant,%20Has%20a%20Problem_%20%244.3%20Billion%20in%20Unsold%20Clothes%20-%20The%20New%20York%20Times.pdf" target="_blank" rel="noopener">Article: H&amp;M, a Fashion Giant, Has a Problem [NYT]</a></li>
-              <li><a href="Slides/Week%201/wsj.com-HM%20Pivots%20to%20Big%20Data%20to%20Spot%20Next%20Big%20Fast-Fashion%20Trends.pdf" target="_blank" rel="noopener">Article: H&amp;M Pivots to Big Data [WSJ]</a></li>
-              <li><a href="https://ucla-anderson.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=a689c669-127b-4d73-8af6-b4030052d071" target="_blank" rel="noopener">Lecture Recording</a></li>
+              <li><a href="Slides/Week%201/Week%201%20Slides.pdf" target="_blank" rel="noopener"><span class="resource-kind">[Slides]</span> Course Introduction; Foundations of Machine Learning</a></li>
+              <li><a href="Assignments/Week1_Assignment.pdf" target="_blank" rel="noopener"><span class="resource-kind">[Assignment]</span> Demand Forecasting at H&amp;M</a></li>
+              <li><a href="https://ucla-ssai-week1.up.railway.app/" target="_blank" rel="noopener"><span class="resource-kind">[Web App]</span> Demand Forecasting at H&amp;M</a></li>
+              <li><a href="https://colab.research.google.com/github/ucla-anderson-SSAI/SSAI/blob/main/Notebooks/Week1.ipynb" target="_blank" rel="noopener"><span class="resource-kind">[Notebook]</span> Linear Regression, Feature Engineering, and Regularization</a></li>
+              <li><a href="https://bruinlearn.ucla.edu/courses/226742/files/24124873?wrap=1" target="_blank" rel="noopener"><span class="resource-kind">[Case]</span> Demand Forecasting at H&amp;M</a></li>
+              <li><a href="Slides/Week%201/H%26M,%20a%20Fashion%20Giant,%20Has%20a%20Problem_%20%244.3%20Billion%20in%20Unsold%20Clothes%20-%20The%20New%20York%20Times.pdf" target="_blank" rel="noopener"><span class="resource-kind">[Article]</span> H&amp;M, a Fashion Giant, Has a Problem (New York Times)</a></li>
+              <li><a href="Slides/Week%201/wsj.com-HM%20Pivots%20to%20Big%20Data%20to%20Spot%20Next%20Big%20Fast-Fashion%20Trends.pdf" target="_blank" rel="noopener"><span class="resource-kind">[Article]</span> H&amp;M Pivots to Big Data (Wall Street Journal)</a></li>
+              <li><a href="https://ucla-anderson.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=a689c669-127b-4d73-8af6-b4030052d071" target="_blank" rel="noopener"><span class="resource-kind">[Recording]</span> Lecture 1</a></li>
             </ul>
           </div>
         </article>
@@ -404,14 +418,14 @@
           </button>
           <div class="week-content">
             <ul class="resource-list">
-              <li><a href="Slides/Week%202/Week%202%20Slides.pdf" target="_blank" rel="noopener">Lecture Slides</a></li>
-              <li><a href="Assignments/Week2_Assignment.pdf" target="_blank" rel="noopener">Assignment Instructions</a></li>
-              <li><a href="https://ucla-ssai-week2.up.railway.app/" target="_blank" rel="noopener">Assignment App</a></li>
-              <li><a href="https://colab.research.google.com/github/ucla-anderson-SSAI/SSAI/blob/main/Notebooks/Week2.ipynb" target="_blank" rel="noopener">Colab Notebook</a></li>
-              <li><a href="https://bruinlearn.ucla.edu/courses/226742/files/24188340?wrap=1" target="_blank" rel="noopener">Case: Algorithmic Pricing: Carvana and Zillow</a></li>
-              <li><a href="Simulation%20Demos/Week%202%20-%20Regression%20Tree%20Splits.html" target="_blank" rel="noopener">Demo: Regression Tree Splits</a></li>
-              <li><a href="Slides/Week%202/Zillows%20home-buying%20debacle%20shows%20how%20hard%20it%20is%20to%20use%20AI%20to%20value%20real%20estate.pdf" target="_blank" rel="noopener">Article: Zillow's Home Buying Debacle [CNN]</a></li>
-              <li><a href="https://ucla-anderson.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=25af08ef-df96-4f2a-ad6f-b4030053df48" target="_blank" rel="noopener">Lecture Recording</a></li>
+              <li><a href="Slides/Week%202/Week%202%20Slides.pdf" target="_blank" rel="noopener"><span class="resource-kind">[Slides]</span> Tree-Based Models: CART, Random Forests, XGBoost</a></li>
+              <li><a href="Assignments/Week2_Assignment.pdf" target="_blank" rel="noopener"><span class="resource-kind">[Assignment]</span> Range Rover Pricing</a></li>
+              <li><a href="https://ucla-ssai-week2.up.railway.app/" target="_blank" rel="noopener"><span class="resource-kind">[Web App]</span> Range Rover Pricing</a></li>
+              <li><a href="https://colab.research.google.com/github/ucla-anderson-SSAI/SSAI/blob/main/Notebooks/Week2.ipynb" target="_blank" rel="noopener"><span class="resource-kind">[Notebook]</span> XGBoost &amp; Hyperparameter Tuning</a></li>
+              <li><a href="https://bruinlearn.ucla.edu/courses/226742/files/24188340?wrap=1" target="_blank" rel="noopener"><span class="resource-kind">[Case]</span> Algorithmic Pricing: Carvana and Zillow</a></li>
+              <li><a href="Simulation%20Demos/Week%202%20-%20Regression%20Tree%20Splits.html" target="_blank" rel="noopener"><span class="resource-kind">[Demo]</span> Regression Tree Splits</a></li>
+              <li><a href="Slides/Week%202/Zillows%20home-buying%20debacle%20shows%20how%20hard%20it%20is%20to%20use%20AI%20to%20value%20real%20estate.pdf" target="_blank" rel="noopener"><span class="resource-kind">[Article]</span> Zillow's Home Buying Debacle (CNN)</a></li>
+              <li><a href="https://ucla-anderson.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=25af08ef-df96-4f2a-ad6f-b4030053df48" target="_blank" rel="noopener"><span class="resource-kind">[Recording]</span> Lecture 2</a></li>
             </ul>
           </div>
         </article>
@@ -424,14 +438,14 @@
           </button>
           <div class="week-content">
             <ul class="resource-list">
-              <li><a href="Slides/Week%203/Week%203%20Slides.pdf" target="_blank" rel="noopener">Lecture Slides</a></li>
-              <li><a href="Assignments/Week3_Assignment.pdf" target="_blank" rel="noopener">Assignment Instructions</a></li>
-              <li><a href="https://ucla-ssai-week3.up.railway.app/" target="_blank" rel="noopener">Assignment App</a></li>
-              <li><a href="https://bruinlearn.ucla.edu/courses/226742/files/24262753?wrap=1" target="_blank" rel="noopener">Case: Adaptive Experimentation: Amazon and Alibaba</a></li>
-              <li><a href="Simulation%20Demos/Week%203%20-%20Bandits%20and%20QLearning.html" target="_blank" rel="noopener">Demo: Bandits and Q-Learning</a></li>
-              <li><a href="Slides/Week%203/its-time-for-businesses-to-chart-a-course-for-reinforcement-learning.pdf" target="_blank" rel="noopener">Article: Chart a Course for Reinforcement Learning [McKinsey]</a></li>
-              <li><a href="Slides/Week%203/Starting%20on%20the%20Right%20Foot%20with%20Reinforcement%20Learning%20_%20Boston%20Dynamics.pdf" target="_blank" rel="noopener">Article: Starting Off on the Right Foot [Boston Dynamics]</a></li>
-              <li><a href="https://ucla-anderson.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=aa44e9a2-b79b-43d1-90c6-b4030055070b" target="_blank" rel="noopener">Lecture Recording</a></li>
+              <li><a href="Slides/Week%203/Week%203%20Slides.pdf" target="_blank" rel="noopener"><span class="resource-kind">[Slides]</span> Reinforcement Learning</a></li>
+              <li><a href="Assignments/Week3_Assignment.pdf" target="_blank" rel="noopener"><span class="resource-kind">[Assignment]</span> Airline Revenue Management</a></li>
+              <li><a href="https://ucla-ssai-week3.up.railway.app/" target="_blank" rel="noopener"><span class="resource-kind">[Web App]</span> Airline Revenue Management</a></li>
+              <li><a href="https://bruinlearn.ucla.edu/courses/226742/files/24262753?wrap=1" target="_blank" rel="noopener"><span class="resource-kind">[Case]</span> Adaptive Experimentation: Amazon and Alibaba</a></li>
+              <li><a href="Simulation%20Demos/Week%203%20-%20Bandits%20and%20QLearning.html" target="_blank" rel="noopener"><span class="resource-kind">[Demo]</span> Bandits and Q-Learning</a></li>
+              <li><a href="Slides/Week%203/its-time-for-businesses-to-chart-a-course-for-reinforcement-learning.pdf" target="_blank" rel="noopener"><span class="resource-kind">[Article]</span> Chart a Course for Reinforcement Learning (McKinsey)</a></li>
+              <li><a href="Slides/Week%203/Starting%20on%20the%20Right%20Foot%20with%20Reinforcement%20Learning%20_%20Boston%20Dynamics.pdf" target="_blank" rel="noopener"><span class="resource-kind">[Article]</span> Starting Off on the Right Foot (Boston Dynamics)</a></li>
+              <li><a href="https://ucla-anderson.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=aa44e9a2-b79b-43d1-90c6-b4030055070b" target="_blank" rel="noopener"><span class="resource-kind">[Recording]</span> Lecture 3</a></li>
             </ul>
           </div>
         </article>
@@ -444,15 +458,15 @@
           </button>
           <div class="week-content">
             <ul class="resource-list">
-              <li><a href="Slides/Week%204/Week%204%20Slides.pdf" target="_blank" rel="noopener">Lecture Slides</a></li>
-              <li><a href="Assignments/Week4_Assignment.pdf" target="_blank" rel="noopener">Assignment Instructions</a></li>
-              <li><a href="https://ucla-ssai-week4.up.railway.app/" target="_blank" rel="noopener">Assignment App</a></li>
-              <li><a href="https://colab.research.google.com/github/ucla-anderson-SSAI/SSAI/blob/main/Notebooks/Week4.ipynb" target="_blank" rel="noopener">Colab Notebook</a></li>
-              <li><a href="Simulation%20Demos/Week%204%20-%20Gradient%20Descent.html" target="_blank" rel="noopener">Demo: Gradient Descent Simulation</a></li>
-              <li><a href="https://playground.tensorflow.org/" target="_blank" rel="noopener">Demo: TensorFlow Playground</a></li>
-              <li><a href="Slides/Week%204/navydevice1958.pdf" target="_blank" rel="noopener">Article: New Navy Device Learns by Doing [NYT, 1958]</a></li>
-              <li><a href="Slides/Week%204/Learning%20representations%20by%20back-propagating%20errors.pdf" target="_blank" rel="noopener">Article: Learning Representations by Back-Propagating Errors [Nature]</a></li>
-              <li><a href="https://ucla-anderson.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=c1032d8f-56d3-41f4-962b-b40300560114" target="_blank" rel="noopener">Lecture Recording</a></li>
+              <li><a href="Slides/Week%204/Week%204%20Slides.pdf" target="_blank" rel="noopener"><span class="resource-kind">[Slides]</span> Neural Networks</a></li>
+              <li><a href="Assignments/Week4_Assignment.pdf" target="_blank" rel="noopener"><span class="resource-kind">[Assignment]</span> Handwritten Digit Recognition</a></li>
+              <li><a href="https://ucla-ssai-week4.up.railway.app/" target="_blank" rel="noopener"><span class="resource-kind">[Web App]</span> Handwritten Digit Recognition</a></li>
+              <li><a href="https://colab.research.google.com/github/ucla-anderson-SSAI/SSAI/blob/main/Notebooks/Week4.ipynb" target="_blank" rel="noopener"><span class="resource-kind">[Notebook]</span> Neural Networks</a></li>
+              <li><a href="Simulation%20Demos/Week%204%20-%20Gradient%20Descent.html" target="_blank" rel="noopener"><span class="resource-kind">[Demo]</span> Gradient Descent Simulation</a></li>
+              <li><a href="https://playground.tensorflow.org/" target="_blank" rel="noopener"><span class="resource-kind">[Demo]</span> TensorFlow Playground</a></li>
+              <li><a href="Slides/Week%204/navydevice1958.pdf" target="_blank" rel="noopener"><span class="resource-kind">[Article]</span> New Navy Device Learns by Doing (New York Times, 1958)</a></li>
+              <li><a href="Slides/Week%204/Learning%20representations%20by%20back-propagating%20errors.pdf" target="_blank" rel="noopener"><span class="resource-kind">[Article]</span> Learning Representations by Back-Propagating Errors (Nature)</a></li>
+              <li><a href="https://ucla-anderson.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=c1032d8f-56d3-41f4-962b-b40300560114" target="_blank" rel="noopener"><span class="resource-kind">[Recording]</span> Lecture 4</a></li>
             </ul>
           </div>
         </article>
@@ -465,13 +479,13 @@
           </button>
           <div class="week-content">
             <ul class="resource-list">
-              <li><a href="Slides/Week%205/Week%205%20Slides.pdf" target="_blank" rel="noopener">Lecture Slides</a></li>
-              <li><a href="Assignments/Week5_Assignment.pdf" target="_blank" rel="noopener">Assignment Instructions</a></li>
-              <li><a href="https://ucla-ssai-week5.up.railway.app/" target="_blank" rel="noopener">Assignment App</a></li>
-              <li><a href="https://colab.research.google.com/github/ucla-anderson-SSAI/SSAI/blob/main/Notebooks/Week5A.ipynb" target="_blank" rel="noopener">Colab Notebook A</a></li>
-              <li><a href="https://colab.research.google.com/github/ucla-anderson-SSAI/SSAI/blob/main/Notebooks/Week5B.ipynb" target="_blank" rel="noopener">Colab Notebook B</a></li>
-              <li><a href="Slides/Week%205/Inside%20Ralph%20Lauren%E2%80%99s%20new%20white-label%20AI%20styling%20tool%20_%20Vogue.pdf" target="_blank" rel="noopener">Article: Inside Ralph Lauren's AI Styling Tool [Vogue]</a></li>
-              <li><a href="https://ucla-anderson.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=1d3629ab-17ce-4e8c-8d8a-b4030057020c" target="_blank" rel="noopener">Lecture Recording</a></li>
+              <li><a href="Slides/Week%205/Week%205%20Slides.pdf" target="_blank" rel="noopener"><span class="resource-kind">[Slides]</span> Computer Vision and Convolutional Neural Networks</a></li>
+              <li><a href="Assignments/Week5_Assignment.pdf" target="_blank" rel="noopener"><span class="resource-kind">[Assignment]</span> Image Recognition</a></li>
+              <li><a href="https://ucla-ssai-week5.up.railway.app/" target="_blank" rel="noopener"><span class="resource-kind">[Web App]</span> Image Recognition</a></li>
+              <li><a href="https://colab.research.google.com/github/ucla-anderson-SSAI/SSAI/blob/main/Notebooks/Week5A.ipynb" target="_blank" rel="noopener"><span class="resource-kind">[Notebook]</span> Convolutional Filters</a></li>
+              <li><a href="https://colab.research.google.com/github/ucla-anderson-SSAI/SSAI/blob/main/Notebooks/Week5B.ipynb" target="_blank" rel="noopener"><span class="resource-kind">[Notebook]</span> Transfer Learning</a></li>
+              <li><a href="Slides/Week%205/Inside%20Ralph%20Lauren%E2%80%99s%20new%20white-label%20AI%20styling%20tool%20_%20Vogue.pdf" target="_blank" rel="noopener"><span class="resource-kind">[Article]</span> Inside Ralph Lauren's AI Styling Tool (Vogue)</a></li>
+              <li><a href="https://ucla-anderson.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=1d3629ab-17ce-4e8c-8d8a-b4030057020c" target="_blank" rel="noopener"><span class="resource-kind">[Recording]</span> Lecture 5</a></li>
             </ul>
           </div>
         </article>
@@ -484,12 +498,12 @@
           </button>
           <div class="week-content">
             <ul class="resource-list">
-              <li><a href="Slides/Week%206/Week%206%20Slides.pdf" target="_blank" rel="noopener">Lecture Slides</a></li>
-              <li><a href="Assignments/Week6_Assignment.pdf" target="_blank" rel="noopener">Assignment Instructions</a></li>
-              <li><a href="https://ucla-ssai-week6.up.railway.app/" target="_blank" rel="noopener">Assignment App</a></li>
-              <li><a href="https://colab.research.google.com/github/ucla-anderson-SSAI/SSAI/blob/main/Notebooks/Week6.ipynb" target="_blank" rel="noopener">Colab Notebook</a></li>
-              <li><a href="https://projector.tensorflow.org/" target="_blank" rel="noopener">Demo: Embedding Projector</a></li>
-              <li><a href="https://ucla-anderson.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=2e6da9f4-4e15-4682-b7e0-b4030057dbda" target="_blank" rel="noopener">Lecture Recording</a></li>
+              <li><a href="Slides/Week%206/Week%206%20Slides.pdf" target="_blank" rel="noopener"><span class="resource-kind">[Slides]</span> Transformers and Large Language Models</a></li>
+              <li><a href="Assignments/Week6_Assignment.pdf" target="_blank" rel="noopener"><span class="resource-kind">[Assignment]</span> Yelp Review Generation</a></li>
+              <li><a href="https://ucla-ssai-week6.up.railway.app/" target="_blank" rel="noopener"><span class="resource-kind">[Web App]</span> Yelp Review Generation</a></li>
+              <li><a href="https://colab.research.google.com/github/ucla-anderson-SSAI/SSAI/blob/main/Notebooks/Week6.ipynb" target="_blank" rel="noopener"><span class="resource-kind">[Notebook]</span> Building a Tiny LLM</a></li>
+              <li><a href="https://projector.tensorflow.org/" target="_blank" rel="noopener"><span class="resource-kind">[Demo]</span> Embedding Projector</a></li>
+              <li><a href="https://ucla-anderson.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=2e6da9f4-4e15-4682-b7e0-b4030057dbda" target="_blank" rel="noopener"><span class="resource-kind">[Recording]</span> Lecture 6</a></li>
             </ul>
           </div>
         </article>

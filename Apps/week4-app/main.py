@@ -1,6 +1,6 @@
 import os
 """
-Week 4: Neural Networks - MNIST Digit Classification
+Week 4: Neural Networks - Handwritten Digit Recognition
 FastAPI backend for training and evaluating fully-connected networks on MNIST.
 
 Mirrors the Notebooks/Week4.ipynb setup: a 2,000 train / 500 test subsample
@@ -61,7 +61,7 @@ def _load_xgboost():
 
 
 app = FastAPI(
-    title="Week 4: Neural Networks - MNIST Digit Classification",
+    title="Week 4: Neural Networks - Handwritten Digit Recognition",
     description="Train and evaluate fully-connected networks on a 2k/500 MNIST subsample",
     version="2.0.0",
 )
@@ -218,7 +218,7 @@ async def health_check():
     """Health check endpoint."""
     return {
         "status": "healthy",
-        "service": "Week 4: Neural Networks - MNIST Digit Classification",
+        "service": "Week 4: Neural Networks - Handwritten Digit Recognition",
         "class_names": CLASS_NAMES,
     }
 
