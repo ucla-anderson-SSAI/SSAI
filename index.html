@@ -10,11 +10,11 @@
       --darkest-blue: #003b5c;
       --ucla-gold: #ffd100;
       --lightest-blue: #c3d7ee;
-      --slate: #313339;
+      --slate: #000000;
       --ink: var(--slate);
-      --muted: #5d6068;
-      --line: var(--lightest-blue);
-      --surface: #f4f8fc;
+      --muted: #000000;
+      --line: #d9dee5;
+      --surface: #f7f8fa;
       --white: #ffffff;
       --font-body: Arial, "Helvetica Neue", Helvetica, sans-serif;
       --font-heading: Arial, "Helvetica Neue", Helvetica, sans-serif;
@@ -109,6 +109,7 @@
     }
 
     h2 {
+      font-family: var(--font-title);
       font-size: clamp(1.35rem, 2.3vw, 1.8rem);
       line-height: 1.15;
       font-weight: 700;
@@ -145,7 +146,6 @@
       justify-content: flex-start;
       margin-top: 14px;
       padding: 14px;
-      border-left: 5px solid var(--ucla-blue);
     }
 
     .button-row {
@@ -199,17 +199,17 @@
       gap: 16px;
       align-items: center;
       border: 0;
-      border-left: 5px solid var(--ucla-blue);
-      background: var(--surface);
+      border-bottom: 1px solid var(--line);
+      background: var(--white);
       padding: 16px 18px;
-      color: var(--darkest-blue);
+      color: var(--ink);
       font: inherit;
       text-align: left;
       cursor: pointer;
     }
 
     .week-number {
-      color: var(--ucla-blue);
+      color: var(--muted);
       font-size: 1rem;
       font-weight: 700;
       line-height: 1;
@@ -228,8 +228,8 @@
       display: inline-grid;
       place-items: center;
       border-radius: 50%;
-      color: var(--ucla-blue);
-      background: var(--white);
+      color: var(--muted);
+      background: var(--surface);
       font-size: 1.25rem;
       line-height: 1;
       transition: transform 160ms ease;
@@ -269,7 +269,7 @@
     }
 
     .resource-list a {
-      color: var(--darkest-blue);
+      color: var(--ucla-blue);
       text-decoration: none;
     }
 
@@ -281,7 +281,7 @@
     }
 
     .resource-kind {
-      color: var(--ucla-blue);
+      color: var(--muted);
       font-weight: 700;
       letter-spacing: 0.01em;
     }
@@ -511,11 +511,12 @@
         <article class="week-module">
           <button class="week-toggle" type="button" aria-expanded="false">
             <span class="week-number">Week 7</span>
-            <span class="week-title">Scaling Laws</span>
+            <span class="week-title">LLM Training and Economics</span>
             <span class="toggle-icon" aria-hidden="true"></span>
           </button>
           <div class="week-content">
             <ul class="resource-list">
+              <li><a href="Slides/Week%207/Week7_newnew.pptx" target="_blank" rel="noopener"><span class="resource-kind">[Slides]</span> LLM Training and Economics</a></li>
               <li><a href="Slides/Week%207/blogs.nvidia.com-How%20Scaling%20Laws%20Drive%20Smarter%20More%20Powerful%20AI.pdf" target="_blank" rel="noopener"><span class="resource-kind">[Article]</span> How Scaling Laws Drive Smarter, More Powerful AI (NVIDIA)</a></li>
             </ul>
           </div>
