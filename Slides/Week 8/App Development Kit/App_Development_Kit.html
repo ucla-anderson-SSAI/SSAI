@@ -359,7 +359,7 @@
         <li>The Railway free trial should work for the sprint. It includes credits for up to 30 days. If you want the app to keep running after the trial, upgrade to the Hobby plan, which is $5 per month and includes $5 of usage.</li>
       </ol>
 
-      <h3>5. Install the App’s Dependencies</h3>
+      <h3>5. Install Dependencies</h3>
       <p>
         In Terminal or PowerShell, move into the app kit folder. The exact folder name may differ on your computer.
       </p>
@@ -377,7 +377,7 @@
         This installs the software pieces the starter app needs. It will create a folder called <code>node_modules</code>. Do not edit that folder.
       </p>
 
-      <h3>6. Add Your Gemini API Key Locally</h3>
+      <h3>6. Add Gemini Key Locally</h3>
       <p>
         The app needs your Gemini API key to call Gemini when it runs on your computer. The downloaded kit already includes a local settings file called <code>.env</code>. Open <code>.env</code> and replace <code>your_key_here</code> with your real key. If you do not see the file in Finder or File Explorer, ask Cowork/Codex to open <code>.env</code> for you.
       </p>
@@ -387,14 +387,14 @@ GEMINI_MODEL=gemini-2.5-flash
 PORT=3000</span></pre>
       </div>
 
-      <h2>Phase 2: Prototype the App</h2>
+      <h2>Phase 2: Prototype Locally</h2>
 
-      <h3>7. Define the First Version of the App</h3>
+      <h3>7. Define First Version</h3>
       <p>
         Open <code>AppPlan.md</code> and fill in the app idea section: use case, intended user, user input, model output, model approach, and whether the app needs source material or a dataset. This is your direct instruction to Cowork/Codex about what to build. The purpose is not to design the perfect app on the first try. The purpose is to get something basic working; once the simple version runs, you can iterate with Cowork/Codex to improve the prompt, interface, examples, and source material.
       </p>
 
-      <h3>8. Ask Cowork/Codex to Customize the Starter App</h3>
+      <h3>8. Customize with Cowork/Codex</h3>
       <p>
         The purpose of this step is to observe what it is like to ask for one concrete change, test it, and revise. You do not need to finish the whole product here. Get one useful change working, then keep building later.
       </p>
@@ -420,7 +420,7 @@ PORT=3000</span></pre>
         A system prompt is the instruction that tells the model what role to play, who the user is, what rules to follow, and what format to return. Ask Cowork/Codex to make the system prompt explicit and easy for your team to edit later.
       </p>
 
-      <h3>9. Run the App on Your Computer</h3>
+      <h3>9. Run Locally</h3>
       <div class="terminal">
         <pre><span class="prompt">$</span> npm run dev</pre>
       </div>
@@ -442,7 +442,7 @@ PORT=3000</span></pre>
         The login command opens a browser window. After logging in, return to the terminal.
       </p>
 
-      <h3>11. Create the Railway Project</h3>
+      <h3>11. Create Railway Project</h3>
       <p>Run this from inside the project folder.</p>
       <div class="terminal">
         <pre><span class="prompt">$</span> railway init</pre>
@@ -451,7 +451,7 @@ PORT=3000</span></pre>
         If Railway asks questions, choose your workspace or account, create a new project, and use the current folder as the app.
       </p>
 
-      <h3>12. Add the Gemini Key to Railway</h3>
+      <h3>12. Add Gemini Key</h3>
       <p>
         The <code>.env</code> file works only on your computer. Railway needs its own copy of the key.
       </p>
@@ -460,7 +460,7 @@ PORT=3000</span></pre>
 <span class="prompt">$</span> railway variable set GEMINI_MODEL="gemini-2.5-flash"</pre>
       </div>
 
-      <h3>13. Deploy the App</h3>
+      <h3>13. Deploy</h3>
       <div class="terminal">
         <pre><span class="prompt">$</span> railway up</pre>
       </div>
@@ -476,7 +476,7 @@ PORT=3000</span></pre>
         Railway will give you a free Railway-provided URL. This is the easiest class option and does not require buying or managing a domain. Railway currently documents these as <code>*.up.railway.app</code> URLs. If Railway gives you an option to choose or edit the subdomain, use a short readable name related to your app; otherwise, keep the generated URL.
       </p>
 
-      <h2>Phase 4: Iterate the Product</h2>
+      <h2>Phase 4: Iterate</h2>
 
       <h3>15. Pick One Improvement</h3>
       <p>
