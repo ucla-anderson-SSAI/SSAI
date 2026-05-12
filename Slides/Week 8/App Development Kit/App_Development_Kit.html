@@ -4,14 +4,18 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>App Development Kit</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@700&display=swap" rel="stylesheet">
     <style>
       :root {
-        --blue: #005587;
+        --blue: #2774ae;
+        --dark-blue: #003b5c;
         --gold: #ffd100;
         --black: #000000;
         --gray: #666666;
-        --light: #f4f6f8;
-        --line: #d9dde2;
+        --light: #f7f8fa;
+        --line: #d9dee5;
       }
 
       * {
@@ -21,62 +25,67 @@
       body {
         margin: 0;
         color: var(--black);
-        background: #f7f7f7;
+        background: #ffffff;
         font-family: Arial, Helvetica, sans-serif;
         font-size: 16px;
         line-height: 1.52;
       }
 
       main {
-        max-width: 8.5in;
+        max-width: 1080px;
         margin: 0 auto;
-        background: #ffffff;
-        min-height: 100vh;
-        padding: 0.95in 1in 1in;
+        padding: 34px 24px 44px;
       }
 
       .course-line {
-        color: var(--gray);
-        font-size: 13px;
-        font-style: italic;
+        color: var(--blue);
+        font-size: 0.86rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        line-height: 1.35;
         margin-bottom: 8px;
+        text-transform: uppercase;
       }
 
       .gold-rule {
-        height: 3px;
+        height: 5px;
         width: 100%;
         background: var(--gold);
-        margin-bottom: 22px;
+        margin-bottom: 24px;
       }
 
       h1,
       h2 {
-        color: var(--blue);
-        font-family: Whitney, "Helvetica Neue", Arial, sans-serif;
+        color: var(--dark-blue);
+        font-family: "Whitney Bold", Whitney, "Source Sans 3", "Helvetica Neue", Arial, sans-serif;
         line-height: 1.15;
       }
 
       h1 {
-        font-size: 28px;
-        margin: 0 0 6px;
+        font-size: clamp(1.8rem, 3vw, 3rem);
+        line-height: 1.04;
+        margin: 0 0 8px;
       }
 
       .subtitle {
         color: var(--gray);
-        font-size: 15px;
-        font-style: italic;
-        margin: 0 0 26px;
+        font-size: 1rem;
+        margin: 0 0 34px;
       }
 
       h2 {
-        font-size: 20px;
-        margin: 30px 0 10px;
+        border-bottom: 1px solid var(--line);
+        font-size: clamp(1.35rem, 2.3vw, 1.8rem);
+        line-height: 1.15;
+        margin: 36px 0 14px;
+        padding-bottom: 10px;
       }
 
       h3 {
-        color: var(--blue);
-        font-size: 16px;
-        margin: 22px 0 8px;
+        color: var(--dark-blue);
+        font-size: 1.12rem;
+        line-height: 1.25;
+        margin: 24px 0 8px;
       }
 
       p {
@@ -84,6 +93,13 @@
       }
 
       a {
+        color: var(--dark-blue);
+        text-decoration-thickness: 1px;
+        text-underline-offset: 3px;
+      }
+
+      a:hover,
+      a:focus {
         color: var(--blue);
       }
 
@@ -100,19 +116,22 @@
       .note {
         background: var(--light);
         border-left: 4px solid var(--blue);
-        padding: 13px 15px;
-        margin: 18px 0;
-      }
-
-      .download-box {
-        border: 1px solid var(--line);
-        background: #ffffff;
         padding: 14px 16px;
         margin: 18px 0 24px;
       }
 
+      .download-box {
+        border: 1px solid #f1c400;
+        border-top: 6px solid var(--gold);
+        border-radius: 8px;
+        background: #fffaf0;
+        box-shadow: 0 10px 24px rgba(0, 59, 92, 0.08);
+        padding: 18px 20px;
+        margin: 22px 0 28px;
+      }
+
       .download-box strong {
-        color: var(--blue);
+        color: var(--dark-blue);
         display: block;
         margin-bottom: 4px;
       }
@@ -137,9 +156,9 @@
 
       .agent-instruction {
         background: #f2f5f8;
-        color: var(--blue);
+        color: var(--dark-blue);
         border: 1px solid #d7e1e8;
-        border-left: 4px solid var(--blue);
+        border-left: 4px solid var(--dark-blue);
         border-radius: 6px;
         padding: 13px 16px;
         margin: 12px 0 18px;
@@ -154,7 +173,7 @@
       }
 
       .agent-mark {
-        color: var(--blue);
+        color: var(--dark-blue);
         font-weight: 700;
       }
 
@@ -204,19 +223,20 @@
 
       .link-grid {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 10px;
         margin: 12px 0 20px;
       }
 
       .link-card {
         border: 1px solid var(--line);
-        padding: 11px 12px;
+        border-radius: 8px;
+        padding: 13px 14px;
         background: #ffffff;
       }
 
       .link-card strong {
-        color: var(--blue);
+        color: var(--dark-blue);
         display: block;
         margin-bottom: 2px;
       }
@@ -238,7 +258,7 @@
 
       @media (max-width: 720px) {
         main {
-          padding: 32px 22px;
+          padding: 24px 16px 32px;
         }
 
         .link-grid {
@@ -267,7 +287,7 @@
       </div>
 
       <div class="download-box">
-        <strong>Download the Starter Files</strong>
+        <strong>Download the Kit</strong>
         <p>
           Start by downloading <a href="App_Development_Kit.zip">App_Development_Kit.zip</a>. Unzip it, place the folder on your Desktop, and rename the folder <code>myapp</code>.
         </p>
@@ -408,12 +428,6 @@ PORT=3000</span></pre>
         <pre><span class="agent-mark">&gt;</span> Read AppPlan.md and App_Development_Kit.html. Customize this starter app for the app idea. Build the simplest working version first. Update the visible text, sample question, system prompt, and response format. Keep the app deployable on Railway.</pre>
       </div>
       <p>
-        If your app should answer from specific documents, ask for RAG explicitly:
-      </p>
-      <div class="agent-instruction">
-        <pre><span class="agent-mark">&gt;</span> This should be a RAG app. Use docs/knowledge_base.md as the source material. Retrieve relevant chunks, add them to the model prompt, and make the answer clear when it is using supplied source material. If the documents do not answer the question, say so.</pre>
-      </div>
-      <p>
         Then try one specific change. For example:
       </p>
       <div class="agent-instruction">
@@ -423,7 +437,7 @@ PORT=3000</span></pre>
         <pre><span class="agent-mark">&gt;</span> Change the colors and fonts to feel clean, professional, and easy to scan. Use dark blue headings, a white background, light gray borders, and a modern sans-serif font.</pre>
       </div>
       <div class="agent-instruction">
-        <pre><span class="agent-mark">&gt;</span> Add three example question buttons above the input box so a first-time user can test the app quickly.</pre>
+        <pre><span class="agent-mark">&gt;</span> Add a saved results panel that keeps a running history of the user's questions and the model's answers during the session, with a clear button to reset the history.</pre>
       </div>
       <p>
         A system prompt is the instruction that tells the model what role to play, who the user is, what rules to follow, and what format to return. Ask Cowork/Codex to make the system prompt explicit and easy for your team to edit later.
