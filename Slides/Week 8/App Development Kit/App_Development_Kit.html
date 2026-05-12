@@ -304,7 +304,7 @@
           <a href="https://www.anthropic.com/product/claude-cowork">anthropic.com/product/claude-cowork</a>
         </div>
         <div class="link-card">
-          <strong>Gemini API Key</strong>
+          <strong>Gemini API Keys Page</strong>
           <a href="https://aistudio.google.com/app/apikey">aistudio.google.com/app/apikey</a>
         </div>
         <div class="link-card">
@@ -323,7 +323,7 @@
 
       <h2>Phase 1: Initial Setup</h2>
       <p>
-        Open Terminal on macOS or PowerShell on Windows. In the command blocks below, <code>$</code> and <code>PS&gt;</code> are prompt symbols. Type only the command after the prompt symbol.
+        Open Terminal on macOS or PowerShell on Windows. In the command-line blocks below, <code>$</code> and <code>PS&gt;</code> show where the command line starts. Type only the command that comes after those symbols.
       </p>
 
       <h3>1. Create the Project Folder</h3>
@@ -375,9 +375,10 @@
 
       <h3>4. Create the External Accounts and Key</h3>
       <ol>
-        <li>Create or sign into a Google account.</li>
-        <li>Go to Google AI Studio at <a href="https://aistudio.google.com">aistudio.google.com</a>.</li>
-        <li>Create a Gemini API key. Keep it private.</li>
+        <li>Create or sign into a Google account. A personal Google account may be simpler if a school or work account blocks API key creation.</li>
+        <li>Go directly to the Google AI Studio API Keys page: <a href="https://aistudio.google.com/app/apikey">aistudio.google.com/app/apikey</a>.</li>
+        <li>Click <strong>Create API key</strong>. If Google asks you to choose a Cloud project, choose the option to create the key in a new project.</li>
+        <li>Copy the key when it appears and keep it private. You will paste it into <code>.env</code> in Step 6 and add it to Railway later during deployment.</li>
         <li>Create or sign into a Railway account at <a href="https://railway.com">railway.com</a>.</li>
         <li>The Railway free trial should work for the sprint. It includes credits for up to 30 days. If you want the app to keep running after the trial, upgrade to the Hobby plan, which is $5 per month and includes $5 of usage.</li>
       </ol>
