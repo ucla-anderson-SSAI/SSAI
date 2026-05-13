@@ -539,10 +539,13 @@ PORT=3000</span></pre>
 
       <h3>7. Create a Public URL</h3>
       <div class="terminal">
-        <pre><span class="prompt">$</span> railway domain --service myapp</pre>
+        <pre><span class="prompt">$</span> railway domain</pre>
       </div>
       <p>
-        Railway will give you a free Railway-provided URL. This is the easiest class option and does not require buying or managing a domain. Railway currently documents these as <code>*.up.railway.app</code> URLs. If your service is not named <code>myapp</code>, replace <code>myapp</code> in the command with your service name. If Railway asks for a port, use <code>8080</code>. Open the <code>*.up.railway.app</code> URL in your browser; do not use the internal <code>localhost:8080</code> address from the deployment logs.
+        Railway will give you a free Railway-provided URL. This is the easiest class option and does not require buying or managing a domain. Railway currently documents these as <code>*.up.railway.app</code> URLs. If Railway asks for a port, use <code>8080</code>. Open the <code>*.up.railway.app</code> URL in your browser; do not use the internal <code>localhost:8080</code> address from the deployment logs.
+      </p>
+      <p>
+        After the site is working, you can go to <a href="https://railway.com">railway.com</a>, open the project, and look under the service networking or public domain settings to choose a cleaner Railway-provided domain if that option is available.
       </p>
 
       <h2>Phase 4: Iterate</h2>
