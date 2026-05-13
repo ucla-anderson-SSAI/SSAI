@@ -355,7 +355,7 @@
         <li>Ask Cowork/Codex to read <code>AppPlan.md</code> and <code>App_Development_Kit.html</code> before editing anything.</li>
       </ol>
       <p>
-        Files ending in <code>.md</code> and <code>.env</code>, such as <code>AppPlan.md</code> and <code>local.env</code>, are plain text files. You can edit them in TextEdit on macOS, Notepad on Windows, VS Code, or directly inside Cowork/Codex. If you use TextEdit, choose <strong>Format &gt; Make Plain Text</strong> before saving.
+        Files ending in <code>.md</code> and <code>.env</code>, such as <code>AppPlan.md</code> and <code>local.env</code>, are plain text files. You can edit them in TextEdit on macOS or Notepad on Windows. If you use TextEdit, choose <strong>Format &gt; Make Plain Text</strong> before saving.
       </p>
 
       <h3>2. Install Node.js and npm</h3>
@@ -384,7 +384,10 @@
 
       <h3>3. Install the Railway Command-Line Tool</h3>
       <p>
-        Railway is the service that will host your app online. The command-line tool lets you send the app from your computer to Railway.
+        Railway is the service that will host your app online. Create or sign into a Railway account at <a href="https://railway.com">railway.com</a> before using the command-line tool. The Railway free trial should work for the sprint and includes credits for up to 30 days. If you want the app to keep running after the trial, upgrade to the Hobby plan, which is $5 per month and includes $5 of usage.
+      </p>
+      <p>
+        The command-line tool lets you send the app from your computer to Railway.
       </p>
       <p>Recommended on macOS, Windows, or Linux after Node.js is installed:</p>
       <div class="terminal">
@@ -397,14 +400,12 @@
 <span class="prompt">$</span> railway --version</pre>
       </div>
 
-      <h3>4. Create the External Accounts and Key</h3>
+      <h3>4. Create the Gemini API Key</h3>
       <ol>
         <li>Create or sign into a Google account. A personal Google account may be simpler if a school or work account blocks API key creation.</li>
         <li>Go directly to the Google AI Studio API Keys page: <a href="https://aistudio.google.com/app/apikey">aistudio.google.com/app/apikey</a>.</li>
         <li>Click <strong>Create API key</strong>. If Google asks you to choose a Cloud project, choose the option to create the key in a new project.</li>
         <li>Copy the key when it appears and keep it private. It will look like a long string of letters and numbers, for example <code>AIzaSyFAKEKeyForClassDemo1234567890ABCD</code>. You will paste it into <code>local.env</code> later in this phase and add it to Railway during deployment.</li>
-        <li>Create or sign into a Railway account at <a href="https://railway.com">railway.com</a>.</li>
-        <li>The Railway free trial should work for the sprint. It includes credits for up to 30 days. If you want the app to keep running after the trial, upgrade to the Hobby plan, which is $5 per month and includes $5 of usage.</li>
       </ol>
 
       <h3>5. Install Dependencies</h3>
@@ -493,32 +494,55 @@ PORT=3000</span></pre>
         <pre><span class="prompt">$</span> railway init</pre>
       </div>
       <p>
-        If Railway asks questions, choose your workspace or account, create a new project, and use the current folder as the app.
+        If Railway asks questions, choose your workspace or account, create a new project, and name it <code>myapp</code> or another short name. This creates the Railway project, but it may not create the deployable service yet.
       </p>
 
-      <h3>3. Add Gemini Key</h3>
+      <h3>3. Create the Service</h3>
       <p>
-        The <code>local.env</code> file works only on your computer. Railway needs its own copy of the key.
+        Deploy once so Railway can create the web service for this folder.
+      </p>
+      <div class="terminal">
+        <pre><span class="prompt">$</span> railway up</pre>
+      </div>
+      <p>
+        Railway will upload the folder, build it, and stream logs in Terminal. If you see <code>Deploy complete</code> and <code>App running on http://localhost:8080</code>, the service is running. The <code>localhost:8080</code> address is internal to Railway, not a URL to open on your computer. Press <code>Ctrl-C</code> to stop watching the logs.
+      </p>
+
+      <h3>4. Link the Service</h3>
+      <p>
+        Link your local folder to the service Railway just created.
+      </p>
+      <div class="terminal">
+        <pre><span class="prompt">$</span> railway service link
+<span class="prompt">$</span> railway status</pre>
+      </div>
+      <p>
+        Select the service with your project name, usually <code>myapp</code>. In <code>railway status</code>, the linked service should no longer say <code>None</code>.
+      </p>
+
+      <h3>5. Add Gemini Key</h3>
+      <p>
+        The <code>local.env</code> file works only on your computer. Railway needs its own copy of the key. Set these variables only after the service exists and is linked. If Railway says <code>Project has no services</code>, go back to Create the Service and Link the Service before trying this again.
       </p>
       <div class="terminal">
         <pre><span class="prompt">$</span> railway variable set GEMINI_API_KEY="YOUR_KEY_HERE"
 <span class="prompt">$</span> railway variable set GEMINI_MODEL="gemini-2.5-flash"</pre>
       </div>
 
-      <h3>4. Deploy</h3>
+      <h3>6. Redeploy</h3>
       <div class="terminal">
         <pre><span class="prompt">$</span> railway up</pre>
       </div>
       <p>
-        Railway uploads the folder, installs what the app needs, and starts it in the cloud.
+        Redeploy after setting variables so the running app can use the Gemini key. Again, if the logs show <code>Deploy complete</code> and <code>App running on http://localhost:8080</code>, you can press <code>Ctrl-C</code> to stop watching the logs.
       </p>
 
-      <h3>5. Create a Public URL</h3>
+      <h3>7. Create a Public URL</h3>
       <div class="terminal">
-        <pre><span class="prompt">$</span> railway domain</pre>
+        <pre><span class="prompt">$</span> railway domain --service myapp</pre>
       </div>
       <p>
-        Railway will give you a free Railway-provided URL. This is the easiest class option and does not require buying or managing a domain. Railway currently documents these as <code>*.up.railway.app</code> URLs. If Railway gives you an option to choose or edit the subdomain, use a short readable name related to your app; otherwise, keep the generated URL.
+        Railway will give you a free Railway-provided URL. This is the easiest class option and does not require buying or managing a domain. Railway currently documents these as <code>*.up.railway.app</code> URLs. If your service is not named <code>myapp</code>, replace <code>myapp</code> in the command with your service name. If Railway asks for a port, use <code>8080</code>. Open the <code>*.up.railway.app</code> URL in your browser; do not use the internal <code>localhost:8080</code> address from the deployment logs.
       </p>
 
       <h2>Phase 4: Iterate</h2>
