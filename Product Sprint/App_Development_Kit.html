@@ -445,9 +445,9 @@
       <div class="terminal">
         <pre><span class="prompt">$</span> npm start</pre>
       </div>
-      <p>
+      <div class="model-note">
         If you see an error saying port 3000 is already in use, close other Terminal, PowerShell, Cowork, or Codex preview windows and try again. If that does not work, restart your computer and try again.
-      </p>
+      </div>
       <p>
         Open the local address shown in the terminal, usually <code>http://localhost:3000</code>. Test the starter app.
       </p>
@@ -498,11 +498,16 @@
         Link your local folder to the service Railway just created.
       </p>
       <div class="terminal">
-        <pre><span class="prompt">$</span> railway service link
-<span class="prompt">$</span> railway status</pre>
+        <pre><span class="prompt">$</span> railway service link</pre>
       </div>
       <p>
-        Select the service with your project name, usually <code>myapp</code>. In <code>railway status</code>, the linked service should no longer say <code>None</code>.
+        Select the service with your project name, usually <code>myapp</code>.
+      </p>
+      <div class="terminal">
+        <pre><span class="prompt">$</span> railway status</pre>
+      </div>
+      <p>
+        In <code>railway status</code>, the linked service should no longer say <code>None</code>.
       </p>
 
       <h3>6. Add Gemini Key</h3>
