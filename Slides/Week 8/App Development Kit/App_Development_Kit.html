@@ -402,7 +402,7 @@
         <li>Create or sign into a Google account. A personal Google account may be simpler if a school or work account blocks API key creation.</li>
         <li>Go directly to the Google AI Studio API Keys page: <a href="https://aistudio.google.com/app/apikey">aistudio.google.com/app/apikey</a>.</li>
         <li>Click <strong>Create API key</strong>. If Google asks you to choose a Cloud project, choose the option to create the key in a new project.</li>
-        <li>Copy the key when it appears and keep it private. It will look like a long string of letters and numbers, for example <code>AIzaSyFAKEKeyForClassDemo1234567890ABCD</code>. You will paste it into <code>local.env</code> in Step 6 and add it to Railway later during deployment.</li>
+        <li>Copy the key when it appears and keep it private. It will look like a long string of letters and numbers, for example <code>AIzaSyFAKEKeyForClassDemo1234567890ABCD</code>. You will paste it into <code>local.env</code> later in this phase and add it to Railway during deployment.</li>
         <li>Create or sign into a Railway account at <a href="https://railway.com">railway.com</a>.</li>
         <li>The Railway free trial should work for the sprint. It includes credits for up to 30 days. If you want the app to keep running after the trial, upgrade to the Hobby plan, which is $5 per month and includes $5 of usage.</li>
       </ol>
@@ -440,12 +440,12 @@ PORT=3000</span></pre>
 
       <h2>Phase 2: Prototype Locally</h2>
 
-      <h3>7. Define First Version</h3>
+      <h3>1. Define First Version</h3>
       <p>
         Open <code>AppPlan.md</code> and fill in the app idea section: use case, intended user, user input, model output, model approach, and whether the app needs source material or a dataset. This is your direct instruction to Cowork/Codex about what to build. The purpose is not to design the perfect app on the first try. The purpose is to get something basic working; once the simple version runs, you can iterate with Cowork/Codex to improve the prompt, interface, examples, and source material.
       </p>
 
-      <h3>8. Customize with Cowork/Codex</h3>
+      <h3>2. Customize with Cowork/Codex</h3>
       <p>
         The purpose of this step is to ask Cowork/Codex to turn your app plan into a first working version that you can test locally. You do not need to finish the whole product here. Get the basic version working, then keep building later.
       </p>
@@ -462,7 +462,7 @@ PORT=3000</span></pre>
         A system prompt is the instruction that tells the model what role to play, who the user is, what rules to follow, and what format to return. Ask Cowork/Codex to make the system prompt explicit and easy for your team to edit later.
       </p>
 
-      <h3>9. Run Locally</h3>
+      <h3>3. Run Locally</h3>
       <div class="terminal">
         <pre><span class="prompt">$</span> npm start</pre>
       </div>
@@ -478,7 +478,7 @@ PORT=3000</span></pre>
 
       <h2>Phase 3: Deploy on Railway</h2>
 
-      <h3>10. Log Into Railway</h3>
+      <h3>1. Log Into Railway</h3>
       <div class="terminal">
         <pre><span class="prompt">$</span> railway login
 <span class="prompt">$</span> railway whoami</pre>
@@ -487,7 +487,7 @@ PORT=3000</span></pre>
         The login command opens a browser window. After logging in, return to the terminal.
       </p>
 
-      <h3>11. Create Railway Project</h3>
+      <h3>2. Create Railway Project</h3>
       <p>Run this from inside the project folder.</p>
       <div class="terminal">
         <pre><span class="prompt">$</span> railway init</pre>
@@ -496,7 +496,7 @@ PORT=3000</span></pre>
         If Railway asks questions, choose your workspace or account, create a new project, and use the current folder as the app.
       </p>
 
-      <h3>12. Add Gemini Key</h3>
+      <h3>3. Add Gemini Key</h3>
       <p>
         The <code>local.env</code> file works only on your computer. Railway needs its own copy of the key.
       </p>
@@ -505,7 +505,7 @@ PORT=3000</span></pre>
 <span class="prompt">$</span> railway variable set GEMINI_MODEL="gemini-2.5-flash"</pre>
       </div>
 
-      <h3>13. Deploy</h3>
+      <h3>4. Deploy</h3>
       <div class="terminal">
         <pre><span class="prompt">$</span> railway up</pre>
       </div>
@@ -513,7 +513,7 @@ PORT=3000</span></pre>
         Railway uploads the folder, installs what the app needs, and starts it in the cloud.
       </p>
 
-      <h3>14. Create a Public URL</h3>
+      <h3>5. Create a Public URL</h3>
       <div class="terminal">
         <pre><span class="prompt">$</span> railway domain</pre>
       </div>
@@ -523,26 +523,26 @@ PORT=3000</span></pre>
 
       <h2>Phase 4: Iterate</h2>
 
-      <h3>15. Pick One Improvement</h3>
+      <h3>1. Pick One Improvement</h3>
       <p>
         Once the first deployed version works, choose one improvement at a time. Good next steps include a clearer app name, a cleaner visual design, a better sample question, a more specific system prompt, a new input field, or a more useful answer format.
       </p>
 
-      <h3>16. Ask Cowork/Codex for the Change</h3>
+      <h3>2. Ask Cowork/Codex for the Change</h3>
       <p>
-        Be specific about what should change and what should stay the same. For a design pass, use:
+        Be specific about what should change and what should stay the same. For example, a design prompt might look like:
       </p>
       <div class="agent-instruction">
-        <pre><span class="agent-mark">&gt;</span> Improve the visual design of this app for the intended user in AppPlan.md. Use App_Development_Kit.html as the guide. Keep the same functionality and Railway deployment path. Make the interface clearer, more polished, and easier to scan.</pre>
+        <pre><span class="agent-mark">&gt;</span> Redesign the app as a centered, single-column page. Keep the same form fields, submit button, model call, and Railway deployment setup. Use a white background, one orange accent color for buttons and headings, generous spacing, and a professional style for MBA students. Do not add new features yet. After editing, tell me exactly which files changed and how to test the design locally.</pre>
       </div>
       <p>
-        For a functionality change, use:
+        A functionality prompt might look like:
       </p>
       <div class="agent-instruction">
-        <pre><span class="agent-mark">&gt;</span> Add one useful feature to this app based on AppPlan.md. Use App_Development_Kit.html as the guide. Keep the app simple. Explain which files you changed, then tell me how to test it locally before redeploying.</pre>
+        <pre><span class="agent-mark">&gt;</span> Add a saved answers section below the model response. Each time the user submits a question, save the question and answer in a simple list on the page. Add a Clear saved answers button. Keep the data only in the browser for this session; do not add accounts, databases, or login. Keep the existing Railway deployment setup unchanged. After editing, explain how to test this feature locally.</pre>
       </div>
 
-      <h3>17. Test and Redeploy</h3>
+      <h3>3. Test and Redeploy</h3>
       <p>
         After each change, run the app locally, test one or two realistic prompts, and then deploy again.
       </p>
