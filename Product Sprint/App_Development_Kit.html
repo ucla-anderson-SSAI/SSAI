@@ -446,6 +446,9 @@
         <pre><span class="prompt">$</span> npm start</pre>
       </div>
       <p>
+        If you see an error saying port 3000 is already in use, close other Terminal, PowerShell, Cowork, or Codex preview windows and try again. If that does not work, restart your computer and try again.
+      </p>
+      <p>
         Open the local address shown in the terminal, usually <code>http://localhost:3000</code>. Test the starter app.
       </p>
       <p>
@@ -456,14 +459,21 @@
 
       <h3>1. Log Into Railway</h3>
       <div class="terminal">
-        <pre><span class="prompt">$</span> railway login
-<span class="prompt">$</span> railway whoami</pre>
+        <pre><span class="prompt">$</span> railway login</pre>
       </div>
       <p>
         The login command opens a browser window. After logging in, return to the terminal.
       </p>
 
-      <h3>2. Create Railway Project</h3>
+      <h3>2. Check the Railway Account</h3>
+      <div class="terminal">
+        <pre><span class="prompt">$</span> railway whoami</pre>
+      </div>
+      <p>
+        This confirms which Railway account is connected in your terminal.
+      </p>
+
+      <h3>3. Create Railway Project</h3>
       <p>Run this from inside the project folder.</p>
       <div class="terminal">
         <pre><span class="prompt">$</span> railway init</pre>
@@ -472,7 +482,7 @@
         If Railway asks questions, choose your workspace or account, create a new project, and name it <code>myapp</code> or another short name. This creates the Railway project, but it may not create the deployable service yet.
       </p>
 
-      <h3>3. Create the Service</h3>
+      <h3>4. Create the Service</h3>
       <p>
         Deploy once so Railway can create the web service for this folder.
       </p>
@@ -480,10 +490,10 @@
         <pre><span class="prompt">$</span> railway up</pre>
       </div>
       <p>
-        Railway will upload the folder, build it, and stream logs in Terminal. If you see <code>Deploy complete</code> and <code>App running on http://localhost:8080</code>, the service is running. The <code>localhost:8080</code> address is internal to Railway, not a URL to open on your computer. Press <code>Ctrl-C</code> to stop watching the logs.
+        When the deployment finishes, return to Terminal or PowerShell and press <code>Ctrl-C</code> so you can enter the next command.
       </p>
 
-      <h3>4. Link the Service</h3>
+      <h3>5. Link the Service</h3>
       <p>
         Link your local folder to the service Railway just created.
       </p>
@@ -495,7 +505,7 @@
         Select the service with your project name, usually <code>myapp</code>. In <code>railway status</code>, the linked service should no longer say <code>None</code>.
       </p>
 
-      <h3>5. Add Gemini Key</h3>
+      <h3>6. Add Gemini Key</h3>
       <p>
         The <code>local.env</code> file works only on your computer. Railway needs its own copy of the key. Set these variables only after the service exists and is linked. If Railway says <code>Project has no services</code>, go back to Create the Service and Link the Service before trying this again.
       </p>
@@ -504,15 +514,15 @@
 <span class="prompt">$</span> railway variable set GEMINI_MODEL="gemini-2.5-flash"</pre>
       </div>
 
-      <h3>6. Redeploy</h3>
+      <h3>7. Redeploy</h3>
       <div class="terminal">
         <pre><span class="prompt">$</span> railway up</pre>
       </div>
       <p>
-        Redeploy after setting variables so the running app can use the Gemini key. Again, if the logs show <code>Deploy complete</code> and <code>App running on http://localhost:8080</code>, you can press <code>Ctrl-C</code> to stop watching the logs.
+        Redeploy after setting variables so the running app can use the Gemini key.
       </p>
 
-      <h3>7. Create a Public URL</h3>
+      <h3>8. Create a Public URL</h3>
       <div class="terminal">
         <pre><span class="prompt">$</span> railway domain</pre>
       </div>
