@@ -347,20 +347,30 @@
       <p>
         Node.js lets the starter app run on your computer. npm comes with Node.js and installs the app’s dependencies. In plain English, npm reads the app’s setup file and downloads the pieces the app needs to work.
       </p>
-      <p>On macOS with Homebrew:</p>
+      <p>On macOS:</p>
+      <ol>
+        <li>Go to <a href="https://nodejs.org">nodejs.org</a>.</li>
+        <li>Download and install the current LTS version of Node.js.</li>
+        <li>Quit and reopen Terminal.</li>
+        <li>Check that Node.js and npm are available:</li>
+      </ol>
       <div class="terminal">
-        <pre><span class="prompt">$</span> brew install node
-<span class="prompt">$</span> node --version
+        <pre><span class="prompt">$</span> node --version
 <span class="prompt">$</span> npm --version</pre>
       </div>
-      <p>On Windows with PowerShell:</p>
+      <p>On Windows:</p>
+      <ol>
+        <li>Go to <a href="https://nodejs.org">nodejs.org</a>.</li>
+        <li>Download and install the current LTS version of Node.js.</li>
+        <li>Quit and reopen PowerShell.</li>
+        <li>Check that Node.js and npm are available:</li>
+      </ol>
       <div class="terminal">
-        <pre><span class="prompt">PS&gt;</span> winget install -e --id OpenJS.NodeJS.LTS
-<span class="prompt">PS&gt;</span> node --version
+        <pre><span class="prompt">PS&gt;</span> node --version
 <span class="prompt">PS&gt;</span> npm --version</pre>
       </div>
       <p>
-        If <code>brew</code> or <code>winget</code> is not available, or if the command-line installation gives you trouble, use the installer at <a href="https://nodejs.org">nodejs.org</a> and choose the current LTS version. Then reopen Terminal or PowerShell and run the version commands above. If both commands print version numbers, continue.
+        If both commands print version numbers, continue.
       </p>
 
       <h3>3. Install the Railway Command-Line Tool</h3>
@@ -378,12 +388,6 @@
         <pre><span class="prompt">$</span> npm install -g @railway/cli
 <span class="prompt">$</span> railway --version</pre>
       </div>
-      <p>Alternative on macOS with Homebrew:</p>
-      <div class="terminal">
-        <pre><span class="prompt">$</span> brew install railway
-<span class="prompt">$</span> railway --version</pre>
-      </div>
-
       <h3>4. Create the Gemini API Key</h3>
       <ol>
         <li>Create or sign into a Google account. A personal Google account may be simpler if a school or work account blocks API key creation.</li>

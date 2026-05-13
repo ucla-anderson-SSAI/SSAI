@@ -1,0 +1,228 @@
+# MGMT298D Case Document Style Guide
+
+## Overview
+
+This style guide ensures consistency across all case documents for MGMT298D: Science and Strategy of AI.
+
+---
+
+## Writing Style
+
+### Tone and Voice
+
+Write in plain, direct prose. The register is a smart colleague explaining something clearly. Sentences should be well-structured. Weave concrete details and specific numbers into flowing prose rather than isolating them in short declarative statements.
+
+Avoid three failure modes:
+
+1. **Buzzy/journalistic** — dramatic framing, breathless pacing, LinkedIn energy. No "became front-page news," "raised serious questions," "harder to ignore." State what happened and let the reader judge.
+
+2. **Staccato** — three or more short declarative sentences in a row reads like a slide deck. Combine related facts into a single sentence with conjunctions or semicolons.
+
+3. **Wordy/padded** — cut filler phrases like "a combination of," "at a level of detail that," "on their own," "well enough." If a sentence works without the phrase, remove it.
+
+Good: "This worked when the company was smaller and fashion cycles moved more slowly, but as H&M expanded globally and trends began shifting faster, the manual process could not keep up."
+
+Bad (buzzy): "But as H&M expanded globally and the pace of trends accelerated — driven in part by social media — the limits of this approach became harder to ignore."
+
+Bad (staccato): "The optimal price depends on many factors. Inventory levels change. Competitor prices move. Demand fluctuates. No team can track all of this."
+
+Bad (padded): "Their task was to build models that could forecast demand at a level of detail that human planners could not realistically achieve on their own."
+Better: "Their goal was to forecast demand at a granularity that human planners could not match."
+
+### Key principles
+
+- American English spelling (colors, behavior, standardized).
+- Prefer short, declarative sentences. Vary sentence length but default to concise.
+- No rhetorical questions in the narrative. Reserve questions for the Discussion Questions section.
+- No bullet points or numbered lists in the narrative. Write in paragraphs.
+- Frame the business problem first, then the AI response.
+- Every specific number must trace to a listed source. If a statistic cannot be verified, describe the result qualitatively.
+- Do not give away answers to discussion questions in the narrative. Present facts and let students draw conclusions.
+- No more than 2 em dashes per document. Prefer commas, periods, or semicolons.
+
+### Narrative length
+
+Target 600-750 words of narrative text, readable in 3-4 minutes. Full document (with questions and sources) should fit on 2 pages.
+
+---
+
+## Content Structure
+
+### Narrative arc
+
+Two sections:
+
+1. **The Problem** — What business challenge does the company face? Why does prediction (or classification, or optimization) matter here? What went wrong or what opportunity exists? Use a descriptive heading (e.g., "The Fast Fashion Prediction Problem").
+
+2. **The Company's Response** — What did the company build? What data do they use? What were the results? Keep it concise and strategic: inputs and outputs, not technical architecture.
+
+### Discussion Questions
+
+- Exactly 4 questions, each one or two sentences.
+- Subheadings: "Question 1.", "Question 2.", etc.
+- Focus on ML/AI concepts and business strategy, not organizational politics.
+- Scaffold from foundational to challenging:
+  - Q1: Why does prediction/ML matter for this business?
+  - Q2: What should the model predict, and at what level of detail?
+  - Q3: What data should the company collect?
+  - Q4: What are the limits or risks (overfitting, model complexity)?
+- Adjust order to fit the case, but cover all four themes.
+
+### Sources
+
+- 4-5 sources maximum.
+- Every hard number must have a corresponding source.
+- Format: "Title." Publication, Date. url
+- Font: Arial, 10pt, regular, gray (#666666).
+
+---
+
+## Color Palette
+
+| Name | Hex | Usage |
+|------|-----|-------|
+| Dark Blue | #005587 | Titles, section headings, question labels |
+| Gold | #FFD100 | Accent line under header |
+| Black | #000000 | Body text, question text, narrative |
+| Gray | #666666 | Header line, week subtitle, sources |
+
+---
+
+## Typography
+
+| Element | Font | Size | Weight | Color |
+|---------|------|------|--------|-------|
+| Document title | Whitney | 20pt | Bold | Dark Blue (#005587) |
+| Section headings | Whitney | 14pt | Bold | Dark Blue (#005587) |
+| Question labels | Arial | 12pt | Bold | Dark Blue (#005587) |
+| Question text | Arial | 11pt | Regular | Black (#000000) |
+| Body text | Arial | 12pt | Regular | Black (#000000) |
+| Header line | Arial | 10pt | Italic | Gray (#666666) |
+| Week subtitle | Arial | 11pt | Italic | Gray (#666666) |
+| Sources | Arial | 10pt | Regular | Gray (#666666) |
+
+Whitney is used for the document title and section headings only. Everything else uses Arial.
+
+If Whitney is unavailable, fall back to Helvetica Neue, then Arial, then sans-serif.
+
+---
+
+## Page Layout
+
+- **Page size**: US Letter (8.5" x 11")
+- **Margins**: 1" all sides
+- **Alignment**: Justified for body paragraphs
+- **Line spacing**: 1.15 for body text
+- **Paragraph spacing**: 10pt after paragraphs
+- **Target length**: 2 pages maximum
+
+---
+
+## Document Structure
+
+### 1. Header Line
+- "MGMT298D: Science and Strategy of AI | UCLA Anderson"
+- Arial, 10pt, italic, gray (#666666)
+- Gold (#FFD100) underline rule beneath
+
+### 2. Document Title
+- Whitney, 20pt, bold, dark blue (#005587)
+- Spacing: 18pt before, 12pt after
+
+### 3. Week Subtitle
+- Format: "Week N: Topic Name"
+- Arial, 11pt, italic, gray (#666666)
+- Spacing: 3pt before, 18pt after
+
+### 4. Section Headings
+- Whitney, 14pt, bold, dark blue (#005587)
+- Spacing: 15pt before, 9pt after
+
+### 5. Question Labels
+- "Question 1.", "Question 2.", etc.
+- Label: Arial, 12pt, bold, dark blue. Text follows on same line: Arial, 12pt, regular, black.
+- Spacing: 12pt before, 6pt after
+
+### 6. Body Paragraphs
+- Arial, 12pt, regular, black
+- Justified, 1.15 line spacing, 10pt after
+
+### 7. Sources
+- Arial, 10pt, regular, gray (#666666)
+- 6pt after each source
+
+---
+
+## Instructor Guide Formatting
+
+Each case has a companion instructor guide with teaching notes.
+
+### Note Boxes
+- Rendered as shaded table cells with a left accent border.
+- Background: light blue-gray (#F0F4F8). Left border: dark accent (#2C5F7C).
+- Note header: Arial, 11pt, bold, dark accent (#2C5F7C).
+- Bullet text: Arial, 11pt, regular, black. No italics.
+- Maximum 3 bullets per question. Each bullet is a concise prompt or key point, not a mini-essay. If you need more than 3 points, consolidate.
+
+### Sections
+- **Purpose of This Case** — 1 note box with big-picture framing, 1 note box with timing guidance.
+- **Discussion Questions & Teaching Notes** — each question followed by a note box with up to 3 key points.
+- **Transition to Lecture** — suggested segue language and a concept map (question to lecture topic).
+
+### Writing Style for Teaching Notes
+- Same plain, direct tone as the case itself.
+- No jargon unless the jargon is the point (e.g., "this is where you introduce the term 'overfitting'").
+- Bullets should tell the instructor what to push on, not summarize the case.
+- State the key insight in one sentence, then add context if needed.
+
+---
+
+## Technical Specifications (for docx-js)
+
+```javascript
+// Colors
+const C = {
+  dk: "005587",    // dark blue
+  gold: "FFD100",  // gold accent
+  bk: "000000",    // black
+  gy: "666666",    // gray
+};
+
+// Page setup
+page: {
+  size: { width: 12240, height: 15840 },
+  margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 }
+}
+
+// Heading styles
+Heading1: { size: 40, bold: true, font: "Whitney", color: C.dk }  // 20pt
+Heading2: { size: 28, bold: true, font: "Whitney", color: C.dk }  // 14pt
+Heading3: { size: 24, bold: true, font: "Arial", color: C.dk }    // 12pt
+
+// Body text
+Normal: { size: 24, font: "Arial", color: C.bk }  // 12pt
+
+// Spacing
+paragraph: { spacing: { after: 200, line: 276 }, alignment: AlignmentType.JUSTIFIED }
+```
+
+---
+
+## Checklist
+
+Before finalizing a case document:
+
+- [ ] Header line with course name and gold underline
+- [ ] Title in Whitney, 20pt, bold, dark blue
+- [ ] Week subtitle in italic gray
+- [ ] Narrative in plain, direct prose (600-750 words)
+- [ ] Two narrative sections with descriptive headings
+- [ ] Section headings in Whitney, 14pt, bold, dark blue
+- [ ] Question labels in Arial, 12pt, bold, dark blue; text in regular black
+- [ ] Body text in Arial, 12pt, regular, black
+- [ ] 4 discussion questions, each one or two sentences, focused on ML/AI
+- [ ] Sources in Arial, 10pt, gray
+- [ ] 4-5 sources, each backing a specific claim
+- [ ] US Letter, 1" margins
+- [ ] Fits on 2 pages
+- [ ] American English spelling
