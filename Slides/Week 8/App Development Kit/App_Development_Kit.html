@@ -154,9 +154,10 @@
         background: #050505;
         color: #f5f5f5;
         border-radius: 6px;
-        padding: 14px 16px;
+        padding: 14px 72px 14px 16px;
         margin: 12px 0 18px;
         overflow-x: auto;
+        position: relative;
         box-shadow: inset 0 0 0 1px #2a2a2a;
       }
 
@@ -174,8 +175,9 @@
         border: 1px solid #d7e1e8;
         border-left: 4px solid var(--dark-blue);
         border-radius: 6px;
-        padding: 13px 16px;
+        padding: 13px 72px 13px 16px;
         margin: 12px 0 18px;
+        position: relative;
       }
 
       .agent-instruction pre {
@@ -189,6 +191,34 @@
       .agent-mark {
         color: var(--dark-blue);
         font-weight: 700;
+      }
+
+      .copy-button {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        border: 1px solid rgba(0, 59, 92, 0.18);
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.88);
+        color: var(--dark-blue);
+        cursor: pointer;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1;
+        padding: 6px 8px;
+      }
+
+      .terminal .copy-button {
+        border-color: #4b4b4b;
+        background: #1f1f1f;
+        color: #f5f5f5;
+      }
+
+      .copy-button:hover,
+      .copy-button:focus {
+        outline: none;
+        border-color: var(--blue);
       }
 
       code {
@@ -334,20 +364,19 @@
       </p>
       <p>On macOS with Homebrew:</p>
       <div class="terminal">
-        <pre><span class="prompt">$</span> brew install node</pre>
+        <pre><span class="prompt">$</span> brew install node
+<span class="prompt">$</span> node --version
+<span class="prompt">$</span> npm --version</pre>
       </div>
       <p>On Windows with PowerShell:</p>
       <div class="terminal">
-        <pre><span class="prompt">PS&gt;</span> winget install -e --id OpenJS.NodeJS.LTS</pre>
+        <pre><span class="prompt">PS&gt;</span> winget install -e --id OpenJS.NodeJS.LTS
+<span class="prompt">PS&gt;</span> node --version
+<span class="prompt">PS&gt;</span> npm --version</pre>
       </div>
       <p>
-        If <code>brew</code> or <code>winget</code> is not available, or if the command-line installation gives you trouble, use the installer at <a href="https://nodejs.org">nodejs.org</a> and choose the current LTS version. Then reopen Terminal or PowerShell and check that Node and npm work.
+        If <code>brew</code> or <code>winget</code> is not available, or if the command-line installation gives you trouble, use the installer at <a href="https://nodejs.org">nodejs.org</a> and choose the current LTS version. Then reopen Terminal or PowerShell and run the version commands above. If both commands print version numbers, continue.
       </p>
-      <div class="terminal">
-        <pre><span class="prompt">$</span> node --version
-<span class="prompt">$</span> npm --version</pre>
-      </div>
-      <p>If both commands print version numbers, continue.</p>
 
       <h3>3. Install the Railway Command-Line Tool</h3>
       <p>
@@ -355,15 +384,13 @@
       </p>
       <p>Recommended on macOS, Windows, or Linux after Node.js is installed:</p>
       <div class="terminal">
-        <pre><span class="prompt">$</span> npm install -g @railway/cli</pre>
+        <pre><span class="prompt">$</span> npm install -g @railway/cli
+<span class="prompt">$</span> railway --version</pre>
       </div>
       <p>Alternative on macOS with Homebrew:</p>
       <div class="terminal">
-        <pre><span class="prompt">$</span> brew install railway</pre>
-      </div>
-      <p>Check that Railway installed:</p>
-      <div class="terminal">
-        <pre><span class="prompt">$</span> railway --version</pre>
+        <pre><span class="prompt">$</span> brew install railway
+<span class="prompt">$</span> railway --version</pre>
       </div>
 
       <h3>4. Create the External Accounts and Key</h3>
@@ -562,5 +589,57 @@ PORT=3000</span></pre>
         Railway pricing and domains. railway.com/pricing; docs.railway.com/networking/domains/working-with-domains
       </p>
     </main>
+    <script>
+      function copyText(text) {
+        if (navigator.clipboard && window.isSecureContext) {
+          return navigator.clipboard.writeText(text);
+        }
+
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.top = "-9999px";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        textarea.remove();
+        return Promise.resolve();
+      }
+
+      function cleanCopyText(block, text) {
+        if (block.classList.contains("terminal")) {
+          return text.replace(/^\s*(\$|PS&gt;|PS>)\s?/gm, "").trim();
+        }
+
+        if (block.classList.contains("agent-instruction")) {
+          return text.replace(/^\s*&gt;\s?/gm, "").replace(/^\s*>\s?/gm, "").trim();
+        }
+
+        return text.trim();
+      }
+
+      document.querySelectorAll(".terminal, .agent-instruction").forEach((block) => {
+        const pre = block.querySelector("pre");
+        if (!pre) return;
+
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "copy-button";
+        button.textContent = "Copy";
+        button.setAttribute("aria-label", "Copy this snippet");
+
+        button.addEventListener("click", async () => {
+          const text = cleanCopyText(block, pre.innerText || pre.textContent || "");
+          await copyText(text);
+          button.textContent = "Copied";
+          window.setTimeout(() => {
+            button.textContent = "Copy";
+          }, 1200);
+        });
+
+        block.appendChild(button);
+      });
+    </script>
   </body>
 </html>
