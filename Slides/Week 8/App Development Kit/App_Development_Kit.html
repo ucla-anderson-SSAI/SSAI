@@ -416,7 +416,7 @@ PORT=3000</span></pre>
         The purpose of this step is to ask Cowork/Codex to turn your app plan into a first working version that you can test locally. You do not need to finish the whole product here. Get the basic version working, then keep building later.
       </p>
       <div class="model-note">
-        <strong>Use the strongest model and reasoning mode available.</strong> In Cowork, choose Claude Opus 4.7 if available and turn on Extended Thinking. In Codex, choose GPT-5.5 and use High or Extra High Intelligence for the main build. These settings are slower, but they are much better for multi-step coding work.
+        <strong>Use the strongest model and reasoning mode for the initial build.</strong> In Cowork, choose Claude Opus 4.7 if available and turn on Extended Thinking. In Codex, choose GPT-5.5 and use High or Extra High Intelligence for the main build. These settings are slower and use more of your rate limits, so lower the reasoning level for small copy edits, color tweaks, or other simple changes.
       </div>
       <p>
         Start with the following clear instruction:
@@ -517,132 +517,10 @@ PORT=3000</span></pre>
 <span class="prompt">$</span> railway up</pre>
       </div>
 
-      <h2>Appendix: Common Fixes</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Problem</th>
-            <th>Likely Fix</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><code>node</code> or <code>npm</code> is not found</td>
-            <td>Install Node.js, then reopen Terminal or PowerShell. On Windows, try the Node installer if <code>winget</code> is not available.</td>
-          </tr>
-          <tr>
-            <td><code>brew</code> is not found on macOS</td>
-            <td>Use the Node.js installer from <code>nodejs.org</code>. After Node is installed, use <code>npm install -g @railway/cli</code> for Railway.</td>
-          </tr>
-          <tr>
-            <td><code>winget</code> is not found on Windows</td>
-            <td>Use the Node.js installer from <code>nodejs.org</code>, then reopen PowerShell and check <code>node --version</code> and <code>npm --version</code>.</td>
-          </tr>
-          <tr>
-            <td><code>railway</code> is not found</td>
-            <td>Install the Railway command-line tool, then reopen Terminal or PowerShell. If the npm install fails, make sure Node.js and npm are installed first.</td>
-          </tr>
-          <tr>
-            <td><code>npm install</code> fails</td>
-            <td>Make sure you are inside the <code>myapp</code> folder. Ask Cowork/Codex to inspect <code>package.json</code> and explain the error.</td>
-          </tr>
-          <tr>
-            <td>PowerShell blocks a command</td>
-            <td>Try opening PowerShell as a normal user, not administrator. If script execution is the issue, ask Cowork/Codex to translate the command for Windows.</td>
-          </tr>
-          <tr>
-            <td><code>npm start</code> never returns to the prompt</td>
-            <td>This is normal. The local app is running. Press <code>Ctrl-C</code> to stop it.</td>
-          </tr>
-          <tr>
-            <td>The page was opened with <code>file://</code></td>
-            <td>Start the app with <code>npm start</code>, then open <code>http://localhost:3000</code>. Do not test by double-clicking <code>public/index.html</code>.</td>
-          </tr>
-          <tr>
-            <td>The app says the API key is missing</td>
-            <td>Add <code>GEMINI_API_KEY</code> to <code>local.env</code> locally and to Railway variables for deployment.</td>
-          </tr>
-          <tr>
-            <td>The Railway app crashes</td>
-            <td>Ask Cowork/Codex to check that the app reads Railway’s assigned port.</td>
-          </tr>
-          <tr>
-            <td>The model gives generic answers</td>
-            <td>Make the user, task, and desired output more specific in <code>AppPlan.md</code> and the app prompt.</td>
-          </tr>
-          <tr>
-            <td>The app should use RAG but answers from general knowledge</td>
-            <td>Put the right source text in <code>docs/knowledge_base.md</code> and ask Cowork/Codex to make the model rely on retrieved source material.</td>
-          </tr>
-          <tr>
-            <td>RAG gives weak answers</td>
-            <td>Replace <code>docs/knowledge_base.md</code> with better source text and ask source-specific questions.</td>
-          </tr>
-          <tr>
-            <td><code>railway login</code> does not complete</td>
-            <td>Check the browser login window. If it opened in the wrong browser, copy the login URL into the browser where you are signed into Railway.</td>
-          </tr>
-          <tr>
-            <td>The deployed app says the API key is missing</td>
-            <td>Set the key in Railway with <code>railway variable set GEMINI_API_KEY="YOUR_KEY_HERE"</code>, then deploy again.</td>
-          </tr>
-          <tr>
-            <td>The Railway URL looks random</td>
-            <td>Use it anyway for class, or check the Railway service settings to see whether Railway offers an option to edit or regenerate the Railway-provided subdomain.</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <h2>Appendix: File Map</h2>
-      <p>
-        This map is here so you and Cowork/Codex can talk about the app clearly.
-      </p>
-      <table>
-        <thead>
-          <tr>
-            <th>File or Folder</th>
-            <th>What It Is For</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><code>public/index.html</code></td>
-            <td>The visible page structure: title, labels, and form fields.</td>
-          </tr>
-          <tr>
-            <td><code>public/app.js</code></td>
-            <td>The browser-side behavior: collects form inputs and displays the model answer.</td>
-          </tr>
-          <tr>
-            <td><code>public/styles.css</code></td>
-            <td>The visual styling for the page.</td>
-          </tr>
-          <tr>
-            <td><code>server.js</code></td>
-            <td>The app logic that receives the user request, calls Gemini, and returns the answer.</td>
-          </tr>
-          <tr>
-            <td><code>docs/knowledge_base.md</code></td>
-            <td>Optional source text for RAG. Replace this if your app needs to answer from documents.</td>
-          </tr>
-          <tr>
-            <td><code>local.env</code></td>
-            <td>The local settings file. Students paste their Gemini API key here, but should not share this file publicly.</td>
-          </tr>
-          <tr>
-            <td><code>railway.json</code></td>
-            <td>Deployment settings for Railway.</td>
-          </tr>
-          <tr>
-            <td><code>AppPlan.md</code></td>
-            <td>The human-facing app idea file. Students fill this in before asking Cowork/Codex to build.</td>
-          </tr>
-          <tr>
-            <td><code>App_Development_Kit.html</code></td>
-            <td>The full guide for students and Cowork/Codex.</td>
-          </tr>
-        </tbody>
-      </table>
+      <h2>Appendix: When Something Breaks</h2>
+      <div class="model-note">
+        <strong>Do not guess.</strong> Copy the exact error message, tell Cowork/Codex what command you ran, and ask it to explain the likely cause before editing files. If the app was opened from <code>file://</code>, start with <code>npm start</code> and open <code>http://localhost:3000</code> instead.
+      </div>
 
       <h2>Appendix: Key Links</h2>
       <div class="link-grid">
