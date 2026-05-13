@@ -134,6 +134,10 @@
         color: #143b23;
       }
 
+      .model-note p:last-child {
+        margin-bottom: 0;
+      }
+
       .download-box {
         border: 1px solid #f1c400;
         border-top: 6px solid var(--gold);
@@ -260,29 +264,12 @@
         margin-bottom: 8px;
       }
 
-      .sources {
-        color: var(--gray);
-        font-size: 13px;
-      }
-
-      .link-grid {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 10px;
-        margin: 12px 0 20px;
-      }
-
-      .link-card {
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        padding: 13px 14px;
-        background: #ffffff;
-      }
-
-      .link-card strong {
+      .closing-note {
         color: var(--dark-blue);
-        display: block;
-        margin-bottom: 2px;
+        font-family: "Whitney Bold", Whitney, "Source Sans 3", "Helvetica Neue", Arial, sans-serif;
+        font-size: 1.2rem;
+        font-weight: 700;
+        margin: 28px 0 0;
       }
 
       @media print {
@@ -305,9 +292,6 @@
           padding: 24px 16px 32px;
         }
 
-        .link-grid {
-          grid-template-columns: 1fr;
-        }
       }
     </style>
   </head>
@@ -320,7 +304,8 @@
       <p class="subtitle">Weeks 8-10: Product Sprint</p>
 
       <div class="model-note">
-        This project rewards careful reading and initiative. Follow the instructions closely, but do not treat them as a script: when something is unclear, use Cowork/Codex to investigate, test, and make progress. It should take less than an hour to get an initial barebones prototype working. To fully execute on your ideas, your team should budget 10 hours over the next 2 weeks, including the in-class time provided in Week 9.
+        <p>This project rewards careful reading and initiative. Follow the instructions closely, but do not treat them as a script: when something is unclear, use Cowork/Codex to investigate, test, and make progress.</p>
+        <p>It should take less than an hour to get an initial barebones prototype working. To fully execute on your ideas, your team should budget 10 hours over the next 2 weeks, including the in-class time provided in Week 9.</p>
       </div>
 
       <h2>What This Kit Is For</h2>
@@ -578,47 +563,12 @@ PORT=3000</span></pre>
 <span class="prompt">$</span> railway up</pre>
       </div>
 
-      <h2>Appendix: When Something Breaks</h2>
+      <h2>If You Get Stuck</h2>
       <div class="model-note">
         <strong>Do not guess.</strong> Copy the exact error message, tell Cowork/Codex what command you ran, and ask it to explain the likely cause before editing files.
       </div>
 
-      <h2>Appendix: Key Links</h2>
-      <div class="link-grid">
-        <div class="link-card">
-          <strong>Codex</strong>
-          <a href="https://openai.com/codex/">openai.com/codex</a>
-        </div>
-        <div class="link-card">
-          <strong>Cowork</strong>
-          <a href="https://www.anthropic.com/product/claude-cowork">anthropic.com/product/claude-cowork</a>
-        </div>
-        <div class="link-card">
-          <strong>Gemini API Keys Page</strong>
-          <a href="https://aistudio.google.com/app/apikey">aistudio.google.com/app/apikey</a>
-        </div>
-        <div class="link-card">
-          <strong>Railway</strong>
-          <a href="https://railway.com">railway.com</a>
-        </div>
-        <div class="link-card">
-          <strong>Node.js</strong>
-          <a href="https://nodejs.org">nodejs.org</a>
-        </div>
-        <div class="link-card">
-          <strong>Railway CLI Docs</strong>
-          <a href="https://docs.railway.com/cli">docs.railway.com/cli</a>
-        </div>
-      </div>
-
-      <h2>Sources</h2>
-      <p class="sources">
-        Node.js downloads. nodejs.org<br>
-        Windows Package Manager. Microsoft Learn. learn.microsoft.com/windows/package-manager/winget<br>
-        Gemini API keys. Google AI for Developers. ai.google.dev/gemini-api/docs/api-key<br>
-        Railway CLI documentation. Railway. docs.railway.com/cli<br>
-        Railway pricing and domains. railway.com/pricing; docs.railway.com/networking/domains/working-with-domains
-      </p>
+      <p class="closing-note">Good luck and happy building.</p>
     </main>
     <script>
       function copyText(text) {
