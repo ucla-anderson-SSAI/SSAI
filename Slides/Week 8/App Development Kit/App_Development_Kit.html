@@ -306,10 +306,13 @@
         <li>Download and unzip <code>App_Development_Kit.zip</code>.</li>
         <li>Place the unzipped folder on your Desktop.</li>
         <li>Rename the folder <code>myapp</code>.</li>
-        <li>Download and sign into either Cowork or Codex. Each team should plan to use one paid coding assistant account, roughly $20 per month, for the duration of the product sprint.</li>
+        <li>Download and sign into either <a href="https://www.anthropic.com/product/claude-cowork">Cowork</a> or <a href="https://openai.com/codex/">Codex</a>. Each team should plan to use one paid coding assistant account, roughly $20 per month, for the duration of the product sprint.</li>
         <li>Open the folder in Cowork/Codex.</li>
         <li>Ask Cowork/Codex to read <code>AppPlan.md</code> and <code>App_Development_Kit.html</code> before editing anything.</li>
       </ol>
+      <p>
+        Files ending in <code>.md</code> and <code>.env</code>, such as <code>AppPlan.md</code> and <code>local.env</code>, are plain text files. You can edit them in TextEdit on macOS, Notepad on Windows, VS Code, or directly inside Cowork/Codex. If you use TextEdit, choose <strong>Format &gt; Make Plain Text</strong> before saving.
+      </p>
 
       <h3>2. Install Node.js and npm</h3>
       <p>
@@ -354,7 +357,7 @@
         <li>Create or sign into a Google account. A personal Google account may be simpler if a school or work account blocks API key creation.</li>
         <li>Go directly to the Google AI Studio API Keys page: <a href="https://aistudio.google.com/app/apikey">aistudio.google.com/app/apikey</a>.</li>
         <li>Click <strong>Create API key</strong>. If Google asks you to choose a Cloud project, choose the option to create the key in a new project.</li>
-        <li>Copy the key when it appears and keep it private. You will paste it into <code>.env</code> in Step 6 and add it to Railway later during deployment.</li>
+        <li>Copy the key when it appears and keep it private. It will look like a long string of letters and numbers, for example <code>AIzaSyFAKEKeyForClassDemo1234567890ABCD</code>. You will paste it into <code>local.env</code> in Step 6 and add it to Railway later during deployment.</li>
         <li>Create or sign into a Railway account at <a href="https://railway.com">railway.com</a>.</li>
         <li>The Railway free trial should work for the sprint. It includes credits for up to 30 days. If you want the app to keep running after the trial, upgrade to the Hobby plan, which is $5 per month and includes $5 of usage.</li>
       </ol>
@@ -374,12 +377,12 @@
 <span class="prompt">PS&gt;</span> npm install</pre>
       </div>
       <p>
-        This installs the software pieces the starter app needs. It will create a folder called <code>node_modules</code>. Do not edit that folder.
+        This installs the software pieces the starter app needs. It will create a folder called <code>node_modules</code>. That folder is not included in the kit, and you should not edit or share it.
       </p>
 
       <h3>6. Add Gemini Key Locally</h3>
       <p>
-        The app needs your Gemini API key to call Gemini when it runs on your computer. The downloaded kit already includes a local settings file called <code>.env</code>. Open <code>.env</code> and replace <code>your_key_here</code> with your real key. If you do not see the file in Finder or File Explorer, ask Cowork/Codex to open <code>.env</code> for you.
+        The app needs your Gemini API key to call Gemini when it runs on your computer. The downloaded kit already includes a local settings file called <code>local.env</code>. Open <code>local.env</code> and replace <code>your_key_here</code> with your real key.
       </p>
       <div class="terminal">
         <pre><span class="muted">GEMINI_API_KEY=your_real_key_here
@@ -402,7 +405,7 @@ PORT=3000</span></pre>
         Start with one clear instruction:
       </p>
       <div class="agent-instruction">
-        <pre><span class="agent-mark">&gt;</span> Read AppPlan.md and App_Development_Kit.html. Customize this starter app for the app idea. Build the simplest working version first. Update the visible text, sample question, system prompt, and response format. Keep the app deployable on Railway.</pre>
+        <pre><span class="agent-mark">&gt;</span> Read AppPlan.md and App_Development_Kit.html. Build the first working version of this project using the files already in this folder. Update the page text, user input, model instructions, and output format to match AppPlan.md. Keep it simple, make sure it runs locally, and keep it deployable on Railway.</pre>
       </div>
       <p>
         Then try one specific change. For example:
@@ -453,7 +456,7 @@ PORT=3000</span></pre>
 
       <h3>12. Add Gemini Key</h3>
       <p>
-        The <code>.env</code> file works only on your computer. Railway needs its own copy of the key.
+        The <code>local.env</code> file works only on your computer. Railway needs its own copy of the key.
       </p>
       <div class="terminal">
         <pre><span class="prompt">$</span> railway variable set GEMINI_API_KEY="YOUR_KEY_HERE"
@@ -545,7 +548,7 @@ PORT=3000</span></pre>
           </tr>
           <tr>
             <td>The app says the API key is missing</td>
-            <td>Add <code>GEMINI_API_KEY</code> to <code>.env</code> locally and to Railway variables for deployment.</td>
+            <td>Add <code>GEMINI_API_KEY</code> to <code>local.env</code> locally and to Railway variables for deployment.</td>
           </tr>
           <tr>
             <td>The Railway app crashes</td>
@@ -611,7 +614,7 @@ PORT=3000</span></pre>
             <td>Optional source text for RAG. Replace this if your app needs to answer from documents.</td>
           </tr>
           <tr>
-            <td><code>.env</code></td>
+            <td><code>local.env</code></td>
             <td>The local settings file. Students paste their Gemini API key here, but should not share this file publicly.</td>
           </tr>
           <tr>
