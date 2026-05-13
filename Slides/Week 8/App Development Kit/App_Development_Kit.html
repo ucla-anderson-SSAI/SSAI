@@ -120,6 +120,20 @@
         margin: 18px 0 24px;
       }
 
+      .model-note {
+        background: #eef8f1;
+        border: 1px solid #c8e5d0;
+        border-left: 4px solid #2e7d46;
+        border-radius: 6px;
+        color: #143b23;
+        padding: 13px 16px;
+        margin: 12px 0 18px;
+      }
+
+      .model-note strong {
+        color: #143b23;
+      }
+
       .download-box {
         border: 1px solid #f1c400;
         border-top: 6px solid var(--gold);
@@ -285,7 +299,7 @@
       <p>
         It is acceptable to use synthetic data to demonstrate the app, and it is also acceptable for the app to implement one useful part of a larger product concept.
       </p>
-      <div class="note">
+      <div class="model-note">
         This kit focuses on apps that use LLM APIs. You may also use a machine learning model, such as XGBoost, or a computer vision model, such as a CNN, if your app idea depends on a specific dataset. The steps are mostly the same, except that instead of the Gemini API you will need the relevant modeling packages, such as <code>sklearn</code> or <code>tensorflow</code>. Reach out to the instructor if you are not sure which approach your app needs.
       </div>
 
@@ -399,25 +413,16 @@ PORT=3000</span></pre>
 
       <h3>8. Customize with Cowork/Codex</h3>
       <p>
-        The purpose of this step is to observe what it is like to ask for one concrete change, test it, and revise. You do not need to finish the whole product here. Get one useful change working, then keep building later.
+        The purpose of this step is to ask Cowork/Codex to turn your app plan into a first working version that you can test locally. You do not need to finish the whole product here. Get the basic version working, then keep building later.
       </p>
-      <p>
-        Start with one clear instruction:
-      </p>
-      <div class="agent-instruction">
-        <pre><span class="agent-mark">&gt;</span> Read AppPlan.md and App_Development_Kit.html. Build the first working version of this project using the files already in this folder. Update the page text, user input, model instructions, and output format to match AppPlan.md. Keep it simple, make sure it runs locally, and keep it deployable on Railway.</pre>
+      <div class="model-note">
+        <strong>Use the strongest model and reasoning mode available.</strong> In Cowork, choose Claude Opus 4.7 if available and turn on Extended Thinking. In Codex, choose GPT-5.5 and use High or Extra High Intelligence for the main build. These settings are slower, but they are much better for multi-step coding work.
       </div>
       <p>
-        Then try one specific change. For example:
+        Start with the following clear instruction:
       </p>
       <div class="agent-instruction">
-        <pre><span class="agent-mark">&gt;</span> Add a button that allows the user to upload documents for RAG. Use the uploaded document as source material and make the answer clear when the document does not contain enough information.</pre>
-      </div>
-      <div class="agent-instruction">
-        <pre><span class="agent-mark">&gt;</span> Change the colors and fonts to feel clean, professional, and easy to scan. Use dark blue headings, a white background, light gray borders, and a modern sans-serif font.</pre>
-      </div>
-      <div class="agent-instruction">
-        <pre><span class="agent-mark">&gt;</span> Add a saved results panel that keeps a running history of the user's questions and the model's answers during the session, with a clear button to reset the history.</pre>
+        <pre><span class="agent-mark">&gt;</span> Read AppPlan.md and App_Development_Kit.html. Before editing, summarize the app purpose, required layout, colors, inputs, outputs, and model behavior from AppPlan.md. Then build the first working version using the files already in this folder. Treat the design notes in AppPlan.md as requirements. Keep it simple, make sure it runs locally at http://localhost:3000, and keep it deployable on Railway.</pre>
       </div>
       <p>
         A system prompt is the instruction that tells the model what role to play, who the user is, what rules to follow, and what format to return. Ask Cowork/Codex to make the system prompt explicit and easy for your team to edit later.
@@ -425,10 +430,13 @@ PORT=3000</span></pre>
 
       <h3>9. Run Locally</h3>
       <div class="terminal">
-        <pre><span class="prompt">$</span> npm run dev</pre>
+        <pre><span class="prompt">$</span> npm start</pre>
       </div>
       <p>
         Open the local address shown in the terminal, usually <code>http://localhost:3000</code>. Test the starter app with one question.
+      </p>
+      <p>
+        Do not double-click <code>public/index.html</code> to test the app. That opens a raw <code>file://</code> page, which is more fragile because the page still needs the local server to call the model.
       </p>
       <p>
         Important: this command keeps running because it is keeping the local app alive. When you are done testing, return to the terminal and press <code>Ctrl-C</code>.
@@ -505,7 +513,7 @@ PORT=3000</span></pre>
         After each change, run the app locally, test one or two realistic prompts, and then deploy again.
       </p>
       <div class="terminal">
-        <pre><span class="prompt">$</span> npm run dev
+        <pre><span class="prompt">$</span> npm start
 <span class="prompt">$</span> railway up</pre>
       </div>
 
@@ -543,8 +551,12 @@ PORT=3000</span></pre>
             <td>Try opening PowerShell as a normal user, not administrator. If script execution is the issue, ask Cowork/Codex to translate the command for Windows.</td>
           </tr>
           <tr>
-            <td><code>npm run dev</code> never returns to the prompt</td>
+            <td><code>npm start</code> never returns to the prompt</td>
             <td>This is normal. The local app is running. Press <code>Ctrl-C</code> to stop it.</td>
+          </tr>
+          <tr>
+            <td>The page was opened with <code>file://</code></td>
+            <td>Start the app with <code>npm start</code>, then open <code>http://localhost:3000</code>. Do not test by double-clicking <code>public/index.html</code>.</td>
           </tr>
           <tr>
             <td>The app says the API key is missing</td>
