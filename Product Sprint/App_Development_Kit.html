@@ -532,10 +532,12 @@
         <pre><span class="prompt">$</span> railway domain</pre>
       </div>
       <p>
-        Railway will give you a free Railway-provided URL. This is the easiest class option and does not require buying or managing a domain. Railway currently documents these as <code>*.up.railway.app</code> URLs. If Railway asks for a port, use <code>8080</code>. Open the <code>*.up.railway.app</code> URL in your browser; do not use the internal <code>localhost:8080</code> address from the deployment logs.
+        Railway will give you a free Railway-provided URL. Open that URL in your browser to test the deployed app.
       </p>
+
+      <h3>9. Set a Custom URL</h3>
       <p>
-        After the site is working, you can go to <a href="https://railway.com" target="_blank" rel="noopener">railway.com</a>, open the project, and look under the service networking or public domain settings to choose a cleaner Railway-provided domain if that option is available.
+        After the site is working, go to <a href="https://railway.com" target="_blank" rel="noopener">railway.com</a> and open the dashboard. Open your project, click the deployed service, then go to <strong>Settings</strong> &gt; <strong>Networking</strong> &gt; <strong>Public Networking</strong>. To create a Railway-provided URL, click <strong>Generate Domain</strong>. To use a domain you already own, click <strong>+ Custom Domain</strong> and follow Railway's DNS instructions.
       </p>
 
       <h2>Phase 4: Iterate</h2>
@@ -561,11 +563,16 @@
 
       <h3>3. Test and Redeploy</h3>
       <p>
-        After each change, run the app locally, test one or two realistic prompts, and then deploy again.
+        After each change, run the app locally.
       </p>
       <div class="terminal">
-        <pre><span class="prompt">$</span> npm start
-<span class="prompt">$</span> railway up</pre>
+        <pre><span class="prompt">$</span> npm start</pre>
+      </div>
+      <p>
+        Test one or two realistic prompts, then deploy again.
+      </p>
+      <div class="terminal">
+        <pre><span class="prompt">$</span> railway up</pre>
       </div>
 
       <h2>If You Get Stuck</h2>
