@@ -321,21 +321,20 @@
       <div class="download-box">
         <strong>Download the Kit</strong>
         <p>
-          Start by downloading <a href="App_Development_Kit.zip">App_Development_Kit.zip</a>. Unzip it, place the folder on your Desktop, and rename the folder <code>myapp</code>.
+          Start by downloading <a href="App_Development_Kit.zip" target="_blank" rel="noopener">App_Development_Kit.zip</a>. Unzip it, place the folder on your Desktop, and rename the folder <code>myapp</code>.
         </p>
       </div>
 
       <h2>Phase 1: Initial Setup</h2>
       <p>
-        Open Terminal on macOS or PowerShell on Windows. In the command-line blocks below, <code>$</code> and <code>PS&gt;</code> show where the command line starts. Type only the command that comes after those symbols.
+        This guide uses the command-line app built into your computer: Terminal on macOS and PowerShell on Windows. In the command-line blocks below, <code>$</code> and <code>PS&gt;</code> show where the command line starts. Type only the command that comes after those symbols.
       </p>
-
       <h3>1. Create the Project Folder</h3>
       <ol>
         <li>Download and unzip <code>App_Development_Kit.zip</code>.</li>
         <li>Place the unzipped folder on your Desktop.</li>
         <li>Rename the folder <code>myapp</code>.</li>
-        <li>Download and sign into either <a href="https://www.anthropic.com/product/claude-cowork">Cowork</a> or <a href="https://openai.com/codex/">Codex</a>. Each team should plan to use one paid coding assistant account, roughly $20 per month, for the duration of the product sprint.</li>
+        <li>Download and sign into either <a href="https://www.anthropic.com/product/claude-cowork" target="_blank" rel="noopener">Cowork</a> or <a href="https://openai.com/codex/" target="_blank" rel="noopener">Codex</a>. Each team should plan to use one paid coding assistant account, roughly $20 per month, for the duration of the product sprint.</li>
         <li>Open the folder in Cowork/Codex.</li>
         <li>Ask Cowork/Codex to read <code>AppPlan.md</code> and <code>App_Development_Kit.html</code> before editing anything.</li>
       </ol>
@@ -349,9 +348,9 @@
       </p>
       <p>On macOS:</p>
       <ol>
-        <li>Go to <a href="https://nodejs.org">nodejs.org</a>.</li>
+        <li>Go to <a href="https://nodejs.org" target="_blank" rel="noopener">nodejs.org</a>.</li>
         <li>Download and install the current LTS version of Node.js.</li>
-        <li>Quit and reopen Terminal.</li>
+        <li>Open Terminal.</li>
         <li>Check that Node.js and npm are available:</li>
       </ol>
       <div class="terminal">
@@ -360,10 +359,9 @@
       </div>
       <p>On Windows:</p>
       <ol>
-        <li>Open the Start menu, search for <strong>PowerShell</strong>, and open it.</li>
-        <li>Go to <a href="https://nodejs.org">nodejs.org</a>.</li>
+        <li>Go to <a href="https://nodejs.org" target="_blank" rel="noopener">nodejs.org</a>.</li>
         <li>Download and install the current LTS version of Node.js.</li>
-        <li>Quit and reopen PowerShell.</li>
+        <li>Open the Start menu, search for <strong>PowerShell</strong>, and open it.</li>
         <li>Check that Node.js and npm are available:</li>
       </ol>
       <div class="terminal">
@@ -376,7 +374,7 @@
 
       <h3>3. Install the Railway Command-Line Tool</h3>
       <p>
-        Railway is the service that will host your app online. Create or sign into a Railway account at <a href="https://railway.com">railway.com</a> before using the command-line tool. The Railway free trial should work for the sprint and includes credits for up to 30 days. If you want the app to keep running after the trial, upgrade to the Hobby plan, which is $5 per month and includes $5 of usage.
+        Railway is the service that will host your app online. Create or sign into a Railway account at <a href="https://railway.com" target="_blank" rel="noopener">railway.com</a> before using the command-line tool. The Railway free trial should work for the sprint and includes credits for up to 30 days. If you want the app to keep running after the trial, upgrade to the Hobby plan, which is $5 per month and includes $5 of usage.
       </p>
       <div class="model-note">
         <strong>macOS note:</strong> Before using Railway, make sure Terminal has permission to work with files in your project folder. Open System Settings &gt; Privacy &amp; Security &gt; Full Disk Access, turn on Terminal, then quit and reopen Terminal. This helps avoid errors with linking Railway to the project.
@@ -392,12 +390,25 @@
       <h3>4. Create the Gemini API Key</h3>
       <ol>
         <li>Create or sign into a Google account. A personal Google account may be simpler if a school or work account blocks API key creation.</li>
-        <li>Go directly to the Google AI Studio API Keys page: <a href="https://aistudio.google.com/app/apikey">aistudio.google.com/app/apikey</a>.</li>
+        <li>Go directly to the Google AI Studio API Keys page: <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">aistudio.google.com/app/apikey</a>.</li>
         <li>Click <strong>Create API key</strong>. If Google asks you to choose a Cloud project, choose the option to create the key in a new project.</li>
-        <li>Copy the key when it appears and keep it private. It will look like a long string of letters and numbers, for example <code>AIzaSyFAKEKeyForClassDemo1234567890ABCD</code>. You will paste it into <code>local.env</code> later in this phase and add it to Railway during deployment.</li>
+        <li>Copy the key when it appears and keep it private. It will look like a long string of letters and numbers, for example <code>AIzaSyFAKEKeyForClassDemo1234567890ABCD</code>. You will paste it into <code>local.env</code> in the next step and add it to Railway during deployment.</li>
       </ol>
 
-      <h3>5. Install Dependencies</h3>
+      <h3>5. Add Gemini Key Locally</h3>
+      <div class="model-note">
+        This kit focuses on apps that use LLM APIs. You may also use a machine learning model, such as XGBoost, or a computer vision model, such as a CNN, if your app idea depends on a specific dataset. The steps are mostly the same, except that instead of the Gemini API you will need the relevant modeling packages, such as <code>sklearn</code> or <code>tensorflow</code>. Reach out to the instructor if you are not sure which approach your app needs.
+      </div>
+      <p>
+        The app needs your Gemini API key to call Gemini when it runs on your computer. The downloaded kit already includes a local settings file called <code>local.env</code>. Open <code>local.env</code> and replace <code>your_key_here</code> with your real key.
+      </p>
+      <div class="terminal">
+        <pre><span class="muted">GEMINI_API_KEY=your_real_key_here
+GEMINI_MODEL=gemini-2.5-flash
+PORT=3000</span></pre>
+      </div>
+
+      <h3>6. Install Dependencies</h3>
       <p>
         In Terminal or PowerShell, move into the app kit folder. The exact folder name may differ on your computer.
       </p>
@@ -414,19 +425,6 @@
       <p>
         This installs the software pieces the starter app needs. It will create a folder called <code>node_modules</code>. That folder is not included in the kit, and you should not edit or share it.
       </p>
-
-      <h3>6. Add Gemini Key Locally</h3>
-      <div class="model-note">
-        This kit focuses on apps that use LLM APIs. You may also use a machine learning model, such as XGBoost, or a computer vision model, such as a CNN, if your app idea depends on a specific dataset. The steps are mostly the same, except that instead of the Gemini API you will need the relevant modeling packages, such as <code>sklearn</code> or <code>tensorflow</code>. Reach out to the instructor if you are not sure which approach your app needs.
-      </div>
-      <p>
-        The app needs your Gemini API key to call Gemini when it runs on your computer. The downloaded kit already includes a local settings file called <code>local.env</code>. Open <code>local.env</code> and replace <code>your_key_here</code> with your real key.
-      </p>
-      <div class="terminal">
-        <pre><span class="muted">GEMINI_API_KEY=your_real_key_here
-GEMINI_MODEL=gemini-2.5-flash
-PORT=3000</span></pre>
-      </div>
 
       <h2>Phase 2: Prototype Locally</h2>
 
@@ -534,7 +532,7 @@ PORT=3000</span></pre>
         Railway will give you a free Railway-provided URL. This is the easiest class option and does not require buying or managing a domain. Railway currently documents these as <code>*.up.railway.app</code> URLs. If Railway asks for a port, use <code>8080</code>. Open the <code>*.up.railway.app</code> URL in your browser; do not use the internal <code>localhost:8080</code> address from the deployment logs.
       </p>
       <p>
-        After the site is working, you can go to <a href="https://railway.com">railway.com</a>, open the project, and look under the service networking or public domain settings to choose a cleaner Railway-provided domain if that option is available.
+        After the site is working, you can go to <a href="https://railway.com" target="_blank" rel="noopener">railway.com</a>, open the project, and look under the service networking or public domain settings to choose a cleaner Railway-provided domain if that option is available.
       </p>
 
       <h2>Phase 4: Iterate</h2>
