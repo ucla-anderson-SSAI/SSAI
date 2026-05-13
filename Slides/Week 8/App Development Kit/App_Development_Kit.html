@@ -387,28 +387,19 @@
         <pre><span class="prompt">$</span> npm install -g @railway/cli
 <span class="prompt">$</span> railway --version</pre>
       </div>
-      <h3>4. Create the Gemini API Key</h3>
+      <h3>4. Create and Add the Gemini API Key</h3>
+      <div class="model-note">
+        This kit focuses on apps that use LLM APIs. You may also use a machine learning model, such as XGBoost, or a computer vision model, such as a CNN, if your app idea depends on a specific dataset. The steps are mostly the same, except that instead of the Gemini API you will need the relevant modeling packages, such as <code>sklearn</code> or <code>tensorflow</code>. Reach out to the instructor if you are not sure which approach your app needs.
+      </div>
       <ol>
         <li>Create or sign into a Google account. A personal Google account may be simpler if a school or work account blocks API key creation.</li>
         <li>Go directly to the Google AI Studio API Keys page: <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">aistudio.google.com/app/apikey</a>.</li>
         <li>Click <strong>Create API key</strong>. If Google asks you to choose a Cloud project, choose the option to create the key in a new project.</li>
-        <li>Copy the key when it appears and keep it private. It will look like a long string of letters and numbers, for example <code>AIzaSyFAKEKeyForClassDemo1234567890ABCD</code>. You will paste it into <code>local.env</code> in the next step and add it to Railway during deployment.</li>
+        <li>Copy the key when it appears and keep it private. It will look like a long string of letters and numbers, for example <code>AIzaSyFAKEKeyForClassDemo1234567890ABCD</code>.</li>
+        <li>Open <code>local.env</code> and paste your key where you see <code>your_real_key_here</code> in the line <code>GEMINI_API_KEY=your_real_key_here</code>. You will also add this key to Railway during deployment.</li>
       </ol>
 
-      <h3>5. Add Gemini Key Locally</h3>
-      <div class="model-note">
-        This kit focuses on apps that use LLM APIs. You may also use a machine learning model, such as XGBoost, or a computer vision model, such as a CNN, if your app idea depends on a specific dataset. The steps are mostly the same, except that instead of the Gemini API you will need the relevant modeling packages, such as <code>sklearn</code> or <code>tensorflow</code>. Reach out to the instructor if you are not sure which approach your app needs.
-      </div>
-      <p>
-        The app needs your Gemini API key to call Gemini when it runs on your computer. The downloaded kit already includes a local settings file called <code>local.env</code>. Open <code>local.env</code> and replace <code>your_key_here</code> with your real key.
-      </p>
-      <div class="terminal">
-        <pre><span class="muted">GEMINI_API_KEY=your_real_key_here
-GEMINI_MODEL=gemini-2.5-flash
-PORT=3000</span></pre>
-      </div>
-
-      <h3>6. Install Dependencies</h3>
+      <h3>5. Install Dependencies</h3>
       <p>
         In Terminal or PowerShell, move into the app kit folder. The exact folder name may differ on your computer.
       </p>
