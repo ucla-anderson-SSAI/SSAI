@@ -372,7 +372,7 @@
         If both commands print version numbers, continue.
       </p>
 
-      <h3>3. Install the Railway Command-Line Tool</h3>
+      <h3>3. Check the Railway Command-Line Tool</h3>
       <p>
         Railway is the service that will host your app online. Create or sign into a Railway account at <a href="https://railway.com" target="_blank" rel="noopener">railway.com</a> before using the command-line tool. The Railway free trial should work for the sprint and includes credits for up to 30 days. If you want the app to keep running after the trial, upgrade to the Hobby plan, which is $5 per month and includes $5 of usage.
       </p>
@@ -382,10 +382,11 @@
       <p>
         The command-line tool lets you send the app from your computer to Railway.
       </p>
-      <p>After Node.js is installed, install the Railway command-line tool:</p>
+      <p>
+        After Node.js is installed, check that your computer can run the Railway command-line tool. The <code>npx</code> command runs Railway through npm without installing it globally on your computer.
+      </p>
       <div class="terminal">
-        <pre><span class="prompt">$</span> npm install -g @railway/cli
-<span class="prompt">$</span> railway --version</pre>
+        <pre><span class="prompt">$</span> npx -y @railway/cli --version</pre>
       </div>
       <h3>4. Create and Add the Gemini API Key</h3>
       <div class="model-note">
@@ -459,7 +460,7 @@
 
       <h3>1. Log Into Railway</h3>
       <div class="terminal">
-        <pre><span class="prompt">$</span> railway login</pre>
+        <pre><span class="prompt">$</span> npx -y @railway/cli login</pre>
       </div>
       <p>
         The login command opens a browser window. After logging in, return to the terminal.
@@ -467,7 +468,7 @@
 
       <h3>2. Check the Railway Account</h3>
       <div class="terminal">
-        <pre><span class="prompt">$</span> railway whoami</pre>
+        <pre><span class="prompt">$</span> npx -y @railway/cli whoami</pre>
       </div>
       <p>
         This confirms which Railway account is connected in your terminal.
@@ -476,7 +477,7 @@
       <h3>3. Create Railway Project</h3>
       <p>Run this from inside the project folder.</p>
       <div class="terminal">
-        <pre><span class="prompt">$</span> railway init</pre>
+        <pre><span class="prompt">$</span> npx -y @railway/cli init</pre>
       </div>
       <p>
         If Railway asks questions, choose your workspace or account, create a new project, and name it <code>myapp</code> or another short name. This creates the Railway project, but it may not create the deployable service yet.
@@ -487,7 +488,7 @@
         Deploy once so Railway can create the web service for this folder.
       </p>
       <div class="terminal">
-        <pre><span class="prompt">$</span> railway up</pre>
+        <pre><span class="prompt">$</span> npx -y @railway/cli up</pre>
       </div>
       <p>
         When the deployment finishes, return to Terminal or PowerShell and press <code>Ctrl-C</code> so you can enter the next command.
@@ -498,16 +499,16 @@
         Link your local folder to the service Railway just created.
       </p>
       <div class="terminal">
-        <pre><span class="prompt">$</span> railway service link</pre>
+        <pre><span class="prompt">$</span> npx -y @railway/cli service link</pre>
       </div>
       <p>
         Select the service with your project name, usually <code>myapp</code>.
       </p>
       <div class="terminal">
-        <pre><span class="prompt">$</span> railway status</pre>
+        <pre><span class="prompt">$</span> npx -y @railway/cli status</pre>
       </div>
       <p>
-        In <code>railway status</code>, the linked service should no longer say <code>None</code>.
+        In the status output, the linked service should no longer say <code>None</code>.
       </p>
 
       <h3>6. Add Gemini Key</h3>
@@ -515,13 +516,15 @@
         The <code>local.env</code> file works only on your computer. Railway needs its own copy of the key. Set these variables only after the service exists and is linked. If Railway says <code>Project has no services</code>, go back to Create the Service and Link the Service before trying this again.
       </p>
       <div class="terminal">
-        <pre><span class="prompt">$</span> railway variable set GEMINI_API_KEY="YOUR_KEY_HERE"
-<span class="prompt">$</span> railway variable set GEMINI_MODEL="gemini-2.5-flash"</pre>
+        <pre><span class="prompt">$</span> npx -y @railway/cli variable set GEMINI_API_KEY="YOUR_KEY_HERE"</pre>
+      </div>
+      <div class="terminal">
+        <pre><span class="prompt">$</span> npx -y @railway/cli variable set GEMINI_MODEL="gemini-2.5-flash"</pre>
       </div>
 
       <h3>7. Redeploy</h3>
       <div class="terminal">
-        <pre><span class="prompt">$</span> railway up</pre>
+        <pre><span class="prompt">$</span> npx -y @railway/cli up</pre>
       </div>
       <p>
         Redeploy after setting variables so the running app can use the Gemini key.
@@ -529,7 +532,7 @@
 
       <h3>8. Create a Public URL</h3>
       <div class="terminal">
-        <pre><span class="prompt">$</span> railway domain</pre>
+        <pre><span class="prompt">$</span> npx -y @railway/cli domain</pre>
       </div>
       <p>
         Railway will give you a free Railway-provided URL. Open that URL in your browser to test the deployed app.
@@ -572,7 +575,7 @@
         Test one or two realistic prompts, then deploy again.
       </p>
       <div class="terminal">
-        <pre><span class="prompt">$</span> railway up</pre>
+        <pre><span class="prompt">$</span> npx -y @railway/cli up</pre>
       </div>
 
       <h2>If You Get Stuck</h2>
