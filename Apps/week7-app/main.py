@@ -44,6 +44,7 @@ doc_store: Dict[str, dict] = {}
 EMBED_MODEL = "gemini-embedding-001"
 EMBED_BATCH_SIZE = 100  # Gemini embedding API supports up to 100 per batch
 MAX_CHUNKS = 500        # ~500 chunks across batches of 100
+GENERATION_TEMPERATURE = 0.1
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -168,7 +169,6 @@ class QueryRequest(BaseModel):
     companies: List[str]       # company keys
     top_k: int = 5
     sim_threshold: float = 0.0
-    temperature: float = 0.1
     max_tokens: int = 5000
 
 
@@ -382,7 +382,7 @@ Answer:"""
             zs_resp = llm.generate_content(
                 zs_prompt,
                 generation_config=genai.types.GenerationConfig(
-                    temperature=request.temperature,
+                    temperature=GENERATION_TEMPERATURE,
                     max_output_tokens=request.max_tokens,
                 ),
             )
@@ -416,7 +416,7 @@ Answer:"""
             rag_resp = llm.generate_content(
                 rag_prompt,
                 generation_config=genai.types.GenerationConfig(
-                    temperature=request.temperature,
+                    temperature=GENERATION_TEMPERATURE,
                     max_output_tokens=request.max_tokens,
                 ),
             )

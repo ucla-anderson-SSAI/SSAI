@@ -177,8 +177,6 @@
       cursor: pointer;
       box-shadow: 0 2px 6px rgba(39,116,174,0.4);
     }
-    .control-hint { font-size: 0.7rem; color: #aaa; margin-top: 4px; line-height: 1.4; }
-
     .divider { border: none; border-top: 1px solid rgba(0,0,0,0.07); margin: 1rem 0; }
 
     /* ── Buttons ── */
@@ -211,21 +209,6 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── Suggestions ── */
-    .suggestions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-    .suggest-chip {
-      background: rgba(39,116,174,0.07);
-      border: 1px solid rgba(39,116,174,0.2);
-      border-radius: 20px;
-      padding: 5px 12px;
-      font-size: 12px;
-      cursor: pointer;
-      color: #2774AE;
-      transition: background 0.15s;
-      font-family: 'Inter', sans-serif;
-    }
-    .suggest-chip:hover { background: rgba(39,116,174,0.15); }
-
     /* ── Textarea ── */
     textarea {
       width: 100%;
@@ -241,19 +224,6 @@
       outline: none;
     }
     textarea:focus { border-color: #2774AE; }
-
-    /* ── Explainer banner ── */
-    .explainer {
-      background: rgba(39,116,174,0.06);
-      border-left: 3px solid #2774AE;
-      border-radius: 0 8px 8px 0;
-      padding: 12px 14px;
-      font-size: 12.5px;
-      line-height: 1.65;
-      color: #444;
-      margin-bottom: 1.5rem;
-    }
-    .explainer strong { color: #2774AE; }
 
     /* ── Results area ── */
     .results-question {
@@ -418,7 +388,7 @@
     <div class="header-left">
       <div class="course-label">MGMT298D · Science and Strategy of AI · UCLA Anderson</div>
       <h1>Week 7: Retrieval-Augmented Generation (RAG)</h1>
-      <p>Upload SEC filings · Tune RAG parameters · Compare answers with and without document context</p>
+      <p>10-K Due Diligence</p>
     </div>
     <div class="header-right">UCLA Anderson</div>
   </div>
@@ -427,10 +397,6 @@
 
 <!-- ── Body ── -->
 <div class="main-content">
-
-  <div class="explainer">
-    <strong>How RAG works:</strong> PDFs are chunked into overlapping text windows, embedded as vectors, and stored in memory. When you ask a question, the closest chunks are retrieved by cosine similarity and injected into Gemini's prompt as context — grounding the answer in the actual filing. The <strong>Zero-Shot</strong> column shows what the model says with no document context.
-  </div>
 
   <div class="layout">
 
@@ -447,7 +413,6 @@
         <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
           <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#2774AE" stroke-width="1.5" opacity="0.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
           <p>Click to upload PDFs, or drag &amp; drop</p>
-          <p class="hint">Multiple SEC reports supported — each = one company</p>
         </div>
         <input type="file" id="file-input" accept=".pdf" multiple />
 
@@ -479,7 +444,6 @@
           </div>
           <input type="range" class="slider" id="sl-chunk-size" min="50" max="500" step="50" value="200"
             oninput="document.getElementById('val-chunk-size').textContent=this.value" />
-          <div class="control-hint">Larger chunks = more context per piece, but noisier retrieval.</div>
         </div>
 
         <div class="control-group">
@@ -489,7 +453,6 @@
           </div>
           <input type="range" class="slider" id="sl-overlap" min="0" max="200" step="10" value="50"
             oninput="document.getElementById('val-overlap').textContent=this.value" />
-          <div class="control-hint">Overlap prevents important context from being cut at chunk boundaries.</div>
         </div>
 
         <hr class="divider" />
@@ -502,7 +465,6 @@
           </div>
           <input type="range" class="slider" id="sl-topk" min="1" max="15" step="1" value="5"
             oninput="document.getElementById('val-topk').textContent=this.value" />
-          <div class="control-hint">More chunks = broader context; too many adds noise.</div>
         </div>
 
         <div class="control-group">
@@ -512,26 +474,6 @@
           </div>
           <input type="range" class="slider" id="sl-sim" min="0" max="0.8" step="0.05" value="0"
             oninput="document.getElementById('val-sim').textContent=parseFloat(this.value).toFixed(2)" />
-          <div class="control-hint">Minimum cosine similarity to include a chunk. 0 = no filter.</div>
-        </div>
-
-        <hr class="divider" />
-        <div class="param-section-label">Generation</div>
-
-        <div class="control-group">
-          <div class="control-label">
-            <span>Temperature</span>
-            <span class="control-value" id="val-temp">0.1</span>
-          </div>
-          <input type="range" class="slider" id="sl-temp" min="0" max="1.5" step="0.05" value="0.1"
-            oninput="document.getElementById('val-temp').textContent=parseFloat(this.value).toFixed(2)" />
-          <div class="control-hint">Low = factual &amp; deterministic. High = varied responses.</div>
-        </div>
-
-
-
-        <div style="margin-top:0.5rem;font-size:11px;color:#aaa;">
-          ⚠ Changing chunking parameters requires re-uploading files to take effect.
         </div>
       </div>
 
@@ -547,16 +489,7 @@
           Ask a Due Diligence Question
         </div>
 
-        <textarea id="question-input" placeholder="e.g. What are the company's primary risk factors and how have they changed year over year?" rows="3"></textarea>
-
-        <div class="suggestions">
-          <span class="suggest-chip" onclick="setQ(this)">What are the main risk factors?</span>
-          <span class="suggest-chip" onclick="setQ(this)">How has revenue trended over the past 3 years?</span>
-          <span class="suggest-chip" onclick="setQ(this)">What is the company's debt and liquidity situation?</span>
-          <span class="suggest-chip" onclick="setQ(this)">Who are the key executives and their compensation?</span>
-          <span class="suggest-chip" onclick="setQ(this)">What markets and geographies does the company operate in?</span>
-          <span class="suggest-chip" onclick="setQ(this)">Are there any ongoing legal proceedings or regulatory risks?</span>
-        </div>
+        <textarea id="question-input" placeholder="Enter a due diligence question..." rows="3"></textarea>
 
         <div style="margin-top:1rem;">
           <button class="run-button" id="ask-btn" onclick="askQuestion()" disabled>
@@ -803,8 +736,6 @@
     document.getElementById("ask-btn").disabled = companies.length === 0;
   }
 
-  function setQ(el) { document.getElementById("question-input").value = el.textContent; }
-
   // ── Query ─────────────────────────────────────────────────────────────────
   async function askQuestion() {
     const q = document.getElementById("question-input").value.trim();
@@ -824,7 +755,6 @@
       companies:     companies.map(c => c.key),   // send company keys
       top_k:         parseInt(document.getElementById("sl-topk").value),
       sim_threshold: parseFloat(document.getElementById("sl-sim").value),
-      temperature:   parseFloat(document.getElementById("sl-temp").value),
       max_tokens:    5000,
     };
 
