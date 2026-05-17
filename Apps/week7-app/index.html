@@ -504,6 +504,24 @@
     document.getElementById("progress-fill").style.width = "0%";
   }
 
+  function normalizeCompanies(list) {
+    return (list || [])
+      .map(c => ({
+        key: c.key || c.company_key,
+        name: c.name || c.company_name || c.key || c.company_key,
+      }))
+      .filter(c => c.key);
+  }
+
+  function mergeCompany(company) {
+    const normalized = normalizeCompanies([company])[0];
+    if (!normalized) return;
+    const next = companies.filter(c => c.key !== normalized.key);
+    next.push(normalized);
+    renderCompanyList(next);
+    updateAskBtn();
+  }
+
   // ── Upload ────────────────────────────────────────────────────────────────
   // Uses SSE streaming when available; falls back gracefully if the proxy
   // buffers the response (e.g. some Railway regions).
@@ -580,6 +598,7 @@
             showProgress(data.stage_label || "Processing…", data.pct || animPct, "");
           } else if (event === "file_done") {
             uploadedCount++;
+            mergeCompany({ key: data.company_key, name: data.company_name });
             if (!colorMap[data.company_key]) {
               colorMap[data.company_key] = COLORS[Object.keys(colorMap).length % COLORS.length];
             }
@@ -594,12 +613,18 @@
           } else if (event === "done") {
             gotDone = true;
             stopAnim();
+            const fallbackCompanies = normalizeCompanies(
+              data.companies_available && data.companies_available.length
+                ? data.companies_available
+                : data.uploaded
+            );
             // Always re-fetch /companies as source of truth (avoids stale SSE state)
             fetch(`${API}/companies`).then(r => r.json()).then(d => {
-              renderCompanyList(d.companies.map(c => ({ key: c.key, name: c.name })));
+              const serverCompanies = normalizeCompanies(d.companies);
+              renderCompanyList(serverCompanies.length ? serverCompanies : fallbackCompanies);
               updateAskBtn();
             }).catch(() => {
-              renderCompanyList(data.companies_available);
+              renderCompanyList(fallbackCompanies);
               updateAskBtn();
             });
 
@@ -628,9 +653,12 @@
         stopAnim();
         const r = await fetch(`${API}/companies`);
         const d = await r.json();
-        renderCompanyList(d.companies.map(c => ({ key: c.key, name: c.name })));
-        updateAskBtn();
-        const n = d.companies.length;
+        const serverCompanies = normalizeCompanies(d.companies);
+        if (serverCompanies.length) {
+          renderCompanyList(serverCompanies);
+          updateAskBtn();
+        }
+        const n = serverCompanies.length || companies.length;
         showProgress(`✓ ${n} filing(s) indexed and ready`, 100, "done");
         status.textContent = `✓ ${n} filing(s) indexed`;
         status.style.color = "#27ae60";
@@ -649,7 +677,7 @@
   // ── Company list rendering ────────────────────────────────────────────────
   // `available` is an array of { key, name } objects
   function renderCompanyList(available) {
-    companies = available;
+    companies = normalizeCompanies(available);
     const list = document.getElementById("company-list");
     list.innerHTML = "";
     companies.forEach((c, i) => {
@@ -673,7 +701,7 @@
     const res  = await fetch(`${API}/companies`);
     const data = await res.json();
     // data.companies = [{ key, name, ... }]
-    renderCompanyList(data.companies.map(c => ({ key: c.key, name: c.name })));
+    renderCompanyList(data.companies);
     updateAskBtn();
     const s = document.getElementById("upload-status");
     s.textContent = `Removed company`; s.style.color = "#999";
@@ -686,7 +714,7 @@
   async function refreshCompanyList() {
     const res = await fetch(`${API}/companies`);
     const data = await res.json();
-    const available = data.companies.map(c => ({ key: c.key, name: c.name }));
+    const available = normalizeCompanies(data.companies);
     renderCompanyList(available);
     updateAskBtn();
     return available;
