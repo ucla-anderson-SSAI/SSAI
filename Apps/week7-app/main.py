@@ -12,7 +12,8 @@ import re
 import json
 import time
 import math
-from typing import List, Dict, Optional, AsyncGenerator
+from pathlib import Path
+from typing import List, Dict, AsyncGenerator
 
 import pdfplumber
 import numpy as np
@@ -45,6 +46,7 @@ EMBED_MODEL = "gemini-embedding-001"
 EMBED_BATCH_SIZE = 100  # Gemini embedding API supports up to 100 per batch
 MAX_CHUNKS = 500        # ~500 chunks across batches of 100
 GENERATION_TEMPERATURE = 0.1
+INDEX_DIR = Path(os.getenv("RAG_INDEX_DIR", "/tmp/week7-rag-indexes"))
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -115,11 +117,12 @@ def retrieve_top_chunks(
     top_k: int = 5,
     sim_threshold: float = 0.0,
 ) -> List[str]:
-    if company_key not in doc_store:
+    record = load_doc_record(company_key)
+    if not record:
         return []
     q_emb = embed_query(query)
-    embeddings = doc_store[company_key]["embeddings"]
-    chunks = doc_store[company_key]["chunks"]
+    embeddings = record["embeddings"]
+    chunks = record["chunks"]
     scores = [cosine_similarity_vec(q_emb, e) for e in embeddings]
     ranked = sorted(
         [(i, s) for i, s in enumerate(scores) if s >= sim_threshold],
@@ -160,6 +163,111 @@ Company name:"""
 def make_company_key(name: str) -> str:
     """Stable dict key derived from company name."""
     return re.sub(r"[^a-z0-9]+", "_", name.strip().lower()).strip("_")
+
+
+def get_index_paths(company_key: str) -> tuple[Path, Path]:
+    key = make_company_key(company_key)
+    return INDEX_DIR / f"{key}.json", INDEX_DIR / f"{key}.npy"
+
+
+def company_info(record: dict) -> dict:
+    return {
+        "key": record["company_key"],
+        "name": record["company_name"],
+        "filename": record["filename"],
+        "word_count": record["word_count"],
+        "chunk_count": record["chunk_count"],
+    }
+
+
+def save_doc_record(record: dict) -> None:
+    """Persist a completed index so other worker processes can load it."""
+    INDEX_DIR.mkdir(parents=True, exist_ok=True)
+    meta_path, embeddings_path = get_index_paths(record["company_key"])
+    meta_tmp = meta_path.with_suffix(".json.tmp")
+    embeddings_tmp = embeddings_path.with_suffix(".npy.tmp")
+
+    meta = {
+        "company_name": record["company_name"],
+        "company_key": record["company_key"],
+        "filename": record["filename"],
+        "word_count": record["word_count"],
+        "chunk_count": record["chunk_count"],
+        "chunks": record["chunks"],
+    }
+
+    with open(meta_tmp, "w", encoding="utf-8") as f:
+        json.dump(meta, f)
+    with open(embeddings_tmp, "wb") as f:
+        np.save(f, record["embeddings"])
+
+    os.replace(embeddings_tmp, embeddings_path)
+    os.replace(meta_tmp, meta_path)
+
+
+def load_doc_record(company_key: str) -> dict | None:
+    """Load an index from disk into memory if this process does not have it."""
+    key = make_company_key(company_key)
+    if key in doc_store:
+        return doc_store[key]
+
+    meta_path, embeddings_path = get_index_paths(key)
+    if not meta_path.exists() or not embeddings_path.exists():
+        return None
+
+    try:
+        with open(meta_path, "r", encoding="utf-8") as f:
+            meta = json.load(f)
+        embeddings = np.load(embeddings_path)
+    except Exception:
+        return None
+
+    record = {
+        "company_name": meta["company_name"],
+        "company_key": meta["company_key"],
+        "chunks": meta["chunks"],
+        "embeddings": embeddings,
+        "filename": meta["filename"],
+        "word_count": meta["word_count"],
+        "chunk_count": meta["chunk_count"],
+    }
+    doc_store[record["company_key"]] = record
+    return record
+
+
+def list_available_companies() -> list[dict]:
+    companies = {}
+    for record in doc_store.values():
+        companies[record["company_key"]] = company_info(record)
+
+    if INDEX_DIR.exists():
+        for meta_path in INDEX_DIR.glob("*.json"):
+            key = meta_path.stem
+            if key in companies:
+                continue
+            try:
+                with open(meta_path, "r", encoding="utf-8") as f:
+                    meta = json.load(f)
+                companies[key] = company_info(meta)
+            except Exception:
+                continue
+
+    return sorted(companies.values(), key=lambda item: item["name"].lower())
+
+
+def delete_doc_record(company_key: str) -> str | None:
+    key = make_company_key(company_key)
+    record = doc_store.pop(key, None) or load_doc_record(key)
+    if record:
+        doc_store.pop(key, None)
+
+    for path in get_index_paths(key):
+        try:
+            path.unlink()
+        except FileNotFoundError:
+            pass
+
+    return record["company_name"] if record else None
 
 
 # ── Request / Response Models ──────────────────────────────────────────────────
@@ -283,8 +391,8 @@ async def upload_stream(
 
                 embeddings = np.array(all_embeddings, dtype=np.float32)
 
-                # Store
-                doc_store[company_key] = {
+                # Store in memory and on disk so other server workers can load it.
+                record = {
                     "company_name": company_name,
                     "company_key": company_key,
                     "chunks": chunks,
@@ -293,6 +401,8 @@ async def upload_stream(
                     "word_count": word_count,
                     "chunk_count": len(chunks),
                 }
+                doc_store[company_key] = record
+                save_doc_record(record)
 
                 info = {
                     "company_name": company_name,
@@ -312,10 +422,7 @@ async def upload_stream(
         yield sse("done", {
             "uploaded": uploaded,
             "errors": errors,
-            "companies_available": [
-                {"key": v["company_key"], "name": v["company_name"]}
-                for v in doc_store.values()
-            ],
+            "companies_available": list_available_companies(),
         })
 
     return StreamingResponse(
@@ -331,18 +438,7 @@ async def upload_stream(
 
 @app.get("/companies")
 async def list_companies():
-    return {
-        "companies": [
-            {
-                "key": v["company_key"],
-                "name": v["company_name"],
-                "filename": v["filename"],
-                "word_count": v["word_count"],
-                "chunk_count": v["chunk_count"],
-            }
-            for v in doc_store.values()
-        ]
-    }
+    return {"companies": list_available_companies()}
 
 
 @app.post("/query")
@@ -356,8 +452,10 @@ async def query(request: QueryRequest):
 
     results = []
 
-    for company_key in request.companies:
-        if company_key not in doc_store:
+    for raw_company_key in request.companies:
+        company_key = make_company_key(raw_company_key)
+        record = load_doc_record(company_key)
+        if not record:
             results.append({
                 "company_key": company_key,
                 "company": company_key,
@@ -365,7 +463,7 @@ async def query(request: QueryRequest):
             })
             continue
 
-        company_name = doc_store[company_key]["company_name"]
+        company_name = record["company_name"]
 
         # ── Zero-shot ──────────────────────────────────────────────────────
         zs_prompt = f"""You are a financial analyst. Answer the following due diligence question about {company_name}.
@@ -441,11 +539,10 @@ Answer:"""
 
 @app.delete("/companies/{company_key}")
 async def delete_company(company_key: str):
-    if company_key not in doc_store:
+    name = delete_doc_record(company_key)
+    if not name:
         raise HTTPException(status_code=404, detail="Company not found.")
-    name = doc_store[company_key]["company_name"]
-    del doc_store[company_key]
-    return {"deleted": name, "companies_available": list(doc_store.keys())}
+    return {"deleted": name, "companies_available": list_available_companies()}
 
 
 @app.get("/")
