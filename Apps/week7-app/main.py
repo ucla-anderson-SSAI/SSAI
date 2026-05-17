@@ -94,7 +94,7 @@ def extract_text_from_pdf(pdf_bytes: bytes) -> str:
     return text.strip()
 
 
-def chunk_text(text: str, chunk_size: int = 200, stride: int = 150) -> List[str]:
+def chunk_text(text: str, chunk_size: int = 100, stride: int = 80) -> List[str]:
     words = text.split()
     chunks = []
     i = 0
@@ -285,8 +285,8 @@ class QueryRequest(BaseModel):
 @app.post("/upload-stream")
 async def upload_stream(
     files: List[UploadFile] = File(...),
-    chunk_size: int = Form(200),
-    overlap: int = Form(50),
+    chunk_size: int = Form(100),
+    overlap: int = Form(20),
 ):
     """
     Streaming upload endpoint — sends Server-Sent Events with progress.
