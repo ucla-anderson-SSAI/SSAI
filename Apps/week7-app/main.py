@@ -159,7 +159,7 @@ Company name:"""
 
 def make_company_key(name: str) -> str:
     """Stable dict key derived from company name."""
-    return re.sub(r"\s+", "_", name.strip().lower())
+    return re.sub(r"[^a-z0-9]+", "_", name.strip().lower()).strip("_")
 
 
 # ── Request / Response Models ──────────────────────────────────────────────────
@@ -361,7 +361,7 @@ async def query(request: QueryRequest):
             results.append({
                 "company_key": company_key,
                 "company": company_key,
-                "error": "No document found. Please upload it first.",
+                "error": "This filing is no longer indexed. Please upload it again.",
             })
             continue
 
