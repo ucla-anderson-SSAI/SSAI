@@ -504,6 +504,10 @@
     document.getElementById("progress-fill").style.width = "0%";
   }
 
+  function cleanErrorMessage(message) {
+    return String(message || "Unknown error").replace(/\s+/g, " ").trim();
+  }
+
   function normalizeCompanies(list) {
     return (list || [])
       .map(c => ({
@@ -558,6 +562,15 @@
     try {
       startAnim(`Uploading ${fileList.length} file(s) and building index…`);
 
+      try {
+        const health = await fetch(`${API}/health`, { cache: "no-store" }).then(r => r.json());
+        if (!health.has_gemini_key) {
+          throw new Error("Missing Gemini API key. Add GEMINI_API_KEY locally or in Railway variables, then restart the app.");
+        }
+      } catch(e) {
+        if (e.message && e.message.includes("Gemini API key")) throw e;
+      }
+
       const res = await fetch(`${API}/upload-stream`, { method: "POST", body: form });
       if (!res.ok) throw new Error(`Server error ${res.status}`);
 
@@ -609,7 +622,7 @@
             );
           } else if (event === "file_error") {
             errorCount++;
-            lastError = data.error;
+            lastError = cleanErrorMessage(data.error);
           } else if (event === "done") {
             gotDone = true;
             stopAnim();
@@ -677,7 +690,8 @@
     } catch(e) {
       stopAnim();
       showProgress(`Upload failed: ${e.message}`, 100, "error");
-      status.textContent = "";
+      status.textContent = `Upload failed: ${cleanErrorMessage(e.message)}`;
+      status.style.color = "#e74c3c";
       try { await refreshCompanyList(); } catch {}
     }
 
@@ -747,7 +761,7 @@
     try {
       const available = await refreshCompanyList();
       if (!available.length) {
-        body.innerHTML = `<div class="empty-state" style="color:#e74c3c">No indexed filing is available on the server. Please upload the PDF again and wait for indexing to complete.</div>`;
+        body.innerHTML = `<div class="empty-state" style="color:#e74c3c">No indexed filing is available on the server. If upload just failed, check the upload status and make sure GEMINI_API_KEY is set before uploading again.</div>`;
         btn.disabled = false;
         btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run Query`;
         return;

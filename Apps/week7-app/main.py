@@ -24,7 +24,32 @@ from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
 # ── Config ────────────────────────────────────────────────────────────────────
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+APP_DIR = Path(__file__).resolve().parent
+
+
+def load_local_env() -> None:
+    """Load simple KEY=value pairs from local env files for classroom use."""
+    for env_path in (APP_DIR / "local.env", APP_DIR / ".env"):
+        if not env_path.exists():
+            continue
+        try:
+            with open(env_path, "r", encoding="utf-8") as f:
+                for raw_line in f:
+                    line = raw_line.strip()
+                    if not line or line.startswith("#") or "=" not in line:
+                        continue
+                    key, value = line.split("=", 1)
+                    key = key.strip()
+                    value = value.strip().strip('"').strip("'")
+                    if key and key not in os.environ:
+                        os.environ[key] = value
+        except Exception:
+            continue
+
+
+load_local_env()
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
 genai.configure(api_key=GEMINI_API_KEY)
 llm = genai.GenerativeModel("gemini-2.5-flash")
 
@@ -47,6 +72,11 @@ EMBED_BATCH_SIZE = 100  # Gemini embedding API supports up to 100 per batch
 MAX_CHUNKS = 500        # ~500 chunks across batches of 100
 GENERATION_TEMPERATURE = 0.1
 INDEX_DIR = Path(os.getenv("RAG_INDEX_DIR", "/tmp/week7-rag-indexes"))
+
+MISSING_GEMINI_KEY_ERROR = (
+    "Missing Gemini API key. Set GEMINI_API_KEY in Railway variables, "
+    "or add GEMINI_API_KEY=your_key_here to Apps/week7-app/local.env when running locally."
+)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -256,6 +286,15 @@ def record_aliases(record: dict) -> set[str]:
     return {make_company_key(alias) for alias in aliases if make_company_key(alias)}
 
 
+def alias_matches(requested_key: str, aliases: set[str]) -> bool:
+    if requested_key in aliases:
+        return True
+    return any(
+        requested_key.startswith(f"{alias}_") or alias.startswith(f"{requested_key}_")
+        for alias in aliases
+    )
+
+
 def company_info(record: dict) -> dict:
     return {
         "key": record["company_key"],
@@ -328,7 +367,7 @@ def find_company_key_by_alias(company_key: str) -> str | None:
     requested_key = make_company_key(company_key)
 
     for record in doc_store.values():
-        if requested_key in record_aliases(record):
+        if alias_matches(requested_key, record_aliases(record)):
             return record["company_key"]
 
     if not INDEX_DIR.exists():
@@ -338,7 +377,7 @@ def find_company_key_by_alias(company_key: str) -> str | None:
         try:
             with open(meta_path, "r", encoding="utf-8") as f:
                 meta = json.load(f)
-            if requested_key in record_aliases(meta):
+            if alias_matches(requested_key, record_aliases(meta)):
                 return meta.get("company_key") or meta_path.stem
         except Exception:
             continue
@@ -424,6 +463,18 @@ async def upload_stream(
     async def generate() -> AsyncGenerator[str, None]:
         uploaded = []
         errors = []
+
+        if not GEMINI_API_KEY:
+            for file in files:
+                error = {"file": file.filename, "error": MISSING_GEMINI_KEY_ERROR}
+                errors.append(error)
+                yield sse("file_error", error)
+            yield sse("done", {
+                "uploaded": uploaded,
+                "errors": errors,
+                "companies_available": list_available_companies(),
+            })
+            return
 
         for file_idx, file in enumerate(files):
             filename = file.filename
@@ -569,6 +620,17 @@ async def list_companies():
     )
 
 
+@app.get("/health")
+@app.get("/api/health")
+async def health():
+    return {
+        "ok": True,
+        "has_gemini_key": bool(GEMINI_API_KEY),
+        "index_dir": str(INDEX_DIR),
+        "company_count": len(list_available_companies()),
+    }
+
+
 @app.post("/query")
 async def query(request: QueryRequest):
     """
@@ -603,6 +665,7 @@ async def query(request: QueryRequest):
             })
             continue
 
+        company_key = record["company_key"]
         company_name = record["company_name"]
 
         # ── Zero-shot ──────────────────────────────────────────────────────
