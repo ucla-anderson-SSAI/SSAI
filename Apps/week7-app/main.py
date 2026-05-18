@@ -94,6 +94,76 @@ def extract_text_from_pdf(pdf_bytes: bytes) -> str:
     return text.strip()
 
 
+def clean_company_name_candidate(name: str) -> str:
+    """Normalize and validate a possible SEC registrant name."""
+    name = re.sub(r"\s+", " ", name or "").strip()
+    name = name.strip(" \t\r\n:-*\"'")
+    name = re.sub(
+        r"\s*\(?\s*exact name of registrant.*$",
+        "",
+        name,
+        flags=re.IGNORECASE,
+    ).strip(" \t\r\n:-*\"'")
+
+    alnum = re.sub(r"[^A-Za-z0-9]", "", name)
+    if len(alnum) < 2 or not re.search(r"[A-Za-z]", name):
+        return ""
+
+    lower = name.lower()
+    bad_fragments = [
+        "united states securities",
+        "securities and exchange commission",
+        "washington, d.c.",
+        "form 10-k",
+        "form 20-f",
+        "table of contents",
+        "commission file number",
+        "exact name of registrant",
+    ]
+    if any(fragment in lower for fragment in bad_fragments):
+        return ""
+
+    return name
+
+
+def company_name_from_filename(filename: str) -> str:
+    """Fallback company label derived from the uploaded filename."""
+    stem = Path(filename or "").stem
+    stem = re.sub(r"[_\-]+", " ", stem)
+    stem = re.sub(
+        r"\b(10\s*k|10k|10\s*-\s*k|20\s*f|20f|20\s*-\s*f|annual report|excerpt|sec|filing|form)\b",
+        " ",
+        stem,
+        flags=re.IGNORECASE,
+    )
+    stem = re.sub(r"\s+", " ", stem).strip()
+    return clean_company_name_candidate(stem) or (filename or "Uploaded filing")
+
+
+def extract_company_name_from_text(text: str) -> str:
+    """Try to find the registrant name from standard SEC cover-page wording."""
+    lines = [
+        re.sub(r"\s+", " ", line).strip()
+        for line in text.splitlines()[:120]
+        if line.strip()
+    ]
+
+    for idx, line in enumerate(lines):
+        if "exact name of registrant" not in line.lower():
+            continue
+
+        same_line = clean_company_name_candidate(line)
+        if same_line:
+            return same_line
+
+        for candidate in reversed(lines[max(0, idx - 6):idx]):
+            cleaned = clean_company_name_candidate(candidate)
+            if cleaned:
+                return cleaned
+
+    return ""
+
+
 def chunk_text(text: str, chunk_size: int = 100, stride: int = 80) -> List[str]:
     words = text.split()
     chunks = []
@@ -133,6 +203,10 @@ def retrieve_top_chunks(
 
 def extract_company_name_with_llm(text: str, filename: str) -> str:
     """Use Gemini to extract the real company name from the first ~600 words."""
+    deterministic_name = extract_company_name_from_text(text)
+    if deterministic_name:
+        return deterministic_name
+
     preview = " ".join(text.split()[:600])
     prompt = f"""The following is the beginning of an SEC 10-K filing.
 Extract ONLY the full legal company name (the registrant name).
@@ -151,13 +225,12 @@ Company name:"""
             ),
         )
         name = resp.text.strip().strip('"').strip("'")
+        name = clean_company_name_candidate(name)
         if name and len(name) < 150:
             return name
     except Exception:
         pass
-    # Fallback: clean up the filename
-    name = os.path.splitext(filename)[0]
-    return re.sub(r"[_\-]+", " ", name).strip() or filename
+    return company_name_from_filename(filename)
 
 
 def make_company_key(name: str) -> str:
@@ -168,6 +241,19 @@ def make_company_key(name: str) -> str:
 def get_index_paths(company_key: str) -> tuple[Path, Path]:
     key = make_company_key(company_key)
     return INDEX_DIR / f"{key}.json", INDEX_DIR / f"{key}.npy"
+
+
+def record_aliases(record: dict) -> set[str]:
+    aliases = set(record.get("aliases") or [])
+    aliases.add(record.get("company_key", ""))
+    aliases.add(record.get("company_name", ""))
+
+    filename = record.get("filename", "")
+    if filename:
+        aliases.add(Path(filename).stem)
+        aliases.add(company_name_from_filename(filename))
+
+    return {make_company_key(alias) for alias in aliases if make_company_key(alias)}
 
 
 def company_info(record: dict) -> dict:
@@ -194,6 +280,7 @@ def save_doc_record(record: dict) -> None:
         "word_count": record["word_count"],
         "chunk_count": record["chunk_count"],
         "chunks": record["chunks"],
+        "aliases": sorted(record_aliases(record)),
     }
 
     with open(meta_tmp, "w", encoding="utf-8") as f:
@@ -205,8 +292,8 @@ def save_doc_record(record: dict) -> None:
     os.replace(meta_tmp, meta_path)
 
 
-def load_doc_record(company_key: str) -> dict | None:
-    """Load an index from disk into memory if this process does not have it."""
+def load_doc_record_exact(company_key: str) -> dict | None:
+    """Load an index by its canonical key."""
     key = make_company_key(company_key)
     if key in doc_store:
         return doc_store[key]
@@ -230,9 +317,47 @@ def load_doc_record(company_key: str) -> dict | None:
         "filename": meta["filename"],
         "word_count": meta["word_count"],
         "chunk_count": meta["chunk_count"],
+        "aliases": meta.get("aliases") or [],
     }
+    record["aliases"] = sorted(record_aliases(record))
     doc_store[record["company_key"]] = record
     return record
+
+
+def find_company_key_by_alias(company_key: str) -> str | None:
+    requested_key = make_company_key(company_key)
+
+    for record in doc_store.values():
+        if requested_key in record_aliases(record):
+            return record["company_key"]
+
+    if not INDEX_DIR.exists():
+        return None
+
+    for meta_path in INDEX_DIR.glob("*.json"):
+        try:
+            with open(meta_path, "r", encoding="utf-8") as f:
+                meta = json.load(f)
+            if requested_key in record_aliases(meta):
+                return meta.get("company_key") or meta_path.stem
+        except Exception:
+            continue
+
+    return None
+
+
+def load_doc_record(company_key: str) -> dict | None:
+    """Load an index from memory/disk, accepting known aliases as keys."""
+    key = make_company_key(company_key)
+    record = load_doc_record_exact(key)
+    if record:
+        return record
+
+    canonical_key = find_company_key_by_alias(key)
+    if canonical_key and canonical_key != key:
+        return load_doc_record_exact(canonical_key)
+
+    return None
 
 
 def list_available_companies() -> list[dict]:
@@ -460,13 +585,19 @@ async def query(request: QueryRequest):
         record = load_doc_record(company_key)
         if not record:
             available = list_available_companies()
+            available_keys = [company["key"] for company in available]
             results.append({
                 "company_key": company_key,
                 "company": company_key,
-                "error": "This filing is no longer indexed. Please upload it again.",
+                "error": (
+                    "No indexed filings are available on this server. Please upload the PDF again "
+                    "and wait for indexing to complete."
+                    if not available_keys
+                    else "This filing is no longer indexed. Please upload it again."
+                ),
                 "debug": {
                     "requested_key": company_key,
-                    "available_keys": [company["key"] for company in available],
+                    "available_keys": available_keys,
                     "index_dir": str(INDEX_DIR),
                 },
             })

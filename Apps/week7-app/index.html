@@ -613,33 +613,39 @@
           } else if (event === "done") {
             gotDone = true;
             stopAnim();
-            const fallbackCompanies = normalizeCompanies(
-              data.companies_available && data.companies_available.length
-                ? data.companies_available
-                : data.uploaded
-            );
-            // Always re-fetch /companies as source of truth (avoids stale SSE state)
-            fetch(`${API}/companies`, { cache: "no-store" }).then(r => r.json()).then(d => {
-              const serverCompanies = normalizeCompanies(d.companies);
-              renderCompanyList(serverCompanies.length ? serverCompanies : fallbackCompanies);
-              updateAskBtn();
-            }).catch(() => {
-              renderCompanyList(fallbackCompanies);
-              updateAskBtn();
-            });
+            const eventCompanies = normalizeCompanies(data.companies_available || []);
+            let confirmedCompanies = eventCompanies;
 
-            if (errorCount > 0 && uploadedCount === 0) {
+            // Re-fetch /companies as the source of truth. If that check fails,
+            // keep only the server-confirmed list from the SSE summary.
+            try {
+              const r = await fetch(`${API}/companies`, { cache: "no-store" });
+              const d = await r.json();
+              confirmedCompanies = normalizeCompanies(d.companies);
+              if (!confirmedCompanies.length && eventCompanies.length) {
+                confirmedCompanies = eventCompanies;
+              }
+            } catch(e) {}
+
+            renderCompanyList(confirmedCompanies);
+            updateAskBtn();
+
+            if (errorCount > 0 && !confirmedCompanies.length) {
               showProgress(`⚠ Error: ${lastError}`, 100, "error");
               status.textContent = `Upload failed: ${lastError}`;
               status.style.color = "#e74c3c";
+            } else if (!confirmedCompanies.length) {
+              showProgress(`Upload finished, but no indexed filing was registered`, 100, "error");
+              status.textContent = `Upload finished, but no indexed filing is available. Please upload again.`;
+              status.style.color = "#e74c3c";
             } else if (errorCount > 0) {
-              showProgress(`✓ ${uploadedCount} indexed · ⚠ ${errorCount} failed: ${lastError}`, 100, "error");
-              status.textContent = `${uploadedCount} filing(s) ready · Error: ${lastError}`;
+              showProgress(`✓ ${confirmedCompanies.length} indexed · ⚠ ${errorCount} failed: ${lastError}`, 100, "error");
+              status.textContent = `${confirmedCompanies.length} filing(s) ready · Error: ${lastError}`;
               status.style.color = "#e67e22";
               setTimeout(hideProgress, 6000);
             } else {
-              showProgress(`✓ ${uploadedCount} filing(s) indexed and ready`, 100, "done");
-              status.textContent = `✓ ${uploadedCount} filing(s) indexed`;
+              showProgress(`✓ ${confirmedCompanies.length} filing(s) indexed and ready`, 100, "done");
+              status.textContent = `✓ ${confirmedCompanies.length} filing(s) indexed`;
               status.style.color = "#27ae60";
               setTimeout(hideProgress, 3000);
             }
@@ -654,21 +660,25 @@
         const r = await fetch(`${API}/companies`, { cache: "no-store" });
         const d = await r.json();
         const serverCompanies = normalizeCompanies(d.companies);
+        renderCompanyList(serverCompanies);
+        updateAskBtn();
         if (serverCompanies.length) {
-          renderCompanyList(serverCompanies);
-          updateAskBtn();
+          showProgress(`✓ ${serverCompanies.length} filing(s) indexed and ready`, 100, "done");
+          status.textContent = `✓ ${serverCompanies.length} filing(s) indexed`;
+          status.style.color = "#27ae60";
+          setTimeout(hideProgress, 3000);
+        } else {
+          showProgress(`Upload finished, but no indexed filing was registered`, 100, "error");
+          status.textContent = `Upload finished, but no indexed filing is available. Please upload again.`;
+          status.style.color = "#e74c3c";
         }
-        const n = serverCompanies.length || companies.length;
-        showProgress(`✓ ${n} filing(s) indexed and ready`, 100, "done");
-        status.textContent = `✓ ${n} filing(s) indexed`;
-        status.style.color = "#27ae60";
-        setTimeout(hideProgress, 3000);
       }
 
     } catch(e) {
       stopAnim();
       showProgress(`Upload failed: ${e.message}`, 100, "error");
       status.textContent = "";
+      try { await refreshCompanyList(); } catch {}
     }
 
     document.getElementById("file-input").value = "";
@@ -711,18 +721,13 @@
     document.getElementById("ask-btn").disabled = companies.length === 0;
   }
 
-  async function refreshCompanyList({ preserveOnEmpty = false } = {}) {
-    const previousCompanies = companies.slice();
+  async function refreshCompanyList() {
     const res = await fetch(`${API}/companies`, { cache: "no-store" });
     const data = await res.json();
     const available = normalizeCompanies(data.companies);
-    if (available.length || !preserveOnEmpty) {
-      renderCompanyList(available);
-    } else {
-      renderCompanyList(previousCompanies);
-    }
+    renderCompanyList(available);
     updateAskBtn();
-    return available.length ? available : previousCompanies;
+    return available;
   }
 
   // ── Query ─────────────────────────────────────────────────────────────────
@@ -740,9 +745,9 @@
     document.getElementById("results-question").style.display = "none";
 
     try {
-      const available = await refreshCompanyList({ preserveOnEmpty: true });
+      const available = await refreshCompanyList();
       if (!available.length) {
-        body.innerHTML = `<div class="empty-state" style="color:#e74c3c">The uploaded filing is no longer indexed. Please upload it again.</div>`;
+        body.innerHTML = `<div class="empty-state" style="color:#e74c3c">No indexed filing is available on the server. Please upload the PDF again and wait for indexing to complete.</div>`;
         btn.disabled = false;
         btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run Query`;
         return;
