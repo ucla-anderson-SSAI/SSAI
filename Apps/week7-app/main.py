@@ -20,7 +20,7 @@ import numpy as np
 import google.generativeai as genai
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
 # ── Config ────────────────────────────────────────────────────────────────────
@@ -438,7 +438,10 @@ async def upload_stream(
 
 @app.get("/companies")
 async def list_companies():
-    return {"companies": list_available_companies()}
+    return JSONResponse(
+        {"companies": list_available_companies()},
+        headers={"Cache-Control": "no-store, max-age=0"},
+    )
 
 
 @app.post("/query")
@@ -456,10 +459,16 @@ async def query(request: QueryRequest):
         company_key = make_company_key(raw_company_key)
         record = load_doc_record(company_key)
         if not record:
+            available = list_available_companies()
             results.append({
                 "company_key": company_key,
                 "company": company_key,
                 "error": "This filing is no longer indexed. Please upload it again.",
+                "debug": {
+                    "requested_key": company_key,
+                    "available_keys": [company["key"] for company in available],
+                    "index_dir": str(INDEX_DIR),
+                },
             })
             continue
 
@@ -547,7 +556,10 @@ async def delete_company(company_key: str):
 
 @app.get("/")
 async def root():
-    return FileResponse("index.html")
+    return FileResponse(
+        "index.html",
+        headers={"Cache-Control": "no-store, max-age=0"},
+    )
 
 
 if __name__ == "__main__":

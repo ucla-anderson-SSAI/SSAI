@@ -619,7 +619,7 @@
                 : data.uploaded
             );
             // Always re-fetch /companies as source of truth (avoids stale SSE state)
-            fetch(`${API}/companies`).then(r => r.json()).then(d => {
+            fetch(`${API}/companies`, { cache: "no-store" }).then(r => r.json()).then(d => {
               const serverCompanies = normalizeCompanies(d.companies);
               renderCompanyList(serverCompanies.length ? serverCompanies : fallbackCompanies);
               updateAskBtn();
@@ -651,7 +651,7 @@
       // just refresh the company list from /companies
       if (!gotDone) {
         stopAnim();
-        const r = await fetch(`${API}/companies`);
+        const r = await fetch(`${API}/companies`, { cache: "no-store" });
         const d = await r.json();
         const serverCompanies = normalizeCompanies(d.companies);
         if (serverCompanies.length) {
@@ -698,7 +698,7 @@
   async function removeCompany(key) {
     await fetch(`${API}/companies/${encodeURIComponent(key)}`, { method: "DELETE" });
     delete colorMap[key];
-    const res  = await fetch(`${API}/companies`);
+    const res  = await fetch(`${API}/companies`, { cache: "no-store" });
     const data = await res.json();
     // data.companies = [{ key, name, ... }]
     renderCompanyList(data.companies);
@@ -711,13 +711,18 @@
     document.getElementById("ask-btn").disabled = companies.length === 0;
   }
 
-  async function refreshCompanyList() {
-    const res = await fetch(`${API}/companies`);
+  async function refreshCompanyList({ preserveOnEmpty = false } = {}) {
+    const previousCompanies = companies.slice();
+    const res = await fetch(`${API}/companies`, { cache: "no-store" });
     const data = await res.json();
     const available = normalizeCompanies(data.companies);
-    renderCompanyList(available);
+    if (available.length || !preserveOnEmpty) {
+      renderCompanyList(available);
+    } else {
+      renderCompanyList(previousCompanies);
+    }
     updateAskBtn();
-    return available;
+    return available.length ? available : previousCompanies;
   }
 
   // ── Query ─────────────────────────────────────────────────────────────────
@@ -735,7 +740,7 @@
     document.getElementById("results-question").style.display = "none";
 
     try {
-      const available = await refreshCompanyList();
+      const available = await refreshCompanyList({ preserveOnEmpty: true });
       if (!available.length) {
         body.innerHTML = `<div class="empty-state" style="color:#e74c3c">The uploaded filing is no longer indexed. Please upload it again.</div>`;
         btn.disabled = false;
@@ -790,9 +795,16 @@
       block.className = "company-block";
 
       if (r.error) {
+        const debug = r.debug
+          ? `<div style="padding:0 14px 14px;color:#777;font-size:11px;font-family:'JetBrains Mono',monospace;">
+              requested: ${escHtml(r.debug.requested_key || "")}<br>
+              available: ${escHtml((r.debug.available_keys || []).join(", ") || "none")}
+            </div>`
+          : "";
         block.innerHTML = `
           <div class="company-block-header"><div class="chip-dot" style="background:${color}"></div>${escHtml(r.company)}</div>
-          <div style="padding:14px;color:#e74c3c;font-size:13px;">${escHtml(r.error)}</div>`;
+          <div style="padding:14px;color:#e74c3c;font-size:13px;">${escHtml(r.error)}</div>
+          ${debug}`;
       } else {
         const srcId  = `src-${Math.random().toString(36).slice(2)}`;
         const chunks = r.rag.retrieved_chunks || [];
