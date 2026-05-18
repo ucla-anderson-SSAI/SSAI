@@ -430,10 +430,10 @@
         Start with the following clear instruction:
       </p>
       <div class="agent-instruction">
-        <pre><span class="agent-mark">&gt;</span> Read AppPlan.md and App_Development_Kit.html. Before editing, summarize the app purpose, required layout, colors, inputs, outputs, and model behavior from AppPlan.md. Then build the first working version using the files already in this folder. Treat the design notes in AppPlan.md as requirements. Keep it simple, make sure it runs locally at http://localhost:3000, and keep it deployable on Railway.</pre>
+        <pre><span class="agent-mark">&gt;</span> Read AppPlan.md and App_Development_Kit.html. Before editing, summarize the app purpose, required layout, colors, inputs, outputs, system prompt requirements, and model behavior from AppPlan.md. Then build the first working version using the files already in this folder. Treat the design notes in AppPlan.md as requirements. Create a clearly labeled, editable system prompt in the code for any LLM or RAG app. Keep it simple, make sure it runs locally at http://localhost:3000, and keep it deployable on Railway.</pre>
       </div>
       <p>
-        A system prompt is the instruction that tells the model what role to play, who the user is, what rules to follow, and what format to return. Ask Cowork/Codex to make the system prompt explicit and easy for your team to edit later.
+        A system prompt is the instruction that tells the model what role to play, who the user is, what rules to follow, and what format to return. If your app uses an LLM or RAG, write your system prompt requirements in <code>AppPlan.md</code> and ask Cowork/Codex to make the system prompt explicit and easy for your team to edit later.
       </p>
 
       <h3>3. Run Locally</h3>
