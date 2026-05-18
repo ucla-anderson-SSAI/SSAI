@@ -433,11 +433,21 @@
         <pre><span class="agent-mark">&gt;</span> Read AppPlan.md and App_Development_Kit.html. Before editing, summarize the app purpose, required layout, colors, inputs, outputs, system prompt requirements, and model behavior from AppPlan.md. Then build the first working version using the files already in this folder. Treat the design notes in AppPlan.md as requirements. Create a clearly labeled, editable system prompt in the code for any LLM or RAG app. Keep it simple, make sure it runs locally at http://localhost:3000, and keep it deployable on Railway.</pre>
       </div>
       <h3>3. Run Locally</h3>
+      <p>
+        On macOS, clear anything still using port 3000, then start the app:
+      </p>
       <div class="terminal">
-        <pre><span class="prompt">$</span> npm start</pre>
+        <pre><span class="prompt">$</span> lsof -ti tcp:3000 | xargs kill
+<span class="prompt">$</span> npm start</pre>
+      </div>
+      <p>
+        On Windows PowerShell, start the app:
+      </p>
+      <div class="terminal">
+        <pre><span class="prompt">PS&gt;</span> npm start</pre>
       </div>
       <div class="model-note">
-        If you see an error saying port 3000 is already in use, close other Terminal, PowerShell, Cowork, or Codex preview windows and try again. If that does not work, restart your computer and try again.
+        The first macOS command only stops a local process already using the app preview port. If it prints nothing, that means port 3000 was already clear. If you still see an error saying port 3000 is already in use, close other Terminal, PowerShell, Cowork, or Codex preview windows and try again. If that does not work, restart your computer and try again.
       </div>
       <p>
         Open the local address shown in the terminal, usually <code>http://localhost:3000</code>. Test the starter app.
