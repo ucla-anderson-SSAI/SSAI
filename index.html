@@ -133,6 +133,212 @@
       padding-bottom: 10px;
     }
 
+    .syllabus {
+      margin-top: 34px;
+    }
+
+    .syllabus-lede {
+      max-width: 780px;
+      margin: 14px 0 0;
+      font-size: 1.02rem;
+      line-height: 1.55;
+    }
+
+    .syllabus-visual {
+      margin-top: 14px;
+    }
+
+    .syllabus-visual img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .syllabus-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(405px, 1.25fr);
+      gap: 28px;
+      margin-top: 20px;
+      align-items: start;
+    }
+
+    .syllabus-facts {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 20px;
+      padding: 12px 14px;
+      background: var(--surface);
+    }
+
+    .syllabus-facts p {
+      min-width: 0;
+      margin: 0;
+    }
+
+    .fact-label {
+      display: block;
+      color: #5c6670;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      line-height: 1.2;
+      text-transform: uppercase;
+    }
+
+    .fact-value {
+      display: block;
+      margin-top: 2px;
+      color: var(--ink);
+      font-size: var(--text-small);
+      line-height: 1.35;
+    }
+
+    .syllabus-section {
+      margin-top: 26px;
+    }
+
+    .syllabus-section h3 {
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 8px;
+    }
+
+    .objective-list,
+    .tool-list {
+      display: grid;
+      gap: 9px;
+      margin: 12px 0 0;
+      padding-left: 20px;
+    }
+
+    .objective-list li,
+    .tool-list li {
+      padding-left: 2px;
+    }
+
+    .grading-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .grading-item {
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      padding: 13px 14px;
+      background: var(--surface);
+    }
+
+    .grading-percent {
+      display: block;
+      color: var(--darkest-blue);
+      font-family: var(--font-title);
+      font-size: 1.35rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .grading-label {
+      display: block;
+      margin-top: 5px;
+      font-size: var(--text-small);
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    .assessment-note {
+      margin: 12px 0 0;
+      font-size: var(--text-small);
+      line-height: 1.5;
+    }
+
+    .table-wrap {
+      margin-top: 12px;
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 3px;
+    }
+
+    .syllabus-table {
+      width: 100%;
+      min-width: 860px;
+      border-collapse: collapse;
+      font-size: var(--text-small);
+      line-height: 1.42;
+    }
+
+    .syllabus-table th,
+    .syllabus-table td {
+      border-bottom: 1px solid var(--line);
+      padding: 10px 12px;
+      vertical-align: top;
+      text-align: left;
+    }
+
+    .syllabus-table th {
+      color: var(--darkest-blue);
+      background: var(--surface);
+      font-weight: 700;
+    }
+
+    .syllabus-table tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .syllabus-table .week-col {
+      width: 74px;
+      color: #5c6670;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .syllabus-table .date-col,
+    .syllabus-table .deliverable-col {
+      width: 118px;
+      white-space: nowrap;
+    }
+
+    .topic-title {
+      display: block;
+      color: var(--darkest-blue);
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    .topic-use {
+      display: block;
+      margin-top: 2px;
+      color: #5c6670;
+      font-style: italic;
+    }
+
+    .topic-desc {
+      margin: 7px 0 0;
+    }
+
+    .policy-details {
+      margin-top: 12px;
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      background: var(--white);
+    }
+
+    .policy-details summary {
+      cursor: pointer;
+      padding: 12px 14px;
+      color: var(--darkest-blue);
+      font-weight: 700;
+    }
+
+    .policy-details p {
+      margin: 0;
+      border-top: 1px solid var(--line);
+      padding: 12px 14px 14px;
+      font-size: var(--text-small);
+      line-height: 1.5;
+    }
+
     .week-module {
       border: 1px solid var(--line);
       border-radius: 3px;
@@ -357,6 +563,77 @@
       line-height: 1.4;
     }
 
+    .email a {
+      overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 760px) {
+      .table-wrap {
+        overflow-x: visible;
+        border: 0;
+      }
+
+      .syllabus-table {
+        display: block;
+        min-width: 0;
+      }
+
+      .syllabus-table thead {
+        display: none;
+      }
+
+      .syllabus-table tbody {
+        display: grid;
+        gap: 12px;
+      }
+
+      .syllabus-table tr {
+        display: grid;
+        border: 1px solid var(--line);
+        border-radius: 3px;
+        background: var(--white);
+      }
+
+      .syllabus-table td {
+        display: block;
+        width: auto;
+        border-bottom: 1px solid var(--line);
+        padding: 9px 12px;
+        white-space: normal;
+      }
+
+      .syllabus-table tr:last-child td {
+        border-bottom: 1px solid var(--line);
+      }
+
+      .syllabus-table td:last-child {
+        border-bottom: 0;
+      }
+
+      .syllabus-table .week-col,
+      .syllabus-table .date-col,
+      .syllabus-table .deliverable-col {
+        width: auto;
+        white-space: normal;
+      }
+
+      .syllabus-table td.week-col::before {
+        content: "Week ";
+      }
+
+      .syllabus-table td.date-col::before {
+        content: "Date: ";
+        color: var(--darkest-blue);
+        font-weight: 700;
+      }
+
+      .syllabus-table td.deliverable-col::before {
+        content: "Deliverable: ";
+        color: var(--darkest-blue);
+        font-weight: 700;
+      }
+    }
+
     @media (max-width: 640px) {
       .page {
         padding: 20px 14px 28px;
@@ -368,6 +645,19 @@
 
       h1 {
         white-space: normal;
+      }
+
+      .syllabus-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .syllabus-facts {
+        border-top: 5px solid var(--ucla-gold);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .grading-grid {
+        grid-template-columns: 1fr;
       }
 
       .week-toggle {
@@ -401,12 +691,51 @@
       <h1>Science and Strategy of Artificial Intelligence</h1>
     </header>
 
+    <section class="syllabus" aria-label="Course overview">
+      <div class="syllabus-grid">
+        <div>
+          <p class="syllabus-lede">
+            <strong>This course demystifies artificial intelligence for a non-technical audience.</strong> We go light on math and heavy on intuition. The goal is for you to build an appreciation for how underlying AI models work and how they unlock value from data in practice. We will explore various AI models using a mix of fully pre-written Python code and interactive web apps -- no prior coding experience is needed.
+          </p>
+          <p class="syllabus-lede">
+            We will cover machine learning, reinforcement learning, neural networks, computer vision, and large language models (LLMs). We'll pay special attention to how LLMs are trained and aligned, and how the underlying technology and economics shapes the current AI industry landscape.
+          </p>
+          <p class="syllabus-lede">
+            The course culminates in a product sprint where students build an AI-powered app deployed on the web, showcasing their skills and serving as a memento of the course.
+          </p>
+        </div>
+        <div>
+          <div class="syllabus-visual" aria-label="Embedding space course visual">
+            <img src="Syllabus/assets/embedding.png" alt="Three-dimensional embedding space showing semantic relationships among words such as king, queen, fruit, and vehicle.">
+          </div>
+        </div>
+      </div>
+      <div class="syllabus-facts" aria-label="Course facts">
+        <p>
+          <span class="fact-label">Term</span>
+          <span class="fact-value">Spring 2026 - 4 units - in person</span>
+        </p>
+        <p>
+          <span class="fact-label">Time</span>
+          <span class="fact-value">Mondays, 1:00-3:50pm</span>
+        </p>
+        <p>
+          <span class="fact-label">Location</span>
+          <span class="fact-value">G419</span>
+        </p>
+        <p>
+          <span class="fact-label">Instructor</span>
+          <span class="fact-value">Auyon Siddiq</span>
+        </p>
+      </div>
+    </section>
+
     <section class="section-band" aria-labelledby="product-sprint-heading">
       <div class="section-heading">
         <h2 id="product-sprint-heading">Product Sprint</h2>
       </div>
       <div class="sprint-actions">
-        <a class="button-link primary" href="Assignments/Product_Sprint_Brief.pdf" target="_blank" rel="noopener">Instructions</a>
+        <a class="button-link" href="Assignments/Product_Sprint_Brief.pdf" target="_blank" rel="noopener">Instructions</a>
         <a class="button-link" href="Product%20Sprint/App_Development_Kit.html" target="_blank" rel="noopener">App Development Kit</a>
         <a class="button-link" href="https://calendly.com/siddiq-ucla/product-sprint-check-in" target="_blank" rel="noopener">Office Hours Sign-up</a>
       </div>
@@ -602,6 +931,26 @@
       </div>
     </section>
 
+    <section class="section-band" aria-labelledby="grading-heading">
+      <div class="section-heading">
+        <h2 id="grading-heading">Evaluation</h2>
+      </div>
+      <div class="grading-grid" aria-label="Grade weights">
+        <div class="grading-item">
+          <span class="grading-percent">60%</span>
+          <span class="grading-label">Assignments</span>
+        </div>
+        <div class="grading-item">
+          <span class="grading-percent">35%</span>
+          <span class="grading-label">Product Sprint</span>
+        </div>
+        <div class="grading-item">
+          <span class="grading-percent">5%</span>
+          <span class="grading-label">Peer Evaluation</span>
+        </div>
+      </div>
+    </section>
+
     <section class="team" aria-labelledby="team-heading">
       <div class="section-heading">
         <h2 id="team-heading">Teaching Team</h2>
@@ -625,6 +974,7 @@
         </article>
       </div>
     </section>
+
   </main>
   <script>
     document.querySelectorAll(".week-module").forEach((module) => {
