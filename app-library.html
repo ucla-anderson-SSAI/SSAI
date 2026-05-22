@@ -1,0 +1,900 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>App Gallery | MGMT298D</title>
+  <meta name="description" content="A gallery of AI apps from MGMT298D: Science and Strategy of Artificial Intelligence.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ucla-blue: #2774ae;
+      --darkest-blue: #003b5c;
+      --ucla-gold: #ffd100;
+      --darkest-gold: #ffb81c;
+      --bright-coral: #f47c30;
+      --dark-sea-foam: #4e7e6b;
+      --lightest-blue: #c3d7ee;
+      --slate: #313339;
+      --ink: rgba(49, 51, 57, 0.9);
+      --muted: #5c6670;
+      --line: #d9dee5;
+      --surface: #f7f8fa;
+      --white: #ffffff;
+      --font-body: Arial, "Helvetica Neue", Helvetica, sans-serif;
+      --font-title: "Whitney Bold", Whitney, "Source Sans 3", "Helvetica Neue", Arial, sans-serif;
+      --text-base: 1rem;
+      --text-small: 0.94rem;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--white);
+      font-family: var(--font-body);
+      font-size: var(--text-base);
+      line-height: 1.5;
+    }
+
+    a {
+      color: var(--darkest-blue);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
+    }
+
+    a:hover,
+    a:focus {
+      color: var(--ucla-blue);
+    }
+
+    .page {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 34px 24px 44px;
+    }
+
+    .hero {
+      position: relative;
+      padding: 26px 0 26px;
+    }
+
+    .hero::after {
+      content: "";
+      display: block;
+      height: 5px;
+      margin-top: 24px;
+      background: linear-gradient(90deg, var(--ucla-gold), var(--darkest-gold), var(--ucla-blue));
+    }
+
+    .brand-line {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      color: var(--darkest-blue);
+      font-size: 0.86rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      line-height: 1.35;
+      text-transform: uppercase;
+    }
+
+    .brand-divider,
+    .dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--ucla-gold);
+    }
+
+    h1,
+    h2,
+    h3 {
+      margin: 0;
+      letter-spacing: 0;
+    }
+
+    h1,
+    h2 {
+      color: var(--ucla-blue);
+      font-family: var(--font-title);
+      font-weight: 700;
+    }
+
+    h1 {
+      margin-top: 8px;
+      font-size: clamp(1.8rem, 4vw, 3.25rem);
+      line-height: 1.04;
+    }
+
+    h2 {
+      font-size: clamp(1.34rem, 2.4vw, 1.9rem);
+      line-height: 1.15;
+    }
+
+    h3 {
+      color: var(--darkest-blue);
+      font-size: 1.05rem;
+      line-height: 1.25;
+    }
+
+    .hero-copy {
+      max-width: 760px;
+      margin: 12px 0 0;
+      font-size: 1.04rem;
+      line-height: 1.5;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .button-link {
+      display: inline-flex;
+      min-height: 40px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      padding: 9px 13px;
+      color: var(--darkest-blue);
+      background: var(--white);
+      cursor: pointer;
+      font-family: inherit;
+      font-size: var(--text-small);
+      font-weight: 700;
+      line-height: 1.25;
+      text-decoration: none;
+    }
+
+    .button-link.primary {
+      border-color: var(--darkest-blue);
+      color: var(--white);
+      background: var(--darkest-blue);
+    }
+
+    .button-link:hover,
+    .button-link:focus {
+      border-color: var(--ucla-blue);
+      color: var(--darkest-blue);
+      background: var(--surface);
+    }
+
+    .button-link:disabled {
+      cursor: wait;
+      opacity: 0.62;
+    }
+
+    .gallery-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: flex-end;
+      margin-top: 24px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .tab-button {
+      min-height: 42px;
+      border: 1px solid transparent;
+      border-bottom: 0;
+      border-radius: 6px 6px 0 0;
+      padding: 10px 16px;
+      color: var(--darkest-blue);
+      background: transparent;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: var(--text-small);
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .tab-button:hover,
+    .tab-button:focus {
+      color: var(--ucla-blue);
+      background: var(--surface);
+    }
+
+    .tab-button:focus {
+      outline: 3px solid rgba(39, 116, 174, 0.16);
+      outline-offset: 0;
+    }
+
+    .tab-button[aria-selected="true"] {
+      position: relative;
+      z-index: 1;
+      border-color: var(--line);
+      color: var(--ucla-blue);
+      background: var(--white);
+      box-shadow: inset 0 4px 0 var(--ucla-gold);
+    }
+
+    .tab-panel[hidden] {
+      display: none;
+    }
+
+    .section-band {
+      margin-top: 38px;
+    }
+
+    .tab-panel.section-band {
+      margin-top: 24px;
+    }
+
+    .section-heading {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 10px;
+    }
+
+    .section-dots {
+      display: inline-flex;
+      gap: 7px;
+      align-items: center;
+    }
+
+    .section-dots .dot:nth-child(2) {
+      background: var(--bright-coral);
+    }
+
+    .section-dots .dot:nth-child(3) {
+      background: var(--ucla-blue);
+    }
+
+    .submit-panel {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+      margin-top: 16px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: linear-gradient(90deg, rgba(195, 215, 238, 0.35), var(--white) 52%);
+    }
+
+    .submission-form {
+      display: grid;
+      gap: 14px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .field-group {
+      display: grid;
+      gap: 6px;
+      color: var(--darkest-blue);
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      line-height: 1.25;
+      text-transform: uppercase;
+    }
+
+    .field-group.full {
+      grid-column: 1 / -1;
+    }
+
+    .field-input {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      padding: 9px 12px;
+      color: var(--ink);
+      background: var(--white);
+      font: inherit;
+      letter-spacing: 0;
+      text-transform: none;
+    }
+
+    textarea.field-input {
+      min-height: 108px;
+      resize: vertical;
+    }
+
+    .field-input:focus {
+      border-color: var(--ucla-blue);
+      outline: 3px solid rgba(39, 116, 174, 0.16);
+    }
+
+    .form-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .form-status {
+      color: var(--muted);
+      font-size: var(--text-small);
+      line-height: 1.35;
+    }
+
+    .form-status[data-status="error"] {
+      color: #9f2d1d;
+      font-weight: 700;
+    }
+
+    .form-status[data-status="success"] {
+      color: var(--dark-sea-foam);
+      font-weight: 700;
+    }
+
+    .library-tools {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      margin-top: 16px;
+    }
+
+    .library-search {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      padding: 9px 12px;
+      color: var(--ink);
+      font: inherit;
+    }
+
+    .library-count {
+      color: var(--muted);
+      font-size: var(--text-small);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .app-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .app-card {
+      display: grid;
+      gap: 12px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 16px;
+      background: var(--white);
+    }
+
+    .app-meta {
+      color: var(--muted);
+      font-size: var(--text-small);
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    .app-description {
+      margin: 0;
+      font-size: var(--text-small);
+      line-height: 1.48;
+    }
+
+    .keyword-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .keyword-chip {
+      border: 1px solid rgba(39, 116, 174, 0.25);
+      border-radius: 999px;
+      padding: 3px 8px;
+      color: var(--darkest-blue);
+      background: rgba(195, 215, 238, 0.35);
+      font-size: 0.78rem;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+
+    .summary-details {
+      border-top: 1px solid var(--line);
+      padding-top: 10px;
+    }
+
+    .summary-details summary {
+      color: var(--darkest-blue);
+      cursor: pointer;
+      font-size: var(--text-small);
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    .summary-details summary:hover,
+    .summary-details summary:focus {
+      color: var(--ucla-blue);
+    }
+
+    .summary-full {
+      margin: 9px 0 0;
+      color: var(--ink);
+      font-size: var(--text-small);
+      line-height: 1.5;
+    }
+
+    .card-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .video-frame {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      background: var(--surface);
+    }
+
+    .empty-state,
+    .setup-note {
+      margin-top: 16px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 16px;
+      background: var(--surface);
+      color: var(--muted);
+      font-size: var(--text-small);
+      line-height: 1.5;
+    }
+
+    .empty-state[hidden],
+    .setup-note[hidden] {
+      display: none;
+    }
+
+    @media (max-width: 760px) {
+      .submit-panel,
+      .library-tools {
+        grid-template-columns: 1fr;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .library-count {
+        white-space: normal;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page {
+        padding: 20px 14px 32px;
+      }
+
+      .hero {
+        padding-top: 20px;
+      }
+
+      .gallery-tabs {
+        gap: 4px;
+      }
+
+      .tab-button {
+        flex: 1 1 150px;
+        padding-right: 12px;
+        padding-left: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <div class="brand-line">
+        <span>UCLA Anderson</span>
+        <span class="brand-divider" aria-hidden="true"></span>
+        <span class="course-code">MGMT298D</span>
+      </div>
+      <h1>App Gallery</h1>
+      <div class="hero-actions">
+        <a class="button-link" href="index.html">Course Home</a>
+      </div>
+    </header>
+
+    <div class="gallery-tabs" role="tablist" aria-label="App gallery sections">
+      <button class="tab-button" id="browse-tab" type="button" role="tab" aria-controls="browse" aria-selected="true" data-tab-target="browse">Browse</button>
+      <button class="tab-button" id="submit-tab" type="button" role="tab" aria-controls="submit" aria-selected="false" tabindex="-1" data-tab-target="submit">Submit</button>
+    </div>
+
+    <section class="section-band tab-panel" id="browse" role="tabpanel" aria-labelledby="browse-tab">
+      <div class="section-heading">
+        <h2 id="library-heading">Browse Apps</h2>
+        <span class="section-dots" aria-hidden="true"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>
+      </div>
+      <div class="library-tools">
+        <input class="library-search" id="librarySearch" type="search" placeholder="Search by app, team, keyword, or summary" aria-label="Search submissions">
+        <span class="library-count" id="libraryCount">Loading submissions...</span>
+      </div>
+      <div class="setup-note" id="setupNote" hidden></div>
+      <div class="app-grid" id="appGrid" aria-live="polite"></div>
+      <div class="empty-state" id="emptyState" hidden>No submissions match the current search.</div>
+    </section>
+
+    <section class="section-band tab-panel" id="submit" role="tabpanel" aria-labelledby="submit-tab" hidden>
+      <div class="section-heading">
+        <h2 id="submit-heading">Submit an App</h2>
+        <span class="section-dots" aria-hidden="true"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>
+      </div>
+      <div class="submit-panel">
+        <div>
+          <form class="submission-form" id="submissionForm">
+            <div class="form-grid">
+              <label class="field-group">
+                App name
+                <input class="field-input" name="appName" autocomplete="off" required>
+              </label>
+              <label class="field-group">
+                Team members
+                <input class="field-input" name="teamMembers" autocomplete="off" required>
+              </label>
+              <label class="field-group">
+                Live app URL
+                <input class="field-input" name="liveUrl" type="url" inputmode="url" required>
+              </label>
+              <label class="field-group">
+                Pitch Video Google Drive URL (.MP4)
+                <input class="field-input" name="videoUrl" type="url" inputmode="url" required>
+              </label>
+              <label class="field-group full">
+                Keywords (3-5)
+                <input class="field-input" name="keywords" autocomplete="off" placeholder="finance, forecasting, workflow" required>
+              </label>
+              <label class="field-group full">
+                Summary (max 500 words)
+                <textarea class="field-input" name="writeup" required></textarea>
+              </label>
+            </div>
+            <div class="form-actions">
+              <button class="button-link primary" type="submit">Submit</button>
+              <span class="form-status" id="formStatus"></span>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const APP_LIBRARY_CONFIG = {
+      submissionEndpoint: "",
+      sheetCsvUrl: ""
+    };
+
+    const FIELD_ALIASES = {
+      appName: ["app name", "name of app", "project name"],
+      teamMembers: ["team members", "name of all team members", "names of all team members"],
+      liveUrl: ["live url", "live app url", "live URL to their app", "app url"],
+      keywords: ["keywords", "keywords (3-5)", "keyword", "tags"],
+      writeup: ["summary", "short writeup", "writeup", "description"],
+      videoUrl: ["pitch video", "pitch video link", "google drive video link", "5 minute pitch video", "five-minute pitch video"]
+    };
+
+    const appGrid = document.querySelector("#appGrid");
+    const emptyState = document.querySelector("#emptyState");
+    const libraryCount = document.querySelector("#libraryCount");
+    const librarySearch = document.querySelector("#librarySearch");
+    const setupNote = document.querySelector("#setupNote");
+    const submissionForm = document.querySelector("#submissionForm");
+    const formStatus = document.querySelector("#formStatus");
+    const tabButtons = [...document.querySelectorAll("[data-tab-target]")];
+    const tabPanels = [...document.querySelectorAll(".tab-panel")];
+    let submissions = [];
+
+    function normalize(value) {
+      return String(value || "").trim();
+    }
+
+    function parseCsv(csvText) {
+      const rows = [];
+      let row = [];
+      let cell = "";
+      let inQuotes = false;
+
+      for (let i = 0; i < csvText.length; i += 1) {
+        const char = csvText[i];
+        const next = csvText[i + 1];
+
+        if (char === '"' && inQuotes && next === '"') {
+          cell += '"';
+          i += 1;
+        } else if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === "," && !inQuotes) {
+          row.push(cell);
+          cell = "";
+        } else if ((char === "\n" || char === "\r") && !inQuotes) {
+          if (char === "\r" && next === "\n") i += 1;
+          row.push(cell);
+          if (row.some((item) => item.trim() !== "")) rows.push(row);
+          row = [];
+          cell = "";
+        } else {
+          cell += char;
+        }
+      }
+
+      row.push(cell);
+      if (row.some((item) => item.trim() !== "")) rows.push(row);
+      return rows;
+    }
+
+    function findValue(record, aliases) {
+      const keys = Object.keys(record);
+      const normalizedAliases = aliases.map((alias) => alias.toLowerCase().trim());
+      const match = keys.find((key) => normalizedAliases.includes(key.toLowerCase().trim()));
+      return match ? normalize(record[match]) : "";
+    }
+
+    function drivePreviewUrl(url) {
+      const value = normalize(url);
+      if (!value.includes("drive.google.com")) return "";
+      const match = value.match(/[-\w]{25,}/);
+      return match ? `https://drive.google.com/file/d/${match[0]}/preview` : "";
+    }
+
+    function isDriveVideoUrl(url) {
+      return Boolean(drivePreviewUrl(url));
+    }
+
+    function escapeHtml(value) {
+      return normalize(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    function isValidUrl(value) {
+      try {
+        const url = new URL(value);
+        return url.protocol === "http:" || url.protocol === "https:";
+      } catch (error) {
+        return false;
+      }
+    }
+
+    function wordCount(value) {
+      return normalize(value).split(/\s+/).filter(Boolean).length;
+    }
+
+    function keywordList(value) {
+      return normalize(value).split(",").map((keyword) => keyword.trim()).filter(Boolean);
+    }
+
+    function truncateWords(value, limit) {
+      const words = normalize(value).split(/\s+/).filter(Boolean);
+      if (words.length <= limit) return normalize(value);
+      return `${words.slice(0, limit).join(" ")}...`;
+    }
+
+    function setFormStatus(message, status = "") {
+      formStatus.textContent = message;
+      formStatus.dataset.status = status;
+    }
+
+    function submissionPayload() {
+      const formData = new FormData(submissionForm);
+      return {
+        appName: normalize(formData.get("appName")),
+        teamMembers: normalize(formData.get("teamMembers")),
+        liveUrl: normalize(formData.get("liveUrl")),
+        keywords: normalize(formData.get("keywords")),
+        writeup: normalize(formData.get("writeup")),
+        videoUrl: normalize(formData.get("videoUrl"))
+      };
+    }
+
+    function tabFromHash() {
+      const tabId = window.location.hash.replace("#", "");
+      return tabPanels.some((panel) => panel.id === tabId) ? tabId : "browse";
+    }
+
+    function selectTab(tabId, updateHash = true) {
+      tabButtons.forEach((button) => {
+        const selected = button.dataset.tabTarget === tabId;
+        button.setAttribute("aria-selected", String(selected));
+        button.tabIndex = selected ? 0 : -1;
+      });
+
+      tabPanels.forEach((panel) => {
+        panel.hidden = panel.id !== tabId;
+      });
+
+      if (updateHash && window.location.hash !== `#${tabId}`) {
+        window.history.pushState(null, "", `#${tabId}`);
+      }
+    }
+
+    function keywordChips(keywords) {
+      const items = keywordList(keywords);
+      if (!items.length) return "";
+      return `
+        <ul class="keyword-list" aria-label="Keywords">
+          ${items.map((keyword) => `<li class="keyword-chip">${escapeHtml(keyword)}</li>`).join("")}
+        </ul>
+      `;
+    }
+
+    function summaryBlock(summary) {
+      const fullSummary = normalize(summary || "Summary pending.");
+      const preview = truncateWords(fullSummary, 34);
+      const hasMore = wordCount(fullSummary) > 34;
+
+      return `
+        <p class="app-description">${escapeHtml(preview)}</p>
+        ${hasMore ? `
+          <details class="summary-details">
+            <summary>Read full summary</summary>
+            <p class="summary-full">${escapeHtml(fullSummary)}</p>
+          </details>
+        ` : ""}
+      `;
+    }
+
+    function appCard(app) {
+      const videoPreview = drivePreviewUrl(app.videoUrl);
+      return `
+        <article class="app-card">
+          <div>
+            <h3>${escapeHtml(app.appName || "Untitled App")}</h3>
+            <div class="app-meta">${escapeHtml(app.teamMembers || "Team members pending")}</div>
+          </div>
+          ${videoPreview ? `<iframe class="video-frame" src="${videoPreview}" allow="autoplay; fullscreen" loading="lazy" title="${escapeHtml(app.appName || "Pitch video")} pitch video"></iframe>` : ""}
+          ${keywordChips(app.keywords)}
+          ${summaryBlock(app.writeup)}
+          <div class="card-actions">
+            ${app.liveUrl ? `<a class="button-link primary" href="${escapeHtml(app.liveUrl)}" target="_blank" rel="noopener">Open App</a>` : ""}
+            ${app.videoUrl ? `<a class="button-link" href="${escapeHtml(app.videoUrl)}" target="_blank" rel="noopener">Pitch Video</a>` : ""}
+          </div>
+        </article>
+      `;
+    }
+
+    function render() {
+      const query = librarySearch.value.trim().toLowerCase();
+      const filtered = submissions.filter((app) => {
+        const haystack = `${app.appName} ${app.teamMembers} ${app.keywords} ${app.writeup}`.toLowerCase();
+        return haystack.includes(query);
+      });
+
+      appGrid.innerHTML = filtered.map(appCard).join("");
+      emptyState.hidden = filtered.length > 0 || submissions.length === 0;
+      libraryCount.textContent = submissions.length === 1
+        ? "1 submission"
+        : `${submissions.length} submissions`;
+    }
+
+    async function loadSubmissions() {
+      if (!APP_LIBRARY_CONFIG.sheetCsvUrl) {
+        setupNote.hidden = true;
+        submissions = [];
+        render();
+        return;
+      }
+
+      try {
+        const response = await fetch(APP_LIBRARY_CONFIG.sheetCsvUrl);
+        if (!response.ok) throw new Error("Could not load submission feed.");
+        const rows = parseCsv(await response.text());
+        const headers = rows.shift() || [];
+        submissions = rows.map((row) => {
+          const record = Object.fromEntries(headers.map((header, index) => [header, row[index] || ""]));
+          return {
+            appName: findValue(record, FIELD_ALIASES.appName),
+            teamMembers: findValue(record, FIELD_ALIASES.teamMembers),
+            liveUrl: findValue(record, FIELD_ALIASES.liveUrl),
+            keywords: findValue(record, FIELD_ALIASES.keywords),
+            writeup: findValue(record, FIELD_ALIASES.writeup),
+            videoUrl: findValue(record, FIELD_ALIASES.videoUrl)
+          };
+        }).filter((app) => app.appName && app.liveUrl && isDriveVideoUrl(app.videoUrl));
+        render();
+      } catch (error) {
+        setupNote.hidden = false;
+        setupNote.textContent = "The submission feed could not be loaded. Check the published Google Sheet CSV URL.";
+        libraryCount.textContent = "Submissions unavailable";
+      }
+    }
+
+    submissionForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const payload = submissionPayload();
+      const submitButton = submissionForm.querySelector('button[type="submit"]');
+
+      if (!APP_LIBRARY_CONFIG.submissionEndpoint) {
+        setFormStatus("Submission endpoint is not connected yet.", "error");
+        return;
+      }
+
+      if (!isValidUrl(payload.liveUrl)) {
+        setFormStatus("Please enter a valid live app URL.", "error");
+        return;
+      }
+
+      if (!isDriveVideoUrl(payload.videoUrl)) {
+        setFormStatus("Pitch video must be a valid Google Drive link.", "error");
+        return;
+      }
+
+      const keywords = keywordList(payload.keywords);
+      if (keywords.length < 3 || keywords.length > 5) {
+        setFormStatus("Please enter 3 to 5 comma-separated keywords.", "error");
+        return;
+      }
+
+      if (wordCount(payload.writeup) > 500) {
+        setFormStatus("Summary must be 500 words or fewer.", "error");
+        return;
+      }
+
+      submitButton.disabled = true;
+      setFormStatus("Submitting...", "");
+
+      try {
+        await fetch(APP_LIBRARY_CONFIG.submissionEndpoint, {
+          method: "POST",
+          mode: "no-cors",
+          headers: {
+            "Content-Type": "text/plain;charset=utf-8"
+          },
+          body: JSON.stringify(payload)
+        });
+        submissionForm.reset();
+        setFormStatus("Submitted. It may take a moment to appear in the gallery.", "success");
+      } catch (error) {
+        setFormStatus("Submission failed. Check the endpoint URL and try again.", "error");
+      } finally {
+        submitButton.disabled = false;
+      }
+    });
+
+    tabButtons.forEach((button, index) => {
+      button.addEventListener("click", () => {
+        selectTab(button.dataset.tabTarget);
+      });
+
+      button.addEventListener("keydown", (event) => {
+        if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return;
+        event.preventDefault();
+        const direction = event.key === "ArrowRight" ? 1 : -1;
+        const nextIndex = (index + direction + tabButtons.length) % tabButtons.length;
+        tabButtons[nextIndex].focus();
+        selectTab(tabButtons[nextIndex].dataset.tabTarget);
+      });
+    });
+
+    window.addEventListener("hashchange", () => {
+      selectTab(tabFromHash(), false);
+    });
+
+    selectTab(tabFromHash(), false);
+    librarySearch.addEventListener("input", render);
+    loadSubmissions();
+  </script>
+</body>
+</html>
