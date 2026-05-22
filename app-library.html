@@ -827,7 +827,7 @@
       const submitButton = submissionForm.querySelector('button[type="submit"]');
 
       if (!APP_LIBRARY_CONFIG.submissionEndpoint) {
-        setFormStatus("Submission endpoint is not connected yet.", "error");
+        setFormStatus("Submission is not live yet. Add the Google Apps Script endpoint to the page config.", "error");
         return;
       }
 
