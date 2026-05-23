@@ -254,6 +254,7 @@
     }
 
     .submit-panel {
+      position: relative;
       display: grid;
       grid-template-columns: 1fr;
       gap: 24px;
@@ -261,7 +262,20 @@
       padding: 18px;
       border: 1px solid var(--line);
       border-radius: 6px;
-      background: linear-gradient(90deg, rgba(195, 215, 238, 0.35), var(--white) 52%);
+      background: var(--white);
+      box-shadow: inset 0 4px 0 var(--ucla-gold);
+    }
+
+    .submit-panel::after {
+      content: "";
+      position: absolute;
+      top: 17px;
+      right: 17px;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--bright-coral);
+      box-shadow: -15px 0 0 var(--dark-sea-foam), -30px 0 0 var(--ucla-blue);
     }
 
     .submission-form {
@@ -306,6 +320,44 @@
     textarea.field-input {
       min-height: 108px;
       resize: vertical;
+    }
+
+    .summary-prompts {
+      display: grid;
+      grid-column: 1 / -1;
+      gap: 12px;
+      min-width: 0;
+      margin: 0;
+      border: 1px solid rgba(39, 116, 174, 0.18);
+      border-left: 5px solid var(--ucla-gold);
+      border-radius: 6px;
+      padding: 14px;
+      background: var(--surface);
+    }
+
+    .summary-prompts legend {
+      margin-bottom: 2px;
+      padding: 0 6px;
+      color: var(--darkest-blue);
+      background: var(--white);
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      line-height: 1.25;
+      text-transform: uppercase;
+    }
+
+    .summary-question {
+      font-size: 0.9rem;
+      letter-spacing: 0;
+      line-height: 1.35;
+      text-transform: none;
+      padding-left: 10px;
+      border-left: 2px solid rgba(39, 116, 174, 0.22);
+    }
+
+    .summary-question textarea.field-input {
+      min-height: 88px;
     }
 
     .field-input:focus {
@@ -433,6 +485,25 @@
       color: var(--ink);
       font-size: var(--text-small);
       line-height: 1.5;
+    }
+
+    .summary-part {
+      margin-top: 10px;
+    }
+
+    .summary-part:first-child {
+      margin-top: 0;
+    }
+
+    .summary-part strong {
+      display: block;
+      color: var(--darkest-blue);
+      font-size: 0.82rem;
+      line-height: 1.35;
+    }
+
+    .summary-part p {
+      margin: 3px 0 0;
     }
 
     .card-actions {
@@ -564,13 +635,32 @@
                 Keywords (3-5)
                 <input class="field-input" name="keywords" autocomplete="off" placeholder="finance, forecasting, workflow" required>
               </label>
-              <label class="field-group full">
-                Summary (max 500 words)
-                <textarea class="field-input" name="writeup" required></textarea>
-              </label>
+              <fieldset class="summary-prompts">
+                <legend>Written summary (max 500 words total)</legend>
+                <label class="field-group full summary-question">
+                  1. What is the problem?
+                  <textarea class="field-input" name="problem" required></textarea>
+                </label>
+                <label class="field-group full summary-question">
+                  2. What did you build and how does it work?
+                  <textarea class="field-input" name="build" required></textarea>
+                </label>
+                <label class="field-group full summary-question">
+                  3. Who are the end users, and how does your app deliver value to them?
+                  <textarea class="field-input" name="endUsers" required></textarea>
+                </label>
+                <label class="field-group full summary-question">
+                  4. What are the main limitations of your approach?
+                  <textarea class="field-input" name="limitations" required></textarea>
+                </label>
+                <label class="field-group full summary-question">
+                  5. How would you improve your product?
+                  <textarea class="field-input" name="improvements" required></textarea>
+                </label>
+              </fieldset>
             </div>
             <div class="form-actions">
-              <button class="button-link primary" type="submit">Submit on GitHub</button>
+              <button class="button-link primary" type="submit">Submit</button>
               <span class="form-status" id="formStatus"></span>
             </div>
           </form>
@@ -586,6 +676,13 @@
       submissions: []
     };
     const SUBMISSION_MARKER = "<!-- app-submission-metadata-v1 -->";
+    const SUMMARY_PROMPTS = [
+      { key: "problem", label: "What is the problem?" },
+      { key: "build", label: "What did you build and how does it work?" },
+      { key: "endUsers", label: "Who are the end users, and how does your app deliver value to them?" },
+      { key: "limitations", label: "What are the main limitations of your approach?" },
+      { key: "improvements", label: "How would you improve your product?" }
+    ];
 
     const appGrid = document.querySelector("#appGrid");
     const emptyState = document.querySelector("#emptyState");
@@ -656,19 +753,39 @@
         teamMembers: normalize(formData.get("teamMembers")),
         liveUrl: normalize(formData.get("liveUrl")),
         keywords: normalize(formData.get("keywords")),
-        writeup: normalize(formData.get("writeup")),
+        problem: normalize(formData.get("problem")),
+        build: normalize(formData.get("build")),
+        endUsers: normalize(formData.get("endUsers")),
+        limitations: normalize(formData.get("limitations")),
+        improvements: normalize(formData.get("improvements")),
         videoUrl: normalize(formData.get("videoUrl"))
       };
     }
 
+    function summaryResponses(source) {
+      const structured = source?.summary && typeof source.summary === "object" ? source.summary : {};
+      return Object.fromEntries(SUMMARY_PROMPTS.map(({ key }) => [key, normalize(structured[key] || source?.[key])]));
+    }
+
+    function combinedSummary(source) {
+      const responses = summaryResponses(source);
+      const sections = SUMMARY_PROMPTS.map(({ key, label }) => {
+        const answer = responses[key];
+        return answer ? `${label}\n${answer}` : "";
+      }).filter(Boolean);
+      return sections.length ? sections.join("\n\n") : normalize(source?.writeup);
+    }
+
     function submissionMetadata(payload) {
+      const summary = summaryResponses(payload);
       return {
         appName: payload.appName,
         teamMembers: payload.teamMembers,
         liveUrl: payload.liveUrl,
         videoUrl: payload.videoUrl,
         keywords: keywordList(payload.keywords),
-        writeup: payload.writeup,
+        summary,
+        writeup: combinedSummary(payload),
         submittedAt: new Date().toISOString()
       };
     }
@@ -680,8 +797,12 @@
         JSON.stringify(metadata, null, 2),
         "```",
         "",
-        "Summary:",
-        metadata.writeup
+        "Written Summary:",
+        ...SUMMARY_PROMPTS.flatMap(({ key, label }, index) => [
+          "",
+          `${index + 1}. ${label}`,
+          metadata.summary[key]
+        ])
       ].join("\n");
     }
 
@@ -739,17 +860,38 @@
       `;
     }
 
-    function summaryBlock(summary) {
-      const fullSummary = normalize(summary || "Summary pending.");
-      const preview = truncateWords(fullSummary, 34);
-      const hasMore = wordCount(fullSummary) > 34;
+    function summarySections(app) {
+      const structured = app?.summary && typeof app.summary === "object" ? app.summary : summaryResponses(app);
+      const sections = SUMMARY_PROMPTS.map(({ key, label }) => ({
+        label,
+        answer: normalize(structured[key])
+      })).filter((section) => section.answer);
+
+      if (sections.length) return sections;
+
+      const writeup = normalize(app?.writeup);
+      return writeup ? [{ label: "Summary", answer: writeup }] : [];
+    }
+
+    function summaryBlock(app) {
+      const sections = summarySections(app);
+      const fullSummary = sections.map((section) => `${section.label} ${section.answer}`).join(" ");
+      const preview = truncateWords(fullSummary || "Summary pending.", 34);
+      const hasMore = sections.length > 1 || wordCount(fullSummary) > 34;
 
       return `
         <p class="app-description">${escapeHtml(preview)}</p>
         ${hasMore ? `
           <details class="summary-details">
             <summary>Read full summary</summary>
-            <p class="summary-full">${escapeHtml(fullSummary)}</p>
+            <div class="summary-full">
+              ${sections.map((section) => `
+                <div class="summary-part">
+                  <strong>${escapeHtml(section.label)}</strong>
+                  <p>${escapeHtml(section.answer)}</p>
+                </div>
+              `).join("")}
+            </div>
           </details>
         ` : ""}
       `;
@@ -765,7 +907,7 @@
           </div>
           ${videoPreview ? `<iframe class="video-frame" src="${videoPreview}" allow="autoplay; fullscreen" loading="lazy" title="${escapeHtml(app.appName || "Pitch video")} pitch video"></iframe>` : ""}
           ${keywordChips(app.keywords)}
-          ${summaryBlock(app.writeup)}
+          ${summaryBlock(app)}
           <div class="card-actions">
             ${app.liveUrl ? `<a class="button-link primary" href="${escapeHtml(app.liveUrl)}" target="_blank" rel="noopener">Open App</a>` : ""}
             ${app.videoUrl ? `<a class="button-link" href="${escapeHtml(app.videoUrl)}" target="_blank" rel="noopener">Pitch Video</a>` : ""}
@@ -777,7 +919,7 @@
     function render() {
       const query = librarySearch.value.trim().toLowerCase();
       const filtered = submissions.filter((app) => {
-        const haystack = `${app.appName} ${app.teamMembers} ${app.keywords} ${app.writeup}`.toLowerCase();
+        const haystack = `${app.appName} ${app.teamMembers} ${app.keywords} ${combinedSummary(app)}`.toLowerCase();
         return haystack.includes(query);
       });
 
@@ -845,8 +987,13 @@
         return;
       }
 
-      if (wordCount(payload.writeup) > 500) {
-        setFormStatus("Summary must be 500 words or fewer.", "error");
+      if (SUMMARY_PROMPTS.some(({ key }) => !payload[key])) {
+        setFormStatus("Please answer all five written summary questions.", "error");
+        return;
+      }
+
+      if (wordCount(combinedSummary(payload)) > 500) {
+        setFormStatus("Written summary must be 500 words or fewer in total.", "error");
         return;
       }
 

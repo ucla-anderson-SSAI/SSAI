@@ -3,6 +3,7 @@
 const repo = process.argv[2] || "ucla-anderson-SSAI/SSAI";
 const format = process.argv[3] || "csv";
 const marker = "<!-- app-submission-metadata-v1 -->";
+const summaryFields = ["problem", "build", "endUsers", "limitations", "improvements"];
 
 function csvCell(value) {
   const text = Array.isArray(value) ? value.join(", ") : String(value ?? "");
@@ -61,6 +62,11 @@ async function main() {
         liveUrl: metadata.liveUrl,
         videoUrl: metadata.videoUrl,
         keywords: metadata.keywords,
+        problem: metadata.summary?.problem || metadata.problem || "",
+        build: metadata.summary?.build || metadata.build || "",
+        endUsers: metadata.summary?.endUsers || metadata.endUsers || "",
+        limitations: metadata.summary?.limitations || metadata.limitations || "",
+        improvements: metadata.summary?.improvements || metadata.improvements || "",
         writeup: metadata.writeup,
         submittedAt: metadata.submittedAt,
         createdAt: issue.created_at
@@ -82,6 +88,7 @@ async function main() {
     "liveUrl",
     "videoUrl",
     "keywords",
+    ...summaryFields,
     "writeup",
     "submittedAt",
     "createdAt"
