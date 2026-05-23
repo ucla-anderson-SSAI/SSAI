@@ -169,7 +169,7 @@
     }
 
     .button-link:disabled {
-      cursor: wait;
+      cursor: not-allowed;
       opacity: 0.62;
     }
 
@@ -671,11 +671,9 @@
 
   <script>
     const APP_LIBRARY_CONFIG = {
-      submissionRepo: "ucla-anderson-SSAI/SSAI",
-      submissionLabel: "app-submission",
+      storageKey: "ssai-app-submissions-v1",
       submissions: []
     };
-    const SUBMISSION_MARKER = "<!-- app-submission-metadata-v1 -->";
     const SUMMARY_PROMPTS = [
       { key: "problem", label: "What is the problem?" },
       { key: "build", label: "What did you build and how does it work?" },
@@ -694,6 +692,7 @@
     const tabButtons = [...document.querySelectorAll("[data-tab-target]")];
     const tabPanels = [...document.querySelectorAll(".tab-panel")];
     let submissions = [];
+    let memorySubmissions = [];
 
     function normalize(value) {
       return String(value || "").trim();
@@ -790,43 +789,30 @@
       };
     }
 
-    function submissionIssueBody(metadata) {
-      return [
-        SUBMISSION_MARKER,
-        "```json",
-        JSON.stringify(metadata, null, 2),
-        "```",
-        "",
-        "Written Summary:",
-        ...SUMMARY_PROMPTS.flatMap(({ key, label }, index) => [
-          "",
-          `${index + 1}. ${label}`,
-          metadata.summary[key]
-        ])
-      ].join("\n");
+    function baseSubmissions() {
+      return Array.isArray(APP_LIBRARY_CONFIG.submissions)
+        ? APP_LIBRARY_CONFIG.submissions.filter((app) => app.appName && app.liveUrl)
+        : [];
     }
 
-    function parseSubmissionMetadata(body) {
-      if (!normalize(body).includes(SUBMISSION_MARKER)) return null;
-      const match = body.match(/```json\s*([\s\S]*?)\s*```/);
-      if (!match) return null;
-
+    function storedSubmissions() {
       try {
-        return JSON.parse(match[1]);
+        const stored = JSON.parse(window.localStorage.getItem(APP_LIBRARY_CONFIG.storageKey) || "[]");
+        return Array.isArray(stored) ? stored.filter((app) => app.appName && app.liveUrl) : [];
       } catch (error) {
-        return null;
+        return memorySubmissions;
       }
     }
 
-    function submissionIssueUrl(payload) {
-      const metadata = submissionMetadata(payload);
-      const title = `[App Submission] ${payload.appName}`;
-      const issueUrl = new URL(`https://github.com/${APP_LIBRARY_CONFIG.submissionRepo}/issues/new`);
-      issueUrl.searchParams.set("title", title);
-      issueUrl.searchParams.set("body", submissionIssueBody(metadata));
-      issueUrl.searchParams.set("labels", APP_LIBRARY_CONFIG.submissionLabel);
-
-      return issueUrl.toString();
+    function saveStoredSubmission(submission) {
+      const nextSubmissions = [...storedSubmissions(), submission];
+      memorySubmissions = nextSubmissions;
+      try {
+        window.localStorage.setItem(APP_LIBRARY_CONFIG.storageKey, JSON.stringify(nextSubmissions));
+      } catch (error) {
+        // Some embedded previews do not expose localStorage; keep the page usable there.
+      }
+      return nextSubmissions;
     }
 
     function tabFromHash() {
@@ -930,46 +916,16 @@
         : `${submissions.length} submissions`;
     }
 
-    async function loadSubmissions() {
-      if (!APP_LIBRARY_CONFIG.submissionRepo) {
-        setupNote.hidden = true;
-        submissions = [];
-        render();
-        return;
-      }
-
-      try {
-        const issuesUrl = new URL(`https://api.github.com/repos/${APP_LIBRARY_CONFIG.submissionRepo}/issues`);
-        issuesUrl.searchParams.set("state", "open");
-        issuesUrl.searchParams.set("per_page", "100");
-        const response = await fetch(issuesUrl);
-        if (!response.ok) throw new Error("Could not load GitHub submissions.");
-        const issues = await response.json();
-        submissions = issues.map((issue) => {
-          if (issue.pull_request) return null;
-          return parseSubmissionMetadata(issue.body || "");
-        }).filter((app) => app && app.appName && app.liveUrl);
-        setupNote.hidden = true;
-        render();
-      } catch (error) {
-        submissions = Array.isArray(APP_LIBRARY_CONFIG.submissions)
-          ? APP_LIBRARY_CONFIG.submissions.filter((app) => app.appName && app.liveUrl)
-          : [];
-        setupNote.hidden = false;
-        setupNote.textContent = "Submissions could not be loaded from GitHub right now.";
-        render();
-      }
+    function loadSubmissions() {
+      setupNote.hidden = true;
+      submissions = [...baseSubmissions(), ...storedSubmissions()];
+      render();
     }
 
     submissionForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const payload = submissionPayload();
       const submitButton = submissionForm.querySelector('button[type="submit"]');
-
-      if (!APP_LIBRARY_CONFIG.submissionRepo) {
-        setFormStatus("Submission is not configured yet. Add a GitHub repository to the page config.", "error");
-        return;
-      }
 
       if (!isValidUrl(payload.liveUrl)) {
         setFormStatus("Please enter a valid live app URL.", "error");
@@ -998,8 +954,16 @@
       }
 
       submitButton.disabled = true;
-      window.location.href = submissionIssueUrl(payload);
-      setFormStatus("GitHub submission draft opened. Submit the issue to finish.", "success");
+      try {
+        const metadata = submissionMetadata(payload);
+        submissions = [...baseSubmissions(), ...saveStoredSubmission(metadata)];
+        render();
+        submissionForm.reset();
+        setFormStatus("Submitted.", "success");
+        selectTab("browse");
+      } catch (error) {
+        setFormStatus("Submission could not be saved in this browser.", "error");
+      }
       submitButton.disabled = false;
     });
 
