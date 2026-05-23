@@ -364,18 +364,16 @@
     }
 
     .sprint-actions {
-      display: flex;
-      flex-wrap: wrap;
+      display: grid;
       gap: 10px;
-      align-items: center;
-      justify-content: flex-start;
+      align-items: stretch;
       margin-top: 14px;
       padding: 0;
     }
 
-    .button-row {
-      display: flex;
-      flex-wrap: wrap;
+    .sprint-action-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 10px;
     }
 
@@ -400,12 +398,6 @@
       background: var(--darkest-blue);
     }
 
-    .button-link.highlight {
-      border-color: var(--ucla-gold);
-      color: var(--darkest-blue);
-      background: var(--white);
-    }
-
     .button-link:hover,
     .button-link:focus {
       border-color: var(--ucla-blue);
@@ -413,11 +405,23 @@
       background: var(--surface);
     }
 
-    .button-link.highlight:hover,
-    .button-link.highlight:focus {
-      border-color: #d1a900;
-      color: var(--darkest-blue);
-      background: var(--surface);
+    .sprint-actions .button-link {
+      justify-content: center;
+      text-align: center;
+    }
+
+    .button-link.gallery-feature {
+      min-height: 46px;
+      border-color: #4e7e6b;
+      color: var(--white);
+      background: #4e7e6b;
+    }
+
+    .button-link.gallery-feature:hover,
+    .button-link.gallery-feature:focus {
+      border-color: #3f6f5c;
+      color: var(--white);
+      background: #3f6f5c;
     }
 
     .week-list {
@@ -599,6 +603,10 @@
     }
 
     @media (max-width: 760px) {
+      .sprint-action-row {
+        grid-template-columns: 1fr;
+      }
+
       .table-wrap {
         overflow-x: visible;
         border: 0;
@@ -766,10 +774,12 @@
         <h2 id="product-sprint-heading">Product Sprint</h2>
       </div>
       <div class="sprint-actions">
-        <a class="button-link" href="Assignments/Product_Sprint_Brief.pdf" target="_blank" rel="noopener">Instructions</a>
-        <a class="button-link highlight" href="Product%20Sprint/App_Development_Kit.html" target="_blank" rel="noopener">App Development Kit</a>
-        <a class="button-link" href="app-library.html">App Gallery</a>
-        <a class="button-link" href="https://calendly.com/siddiq-ucla/product-sprint-check-in" target="_blank" rel="noopener">Office Hours Sign-up</a>
+        <div class="sprint-action-row">
+          <a class="button-link" href="Assignments/Product_Sprint_Brief.pdf" target="_blank" rel="noopener">Instructions</a>
+          <a class="button-link" href="Product%20Sprint/App_Development_Kit.html" target="_blank" rel="noopener">App Development Kit</a>
+          <a class="button-link" href="https://calendly.com/siddiq-ucla/product-sprint-check-in" target="_blank" rel="noopener">Office Hours Sign-up</a>
+        </div>
+        <a class="button-link gallery-feature" href="app-library.html">App Gallery</a>
       </div>
     </section>
 
