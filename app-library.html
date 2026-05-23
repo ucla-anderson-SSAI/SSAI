@@ -413,7 +413,7 @@
 
     .app-grid {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 12px;
       margin-top: 16px;
     }
@@ -503,9 +503,7 @@
       font-size: 0.88rem;
       font-weight: 700;
       line-height: 1.3;
-      text-decoration: underline;
-      text-decoration-thickness: 1px;
-      text-underline-offset: 3px;
+      text-decoration: none;
     }
 
     .card-link:hover,
@@ -516,10 +514,12 @@
 
     .video-preview {
       position: relative;
+      display: block;
       border: 1px solid var(--line);
       border-radius: 4px;
       background: var(--surface);
       aspect-ratio: 16 / 9;
+      text-decoration: none;
     }
 
     .modal-overlay {
@@ -572,12 +572,12 @@
       padding-left: 10px;
     }
 
-    .video-frame {
+    .video-thumbnail {
       display: block;
       width: 100%;
       height: 100%;
-      border: 0;
-      background: transparent;
+      object-fit: contain;
+      background: var(--surface);
     }
 
     .play-badge {
@@ -806,11 +806,21 @@
       return String(value || "").trim();
     }
 
-    function drivePreviewUrl(url) {
+    function driveFileId(url) {
       const value = normalize(url);
       if (!value.includes("drive.google.com")) return "";
       const match = value.match(/[-\w]{25,}/);
-      return match ? `https://drive.google.com/file/d/${match[0]}/preview` : "";
+      return match ? match[0] : "";
+    }
+
+    function drivePreviewUrl(url) {
+      const fileId = driveFileId(url);
+      return fileId ? `https://drive.google.com/file/d/${fileId}/preview` : "";
+    }
+
+    function driveThumbnailUrl(url) {
+      const fileId = driveFileId(url);
+      return fileId ? `https://drive.google.com/thumbnail?id=${fileId}&sz=w640` : "";
     }
 
     function isDriveVideoUrl(url) {
@@ -983,6 +993,7 @@
 
     function appCard(app, index) {
       const videoPreview = drivePreviewUrl(app.videoUrl);
+      const videoThumbnail = driveThumbnailUrl(app.videoUrl);
       const hasSummary = summarySections(app).length > 0;
       return `
         <article class="app-card">
@@ -991,10 +1002,10 @@
             <div class="app-meta">${escapeHtml(app.teamMembers || "Team members pending")}</div>
           </div>
           ${videoPreview ? `
-            <div class="video-preview">
-              <iframe class="video-frame" src="${videoPreview}" allow="autoplay; fullscreen" loading="lazy" title="${escapeHtml(app.appName || "Pitch video")} pitch video"></iframe>
+            <a class="video-preview" href="${escapeHtml(videoPreview)}" target="_blank" rel="noopener" aria-label="Open ${escapeHtml(app.appName || "app")} pitch video">
+              <img class="video-thumbnail" src="${escapeHtml(videoThumbnail)}" alt="${escapeHtml(app.appName || "App")} pitch video thumbnail" loading="lazy">
               <span class="play-badge" aria-hidden="true"></span>
-            </div>
+            </a>
           ` : ""}
           ${keywordChips(app.keywords)}
           <div class="card-actions">
