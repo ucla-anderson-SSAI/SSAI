@@ -415,8 +415,8 @@
 
     .app-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
       margin-top: 16px;
     }
 
@@ -429,17 +429,15 @@
       background: var(--white);
     }
 
+    .app-card h3 {
+      font-size: 1rem;
+    }
+
     .app-meta {
       color: var(--muted);
       font-size: var(--text-small);
       font-weight: 700;
       line-height: 1.35;
-    }
-
-    .app-description {
-      margin: 0;
-      font-size: var(--text-small);
-      line-height: 1.48;
     }
 
     .keyword-list {
@@ -569,6 +567,10 @@
         flex: 1 1 150px;
         padding-right: 12px;
         padding-left: 12px;
+      }
+
+      .app-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
     }
   </style>
@@ -861,25 +863,20 @@
 
     function summaryBlock(app) {
       const sections = summarySections(app);
-      const fullSummary = sections.map((section) => `${section.label} ${section.answer}`).join(" ");
-      const preview = truncateWords(fullSummary || "Summary pending.", 34);
-      const hasMore = sections.length > 1 || wordCount(fullSummary) > 34;
+      if (!sections.length) return "";
 
       return `
-        <p class="app-description">${escapeHtml(preview)}</p>
-        ${hasMore ? `
-          <details class="summary-details">
-            <summary>Read full summary</summary>
-            <div class="summary-full">
-              ${sections.map((section) => `
-                <div class="summary-part">
-                  <strong>${escapeHtml(section.label)}</strong>
-                  <p>${escapeHtml(section.answer)}</p>
-                </div>
-              `).join("")}
-            </div>
-          </details>
-        ` : ""}
+        <details class="summary-details">
+          <summary>Read full summary</summary>
+          <div class="summary-full">
+            ${sections.map((section) => `
+              <div class="summary-part">
+                <strong>${escapeHtml(section.label)}</strong>
+                <p>${escapeHtml(section.answer)}</p>
+              </div>
+            `).join("")}
+          </div>
+        </details>
       `;
     }
 
@@ -896,7 +893,6 @@
           ${summaryBlock(app)}
           <div class="card-actions">
             ${app.liveUrl ? `<a class="button-link primary" href="${escapeHtml(app.liveUrl)}" target="_blank" rel="noopener">Open App</a>` : ""}
-            ${app.videoUrl ? `<a class="button-link" href="${escapeHtml(app.videoUrl)}" target="_blank" rel="noopener">Pitch Video</a>` : ""}
           </div>
         </article>
       `;
