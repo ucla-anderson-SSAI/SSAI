@@ -570,7 +570,7 @@
               </label>
             </div>
             <div class="form-actions">
-              <button class="button-link primary" type="submit">Submit</button>
+              <button class="button-link primary" type="submit">Submit on GitHub</button>
               <span class="form-status" id="formStatus"></span>
             </div>
           </form>
@@ -581,18 +581,11 @@
 
   <script>
     const APP_LIBRARY_CONFIG = {
-      submissionEndpoint: "",
-      sheetCsvUrl: ""
+      submissionRepo: "ucla-anderson-SSAI/SSAI",
+      submissionLabel: "app-submission",
+      submissions: []
     };
-
-    const FIELD_ALIASES = {
-      appName: ["app name", "name of app", "project name"],
-      teamMembers: ["team members", "name of all team members", "names of all team members"],
-      liveUrl: ["live url", "live app url", "live URL to their app", "app url"],
-      keywords: ["keywords", "keywords (3-5)", "keyword", "tags"],
-      writeup: ["summary", "short writeup", "writeup", "description"],
-      videoUrl: ["pitch video", "pitch video link", "google drive video link", "5 minute pitch video", "five-minute pitch video"]
-    };
+    const SUBMISSION_MARKER = "<!-- app-submission-metadata-v1 -->";
 
     const appGrid = document.querySelector("#appGrid");
     const emptyState = document.querySelector("#emptyState");
@@ -607,47 +600,6 @@
 
     function normalize(value) {
       return String(value || "").trim();
-    }
-
-    function parseCsv(csvText) {
-      const rows = [];
-      let row = [];
-      let cell = "";
-      let inQuotes = false;
-
-      for (let i = 0; i < csvText.length; i += 1) {
-        const char = csvText[i];
-        const next = csvText[i + 1];
-
-        if (char === '"' && inQuotes && next === '"') {
-          cell += '"';
-          i += 1;
-        } else if (char === '"') {
-          inQuotes = !inQuotes;
-        } else if (char === "," && !inQuotes) {
-          row.push(cell);
-          cell = "";
-        } else if ((char === "\n" || char === "\r") && !inQuotes) {
-          if (char === "\r" && next === "\n") i += 1;
-          row.push(cell);
-          if (row.some((item) => item.trim() !== "")) rows.push(row);
-          row = [];
-          cell = "";
-        } else {
-          cell += char;
-        }
-      }
-
-      row.push(cell);
-      if (row.some((item) => item.trim() !== "")) rows.push(row);
-      return rows;
-    }
-
-    function findValue(record, aliases) {
-      const keys = Object.keys(record);
-      const normalizedAliases = aliases.map((alias) => alias.toLowerCase().trim());
-      const match = keys.find((key) => normalizedAliases.includes(key.toLowerCase().trim()));
-      return match ? normalize(record[match]) : "";
     }
 
     function drivePreviewUrl(url) {
@@ -707,6 +659,53 @@
         writeup: normalize(formData.get("writeup")),
         videoUrl: normalize(formData.get("videoUrl"))
       };
+    }
+
+    function submissionMetadata(payload) {
+      return {
+        appName: payload.appName,
+        teamMembers: payload.teamMembers,
+        liveUrl: payload.liveUrl,
+        videoUrl: payload.videoUrl,
+        keywords: keywordList(payload.keywords),
+        writeup: payload.writeup,
+        submittedAt: new Date().toISOString()
+      };
+    }
+
+    function submissionIssueBody(metadata) {
+      return [
+        SUBMISSION_MARKER,
+        "```json",
+        JSON.stringify(metadata, null, 2),
+        "```",
+        "",
+        "Summary:",
+        metadata.writeup
+      ].join("\n");
+    }
+
+    function parseSubmissionMetadata(body) {
+      if (!normalize(body).includes(SUBMISSION_MARKER)) return null;
+      const match = body.match(/```json\s*([\s\S]*?)\s*```/);
+      if (!match) return null;
+
+      try {
+        return JSON.parse(match[1]);
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function submissionIssueUrl(payload) {
+      const metadata = submissionMetadata(payload);
+      const title = `[App Submission] ${payload.appName}`;
+      const issueUrl = new URL(`https://github.com/${APP_LIBRARY_CONFIG.submissionRepo}/issues/new`);
+      issueUrl.searchParams.set("title", title);
+      issueUrl.searchParams.set("body", submissionIssueBody(metadata));
+      issueUrl.searchParams.set("labels", APP_LIBRARY_CONFIG.submissionLabel);
+
+      return issueUrl.toString();
     }
 
     function tabFromHash() {
@@ -790,7 +789,7 @@
     }
 
     async function loadSubmissions() {
-      if (!APP_LIBRARY_CONFIG.sheetCsvUrl) {
+      if (!APP_LIBRARY_CONFIG.submissionRepo) {
         setupNote.hidden = true;
         submissions = [];
         render();
@@ -798,26 +797,25 @@
       }
 
       try {
-        const response = await fetch(APP_LIBRARY_CONFIG.sheetCsvUrl);
-        if (!response.ok) throw new Error("Could not load submission feed.");
-        const rows = parseCsv(await response.text());
-        const headers = rows.shift() || [];
-        submissions = rows.map((row) => {
-          const record = Object.fromEntries(headers.map((header, index) => [header, row[index] || ""]));
-          return {
-            appName: findValue(record, FIELD_ALIASES.appName),
-            teamMembers: findValue(record, FIELD_ALIASES.teamMembers),
-            liveUrl: findValue(record, FIELD_ALIASES.liveUrl),
-            keywords: findValue(record, FIELD_ALIASES.keywords),
-            writeup: findValue(record, FIELD_ALIASES.writeup),
-            videoUrl: findValue(record, FIELD_ALIASES.videoUrl)
-          };
-        }).filter((app) => app.appName && app.liveUrl && isDriveVideoUrl(app.videoUrl));
+        const issuesUrl = new URL(`https://api.github.com/repos/${APP_LIBRARY_CONFIG.submissionRepo}/issues`);
+        issuesUrl.searchParams.set("state", "open");
+        issuesUrl.searchParams.set("per_page", "100");
+        const response = await fetch(issuesUrl);
+        if (!response.ok) throw new Error("Could not load GitHub submissions.");
+        const issues = await response.json();
+        submissions = issues.map((issue) => {
+          if (issue.pull_request) return null;
+          return parseSubmissionMetadata(issue.body || "");
+        }).filter((app) => app && app.appName && app.liveUrl);
+        setupNote.hidden = true;
         render();
       } catch (error) {
+        submissions = Array.isArray(APP_LIBRARY_CONFIG.submissions)
+          ? APP_LIBRARY_CONFIG.submissions.filter((app) => app.appName && app.liveUrl)
+          : [];
         setupNote.hidden = false;
-        setupNote.textContent = "The submission feed could not be loaded. Check the published Google Sheet CSV URL.";
-        libraryCount.textContent = "Submissions unavailable";
+        setupNote.textContent = "Submissions could not be loaded from GitHub right now.";
+        render();
       }
     }
 
@@ -826,8 +824,8 @@
       const payload = submissionPayload();
       const submitButton = submissionForm.querySelector('button[type="submit"]');
 
-      if (!APP_LIBRARY_CONFIG.submissionEndpoint) {
-        setFormStatus("Submission is not live yet. Add the Google Apps Script endpoint to the page config.", "error");
+      if (!APP_LIBRARY_CONFIG.submissionRepo) {
+        setFormStatus("Submission is not configured yet. Add a GitHub repository to the page config.", "error");
         return;
       }
 
@@ -853,24 +851,9 @@
       }
 
       submitButton.disabled = true;
-      setFormStatus("Submitting...", "");
-
-      try {
-        await fetch(APP_LIBRARY_CONFIG.submissionEndpoint, {
-          method: "POST",
-          mode: "no-cors",
-          headers: {
-            "Content-Type": "text/plain;charset=utf-8"
-          },
-          body: JSON.stringify(payload)
-        });
-        submissionForm.reset();
-        setFormStatus("Submitted. It may take a moment to appear in the gallery.", "success");
-      } catch (error) {
-        setFormStatus("Submission failed. Check the endpoint URL and try again.", "error");
-      } finally {
-        submitButton.disabled = false;
-      }
+      window.location.href = submissionIssueUrl(payload);
+      setFormStatus("GitHub submission draft opened. Submit the issue to finish.", "success");
+      submitButton.disabled = false;
     });
 
     tabButtons.forEach((button, index) => {
