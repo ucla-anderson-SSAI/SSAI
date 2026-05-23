@@ -727,8 +727,8 @@
                 Keywords (3-5)
                 <input class="field-input" name="keywords" autocomplete="off" placeholder="finance, forecasting, workflow" required>
               </label>
-              <fieldset class="summary-prompts">
-                <legend>Written summary (max 500 words total)</legend>
+              <div class="summary-prompts" role="group" aria-labelledby="summary-prompts-title">
+                <div class="summary-title" id="summary-prompts-title">Written summary (max 500 words total)</div>
                 <label class="field-group full summary-question">
                   1. What is the problem?
                   <textarea class="field-input" name="problem" required></textarea>
@@ -749,7 +749,7 @@
                   5. How would you improve your product?
                   <textarea class="field-input" name="improvements" required></textarea>
                 </label>
-              </fieldset>
+              </div>
             </div>
             <div class="form-actions">
               <button class="button-link primary" type="submit">Submit</button>
