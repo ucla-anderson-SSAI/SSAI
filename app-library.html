@@ -432,7 +432,7 @@
     }
 
     .app-meta {
-      color: var(--muted);
+      color: var(--slate);
       font-size: var(--text-small);
       font-weight: 700;
       line-height: 1.35;
@@ -448,11 +448,11 @@
     }
 
     .keyword-chip {
-      border: 1px solid rgba(244, 124, 48, 0.46);
-      border-radius: 999px;
+      border: 1px solid rgba(78, 126, 107, 0.46);
+      border-radius: 3px;
       padding: 3px 8px;
-      color: #9f3d13;
-      background: rgba(244, 124, 48, 0.13);
+      color: var(--dark-sea-foam);
+      background: var(--white);
       font-size: 0.78rem;
       font-weight: 700;
       line-height: 1.25;
@@ -686,7 +686,7 @@
 
     <section class="section-band tab-panel" id="browse" role="tabpanel" aria-labelledby="browse-tab">
       <div class="section-heading">
-        <h2 id="library-heading">Browse Apps</h2>
+        <h2 id="library-heading">Browse Submissions</h2>
         <span class="section-dots" aria-hidden="true"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>
       </div>
       <div class="library-tools">
@@ -728,7 +728,7 @@
                 <input class="field-input" name="keywords" autocomplete="off" placeholder="finance, forecasting, workflow" required>
               </label>
               <div class="summary-prompts" role="group" aria-labelledby="summary-prompts-title">
-                <div class="summary-title" id="summary-prompts-title">Written summary (max 500 words total)</div>
+                <div class="summary-title" id="summary-prompts-title">Summary (max 500 words total)</div>
                 <label class="field-group full summary-question">
                   1. What is the problem?
                   <textarea class="field-input" name="problem" required></textarea>
@@ -1045,7 +1045,7 @@
       if (!app) return;
 
       lastModalTrigger = trigger || null;
-      summaryModalTitle.textContent = `${app.appName || "App"} Summary`;
+      summaryModalTitle.textContent = "Summary";
       summaryModalContent.innerHTML = summaryHtml(app);
       summaryModalOverlay.hidden = false;
       summaryModalClose.focus();
