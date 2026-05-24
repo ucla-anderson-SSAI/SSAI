@@ -254,6 +254,14 @@
       padding-bottom: 10px;
     }
 
+    .section-note {
+      max-width: 720px;
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: var(--text-small);
+      line-height: 1.45;
+    }
+
     .section-dots {
       display: inline-flex;
       gap: 7px;
@@ -789,6 +797,7 @@
         <h2 id="vote-heading">Vote</h2>
         <span class="section-dots" aria-hidden="true"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>
       </div>
+      <p class="section-note">Pick three submissions you want to vote for. Choices are not ranked; each one counts equally.</p>
       <div class="vote-panel">
         <form class="submission-form" id="voteForm">
           <div class="form-grid">
@@ -797,15 +806,15 @@
               <input class="field-input" name="studentUid" inputmode="numeric" autocomplete="off" required>
             </label>
             <label class="field-group">
-              First selection
+              Vote 1
               <select class="field-input" name="choice1" data-vote-choice required></select>
             </label>
             <label class="field-group">
-              Second selection
+              Vote 2
               <select class="field-input" name="choice2" data-vote-choice required></select>
             </label>
             <label class="field-group">
-              Third selection
+              Vote 3
               <select class="field-input" name="choice3" data-vote-choice required></select>
             </label>
           </div>
