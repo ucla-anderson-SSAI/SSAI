@@ -773,7 +773,7 @@
 
   <script>
     const APP_LIBRARY_CONFIG = {
-      storageKey: "ssai-app-submissions-v1",
+      apiBaseUrl: "https://ssai-app-gallery-api-production.up.railway.app",
       submissions: []
     };
     const SUMMARY_PROMPTS = [
@@ -798,7 +798,6 @@
     const tabButtons = [...document.querySelectorAll("[data-tab-target]")];
     const tabPanels = [...document.querySelectorAll(".tab-panel")];
     let submissions = [];
-    let memorySubmissions = [];
     let visibleSubmissions = [];
     let lastModalTrigger = null;
 
@@ -913,24 +912,49 @@
         : [];
     }
 
-    function storedSubmissions() {
-      try {
-        const stored = JSON.parse(window.localStorage.getItem(APP_LIBRARY_CONFIG.storageKey) || "[]");
-        return Array.isArray(stored) ? stored.filter((app) => app.appName && app.liveUrl) : [];
-      } catch (error) {
-        return memorySubmissions;
-      }
+    function apiBaseUrl() {
+      const params = new URLSearchParams(window.location.search);
+      return normalize(params.get("api") || APP_LIBRARY_CONFIG.apiBaseUrl).replace(/\/+$/, "");
     }
 
-    function saveStoredSubmission(submission) {
-      const nextSubmissions = [...storedSubmissions(), submission];
-      memorySubmissions = nextSubmissions;
-      try {
-        window.localStorage.setItem(APP_LIBRARY_CONFIG.storageKey, JSON.stringify(nextSubmissions));
-      } catch (error) {
-        // Some embedded previews do not expose localStorage; keep the page usable there.
+    async function apiRequest(path, options = {}) {
+      const baseUrl = apiBaseUrl();
+      if (!baseUrl) {
+        throw new Error("Submission repository is not configured yet. Add the Railway API URL to APP_LIBRARY_CONFIG.apiBaseUrl.");
       }
-      return nextSubmissions;
+
+      const response = await fetch(`${baseUrl}${path}`, {
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...(options.headers || {})
+        }
+      });
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(payload.error || "Submission repository request failed.");
+      }
+
+      return payload;
+    }
+
+    async function fetchRepositorySubmissions() {
+      const payload = await apiRequest("/submissions");
+      return Array.isArray(payload.submissions)
+        ? payload.submissions.filter((app) => app.appName && app.liveUrl)
+        : [];
+    }
+
+    async function saveRepositorySubmission(submission) {
+      const payload = await apiRequest("/submissions", {
+        method: "POST",
+        body: JSON.stringify(submission)
+      });
+      if (!payload.submission) {
+        throw new Error("Submission repository did not return the saved record.");
+      }
+      return payload.submission;
     }
 
     function tabFromHash() {
@@ -1049,9 +1073,17 @@
         : `${submissions.length} submissions`;
     }
 
-    function loadSubmissions() {
-      setupNote.hidden = true;
-      submissions = [...baseSubmissions(), ...storedSubmissions()];
+    async function loadSubmissions() {
+      libraryCount.textContent = "Loading submissions...";
+      try {
+        submissions = [...baseSubmissions(), ...await fetchRepositorySubmissions()];
+        setupNote.hidden = true;
+      } catch (error) {
+        submissions = baseSubmissions();
+        setupNote.hidden = false;
+        setupNote.textContent = error.message;
+      }
+
       render();
     }
 
@@ -1089,13 +1121,14 @@
       submitButton.disabled = true;
       try {
         const metadata = submissionMetadata(payload);
-        submissions = [...baseSubmissions(), ...saveStoredSubmission(metadata)];
+        await saveRepositorySubmission(metadata);
+        submissions = [...baseSubmissions(), ...await fetchRepositorySubmissions()];
         render();
         submissionForm.reset();
         setFormStatus("Submitted.", "success");
         selectTab("browse");
       } catch (error) {
-        setFormStatus("Submission could not be saved in this browser.", "error");
+        setFormStatus(error.message || "Submission could not be saved.", "error");
       }
       submitButton.disabled = false;
     });
