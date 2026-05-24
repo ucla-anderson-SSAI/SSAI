@@ -802,7 +802,7 @@
         <form class="submission-form" id="voteForm">
           <div class="form-grid">
             <label class="field-group full">
-              Student UID
+              9-digit UID
               <input class="field-input" name="studentUid" inputmode="numeric" autocomplete="off" required>
             </label>
             <label class="field-group">
@@ -1257,8 +1257,8 @@
       const payload = votePayload();
       const submitButton = voteForm.querySelector('button[type="submit"]');
 
-      if (!payload.studentUid || !/^\d+$/.test(payload.studentUid)) {
-        setVoteStatus("Please enter a numeric student UID.", "error");
+      if (!/^\d{9}$/.test(payload.studentUid)) {
+        setVoteStatus("Please enter a 9-digit UID.", "error");
         return;
       }
 
