@@ -1,6 +1,6 @@
 # SSAI App Gallery Repository
 
-This is a tiny Railway-hosted submission repository for `app-library.html`.
+This is a tiny Railway-hosted submission repository for `app-gallery.html`.
 It uses only Python standard library code and a SQLite database.
 
 ## Railway Setup
@@ -15,7 +15,7 @@ railway domain --port 8787
 ```
 
 Then put the generated Railway domain into `APP_LIBRARY_CONFIG.apiBaseUrl` in
-`../app-library.html`.
+`../app-gallery.html`.
 
 Current Railway API:
 
