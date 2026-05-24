@@ -161,11 +161,26 @@
       background: var(--darkest-blue);
     }
 
+    .button-link.admin-link {
+      min-height: 32px;
+      border-color: rgba(78, 126, 107, 0.42);
+      padding: 6px 9px;
+      color: var(--dark-sea-foam);
+      font-size: 0.8rem;
+    }
+
     .button-link:hover,
     .button-link:focus {
       border-color: var(--ucla-blue);
       color: var(--darkest-blue);
       background: var(--surface);
+    }
+
+    .button-link.admin-link:hover,
+    .button-link.admin-link:focus {
+      border-color: var(--dark-sea-foam);
+      color: var(--dark-sea-foam);
+      background: rgba(78, 126, 107, 0.08);
     }
 
     .button-link:disabled {
@@ -253,7 +268,8 @@
       background: var(--ucla-blue);
     }
 
-    .submit-panel {
+    .submit-panel,
+    .vote-panel {
       position: relative;
       display: grid;
       grid-template-columns: 1fr;
@@ -266,7 +282,8 @@
       box-shadow: inset 0 4px 0 var(--ucla-gold);
     }
 
-    .submit-panel::after {
+    .submit-panel::after,
+    .vote-panel::after {
       content: "";
       position: absolute;
       top: 17px;
@@ -320,6 +337,10 @@
     textarea.field-input {
       min-height: 108px;
       resize: vertical;
+    }
+
+    select.field-input {
+      appearance: auto;
     }
 
     .summary-prompts {
@@ -623,6 +644,7 @@
 
     @media (max-width: 760px) {
       .submit-panel,
+      .vote-panel,
       .library-tools {
         grid-template-columns: 1fr;
       }
@@ -676,12 +698,14 @@
       <h1>App Gallery</h1>
       <div class="hero-actions">
         <a class="button-link" href="index.html">Course Home</a>
+        <a class="button-link admin-link" href="https://ssai-app-gallery-api-production.up.railway.app/admin" target="_blank" rel="noopener">Admin</a>
       </div>
     </header>
 
     <div class="gallery-tabs" role="tablist" aria-label="App gallery sections">
       <button class="tab-button" id="browse-tab" type="button" role="tab" aria-controls="browse" aria-selected="true" data-tab-target="browse">Browse</button>
       <button class="tab-button" id="submit-tab" type="button" role="tab" aria-controls="submit" aria-selected="false" tabindex="-1" data-tab-target="submit">Submit</button>
+      <button class="tab-button" id="vote-tab" type="button" role="tab" aria-controls="vote" aria-selected="false" tabindex="-1" data-tab-target="vote">Vote</button>
     </div>
 
     <section class="section-band tab-panel" id="browse" role="tabpanel" aria-labelledby="browse-tab">
@@ -759,6 +783,39 @@
         </div>
       </div>
     </section>
+
+    <section class="section-band tab-panel" id="vote" role="tabpanel" aria-labelledby="vote-tab" hidden>
+      <div class="section-heading">
+        <h2 id="vote-heading">Vote</h2>
+        <span class="section-dots" aria-hidden="true"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>
+      </div>
+      <div class="vote-panel">
+        <form class="submission-form" id="voteForm">
+          <div class="form-grid">
+            <label class="field-group full">
+              Student UID
+              <input class="field-input" name="studentUid" inputmode="numeric" autocomplete="off" required>
+            </label>
+            <label class="field-group">
+              First selection
+              <select class="field-input" name="choice1" data-vote-choice required></select>
+            </label>
+            <label class="field-group">
+              Second selection
+              <select class="field-input" name="choice2" data-vote-choice required></select>
+            </label>
+            <label class="field-group">
+              Third selection
+              <select class="field-input" name="choice3" data-vote-choice required></select>
+            </label>
+          </div>
+          <div class="form-actions">
+            <button class="button-link primary" type="submit">Submit Vote</button>
+            <span class="form-status" id="voteStatus"></span>
+          </div>
+        </form>
+      </div>
+    </section>
   </main>
 
   <div class="modal-overlay" id="summaryModalOverlay" hidden>
@@ -791,6 +848,9 @@
     const setupNote = document.querySelector("#setupNote");
     const submissionForm = document.querySelector("#submissionForm");
     const formStatus = document.querySelector("#formStatus");
+    const voteForm = document.querySelector("#voteForm");
+    const voteStatus = document.querySelector("#voteStatus");
+    const voteChoiceFields = [...document.querySelectorAll("[data-vote-choice]")];
     const summaryModalOverlay = document.querySelector("#summaryModalOverlay");
     const summaryModalTitle = document.querySelector("#summaryModalTitle");
     const summaryModalContent = document.querySelector("#summaryModalContent");
@@ -862,6 +922,11 @@
       formStatus.dataset.status = status;
     }
 
+    function setVoteStatus(message, status = "") {
+      voteStatus.textContent = message;
+      voteStatus.dataset.status = status;
+    }
+
     function submissionPayload() {
       const formData = new FormData(submissionForm);
       return {
@@ -875,6 +940,14 @@
         limitations: normalize(formData.get("limitations")),
         improvements: normalize(formData.get("improvements")),
         videoUrl: normalize(formData.get("videoUrl"))
+      };
+    }
+
+    function votePayload() {
+      const formData = new FormData(voteForm);
+      return {
+        studentUid: normalize(formData.get("studentUid")),
+        choices: voteChoiceFields.map((field) => normalize(field.value)).filter(Boolean)
       };
     }
 
@@ -955,6 +1028,17 @@
         throw new Error("Submission repository did not return the saved record.");
       }
       return payload.submission;
+    }
+
+    async function saveRepositoryVote(vote) {
+      const payload = await apiRequest("/votes", {
+        method: "POST",
+        body: JSON.stringify(vote)
+      });
+      if (!payload.vote) {
+        throw new Error("Vote repository did not return the saved ballot.");
+      }
+      return payload.vote;
     }
 
     function tabFromHash() {
@@ -1058,6 +1142,35 @@
       lastModalTrigger = null;
     }
 
+    function populateVoteChoices() {
+      const choices = submissions
+        .filter((app) => app.id && app.appName)
+        .slice()
+        .sort((a, b) => normalize(a.appName).localeCompare(normalize(b.appName)));
+      const optionHtml = [
+        '<option value="">Select a submission</option>',
+        ...choices.map((app) => {
+          const label = [normalize(app.appName), normalize(app.teamMembers)].filter(Boolean).join(" - ");
+          return `<option value="${escapeHtml(app.id)}">${escapeHtml(label)}</option>`;
+        })
+      ].join("");
+
+      voteChoiceFields.forEach((field) => {
+        const currentValue = field.value;
+        field.innerHTML = optionHtml;
+        field.disabled = choices.length === 0;
+        if (choices.some((app) => app.id === currentValue)) {
+          field.value = currentValue;
+        }
+      });
+
+      if (!choices.length) {
+        setVoteStatus("Voting will open once submissions are available.", "");
+      } else if (voteStatus.textContent === "Voting will open once submissions are available.") {
+        setVoteStatus("");
+      }
+    }
+
     function render() {
       const query = librarySearch.value.trim().toLowerCase();
       const filtered = submissions.filter((app) => {
@@ -1084,6 +1197,7 @@
         setupNote.textContent = error.message;
       }
 
+      populateVoteChoices();
       render();
     }
 
@@ -1123,12 +1237,45 @@
         const metadata = submissionMetadata(payload);
         await saveRepositorySubmission(metadata);
         submissions = [...baseSubmissions(), ...await fetchRepositorySubmissions()];
+        populateVoteChoices();
         render();
         submissionForm.reset();
         setFormStatus("Submitted.", "success");
         selectTab("browse");
       } catch (error) {
         setFormStatus(error.message || "Submission could not be saved.", "error");
+      }
+      submitButton.disabled = false;
+    });
+
+    voteForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const payload = votePayload();
+      const submitButton = voteForm.querySelector('button[type="submit"]');
+
+      if (!payload.studentUid || !/^\d+$/.test(payload.studentUid)) {
+        setVoteStatus("Please enter a numeric student UID.", "error");
+        return;
+      }
+
+      if (payload.choices.length !== 3) {
+        setVoteStatus("Please select three submissions.", "error");
+        return;
+      }
+
+      if (new Set(payload.choices).size !== 3) {
+        setVoteStatus("Please select three different submissions.", "error");
+        return;
+      }
+
+      submitButton.disabled = true;
+      try {
+        await saveRepositoryVote(payload);
+        voteForm.reset();
+        populateVoteChoices();
+        setVoteStatus("Vote submitted.", "success");
+      } catch (error) {
+        setVoteStatus(error.message || "Vote could not be saved.", "error");
       }
       submitButton.disabled = false;
     });
