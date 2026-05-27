@@ -443,30 +443,40 @@
     .app-grid {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
+      gap: 16px;
       margin-top: 16px;
     }
 
     .app-card {
       display: grid;
-      gap: 12px;
+      gap: 16px;
+      align-content: start;
       border: 1px solid var(--line);
       border-radius: 6px;
-      padding: 16px;
+      padding: 18px;
       background: var(--white);
+    }
+
+    .app-card-header {
+      display: grid;
+      gap: 6px;
+      min-height: 74px;
+      align-content: start;
     }
 
     .app-card h3 {
       color: var(--darkest-blue);
       font-size: 1.24rem;
-      line-height: 1.12;
+      line-height: 1.16;
+      overflow-wrap: anywhere;
     }
 
     .app-meta {
       color: var(--muted);
       font-size: 0.86rem;
       font-weight: 600;
-      line-height: 1.32;
+      line-height: 1.42;
+      overflow-wrap: anywhere;
     }
 
     .keyword-list {
@@ -691,6 +701,10 @@
 
       .app-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .app-card-header {
+        min-height: 0;
       }
 
       .modal-overlay {
@@ -1125,7 +1139,7 @@
       const hasSummary = summarySections(app).length > 0;
       return `
         <article class="app-card">
-          <div>
+          <div class="app-card-header">
             <h3>${escapeHtml(app.appName || "Untitled App")}</h3>
             <div class="app-meta">${escapeHtml(app.teamMembers || "Team members pending")}</div>
           </div>
