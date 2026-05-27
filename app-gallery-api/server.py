@@ -27,6 +27,7 @@ SUMMARY_PROMPTS = [
 ]
 
 MAX_BODY_BYTES = 64 * 1024
+ADVERTISED_SUMMARY_WORDS = 500
 MAX_SUMMARY_WORDS = 600
 VOTE_CHOICE_COUNT = 3
 ID_PATTERN = re.compile(r"^[a-f0-9-]{36}$", re.IGNORECASE)
@@ -216,7 +217,7 @@ def validate_submission(payload: dict[str, Any]) -> dict[str, Any]:
     if any(not summary[key] for key, _label in SUMMARY_PROMPTS):
         errors.append("All five summary questions are required.")
     if summary_word_count(summary) > MAX_SUMMARY_WORDS:
-        errors.append(f"Written summary must be {MAX_SUMMARY_WORDS} words or fewer in total.")
+        errors.append(f"Written summary must be {ADVERTISED_SUMMARY_WORDS} words or fewer in total.")
 
     field_lengths = {
         "App name": (app_name, 140),

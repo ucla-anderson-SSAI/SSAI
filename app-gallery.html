@@ -760,7 +760,7 @@
                 <input class="field-input" name="keywords" autocomplete="off" placeholder="finance, forecasting, workflow" required>
               </label>
               <div class="summary-prompts" role="group" aria-labelledby="summary-prompts-title">
-                <div class="summary-title" id="summary-prompts-title">Summary (max 600 words total)</div>
+                <div class="summary-title" id="summary-prompts-title">Summary (max 500 words total)</div>
                 <label class="field-group full summary-question">
                   1. What is the problem?
                   <textarea class="field-input" name="problem" required></textarea>
@@ -849,6 +849,7 @@
       { key: "limitations", label: "What are the main limitations of your approach?" },
       { key: "improvements", label: "How would you improve your product?" }
     ];
+    const ADVERTISED_SUMMARY_WORDS = 500;
     const MAX_SUMMARY_WORDS = 600;
 
     const appGrid = document.querySelector("#appGrid");
@@ -1238,7 +1239,7 @@
       }
 
       if (summaryWordCount(payload) > MAX_SUMMARY_WORDS) {
-        setFormStatus(`Written summary must be ${MAX_SUMMARY_WORDS} words or fewer in total.`, "error");
+        setFormStatus(`Written summary must be ${ADVERTISED_SUMMARY_WORDS} words or fewer in total.`, "error");
         return;
       }
 
