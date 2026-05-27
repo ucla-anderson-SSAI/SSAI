@@ -457,14 +457,16 @@
     }
 
     .app-card h3 {
-      font-size: 1rem;
+      color: var(--darkest-blue);
+      font-size: 1.24rem;
+      line-height: 1.12;
     }
 
     .app-meta {
-      color: var(--slate);
-      font-size: var(--text-small);
-      font-weight: 700;
-      line-height: 1.35;
+      color: var(--muted);
+      font-size: 0.86rem;
+      font-weight: 600;
+      line-height: 1.32;
     }
 
     .keyword-list {
@@ -544,6 +546,7 @@
     .video-preview {
       position: relative;
       display: block;
+      overflow: hidden;
       border: 1px solid var(--line);
       border-radius: 4px;
       background: var(--surface);
@@ -605,7 +608,8 @@
       display: block;
       width: 100%;
       height: 100%;
-      object-fit: contain;
+      object-fit: cover;
+      object-position: center center;
       background: var(--surface);
     }
 
