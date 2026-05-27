@@ -27,7 +27,7 @@ SUMMARY_PROMPTS = [
 ]
 
 MAX_BODY_BYTES = 64 * 1024
-MAX_SUMMARY_WORDS = 500
+MAX_SUMMARY_WORDS = 600
 VOTE_CHOICE_COUNT = 3
 ID_PATTERN = re.compile(r"^[a-f0-9-]{36}$", re.IGNORECASE)
 UID_PATTERN = re.compile(r"^\d{1,32}$")
@@ -176,6 +176,10 @@ def combine_summary(summary: dict[str, str]) -> str:
     return "\n\n".join(sections)
 
 
+def summary_word_count(summary: dict[str, str]) -> int:
+    return sum(word_count(summary.get(key, "")) for key, _label in SUMMARY_PROMPTS)
+
+
 def validate_submission(payload: dict[str, Any]) -> dict[str, Any]:
     app_name = normalize(payload.get("appName"))
     team_members = normalize(payload.get("teamMembers"))
@@ -211,8 +215,8 @@ def validate_submission(payload: dict[str, Any]) -> dict[str, Any]:
         errors.append("Please include 3 to 5 keywords.")
     if any(not summary[key] for key, _label in SUMMARY_PROMPTS):
         errors.append("All five summary questions are required.")
-    if word_count(writeup) > MAX_SUMMARY_WORDS:
-        errors.append("Written summary must be 500 words or fewer in total.")
+    if summary_word_count(summary) > MAX_SUMMARY_WORDS:
+        errors.append(f"Written summary must be {MAX_SUMMARY_WORDS} words or fewer in total.")
 
     field_lengths = {
         "App name": (app_name, 140),
