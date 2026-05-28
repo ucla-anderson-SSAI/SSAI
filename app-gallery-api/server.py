@@ -281,12 +281,26 @@ def delete_submission(submission_id: str) -> bool:
     return result.rowcount > 0
 
 
-def update_submission_video_url(submission_id: str, video_url: str) -> dict[str, Any] | None:
+def update_submission_fields(submission_id: str, updates: dict[str, str]) -> dict[str, Any] | None:
     ensure_database()
+    field_map = {
+        "teamMembers": "team_members",
+        "videoUrl": "video_url",
+    }
+    assignments = [
+        (field_map[field], value)
+        for field, value in updates.items()
+        if field in field_map
+    ]
+    if not assignments:
+        return None
+
+    set_clause = ", ".join(f"{column} = ?" for column, _value in assignments)
+    values = [value for _column, value in assignments]
     with connect() as connection:
         result = connection.execute(
-            "UPDATE submissions SET video_url = ? WHERE id = ?",
-            (video_url, submission_id),
+            f"UPDATE submissions SET {set_clause} WHERE id = ?",
+            (*values, submission_id),
         )
         if result.rowcount == 0:
             return None
@@ -873,10 +887,22 @@ class AppGalleryHandler(BaseHTTPRequestHandler):
             payload = json.loads(self.rfile.read(content_length).decode("utf-8"))
             if not isinstance(payload, dict):
                 raise ValueError("Request body must be a JSON object.")
-            video_url = normalize(payload.get("videoUrl"))
-            if not is_google_drive_url(video_url):
-                raise ValueError("Pitch video must be a valid Google Drive URL.")
-            submission = update_submission_video_url(submission_id, video_url)
+            updates: dict[str, str] = {}
+            if "teamMembers" in payload:
+                team_members = normalize(payload.get("teamMembers"))
+                if not team_members:
+                    raise ValueError("Team members are required.")
+                if len(team_members) > 240:
+                    raise ValueError("Team members is too long.")
+                updates["teamMembers"] = team_members
+            if "videoUrl" in payload:
+                video_url = normalize(payload.get("videoUrl"))
+                if not is_google_drive_url(video_url):
+                    raise ValueError("Pitch video must be a valid Google Drive URL.")
+                updates["videoUrl"] = video_url
+            if not updates:
+                raise ValueError("No supported submission fields were provided.")
+            submission = update_submission_fields(submission_id, updates)
         except json.JSONDecodeError:
             self.write_json(HTTPStatus.BAD_REQUEST, {"error": "Request body must be valid JSON."})
             return
