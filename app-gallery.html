@@ -538,7 +538,7 @@
       border: 1px solid rgba(39, 116, 174, 0.36);
       border-radius: 3px;
       padding: 6px 10px;
-      color: var(--darkest-blue);
+      color: var(--ucla-blue);
       background: var(--white);
       cursor: pointer;
       font: inherit;
@@ -549,9 +549,9 @@
     }
 
     .card-link.primary {
-      border-color: var(--darkest-blue);
+      border-color: var(--ucla-blue);
       color: var(--white);
-      background: var(--darkest-blue);
+      background: var(--ucla-blue);
     }
 
     .card-link:hover,
@@ -967,6 +967,10 @@
       voteStatus.dataset.status = status;
     }
 
+    function compareAppNames(a, b) {
+      return normalize(a.appName).localeCompare(normalize(b.appName), undefined, { sensitivity: "base" });
+    }
+
     function submissionPayload() {
       const formData = new FormData(submissionForm);
       return {
@@ -1191,7 +1195,7 @@
       const choices = submissions
         .filter((app) => app.id && app.appName)
         .slice()
-        .sort((a, b) => normalize(a.appName).localeCompare(normalize(b.appName)));
+        .sort(compareAppNames);
       const optionHtml = [
         '<option value="">Select a submission</option>',
         ...choices.map((app) => {
@@ -1213,10 +1217,12 @@
 
     function render() {
       const query = librarySearch.value.trim().toLowerCase();
-      const filtered = submissions.filter((app) => {
-        const haystack = `${app.appName} ${app.teamMembers} ${app.keywords} ${combinedSummary(app)}`.toLowerCase();
-        return haystack.includes(query);
-      });
+      const filtered = submissions
+        .filter((app) => {
+          const haystack = `${app.appName} ${app.teamMembers} ${app.keywords} ${combinedSummary(app)}`.toLowerCase();
+          return haystack.includes(query);
+        })
+        .sort(compareAppNames);
 
       visibleSubmissions = filtered;
       appGrid.innerHTML = filtered.map(appCard).join("");
