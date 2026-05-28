@@ -281,6 +281,27 @@ def delete_submission(submission_id: str) -> bool:
     return result.rowcount > 0
 
 
+def update_submission_video_url(submission_id: str, video_url: str) -> dict[str, Any] | None:
+    ensure_database()
+    with connect() as connection:
+        result = connection.execute(
+            "UPDATE submissions SET video_url = ? WHERE id = ?",
+            (video_url, submission_id),
+        )
+        if result.rowcount == 0:
+            return None
+        row = connection.execute(
+            """
+            SELECT id, app_name, team_members, live_url, video_url, keywords_json,
+                   summary_json, writeup, submitted_at
+            FROM submissions
+            WHERE id = ?
+            """,
+            (submission_id,),
+        ).fetchone()
+    return row_to_submission(row) if row else None
+
+
 def submission_names_by_id(submission_ids: list[str]) -> dict[str, str]:
     ensure_database()
     if not submission_ids:
@@ -718,7 +739,7 @@ class AppGalleryHandler(BaseHTTPRequestHandler):
 
     def end_headers(self) -> None:
         self.send_header("Access-Control-Allow-Origin", os.environ.get("ALLOWED_ORIGIN", "*"))
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Admin-Token")
         self.send_header("X-Content-Type-Options", "nosniff")
         super().end_headers()
@@ -818,6 +839,59 @@ class AppGalleryHandler(BaseHTTPRequestHandler):
             repository_name = "Vote" if parsed.path == "/votes" else "Submission"
             self.write_json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": f"{repository_name} repository is unavailable."})
             return
+
+    def do_PATCH(self) -> None:
+        parsed = urlparse(self.path)
+        match = re.fullmatch(r"/submissions/([^/]+)", parsed.path)
+        if not match:
+            self.write_json(HTTPStatus.NOT_FOUND, {"error": "Not found."})
+            return
+
+        if not configured_admin_pin():
+            self.write_json(HTTPStatus.SERVICE_UNAVAILABLE, {"error": "Admin updates are not configured."})
+            return
+
+        if not admin_pin_is_valid(self.headers):
+            self.write_json(HTTPStatus.UNAUTHORIZED, {"error": "Invalid admin PIN."})
+            return
+
+        submission_id = match.group(1)
+        if not ID_PATTERN.fullmatch(submission_id):
+            self.write_json(HTTPStatus.BAD_REQUEST, {"error": "Invalid submission id."})
+            return
+
+        try:
+            content_length = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            content_length = 0
+
+        if content_length <= 0 or content_length > MAX_BODY_BYTES:
+            self.write_json(HTTPStatus.BAD_REQUEST, {"error": "Invalid request body."})
+            return
+
+        try:
+            payload = json.loads(self.rfile.read(content_length).decode("utf-8"))
+            if not isinstance(payload, dict):
+                raise ValueError("Request body must be a JSON object.")
+            video_url = normalize(payload.get("videoUrl"))
+            if not is_google_drive_url(video_url):
+                raise ValueError("Pitch video must be a valid Google Drive URL.")
+            submission = update_submission_video_url(submission_id, video_url)
+        except json.JSONDecodeError:
+            self.write_json(HTTPStatus.BAD_REQUEST, {"error": "Request body must be valid JSON."})
+            return
+        except ValueError as error:
+            self.write_json(HTTPStatus.BAD_REQUEST, {"error": str(error)})
+            return
+        except sqlite3.Error:
+            self.write_json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": "Submission repository is unavailable."})
+            return
+
+        if not submission:
+            self.write_json(HTTPStatus.NOT_FOUND, {"error": "Submission not found."})
+            return
+
+        self.write_json(HTTPStatus.OK, {"submission": submission})
 
     def do_DELETE(self) -> None:
         parsed = urlparse(self.path)
