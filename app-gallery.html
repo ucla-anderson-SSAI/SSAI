@@ -527,29 +527,45 @@
     .card-actions {
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
+      gap: 8px;
       align-items: center;
     }
 
     .card-link {
-      min-height: 0;
-      border: 0;
-      border-radius: 0;
-      padding: 0;
-      color: var(--ucla-blue);
-      background: transparent;
+      display: inline-flex;
+      min-height: 32px;
+      align-items: center;
+      border: 1px solid rgba(39, 116, 174, 0.36);
+      border-radius: 3px;
+      padding: 6px 10px;
+      color: var(--darkest-blue);
+      background: var(--white);
       cursor: pointer;
       font: inherit;
-      font-size: 0.88rem;
+      font-size: 0.82rem;
       font-weight: 700;
       line-height: 1.3;
       text-decoration: none;
     }
 
+    .card-link.primary {
+      border-color: var(--darkest-blue);
+      color: var(--white);
+      background: var(--darkest-blue);
+    }
+
     .card-link:hover,
     .card-link:focus {
+      border-color: var(--ucla-blue);
       color: var(--darkest-blue);
-      background: transparent;
+      background: var(--surface);
+    }
+
+    .card-link.primary:hover,
+    .card-link.primary:focus {
+      border-color: var(--ucla-blue);
+      color: var(--white);
+      background: var(--ucla-blue);
     }
 
     .video-preview {
@@ -1146,7 +1162,7 @@
           ` : ""}
           ${keywordChips(app.keywords)}
           <div class="card-actions">
-            ${app.liveUrl ? `<a class="card-link" href="${escapeHtml(app.liveUrl)}" target="_blank" rel="noopener">Open App</a>` : ""}
+            ${app.liveUrl ? `<a class="card-link primary" href="${escapeHtml(app.liveUrl)}" target="_blank" rel="noopener">Open App</a>` : ""}
             ${hasSummary ? `<button class="card-link" type="button" data-summary-index="${index}">Summary</button>` : ""}
           </div>
         </article>
