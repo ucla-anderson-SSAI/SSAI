@@ -448,13 +448,35 @@
     }
 
     .app-card {
+      position: relative;
       display: grid;
       gap: 12px;
       align-content: start;
+      overflow: hidden;
       border: 1px solid var(--line);
       border-radius: 6px;
       padding: 18px;
       background: var(--white);
+    }
+
+    .app-card.is-finalist {
+      border-color: rgba(255, 184, 28, 0.82);
+      box-shadow: inset 0 4px 0 var(--ucla-gold);
+    }
+
+    .finalist-banner {
+      display: flex;
+      min-height: 32px;
+      align-items: center;
+      margin: -18px -18px 2px;
+      padding: 7px 18px;
+      color: var(--darkest-blue);
+      background: var(--ucla-gold);
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      line-height: 1.2;
+      text-transform: uppercase;
     }
 
     .app-card-header {
@@ -878,6 +900,15 @@
       { key: "limitations", label: "What are the main limitations of your approach?" },
       { key: "improvements", label: "How would you improve your product?" }
     ];
+    const FINALIST_APP_NAMES = new Set([
+      "10k buffett",
+      "2026 world cup companion",
+      "astral audio",
+      "can i recycle this?",
+      "fridgeai",
+      "snapcompare",
+      "valet"
+    ]);
     const ADVERTISED_SUMMARY_WORDS = 500;
     const MAX_SUMMARY_WORDS = 600;
 
@@ -903,6 +934,14 @@
 
     function normalize(value) {
       return String(value || "").trim();
+    }
+
+    function normalizedAppName(value) {
+      return normalize(value).toLowerCase();
+    }
+
+    function isFinalistApp(app) {
+      return FINALIST_APP_NAMES.has(normalizedAppName(app?.appName));
     }
 
     function driveFileId(url) {
@@ -1152,8 +1191,10 @@
       const videoPreview = drivePreviewUrl(app.videoUrl);
       const videoThumbnail = driveThumbnailUrl(app.videoUrl);
       const hasSummary = summarySections(app).length > 0;
+      const finalist = isFinalistApp(app);
       return `
-        <article class="app-card">
+        <article class="app-card${finalist ? " is-finalist" : ""}">
+          ${finalist ? '<div class="finalist-banner">Finalist</div>' : ""}
           <div class="app-card-header">
             <h3>${escapeHtml(app.appName || "Untitled App")}</h3>
             <div class="app-meta">${escapeHtml(app.teamMembers || "Team members pending")}</div>
