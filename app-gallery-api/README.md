@@ -33,7 +33,9 @@ Without the volume, Railway's filesystem may be replaced on future deploys.
 - `GET /submissions` returns all submissions as JSON.
 - `POST /submissions` creates a submission.
 - `GET /votes` returns vote totals and ballots when called with `Authorization: Bearer <ADMIN_PIN>`.
-- `POST /votes` creates or updates one three-submission ballot for a student UID.
+- `POST /votes` creates or updates one three-submission ballot for a roster-matched UID.
+- `GET /final-votes` returns final-round vote rankings and ballots when called with `Authorization: Bearer <ADMIN_PIN>`.
+- `POST /final-votes` creates or updates one two-team final-round ballot for a roster-matched UID.
 - `DELETE /submissions/:id` deletes a submission when called with `Authorization: Bearer <ADMIN_PIN>`.
 - `GET /health` checks that the service is running.
 

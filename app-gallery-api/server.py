@@ -30,8 +30,113 @@ MAX_BODY_BYTES = 64 * 1024
 ADVERTISED_SUMMARY_WORDS = 500
 MAX_SUMMARY_WORDS = 600
 VOTE_CHOICE_COUNT = 3
+FINAL_ROUND_CHOICE_COUNT = 2
+FINAL_ROUND_TEAM_NAMES = [
+    "10K BUFFETT",
+    "2026 World Cup Companion",
+    "Astral Audio",
+    "Can I Recycle This?",
+    "FridgeAI",
+    "Snapcompare",
+    "Valet",
+]
+ELIGIBLE_ROSTER_UIDS = {
+    "906577722",
+    "504886395",
+    "006776575",
+    "506523571",
+    "606577672",
+    "606775436",
+    "406536437",
+    "006535618",
+    "406313352",
+    "606536356",
+    "906536741",
+    "505881235",
+    "906533950",
+    "006308003",
+    "806536992",
+    "906775010",
+    "706344677",
+    "106777254",
+    "206338966",
+    "506578064",
+    "006535449",
+    "806536529",
+    "906345242",
+    "606309047",
+    "606788293",
+    "406775041",
+    "906777189",
+    "006537108",
+    "206536339",
+    "006537033",
+    "906535237",
+    "606578252",
+    "506338516",
+    "706577723",
+    "406535447",
+    "606536337",
+    "206536297",
+    "206789303",
+    "606535494",
+    "706534470",
+    "106553372",
+    "006338769",
+    "106538999",
+    "306339036",
+    "106771662",
+    "906537104",
+    "406536965",
+    "006534464",
+    "205179204",
+    "006535802",
+    "006577646",
+    "106338924",
+    "506344758",
+    "106789624",
+    "606776233",
+    "506578441",
+    "906776364",
+    "806344733",
+    "806774742",
+    "806535407",
+    "106535566",
+    "906776566",
+    "506791776",
+    "506534367",
+    "906534450",
+    "506577719",
+    "006578636",
+    "906789535",
+    "106534454",
+    "706535243",
+    "806553284",
+    "105269592",
+    "106759943",
+    "406536319",
+    "406338989",
+    "406539704",
+    "306536329",
+    "006536509",
+    "606533541",
+    "806789526",
+    "406338951",
+    "106535463",
+    "006523601",
+    "106535397",
+    "306348088",
+    "106535514",
+    "006338774",
+    "006338632",
+    "606775380",
+    "906789470",
+    "306577739",
+    "606534456",
+    "006775566",
+}
 ID_PATTERN = re.compile(r"^[a-f0-9-]{36}$", re.IGNORECASE)
-UID_PATTERN = re.compile(r"^\d{1,32}$")
+UID_PATTERN = re.compile(r"^\d{9}$")
 
 
 def database_path() -> Path:
@@ -132,6 +237,35 @@ def ensure_database() -> None:
         connection.execute(
             "CREATE INDEX IF NOT EXISTS idx_votes_submitted_at ON votes(submitted_at)"
         )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS final_votes (
+                id TEXT PRIMARY KEY,
+                student_uid TEXT NOT NULL,
+                first_team_name TEXT NOT NULL,
+                second_team_name TEXT NOT NULL,
+                submitted_at TEXT NOT NULL
+            )
+            """
+        )
+        final_vote_columns = {
+            row[1]
+            for row in connection.execute("PRAGMA table_info(final_votes)").fetchall()
+        }
+        if "student_uid" not in final_vote_columns:
+            connection.execute(
+                "ALTER TABLE final_votes ADD COLUMN student_uid TEXT NOT NULL DEFAULT ''"
+            )
+        connection.execute(
+            "CREATE INDEX IF NOT EXISTS idx_final_votes_submitted_at ON final_votes(submitted_at)"
+        )
+        connection.execute(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_final_votes_student_uid
+            ON final_votes(student_uid)
+            WHERE student_uid <> ''
+            """
+        )
 
 
 def connect() -> sqlite3.Connection:
@@ -179,6 +313,14 @@ def combine_summary(summary: dict[str, str]) -> str:
 
 def summary_word_count(summary: dict[str, str]) -> int:
     return sum(word_count(summary.get(key, "")) for key, _label in SUMMARY_PROMPTS)
+
+
+def uid_errors(student_uid: str) -> list[str]:
+    if not UID_PATTERN.fullmatch(student_uid):
+        return ["Student UID must be 9 digits."]
+    if student_uid not in ELIGIBLE_ROSTER_UIDS:
+        return ["Student UID is not on the course roster."]
+    return []
 
 
 def validate_submission(payload: dict[str, Any]) -> dict[str, Any]:
@@ -339,8 +481,7 @@ def validate_vote(payload: dict[str, Any]) -> dict[str, Any]:
     choices = [normalize(choice) for choice in raw_choices if normalize(choice)]
 
     errors: list[str] = []
-    if not UID_PATTERN.fullmatch(student_uid):
-        errors.append("Student UID must contain numbers only.")
+    errors.extend(uid_errors(student_uid))
     if len(choices) != VOTE_CHOICE_COUNT:
         errors.append("Please choose three submissions.")
     if len(set(choices)) != len(choices):
@@ -446,6 +587,108 @@ def vote_results() -> dict[str, Any]:
     totals = sorted(
         totals_by_submission.values(),
         key=lambda item: (-int(item["count"]), str(item["appName"]).lower()),
+    )
+    return {"votes": votes, "totals": totals}
+
+
+def final_round_team_by_name() -> dict[str, str]:
+    return {team.lower(): team for team in FINAL_ROUND_TEAM_NAMES}
+
+
+def validate_final_vote(payload: dict[str, Any]) -> dict[str, Any]:
+    student_uid = normalize(payload.get("studentUid") or payload.get("uid"))
+    raw_choices = payload.get("choices")
+    if not isinstance(raw_choices, list):
+        raw_choices = [payload.get("choice1"), payload.get("choice2")]
+
+    choices = [normalize(choice) for choice in raw_choices if normalize(choice)]
+    teams_by_name = final_round_team_by_name()
+    canonical_choices = [teams_by_name.get(choice.lower(), "") for choice in choices]
+
+    errors: list[str] = []
+    errors.extend(uid_errors(student_uid))
+    if len(choices) != FINAL_ROUND_CHOICE_COUNT:
+        errors.append("Please choose two finalist teams.")
+    if len(set(choice.lower() for choice in choices)) != len(choices):
+        errors.append("Please choose two different finalist teams.")
+    if any(not choice for choice in canonical_choices):
+        errors.append("One or more selected finalist teams are invalid.")
+
+    if errors:
+        raise ValueError(" ".join(errors))
+
+    return {
+        "id": str(uuid.uuid4()),
+        "studentUid": student_uid,
+        "choices": canonical_choices,
+        "submittedAt": now_iso(),
+    }
+
+
+def save_final_vote(vote: dict[str, Any]) -> dict[str, Any]:
+    ensure_database()
+    choices = vote["choices"]
+    with connect() as connection:
+        connection.execute(
+            """
+            INSERT INTO final_votes (
+                id, student_uid, first_team_name, second_team_name, submitted_at
+            ) VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(student_uid) WHERE student_uid <> '' DO UPDATE SET
+                id = excluded.id,
+                first_team_name = excluded.first_team_name,
+                second_team_name = excluded.second_team_name,
+                submitted_at = excluded.submitted_at
+            """,
+            (
+                vote["id"],
+                vote["studentUid"],
+                choices[0],
+                choices[1],
+                vote["submittedAt"],
+            ),
+        )
+    return vote
+
+
+def row_to_final_vote(row: sqlite3.Row) -> dict[str, Any]:
+    return {
+        "id": row["id"],
+        "studentUid": row["student_uid"],
+        "choices": [row["first_team_name"], row["second_team_name"]],
+        "submittedAt": row["submitted_at"],
+    }
+
+
+def list_final_votes() -> list[dict[str, Any]]:
+    ensure_database()
+    with connect() as connection:
+        rows = connection.execute(
+            """
+            SELECT id, student_uid, first_team_name, second_team_name, submitted_at
+            FROM final_votes
+            WHERE student_uid <> ''
+            ORDER BY submitted_at DESC
+            """
+        ).fetchall()
+    return [row_to_final_vote(row) for row in rows]
+
+
+def final_vote_results() -> dict[str, Any]:
+    votes = list_final_votes()
+    counts_by_team = {team: 0 for team in FINAL_ROUND_TEAM_NAMES}
+    for vote in votes:
+        for choice in vote["choices"]:
+            if choice in counts_by_team:
+                counts_by_team[choice] += 1
+
+    team_order = {team: index for index, team in enumerate(FINAL_ROUND_TEAM_NAMES)}
+    totals = sorted(
+        (
+            {"teamName": team, "count": count}
+            for team, count in counts_by_team.items()
+        ),
+        key=lambda item: (-int(item["count"]), team_order[item["teamName"]]),
     )
     return {"votes": votes, "totals": totals}
 
@@ -562,6 +805,9 @@ def render_admin_page() -> bytes:
     <h2>Vote Results</h2>
     <div class="vote-results" id="voteResults"></div>
 
+    <h2>Final Round Voting Summary</h2>
+    <div class="vote-results" id="finalVoteResults"></div>
+
     <h2>Submissions</h2>
     <div id="submissions"></div>
   </main>
@@ -572,6 +818,7 @@ def render_admin_page() -> bytes:
     const statusBox = document.querySelector("#status");
     const submissionsBox = document.querySelector("#submissions");
     const voteResultsBox = document.querySelector("#voteResults");
+    const finalVoteResultsBox = document.querySelector("#finalVoteResults");
 
     function setStatus(message, isError = false) {
       statusBox.textContent = message;
@@ -712,6 +959,75 @@ def render_admin_page() -> bytes:
       voteResultsBox.append(ballotsSection);
     }
 
+    function renderFinalVoteResults(payload) {
+      const totals = Array.isArray(payload.totals) ? payload.totals : [];
+      const votes = Array.isArray(payload.votes) ? payload.votes : [];
+      finalVoteResultsBox.textContent = "";
+
+      const totalsSection = document.createElement("section");
+      const totalsTitle = document.createElement("strong");
+      totalsTitle.textContent = `Final round ranking (${votes.length} ballots)`;
+      totalsSection.append(totalsTitle);
+
+      const table = document.createElement("table");
+      const thead = document.createElement("thead");
+      thead.innerHTML = "<tr><th>Rank</th><th>Team</th><th>Votes</th></tr>";
+      table.append(thead);
+
+      const tbody = document.createElement("tbody");
+      if (!totals.length) {
+        const row = document.createElement("tr");
+        const emptyCell = document.createElement("td");
+        emptyCell.colSpan = 3;
+        emptyCell.textContent = "No final round votes yet.";
+        row.append(emptyCell);
+        tbody.append(row);
+      } else {
+        totals.forEach((total, index) => {
+          const row = document.createElement("tr");
+          const rankCell = document.createElement("td");
+          rankCell.textContent = String(index + 1);
+          const teamCell = document.createElement("td");
+          teamCell.textContent = text(total.teamName) || "Unknown team";
+          const countCell = document.createElement("td");
+          countCell.textContent = String(total.count || 0);
+          row.append(rankCell, teamCell, countCell);
+          tbody.append(row);
+        });
+      }
+      table.append(tbody);
+      totalsSection.append(table);
+      finalVoteResultsBox.append(totalsSection);
+
+      if (votes.length) {
+        const ballotsSection = document.createElement("section");
+        const ballotsTitle = document.createElement("strong");
+        ballotsTitle.textContent = "Final round ballots";
+        ballotsSection.append(ballotsTitle);
+
+        const ballotList = document.createElement("div");
+        ballotList.className = "ballots";
+        votes.forEach((vote) => {
+          const ballot = document.createElement("article");
+          ballot.className = "ballot";
+          const uid = document.createElement("strong");
+          uid.textContent = `UID ${text(vote.studentUid) || "pending"}`;
+          ballot.append(uid);
+
+          const choices = document.createElement("ol");
+          (Array.isArray(vote.choices) ? vote.choices : []).forEach((choice) => {
+            const item = document.createElement("li");
+            item.textContent = text(choice) || "Unknown team";
+            choices.append(item);
+          });
+          ballot.append(choices);
+          ballotList.append(ballot);
+        });
+        ballotsSection.append(ballotList);
+        finalVoteResultsBox.append(ballotsSection);
+      }
+    }
+
     async function loadAdminData() {
       const pin = pinInputValue();
       if (!pin) {
@@ -722,16 +1038,20 @@ def render_admin_page() -> bytes:
       setStatus("Loading...");
       submissionsBox.textContent = "";
       voteResultsBox.textContent = "";
+      finalVoteResultsBox.textContent = "";
       try {
-        const [submissionPayload, votePayload] = await Promise.all([
+        const [submissionPayload, votePayload, finalVotePayload] = await Promise.all([
           fetch("/submissions").then((response) => jsonOrError(response, "Could not load submissions.")),
           fetch("/votes", { headers: { Authorization: `Bearer ${pin}` } })
-            .then((response) => jsonOrError(response, "Could not load voting results."))
+            .then((response) => jsonOrError(response, "Could not load voting results.")),
+          fetch("/final-votes", { headers: { Authorization: `Bearer ${pin}` } })
+            .then((response) => jsonOrError(response, "Could not load final round voting results."))
         ]);
         const submissions = Array.isArray(submissionPayload.submissions) ? submissionPayload.submissions : [];
         submissions.forEach((app) => submissionsBox.append(submissionNode(app)));
         renderVoteResults(votePayload);
-        setStatus(`${submissions.length} submissions and ${Array.isArray(votePayload.votes) ? votePayload.votes.length : 0} ballots loaded.`);
+        renderFinalVoteResults(finalVotePayload);
+        setStatus(`${submissions.length} submissions, ${Array.isArray(votePayload.votes) ? votePayload.votes.length : 0} ballots, and ${Array.isArray(finalVotePayload.votes) ? finalVotePayload.votes.length : 0} final round ballots loaded.`);
       } catch (error) {
         setStatus(error.message || "Could not load admin data.", true);
       }
@@ -798,6 +1118,21 @@ class AppGalleryHandler(BaseHTTPRequestHandler):
                 self.write_json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": "Vote repository is unavailable."})
             return
 
+        if parsed.path == "/final-votes":
+            if not configured_admin_pin():
+                self.write_json(HTTPStatus.SERVICE_UNAVAILABLE, {"error": "Admin voting results are not configured."})
+                return
+
+            if not admin_pin_is_valid(self.headers):
+                self.write_json(HTTPStatus.UNAUTHORIZED, {"error": "Invalid admin PIN."})
+                return
+
+            try:
+                self.write_json(HTTPStatus.OK, final_vote_results())
+            except sqlite3.Error:
+                self.write_json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": "Final round vote repository is unavailable."})
+            return
+
         if parsed.path == "/":
             body = render_repository_page(list_submissions())
             self.send_response(HTTPStatus.OK)
@@ -820,7 +1155,7 @@ class AppGalleryHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
-        if parsed.path not in {"/submissions", "/votes"}:
+        if parsed.path not in {"/submissions", "/votes", "/final-votes"}:
             self.write_json(HTTPStatus.NOT_FOUND, {"error": "Not found."})
             return
 
@@ -840,8 +1175,11 @@ class AppGalleryHandler(BaseHTTPRequestHandler):
             if parsed.path == "/submissions":
                 submission = save_submission(validate_submission(payload))
                 self.write_json(HTTPStatus.CREATED, {"submission": submission})
-            else:
+            elif parsed.path == "/votes":
                 vote = save_vote(validate_vote(payload))
+                self.write_json(HTTPStatus.CREATED, {"vote": vote})
+            else:
+                vote = save_final_vote(validate_final_vote(payload))
                 self.write_json(HTTPStatus.CREATED, {"vote": vote})
         except json.JSONDecodeError:
             self.write_json(HTTPStatus.BAD_REQUEST, {"error": "Request body must be valid JSON."})
@@ -850,7 +1188,10 @@ class AppGalleryHandler(BaseHTTPRequestHandler):
             self.write_json(HTTPStatus.BAD_REQUEST, {"error": str(error)})
             return
         except sqlite3.Error:
-            repository_name = "Vote" if parsed.path == "/votes" else "Submission"
+            repository_name = {
+                "/final-votes": "Final round vote",
+                "/votes": "Vote",
+            }.get(parsed.path, "Submission")
             self.write_json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": f"{repository_name} repository is unavailable."})
             return
 

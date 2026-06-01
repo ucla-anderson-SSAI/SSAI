@@ -765,6 +765,7 @@
       <button class="tab-button" id="browse-tab" type="button" role="tab" aria-controls="browse" aria-selected="true" data-tab-target="browse">Browse</button>
       <button class="tab-button" id="submit-tab" type="button" role="tab" aria-controls="submit" aria-selected="false" tabindex="-1" data-tab-target="submit">Submit</button>
       <button class="tab-button" id="vote-tab" type="button" role="tab" aria-controls="vote" aria-selected="false" tabindex="-1" data-tab-target="vote">Vote</button>
+      <button class="tab-button" id="final-vote-tab" type="button" role="tab" aria-controls="final-vote" aria-selected="false" tabindex="-1" data-tab-target="final-vote">Final Round</button>
     </div>
 
     <section class="section-band tab-panel" id="browse" role="tabpanel" aria-labelledby="browse-tab">
@@ -876,6 +877,36 @@
         </form>
       </div>
     </section>
+
+    <section class="section-band tab-panel" id="final-vote" role="tabpanel" aria-labelledby="final-vote-tab" hidden>
+      <div class="section-heading">
+        <h2 id="final-vote-heading">Final Round Voting</h2>
+        <span class="section-dots" aria-hidden="true"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>
+      </div>
+      <p class="section-note">Enter your UID and pick your two favorite finalist teams. Choices are not ranked; each one counts equally.</p>
+      <div class="vote-panel">
+        <form class="submission-form" id="finalVoteForm">
+          <div class="form-grid">
+            <label class="field-group full">
+              9-digit UID
+              <input class="field-input" name="studentUid" inputmode="numeric" autocomplete="off" required>
+            </label>
+            <label class="field-group">
+              Favorite 1
+              <select class="field-input" name="choice1" data-final-vote-choice required></select>
+            </label>
+            <label class="field-group">
+              Favorite 2
+              <select class="field-input" name="choice2" data-final-vote-choice required></select>
+            </label>
+          </div>
+          <div class="form-actions">
+            <button class="button-link primary" type="submit">Submit Final Vote</button>
+            <span class="form-status" id="finalVoteStatus"></span>
+          </div>
+        </form>
+      </div>
+    </section>
   </main>
 
   <div class="modal-overlay" id="summaryModalOverlay" hidden>
@@ -900,14 +931,110 @@
       { key: "limitations", label: "What are the main limitations of your approach?" },
       { key: "improvements", label: "How would you improve your product?" }
     ];
-    const FINALIST_APP_NAMES = new Set([
-      "10k buffett",
-      "2026 world cup companion",
-      "astral audio",
-      "can i recycle this?",
-      "fridgeai",
-      "snapcompare",
-      "valet"
+    const FINAL_ROUND_TEAM_NAMES = [
+      "10K BUFFETT",
+      "2026 World Cup Companion",
+      "Astral Audio",
+      "Can I Recycle This?",
+      "FridgeAI",
+      "Snapcompare",
+      "Valet"
+    ];
+    const FINALIST_APP_NAMES = new Set(FINAL_ROUND_TEAM_NAMES.map((name) => name.toLowerCase()));
+    const ELIGIBLE_ROSTER_UIDS = new Set([
+      "906577722",
+      "504886395",
+      "006776575",
+      "506523571",
+      "606577672",
+      "606775436",
+      "406536437",
+      "006535618",
+      "406313352",
+      "606536356",
+      "906536741",
+      "505881235",
+      "906533950",
+      "006308003",
+      "806536992",
+      "906775010",
+      "706344677",
+      "106777254",
+      "206338966",
+      "506578064",
+      "006535449",
+      "806536529",
+      "906345242",
+      "606309047",
+      "606788293",
+      "406775041",
+      "906777189",
+      "006537108",
+      "206536339",
+      "006537033",
+      "906535237",
+      "606578252",
+      "506338516",
+      "706577723",
+      "406535447",
+      "606536337",
+      "206536297",
+      "206789303",
+      "606535494",
+      "706534470",
+      "106553372",
+      "006338769",
+      "106538999",
+      "306339036",
+      "106771662",
+      "906537104",
+      "406536965",
+      "006534464",
+      "205179204",
+      "006535802",
+      "006577646",
+      "106338924",
+      "506344758",
+      "106789624",
+      "606776233",
+      "506578441",
+      "906776364",
+      "806344733",
+      "806774742",
+      "806535407",
+      "106535566",
+      "906776566",
+      "506791776",
+      "506534367",
+      "906534450",
+      "506577719",
+      "006578636",
+      "906789535",
+      "106534454",
+      "706535243",
+      "806553284",
+      "105269592",
+      "106759943",
+      "406536319",
+      "406338989",
+      "406539704",
+      "306536329",
+      "006536509",
+      "606533541",
+      "806789526",
+      "406338951",
+      "106535463",
+      "006523601",
+      "106535397",
+      "306348088",
+      "106535514",
+      "006338774",
+      "006338632",
+      "606775380",
+      "906789470",
+      "306577739",
+      "606534456",
+      "006775566"
     ]);
     const ADVERTISED_SUMMARY_WORDS = 500;
     const MAX_SUMMARY_WORDS = 600;
@@ -922,6 +1049,9 @@
     const voteForm = document.querySelector("#voteForm");
     const voteStatus = document.querySelector("#voteStatus");
     const voteChoiceFields = [...document.querySelectorAll("[data-vote-choice]")];
+    const finalVoteForm = document.querySelector("#finalVoteForm");
+    const finalVoteStatus = document.querySelector("#finalVoteStatus");
+    const finalVoteChoiceFields = [...document.querySelectorAll("[data-final-vote-choice]")];
     const summaryModalOverlay = document.querySelector("#summaryModalOverlay");
     const summaryModalTitle = document.querySelector("#summaryModalTitle");
     const summaryModalContent = document.querySelector("#summaryModalContent");
@@ -1006,6 +1136,17 @@
       voteStatus.dataset.status = status;
     }
 
+    function uidValidationMessage(studentUid) {
+      if (!/^\d{9}$/.test(studentUid)) return "Please enter a 9-digit UID.";
+      if (!ELIGIBLE_ROSTER_UIDS.has(studentUid)) return "UID is not on the course roster.";
+      return "";
+    }
+
+    function setFinalVoteStatus(message, status = "") {
+      finalVoteStatus.textContent = message;
+      finalVoteStatus.dataset.status = status;
+    }
+
     function compareAppNames(a, b) {
       return normalize(a.appName).localeCompare(normalize(b.appName), undefined, { sensitivity: "base" });
     }
@@ -1031,6 +1172,14 @@
       return {
         studentUid: normalize(formData.get("studentUid")),
         choices: voteChoiceFields.map((field) => normalize(field.value)).filter(Boolean)
+      };
+    }
+
+    function finalVotePayload() {
+      const formData = new FormData(finalVoteForm);
+      return {
+        studentUid: normalize(formData.get("studentUid")),
+        choices: finalVoteChoiceFields.map((field) => normalize(field.value)).filter(Boolean)
       };
     }
 
@@ -1120,6 +1269,17 @@
 
     async function saveRepositoryVote(vote) {
       const payload = await apiRequest("/votes", {
+        method: "POST",
+        body: JSON.stringify(vote)
+      });
+      if (!payload.vote) {
+        throw new Error("Vote repository did not return the saved ballot.");
+      }
+      return payload.vote;
+    }
+
+    async function saveRepositoryFinalVote(vote) {
+      const payload = await apiRequest("/final-votes", {
         method: "POST",
         body: JSON.stringify(vote)
       });
@@ -1256,6 +1416,21 @@
 
     }
 
+    function populateFinalVoteChoices() {
+      const optionHtml = [
+        '<option value="">Select a finalist team</option>',
+        ...FINAL_ROUND_TEAM_NAMES.map((teamName) => `<option value="${escapeHtml(teamName)}">${escapeHtml(teamName)}</option>`)
+      ].join("");
+
+      finalVoteChoiceFields.forEach((field) => {
+        const currentValue = field.value;
+        field.innerHTML = optionHtml;
+        if (FINAL_ROUND_TEAM_NAMES.includes(currentValue)) {
+          field.value = currentValue;
+        }
+      });
+    }
+
     function render() {
       const query = librarySearch.value.trim().toLowerCase();
       const filtered = submissions
@@ -1285,6 +1460,7 @@
       }
 
       populateVoteChoices();
+      populateFinalVoteChoices();
       render();
     }
 
@@ -1335,13 +1511,47 @@
       submitButton.disabled = false;
     });
 
+    finalVoteForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const payload = finalVotePayload();
+      const submitButton = finalVoteForm.querySelector('button[type="submit"]');
+
+      const uidError = uidValidationMessage(payload.studentUid);
+      if (uidError) {
+        setFinalVoteStatus(uidError, "error");
+        return;
+      }
+
+      if (payload.choices.length !== 2) {
+        setFinalVoteStatus("Please select two finalist teams.", "error");
+        return;
+      }
+
+      if (new Set(payload.choices).size !== 2) {
+        setFinalVoteStatus("Please select two different finalist teams.", "error");
+        return;
+      }
+
+      submitButton.disabled = true;
+      try {
+        await saveRepositoryFinalVote(payload);
+        finalVoteForm.reset();
+        populateFinalVoteChoices();
+        setFinalVoteStatus("Final round vote submitted.", "success");
+      } catch (error) {
+        setFinalVoteStatus(error.message || "Final round vote could not be saved.", "error");
+      }
+      submitButton.disabled = false;
+    });
+
     voteForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const payload = votePayload();
       const submitButton = voteForm.querySelector('button[type="submit"]');
 
-      if (!/^\d{9}$/.test(payload.studentUid)) {
-        setVoteStatus("Please enter a 9-digit UID.", "error");
+      const uidError = uidValidationMessage(payload.studentUid);
+      if (uidError) {
+        setVoteStatus(uidError, "error");
         return;
       }
 
@@ -1406,6 +1616,7 @@
 
     selectTab(tabFromHash(), false);
     librarySearch.addEventListener("input", render);
+    populateFinalVoteChoices();
     loadSubmissions();
   </script>
 </body>
