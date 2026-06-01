@@ -317,7 +317,7 @@ def summary_word_count(summary: dict[str, str]) -> int:
 
 def uid_errors(student_uid: str) -> list[str]:
     if not UID_PATTERN.fullmatch(student_uid):
-        return ["Student UID must be 9 digits."]
+        return ["9-digit UID not found."]
     if student_uid not in ELIGIBLE_ROSTER_UIDS:
         return ["Student UID is not on the course roster."]
     return []

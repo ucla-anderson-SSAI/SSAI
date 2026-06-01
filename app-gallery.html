@@ -1137,7 +1137,7 @@
     }
 
     function uidValidationMessage(studentUid) {
-      if (!/^\d{9}$/.test(studentUid)) return "Please enter a 9-digit UID.";
+      if (!/^\d{9}$/.test(studentUid)) return "9-digit UID not found.";
       if (!ELIGIBLE_ROSTER_UIDS.has(studentUid)) return "UID is not on the course roster.";
       return "";
     }
