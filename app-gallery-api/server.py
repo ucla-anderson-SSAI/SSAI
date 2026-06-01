@@ -802,11 +802,11 @@ def render_admin_page() -> bytes:
       <div class="status" id="status"></div>
     </div>
 
-    <h2>Vote Results</h2>
-    <div class="vote-results" id="voteResults"></div>
-
     <h2>Final Round Voting Summary</h2>
     <div class="vote-results" id="finalVoteResults"></div>
+
+    <h2>Vote Results</h2>
+    <div class="vote-results" id="voteResults"></div>
 
     <h2>Submissions</h2>
     <div id="submissions"></div>
